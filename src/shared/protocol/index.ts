@@ -3,4 +3,5 @@ export * from './common';
 export * from './constants';
 export * from './intents';
 export * from './messages';
+export * from './patch';
 export * from './state';
