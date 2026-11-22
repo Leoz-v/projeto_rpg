@@ -157,6 +157,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 3. **Fase 3 — Fichas & Progressão (interface):** telas de criação de personagem e de subida de nível sobre o motor da Fase 1, gerenciamento de inventário e sincronização offline com aprovação do mestre.
 4. **Fase 4 — Motor de Ações & Efeitos:** resolução assistida de ataques, dano, resistências, salvaguardas, maestrias e overrides do mestre.
    - *Antecipado:* aplicação de dano na ordem do SRD (`applyDamage`: imunidade, reduções roladas, Resistência, Vulnerabilidade) e RNG injetável com rolagens registradas (`engine/dice.ts`). Ver `docs/decisions/0014-itens-magicos.md`.
+   - *Antecipado:* Teste d20 com as regras declarativas (`rollD20`: Halfling Luck, Reliable Talent, Indomitable Might, sucesso automático, 18–20 contam como 20) e mínimo nos dados de dano (Great Weapon Fighting). Ver `docs/decisions/0017-regras-do-teste-d20.md`.
    - Vantagens circunstanciais aplicadas automaticamente na rolagem (ex.: Dwarven Resilience contra Envenenado): passar `roll.against` ao motor na resolução. Os dados já usam o predicado `against` (ver `docs/decisions/0006-predicado-against.md`).
 5. **Fase 5 — Combate:** iniciativa, turnos, condições (incluindo Exaustão 2024) e concentração.
 

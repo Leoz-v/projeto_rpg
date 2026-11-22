@@ -41,12 +41,13 @@ Lista fechada. Um `when` é um objeto com **uma** destas chaves; para combinar, 
 | `{ "against": { "source": "magic" } }` | A rolagem é contra uma magia **ou** outro efeito mágico ("against spells and other magical effects"). Uma rolagem contra magia satisfaz os dois. |
 | `{ "weaponCategory": "simple" }` | A arma usada é da categoria `simple` \| `martial`. |
 | `{ "weaponId": "longbow" }` | A arma usada é este item do compêndio (numa arma mágica, o item base). Ex.: Bracers of Archery, "+2 de dano com Longbow e Shortbow". |
+| `{ "twoHanded": true }` | A arma é empunhada com as duas mãos, como ela permite: propriedade Two-Handed, ou Versatile usada com as duas mãos (Great Weapon Fighting). |
 | `{ "hasCondition": "incapacitated" }` | A criatura está com a condição (ex.: "a aura fica inativa enquanto você está Incapacitado"). |
 | `{ "not": { … } }` | O predicado interno é falso. |
 | `{ "all": [ … ] }`              | Todos os predicados são verdadeiros. |
 | `{ "any": [ … ] }`              | Pelo menos um é verdadeiro. |
 
-**Predicados de contexto** (`attackKind`, `weaponProperty`, `weaponCategory`, `weaponId`, `against`) só têm valor durante uma rolagem concreta. Fora dela (ficha estática), o motor os trata como *desconhecidos*, com lógica de três valores: `all` é falso se algum for falso e desconhecido se algum for desconhecido; `any` é verdadeiro se algum for verdadeiro e desconhecido se algum for desconhecido; `not` de desconhecido é desconhecido. Um efeito de vantagem/desvantagem com `when` desconhecido aparece como lembrete (`situational`); bônus planos com `when` desconhecido não entram no total.
+**Predicados de contexto** (`attackKind`, `weaponProperty`, `weaponCategory`, `weaponId`, `twoHanded`, `against`) só têm valor durante uma rolagem concreta. Fora dela (ficha estática), o motor os trata como *desconhecidos*, com lógica de três valores: `all` é falso se algum for falso e desconhecido se algum for desconhecido; `any` é verdadeiro se algum for verdadeiro e desconhecido se algum for desconhecido; `not` de desconhecido é desconhecido. Um efeito de vantagem/desvantagem com `when` desconhecido aparece como lembrete (`situational`); bônus planos com `when` desconhecido não entram no total.
 
 ## 3. Tipos de efeito
 
@@ -90,7 +91,7 @@ Fórmula base de Classe de Armadura.
 { "type": "disadvantage", "target": "skill.stealth", "when": { "armorCategory": "heavy" } }
 ```
 
-- `target`: `attack.<melee|ranged|spell>`, `attack.all`, `save.<ability>`, `save.all`, `check.<ability>`, `skill.<skill>`, `initiative`.
+- `target`: `attack.<melee|ranged|spell>`, `attack.all`, `save.<ability>`, `save.all`, `check.<ability>`, `skill.<skill>`, `initiative`, `death_save` (Salvaguarda contra a Morte; ex.: Survivor do Champion).
 - **Circunstâncias da rolagem:** prefira um predicado no `when` (ex.: `{ "against": { "condition": "frightened" } }`). O motor aplica automaticamente quando a rolagem tem esse contexto (Fase 4) e, na ficha estática, mostra o efeito como lembrete.
 - `note` fica para circunstâncias que nenhum predicado expressa. Nesse caso a UI mostra o lembrete e o mestre decide.
 - **Regra 2024:** havendo ao menos uma fonte de vantagem e uma de desvantagem, elas se anulam e a rolagem é normal, **qualquer que seja a quantidade** de cada uma.
@@ -251,6 +252,43 @@ O valor do atributo passa a ser pelo menos `value` (ex.: Manoplas de Força do O
 - Os ataques com arma da criatura fazem Acerto Crítico com `min` ou mais no d20 (Improved Critical: 19–20; Superior Critical: 18–20).
 - Vale o menor `min` entre as fontes ativas (não se acumulam). O `when` é avaliado no contexto do ataque.
 
+### 3.17 `d20_rule`
+
+Regra que muda o resultado de um Teste d20 (ataque, salvaguarda ou teste de atributo), aplicada pelo motor na rolagem (`rollD20`).
+
+```json
+{ "type": "d20_rule", "rule": "reroll", "on": 1, "target": "d20_test" }
+{ "type": "d20_rule", "rule": "minimum_die", "value": 10, "target": "check.proficient" }
+{ "type": "d20_rule", "rule": "minimum_total", "value": { "score": "str" }, "target": "check.str" }
+{ "type": "d20_rule", "rule": "auto_success", "target": "save.all", "when": { "against": { "source": "magic" } } }
+{ "type": "d20_rule", "rule": "count_as_20", "min": 18, "target": "death_save" }
+```
+
+| `rule` | Campos | O que faz | Exemplo no SRD |
+|---|---|---|---|
+| `reroll` | `on` (1–20) | Cada d20 que mostrar `on` é rolado de novo uma vez, e vale o novo valor. | Halfling Luck: "When you roll a 1 on the d20 of a D20 Test, you can reroll the die, and you must use the new roll." |
+| `minimum_die` | `value` (1–20) | O d20 mantido vale pelo menos `value`. | Reliable Talent: "treat a d20 roll of 9 or lower as a 10". |
+| `minimum_total` | `value`: inteiro ou `{ "score": <ability> }` | O total vale pelo menos `value` (o valor do atributo, não o modificador). | Indomitable Might: "If your total for a Strength check or Strength saving throw is less than your Strength score, you can use that score in place of the total." |
+| `auto_success` | — | A salvaguarda ou o teste é um sucesso, qualquer que seja o resultado. | Greater Magic Resistance: "automatically succeeds on saving throws against spells and other magical effects". |
+| `count_as_20` | `min` (2–20) | Um d20 de `min` ou mais vale como 20 natural. | Survivor: "when you roll 18–20 on a Death Saving Throw, you gain the benefit of rolling a 20 on it". |
+
+- `target`: os alvos de `advantage` (3.3) e mais:
+  - `d20_test`: todo Teste d20 (ataques, salvaguardas, testes de atributo, iniciativa e Salvaguardas contra a Morte);
+  - `check.all`: todo teste de atributo;
+  - `check.proficient`: testes de atributo que usam uma proficiência em perícia ou ferramenta da criatura. Meia proficiência (Jack of All Trades) não conta.
+- O texto do SRD diz "you can" nessas regras, mas nenhuma delas piora a rolagem. Por isso o motor as aplica sempre, e cada passo fica no registro da rolagem (o mestre pode desfazer).
+- Várias regras do mesmo tipo não se acumulam: `reroll` rola cada dado só uma vez; de `minimum_die` e `minimum_total` vale o maior; de `count_as_20` vale o menor `min`.
+- O `when` é avaliado no contexto da rolagem. Na ficha estática, uma regra com `when` desconhecido aparece como lembrete, como as vantagens.
+
+### 3.18 `damage_die_minimum`
+
+```json
+{ "type": "damage_die_minimum", "min": 3, "when": { "all": [{ "attackKind": "melee" }, { "twoHanded": true }] } }
+```
+
+- Cada dado de dano do ataque que mostrar menos que `min` vale `min` (Great Weapon Fighting: "treat any 1 or 2 on a damage die as a 3"). Vale para todos os dados de dano do ataque, inclusive os de `extra_damage` e os dobrados no crítico.
+- Vale o maior `min` entre as fontes. O `when` é avaliado no contexto do ataque; a ficha mostra o mínimo em cada ataque, separado para o uso com duas mãos de uma arma Versatile.
+
 ## 4. Ordem de cálculo da ficha
 
 1. Valores base dos atributos (lista de escolhas: ASIs do antecedente e de talentos e aumentos fixos de classe, como Primal Champion).
@@ -272,6 +310,23 @@ Cada número da ficha guarda a lista de contribuições com a fonte de cada uma,
 | Passiva de S | total da perícia S (com ±5 por vantagem/desvantagem) + `passive.S` |
 | Ataque com arma do tipo K | `attack.K`, `attack.all` (bônus planos só em `attack.K`); dano em `damage.K` |
 | Ataque mágico | `attack.spell`; CD em `spell_save_dc` |
+| Salvaguarda contra a Morte | `death_save`, `save.all` (é uma salvaguarda; não usa atributo) |
+
+Um `d20_rule` também casa com `d20_test` em toda rolagem, com `check.all` em todo teste de atributo (perícias e iniciativa) e com `check.proficient` nos testes de perícia com proficiência.
+
+### Rolagem d20 (`rollD20`)
+
+O motor rola os Testes d20 com o RNG injetado (`engine/dice.ts`) e registra cada passo, nesta ordem:
+
+1. Rola um d20, ou dois com Vantagem ou Desvantagem (`mode` da ficha).
+2. `reroll`: rola de novo cada dado que mostrou `on`.
+3. Mantém o maior (Vantagem) ou o menor (Desvantagem). Esse é o resultado natural: 20 natural (ou `count_as_20`, ou `crit_range` no ataque) é crítico; 1 natural é falha crítica.
+4. `minimum_die` sobre o dado mantido.
+5. Soma o modificador da ficha (que já inclui a Exaustão).
+6. `minimum_total`.
+7. Contra uma CD: sucesso se o total alcança a CD, ou sempre com `auto_success`.
+
+O resultado de cada ataque contra a CA (20 natural sempre acerta, 1 natural sempre erra) e as consequências da Salvaguarda contra a Morte ficam para a Fase 4 e a Fase 5; `rollD20` informa o natural, o total e se foi crítico.
 
 ### Efeitos gerados pelo próprio motor (regras do SRD, não dados)
 

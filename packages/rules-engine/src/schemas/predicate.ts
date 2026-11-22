@@ -19,6 +19,8 @@ export type Predicate =
   | { weaponCategory: 'simple' | 'martial' }
   /** A arma usada é este item (id do compêndio; numa arma mágica, o id do item base). */
   | { weaponId: string }
+  /** A arma é empunhada com as duas mãos (Two-Handed, ou Versatile usada com as duas mãos). */
+  | { twoHanded: boolean }
   /** A criatura está com a condição. */
   | { hasCondition: z.infer<typeof ConditionSchema> }
   | { not: Predicate }
@@ -36,6 +38,7 @@ export const PredicateSchema: z.ZodType<Predicate> = z.lazy(() =>
     z.strictObject({ against: z.strictObject({ source: z.enum(['spell', 'magic']) }) }),
     z.strictObject({ weaponCategory: z.enum(['simple', 'martial']) }),
     z.strictObject({ weaponId: IdSchema }),
+    z.strictObject({ twoHanded: z.boolean() }),
     z.strictObject({ hasCondition: ConditionSchema }),
     z.strictObject({ not: PredicateSchema }),
     z.strictObject({ all: z.array(PredicateSchema).min(1) }),

@@ -16,12 +16,16 @@ const snake = (name: string): string => name.toLowerCase().replace(/'/g, '').rep
 
 const srd = loadSrdCompendium();
 
+/** Características com efeitos (base das entradas parciais). */
+const featuresWithEffects = new Set<string>();
+
 /** Características sem efeito, com o nível da fonte em que aparecem e se o nível tem outras concessões. */
 function featuresWithoutEffects(): Map<string, boolean> {
   const out = new Map<string, boolean>();
   const visit = (grants: readonly Grant[], src: string): void => {
     const others = grants.some((g) => g.kind !== 'feature');
     for (const g of grants) {
+      if (g.kind === 'feature' && g.feature.effects.length > 0) featuresWithEffects.add(`feature:${src}/${g.feature.id}`);
       if (g.kind === 'feature' && g.feature.effects.length === 0) {
         const key = `feature:${src}/${g.feature.id}`;
         out.set(key, (out.get(key) ?? false) || others);
@@ -59,6 +63,9 @@ const variantKeys = new Set(magic.flatMap((i) => i.variants.filter((v) => v.effe
 const traitKeys = new Set(
   srd.creatures.flatMap((c) => c.traits.filter((t) => t.effects.length === 0).map((t) => `monster_trait:${snake(t.name.split(' (')[0] ?? t.name)}`)),
 );
+const traitsWithEffects = new Set(
+  srd.creatures.flatMap((c) => c.traits.filter((t) => t.effects.length > 0).map((t) => `monster_trait:${snake(t.name.split(' (')[0] ?? t.name)}`)),
+);
 const actionKeys = new Set(
   srd.creatures.flatMap((c) => c.actions.filter((a) => a.kind === 'text').map((a) => `monster_action:${snake(a.name.split(' (')[0] ?? a.name)}`)),
 );
@@ -72,8 +79,11 @@ describe('automation backlog (Fase 1.5)', () => {
 
   it('lists only things that still lack effects (automated entries leave the backlog)', () => {
     const known = new Set([...features.keys(), ...itemKeys, ...variantKeys, ...traitKeys, ...actionKeys]);
-    // Entradas parciais (`item:<id>#<aspecto>`): o item já tem efeitos e guarda uma parte pendente.
-    const isPartial = (k: string): boolean => k.includes('#') && magic.some((i) => `item:${i.id}` === k.split('#')[0]);
+    // Entradas parciais (`<chave>#<aspecto>`): a fonte já tem efeitos e guarda uma parte pendente.
+    const isPartial = (k: string): boolean => {
+      const base = k.split('#')[0] ?? k;
+      return k.includes('#') && (magic.some((i) => `item:${i.id}` === base) || featuresWithEffects.has(base) || traitsWithEffects.has(base));
+    };
     expect(Object.keys(entries).filter((k) => !known.has(k) && !isPartial(k))).toEqual([]);
   });
 

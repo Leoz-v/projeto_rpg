@@ -21098,7 +21098,19 @@
       {
         "id": "greater_magic_resistance",
         "name": "Greater Magic Resistance",
-        "description": "The rakshasa automatically succeeds on saving throws against spells and other magical effects, and the attack rolls of spells automatically miss it. Without the rakshasa's permission, no spell can observe the rakshasa remotely or detect its thoughts, creature type, or alignment."
+        "description": "The rakshasa automatically succeeds on saving throws against spells and other magical effects, and the attack rolls of spells automatically miss it. Without the rakshasa's permission, no spell can observe the rakshasa remotely or detect its thoughts, creature type, or alignment.",
+        "effects": [
+          {
+            "type": "d20_rule",
+            "rule": "auto_success",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       },
       {
         "id": "fiendish_restoration",

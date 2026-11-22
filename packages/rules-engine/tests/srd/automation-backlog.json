@@ -1,7 +1,5 @@
 {
   "mechanics": {
-    "d20_rules": "Regras automáticas da rolagem d20/dano: rerrolar 1, mínimo 10, usar o valor do atributo, tratar 1-2 como 3.",
-    "death_saves": "Alvo de rolagem para salvaguardas contra a morte (vantagem).",
     "minimum_speed": "Deslocamento mínimo ('your Speed becomes 30 feet unless higher').",
     "base_override": "Item mágico que altera o item base: remove penalidades da armadura (Mithral) ou muda propriedades e proficiência da arma (Sun Blade).",
     "species_predicate": "Predicado pela espécie do personagem ('if you aren't a dwarf')."
@@ -22,13 +20,6 @@
     "feature:class:barbarian/improved_brutal_strike_17": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:class:barbarian/indomitable_might": {
-      "category": "automate",
-      "reason": "Passivo: vale sempre que a característica está ativa.",
-      "mechanics": [
-        "d20_rules"
-      ]
     },
     "feature:class:barbarian/instinctive_pounce": {
       "category": "phase_4",
@@ -370,13 +361,6 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:class:rogue/reliable_talent": {
-      "category": "automate",
-      "reason": "Passivo: vale sempre que a característica está ativa.",
-      "mechanics": [
-        "d20_rules"
-      ]
-    },
     "feature:class:rogue/sneak_attack": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
@@ -613,13 +597,6 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:feat:great_weapon_fighting/great_weapon_fighting": {
-      "category": "automate",
-      "reason": "Passivo: vale sempre que a característica está ativa.",
-      "mechanics": [
-        "d20_rules"
-      ]
-    },
     "feature:feat:savage_attacker/savage_attacker": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
@@ -704,13 +681,6 @@
       "category": "gm",
       "reason": "Efeito de exploração, percepção ou narrativa: o mestre decide (sem número na ficha)."
     },
-    "feature:species:halfling/luck": {
-      "category": "automate",
-      "reason": "Passivo: vale sempre que a característica está ativa.",
-      "mechanics": [
-        "d20_rules"
-      ]
-    },
     "feature:species:halfling/naturally_stealthy": {
       "category": "gm",
       "reason": "Efeito de exploração, percepção ou narrativa: o mestre decide (sem número na ficha)."
@@ -759,12 +729,9 @@
       "category": "phase_5",
       "reason": "Depende do estado de combate (iniciativa, turnos, fúria ativa, concentração, condições)."
     },
-    "feature:subclass:champion/survivor": {
-      "category": "automate",
-      "reason": "Passivo: vale sempre que a característica está ativa.",
-      "mechanics": [
-        "death_saves"
-      ]
+    "feature:subclass:champion/survivor#heroic_rally": {
+      "category": "phase_5",
+      "reason": "Heroic Rally: recupera PV no início de cada turno se estiver Bloodied (turnos de combate)."
     },
     "feature:subclass:circle_of_the_land/circle_of_the_land_spells": {
       "category": "structural",
@@ -2218,12 +2185,9 @@
       "category": "phase_4",
       "reason": "Traço ou ação de criatura: resolução assistida no combate (Fase 4)."
     },
-    "monster_trait:greater_magic_resistance": {
-      "category": "automate",
-      "reason": "Passivo da criatura.",
-      "mechanics": [
-        "d20_rules"
-      ]
+    "monster_trait:greater_magic_resistance#spell_attacks_miss": {
+      "category": "phase_4",
+      "reason": "Ataques de magia erram a criatura automaticamente (resolução do ataque)."
     },
     "monster_trait:heat_aura": {
       "category": "phase_4",

@@ -26,13 +26,18 @@ export function seededRng(seed: number): Rng {
 
 export interface DiceRoll {
   expression: Dice;
-  /** Cada dado rolado, na ordem da expressão. */
-  rolls: { sides: number; value: number }[];
+  /** Cada dado rolado, na ordem da expressão; `rolled` é o valor do dado quando `minimumDie` o subiu. */
+  rolls: { sides: number; value: number; rolled?: number | undefined }[];
   total: number;
 }
 
+export interface RollDiceOptions {
+  /** Cada dado abaixo disto vale isto (`damage_die_minimum`, Great Weapon Fighting). */
+  minimumDie?: number | undefined;
+}
+
 /** Rola uma expressão no formato do DiceSchema (`2d8`, `1d10+1d6-1`, `5`). */
-export function rollDice(expression: Dice, rng: Rng): DiceRoll {
+export function rollDice(expression: Dice, rng: Rng, options: RollDiceOptions = {}): DiceRoll {
   const rolls: DiceRoll['rolls'] = [];
   let total = 0;
   for (const [, sign, count, sides, flat] of expression.matchAll(/([+-]?)(?:(\d+)d(\d+)|(\d+))/g)) {
@@ -42,8 +47,9 @@ export function rollDice(expression: Dice, rng: Rng): DiceRoll {
       continue;
     }
     for (let i = 0; i < Number(count); i++) {
-      const value = rng.roll(Number(sides));
-      rolls.push({ sides: Number(sides), value });
+      const rolled = rng.roll(Number(sides));
+      const value = Math.max(rolled, options.minimumDie ?? rolled);
+      rolls.push({ sides: Number(sides), value, ...(value !== rolled ? { rolled } : {}) });
       total += s * value;
     }
   }
