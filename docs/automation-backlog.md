@@ -22,12 +22,12 @@ Magias ficam fora: a resolução delas é toda da Fase 4.
 | Categoria | O que é | Quantas |
 |---|---|---|
 | `structural` | A mecânica já existe em outro ponto do modelo: escolha, concessão ou conjuração no mesmo nível (ex.: "Expertise" é a escolha `expertise_1`). | 53 |
-| `automate` | Passivo e automatizável agora, estendendo o catálogo de efeitos. Fila abaixo. | 25 |
+| `automate` | Passivo e automatizável agora, estendendo o catálogo de efeitos. Fila abaixo. | 21 |
 | `phase_4` | Ação, reação, recurso, uso de item, ou efeito no momento da rolagem ou do dano contra um alvo (Sneak Attack, cargas, poções, Multiattack). | 440 |
 | `phase_5` | Depende do estado de combate: iniciativa, turnos, fúria ativa, concentração (Alert, Persistent Rage, Mindless Rage). | 11 |
 | `gm` | Exploração, percepção, narrativa ou efeito permanente que é ajuste do mestre (Bag of Holding, Manuals e Tomes, Spider Climb). | 94 |
 
-Total: 623 entradas.
+Total: 619 entradas.
 
 ## Fila `automate`, por extensão de catálogo
 
@@ -35,12 +35,11 @@ Um PR por grupo. Em cada um: primeiro `docs/effects-spec.md`, depois o schema, o
 
 | Ordem | Mecânica | Entradas |
 |---|---|---|
-| 1 | `against_spells`: "vantagem em salvaguardas contra magias" | Mantle of Spell Resistance, Ring of Spell Turning, Spellguard Shield; monstros: Magic Resistance, Greater Magic Resistance |
-| 2 | `weapon_id` e `item_proficiency` | Bracers of Archery (+2 de dano e proficiência com Longbow e Shortbow), Belt of Dwarvenkind (Dwarvish) |
-| 3 | `capped_ability_increase` e `proficiency_bonus` | Belt of Dwarvenkind (CON +2 até 20), Ioun Stones (Agility, Fortitude, Insight, Intellect, Leadership, Strength; Mastery: +1 de proficiência) |
-| 4 | `extra_damage` e `crit_range` | Radiant Strikes (Paladino 11), Vicious Weapon; Improved Critical e Superior Critical (Champion) |
-| 5 | `d20_rules` e `death_saves` | Halfling Luck, Reliable Talent, Indomitable Might, Great Weapon Fighting; Survivor (vantagem contra a morte) |
-| 6 | `minimum_speed` e `armor_override` | Boots of Striding and Springing; Mithral Armor |
+| 1 | `weapon_id` e `item_proficiency` | Bracers of Archery (+2 de dano e proficiência com Longbow e Shortbow), Belt of Dwarvenkind (Dwarvish) |
+| 2 | `capped_ability_increase` e `proficiency_bonus` | Belt of Dwarvenkind (CON +2 até 20), Ioun Stones (Agility, Fortitude, Insight, Intellect, Leadership, Strength; Mastery: +1 de proficiência) |
+| 3 | `extra_damage` e `crit_range` | Radiant Strikes (Paladino 11), Vicious Weapon; Improved Critical e Superior Critical (Champion) |
+| 4 | `d20_rules` e `death_saves` | Halfling Luck, Reliable Talent, Indomitable Might, Great Weapon Fighting, Greater Magic Resistance (sucesso automático contra magia); Survivor (vantagem contra a morte) |
+| 5 | `minimum_speed` e `armor_override` | Boots of Striding and Springing; Mithral Armor |
 
 As regras de rolagem (`d20_rules`) são declaradas e testadas no motor agora. Elas passam a valer nas rolagens do chat quando a rolagem autoritativa existir (Fase 2), com o RNG injetável que já existe (`engine/dice.ts`).
 
@@ -55,3 +54,8 @@ As regras de rolagem (`d20_rules`) são declaradas e testadas no motor agora. El
   - Necklace of Adaptation: vantagem contra Envenenado, com o predicado `against`. Na leitura do texto, isso substituiu a "vantagem contra gases" que eu tinha anotado no inventário.
   - Eyes of Minute Seeing e Talisman of the Sphere: vantagens situacionais (`note`). A Darkvision de 1 pé dos Eyes não cabe no grid e ficou fora.
   - Monstros: Invisibility (condição Invisível), Sunlight Sensitivity e Light Sensitivity (Desvantagem situacional). Curadoria em `import_monsters.py`, com o trecho de apoio conferido.
+- **Grupo 2 — vantagem contra magias:** predicado `against.source`.
+  - `spell` ("against spells") e `magic` ("against spells and other magical effects"). Uma rolagem contra magia satisfaz os dois.
+  - Itens: Mantle of Spell Resistance, Ring of Spell Turning, Scarab of Protection e Staff of the Magi (`spell`); Spellguard Shield, Robe of the Archmagi e Holy Avenger (`magic`, só o portador).
+  - Monstros: Magic Resistance (`magic`, 27 criaturas). O Greater Magic Resistance é sucesso automático e foi para o grupo das regras de rolagem.
+  - Fica para a Fase 4: a Desvantagem que o Spellguard Shield impõe a quem ataca com magia.
