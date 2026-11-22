@@ -173,7 +173,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 
 ## Comandos
 
-*(Nota: a versão do pnpm está fixada em `packageManager` no `package.json` raiz e é resolvida pelo Corepack. O filtro `rules-engine` depende do campo `name` do `package.json` do pacote ser exatamente `rules-engine`. O TypeScript fica em `~6.0` enquanto o typescript-eslint não suportar a 7.)*
+*(Nota: a versão do pnpm está fixada em `packageManager` no `package.json` raiz; qualquer pnpm recente troca sozinho para ela dentro do projeto (sem Corepack, nota 0024). O filtro `rules-engine` depende do campo `name` do `package.json` do pacote ser exatamente `rules-engine`. O TypeScript fica em `~6.0` enquanto o typescript-eslint não suportar a 7.)*
 
 ```bash
 # Instalar dependências
