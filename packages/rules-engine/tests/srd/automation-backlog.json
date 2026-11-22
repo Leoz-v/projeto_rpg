@@ -1,6 +1,5 @@
 {
   "mechanics": {
-    "against_spells": "Predicado `against` para magias ('Advantage on saving throws against spells').",
     "weapon_id": "Predicado por arma específica ('+2 de dano com Longbow e Shortbow').",
     "item_proficiency": "Itens concedendo proficiência (hoje o motor ignora proficiências vindas de itens).",
     "capped_ability_increase": "Aumento de atributo com teto ('+2, até o máximo de 20').",
@@ -1341,13 +1340,6 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:mantle_of_spell_resistance": {
-      "category": "automate",
-      "reason": "Passivo enquanto vestido, empunhado ou sintonizado.",
-      "mechanics": [
-        "against_spells"
-      ]
-    },
     "item:manual_of_bodily_health": {
       "category": "gm",
       "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
@@ -1567,13 +1559,6 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:ring_of_spell_turning": {
-      "category": "automate",
-      "reason": "Passivo enquanto vestido, empunhado ou sintonizado.",
-      "mechanics": [
-        "against_spells"
-      ]
-    },
     "item:ring_of_telekinesis": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
@@ -1641,13 +1626,6 @@
     "item:spell_scroll": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:spellguard_shield": {
-      "category": "automate",
-      "reason": "Passivo enquanto vestido, empunhado ou sintonizado.",
-      "mechanics": [
-        "against_spells"
-      ]
     },
     "item:sphere_of_annihilation": {
       "category": "gm",
@@ -2328,7 +2306,7 @@
       "category": "automate",
       "reason": "Passivo da criatura.",
       "mechanics": [
-        "against_spells"
+        "d20_rules"
       ]
     },
     "monster_trait:heat_aura": {
@@ -2390,13 +2368,6 @@
     "monster_trait:loathsome_limbs": {
       "category": "phase_4",
       "reason": "Traço ou ação de criatura: resolução assistida no combate (Fase 4)."
-    },
-    "monster_trait:magic_resistance": {
-      "category": "automate",
-      "reason": "Passivo da criatura.",
-      "mechanics": [
-        "against_spells"
-      ]
     },
     "monster_trait:magic_rope": {
       "category": "phase_4",

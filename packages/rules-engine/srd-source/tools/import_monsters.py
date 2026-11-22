@@ -490,6 +490,8 @@ def parse_details(who, details, c, saves, pb):
 # A luz é contexto que o motor não conhece: a Desvantagem leva `note` e vira lembrete situacional.
 ALL_CHECKS_DIS = [{"type": "disadvantage", "target": f"check.{a}", "note": "Na luz do sol"} for a in ("str", "dex", "con", "int", "wis", "cha")]
 TRAIT_EFFECTS = {
+    "Magic Resistance": ([{"type": "advantage", "target": "save.all", "when": {"against": {"source": "magic"}}}],
+                         r"^The [\w -]+ has Advantage on saving throws against spells and other magical effects\.$"),
     "Invisibility": ([{"type": "condition", "condition": "invisible"}], r"has the Invisible condition\.$"),
     "Sunlight Sensitivity": ([{"type": "disadvantage", "target": "attack.all", "note": "Na luz do sol"}] + ALL_CHECKS_DIS,
                              r"^While in sunlight, the [\w -]+ has Disadvantage on ability checks and attack rolls\.$"),

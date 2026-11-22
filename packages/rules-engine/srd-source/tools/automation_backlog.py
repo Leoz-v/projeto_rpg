@@ -27,7 +27,6 @@ OUT = PKG / "tests" / "srd" / "automation-backlog.json"
 
 # Extensões de catálogo agrupadas (um PR por grupo, contrato em docs/effects-spec.md primeiro).
 MECHANICS = {
-    "against_spells": "Predicado `against` para magias ('Advantage on saving throws against spells').",
     "weapon_id": "Predicado por arma específica ('+2 de dano com Longbow e Shortbow').",
     "item_proficiency": "Itens concedendo proficiência (hoje o motor ignora proficiências vindas de itens).",
     "capped_ability_increase": "Aumento de atributo com teto ('+2, até o máximo de 20').",
@@ -93,7 +92,6 @@ FEATURE_REASONS = {
 # --- Itens mágicos -------------------------------------------------------------------------------------------
 ITEM = {
     "automate": {
-        "mantle_of_spell_resistance": "against_spells", "ring_of_spell_turning": "against_spells", "spellguard_shield": "against_spells",
         "bracers_of_archery": ["weapon_id", "item_proficiency"],
         "belt_of_dwarvenkind": ["capped_ability_increase", "item_proficiency"],
         "boots_of_striding_and_springing": "minimum_speed", "mithral_armor": "armor_override", "vicious_weapon": "extra_damage",
@@ -116,7 +114,8 @@ ITEM_REASONS = {
 
 # --- Monstros ------------------------------------------------------------------------------------------------
 MONSTER_TRAIT = {
-    "automate": {"magic_resistance": "against_spells", "greater_magic_resistance": "against_spells"},
+    # Greater Magic Resistance é sucesso automático (não vantagem): regra de rolagem.
+    "automate": {"greater_magic_resistance": "d20_rules"},
     "gm": ["amphibious", "limited_amphibiousness", "illumination", "water_breathing", "hold_breath", "spider_climb", "web_walker",
            "ice_walk", "earth_glide", "tunneler", "siege_monster", "beast_of_burden", "mimicry", "ethereal_sight", "treasure_sense",
            "sense_magic", "iron_scent", "divine_awareness", "speak_with_beasts_and_plants", "shark_telepathy", "telepathic_bond",

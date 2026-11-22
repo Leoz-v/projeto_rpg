@@ -37,6 +37,8 @@ Lista fechada. Um `when` é um objeto com **uma** destas chaves; para combinar, 
 | `{ "attackKind": "melee" }`     | Rolagem de ataque/dano `melee` \| `ranged` \| `spell`. |
 | `{ "weaponProperty": "finesse" }` | A arma usada tem a propriedade. |
 | `{ "against": { "condition": "poisoned" } }` | A rolagem é para evitar ou encerrar a condição (salvaguarda ou teste de atributo). |
+| `{ "against": { "source": "spell" } }` | A rolagem é contra uma magia ("saving throws against spells"). |
+| `{ "against": { "source": "magic" } }` | A rolagem é contra uma magia **ou** outro efeito mágico ("against spells and other magical effects"). Uma rolagem contra magia satisfaz os dois. |
 | `{ "weaponCategory": "simple" }` | A arma usada é da categoria `simple` \| `martial`. |
 | `{ "hasCondition": "incapacitated" }` | A criatura está com a condição (ex.: "a aura fica inativa enquanto você está Incapacitado"). |
 | `{ "not": { … } }` | O predicado interno é falso. |

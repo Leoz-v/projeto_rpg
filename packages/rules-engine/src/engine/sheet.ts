@@ -73,7 +73,11 @@ const SPELL_DC_BASE = 8;
 /** Uma rolagem concreta: o que é atacado ou evitado. */
 export interface RollContext {
   attack?: { kind: 'melee' | 'ranged' | 'spell'; properties: readonly string[]; category?: 'simple' | 'martial' | undefined } | undefined;
-  against?: { condition: Condition } | undefined;
+  /**
+   * O que a rolagem evita: uma condição e/ou a origem (`spell` = magia; `magic` = outro
+   * efeito mágico). Contra uma magia, use `spell`: ela satisfaz também `against.source: magic`.
+   */
+  against?: { condition?: Condition | undefined; source?: 'spell' | 'magic' | undefined } | undefined;
 }
 
 /** Contexto para avaliar `when`. Sem `roll`, é a ficha estática. */
@@ -97,7 +101,12 @@ export function evaluatePredicate(p: Predicate, ctx: PredicateContext): boolean 
   const { roll } = ctx;
   if ('attackKind' in p) return roll ? roll.attack?.kind === p.attackKind : undefined;
   if ('weaponProperty' in p) return roll ? (roll.attack?.properties.includes(p.weaponProperty) ?? false) : undefined;
-  if ('against' in p) return roll ? roll.against?.condition === p.against.condition : undefined;
+  if ('against' in p) {
+    if (!roll) return undefined;
+    if ('condition' in p.against) return roll.against?.condition === p.against.condition;
+    const source = roll.against?.source;
+    return p.against.source === 'spell' ? source === 'spell' : source === 'spell' || source === 'magic';
+  }
   if ('weaponCategory' in p) return roll ? roll.attack?.category === p.weaponCategory : undefined;
   if ('hasCondition' in p) return ctx.conditions.has(p.hasCondition);
   if ('not' in p) {

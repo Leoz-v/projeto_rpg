@@ -13,6 +13,8 @@ export type Predicate =
   | { weaponProperty: z.infer<typeof WeaponPropertySchema> }
   /** A rolagem é para evitar ou encerrar a condição. */
   | { against: { condition: z.infer<typeof ConditionSchema> } }
+  /** A rolagem é contra uma magia (`spell`) ou contra magia ou outro efeito mágico (`magic`). */
+  | { against: { source: 'spell' | 'magic' } }
   /** A arma usada é da categoria. */
   | { weaponCategory: 'simple' | 'martial' }
   /** A criatura está com a condição. */
@@ -29,6 +31,7 @@ export const PredicateSchema: z.ZodType<Predicate> = z.lazy(() =>
     z.strictObject({ attackKind: AttackKindSchema }),
     z.strictObject({ weaponProperty: WeaponPropertySchema }),
     z.strictObject({ against: z.strictObject({ condition: ConditionSchema }) }),
+    z.strictObject({ against: z.strictObject({ source: z.enum(['spell', 'magic']) }) }),
     z.strictObject({ weaponCategory: z.enum(['simple', 'martial']) }),
     z.strictObject({ hasCondition: ConditionSchema }),
     z.strictObject({ not: PredicateSchema }),

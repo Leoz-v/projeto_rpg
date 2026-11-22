@@ -1957,6 +1957,15 @@
         "type": "flat_bonus",
         "target": "damage.weapon",
         "value": 3
+      },
+      {
+        "type": "advantage",
+        "target": "save.all",
+        "when": {
+          "against": {
+            "source": "magic"
+          }
+        }
       }
     ],
     "description": "You gain a +3 bonus to attack rolls and damage rolls made with this magic weapon. When you hit a Fiend or an Undead with it, that creature takes an extra 2d10 Radiant damage.\nWhile you hold the drawn weapon, it creates a 10-foot Emanation originating from you. You and all creatures Friendly to you in the Emanation have Advantage on saving throws against spells and other magical effects. If you have 17 or more levels in the Paladin class, the size of the Emanation increases to 30 feet."
@@ -2293,6 +2302,17 @@
     "rarity": "rare",
     "attunement": {},
     "activation": "attuned",
+    "effects": [
+      {
+        "type": "advantage",
+        "target": "save.all",
+        "when": {
+          "against": {
+            "source": "spell"
+          }
+        }
+      }
+    ],
     "description": "You have Advantage on saving throws against spells while you wear this cloak."
   },
   {
@@ -3158,6 +3178,17 @@
     "rarity": "legendary",
     "attunement": {},
     "activation": "attuned",
+    "effects": [
+      {
+        "type": "advantage",
+        "target": "save.all",
+        "when": {
+          "against": {
+            "source": "spell"
+          }
+        }
+      }
+    ],
     "description": "While wearing this ring, you have Advantage on saving throws against spells. If you succeed on the save for a spell of level 7 or lower, the spell has no effect on you. If that spell targeted only you and didn't create an area of effect, you can take a Reaction to deflect the spell back at the spell's caster; the caster must make a saving throw against the spell using their own spell save DC."
   },
   {
@@ -3335,6 +3366,15 @@
         "type": "flat_bonus",
         "target": "attack.spell",
         "value": 2
+      },
+      {
+        "type": "advantage",
+        "target": "save.all",
+        "when": {
+          "against": {
+            "source": "magic"
+          }
+        }
       }
     ],
     "description": "This elegant garment is made from exquisite cloth and adorned with runes.\nYou gain these benefits while wearing the robe.\nArmor. If you aren't wearing armor, your base Armor Class is 15 plus your Dexterity modifier.\nMagic Resistance. You have Advantage on saving throws against spells and other magical effects.\nWar Mage. Your spell save DC and spell attack bonus each increase by 2."
@@ -3469,6 +3509,15 @@
         "type": "flat_bonus",
         "target": "ac",
         "value": 1
+      },
+      {
+        "type": "advantage",
+        "target": "save.all",
+        "when": {
+          "against": {
+            "source": "spell"
+          }
+        }
       }
     ],
     "description": "This beetle-shaped medallion provides three benefits while it is on your person.\nDefense. You gain a +1 bonus to Armor Class.\nPreservation. The scarab has 12 charges. If you fail a saving throw against a Necromancy spell or a harmful effect originating from an Undead, you can take a Reaction to expend 1 charge and turn the failed save into a successful one. The scarab crumbles into powder and is destroyed when its last charge is expended.\nSpell Resistance. You have Advantage on saving throws against spells."
@@ -3663,6 +3712,17 @@
         "shield"
       ]
     },
+    "effects": [
+      {
+        "type": "advantage",
+        "target": "save.all",
+        "when": {
+          "against": {
+            "source": "magic"
+          }
+        }
+      }
+    ],
     "description": "While holding this Shield, you have Advantage on saving throws against spells and other magical effects, and spell attack rolls have Disadvantage against you."
   },
   {
@@ -4003,6 +4063,15 @@
         "type": "flat_bonus",
         "target": "attack.spell",
         "value": 2
+      },
+      {
+        "type": "advantage",
+        "target": "save.all",
+        "when": {
+          "against": {
+            "source": "spell"
+          }
+        }
       }
     ],
     "description": "This staff has 50 charges and can be wielded as a magic Quarterstaff that grants a +2 bonus to attack rolls and damage rolls made with it. While you hold it, you gain a +2 bonus to spell attack rolls.\nSpell Absorption. While holding the staff, you have Advantage on saving throws against spells.\nIn addition, you can take a Reaction when another creature casts a spell that targets only you. If you do, the staff absorbs the magic of the spell, canceling its effect and gaining a number of charges equal to the absorbed spell's level. However, if doing so brings the staff's total number of charges above 50, the staff explodes as if you activated its Retributive Strike (see below).\nSpells. While holding the staff, you can cast one of the spells on the following table from it, using your spell save DC. The table indicates how many charges you must expend to cast the spell.\nSpell Charge Cost Arcane Lock 0 Conjure Elemental 7 Detect Magic 0 Dispel Magic 3 Enlarge/Reduce 0 Fireball (level 7 version) 7 Flaming Sphere 2 Ice Storm 4 Invisibility 2 Knock 2 Light 0 Lightning Bolt (level 7 version) 7 Spell Charge Cost Mage Hand 0 Passwall 5 Plane Shift 7 Protection from Evil and Good 0 Telekinesis 5 Wall of Fire 4 Web 2 Regaining Charges. The staff regains 4d6 + 2 expended charges daily at dawn. If you expend the last charge, roll 1d20. On a 20, the staff regains 1d12 + 1 charges.\nRetributive Strike. You can take a Magic action to break the staff over your knee or against a solid surface. The staff is destroyed and releases its magic in an explosion that fills a 30-foot Emanation originating from itself. You have a 50 percent chance to instantly travel to a random plane of existence, avoiding the explosion. If you fail to avoid the effect, you take Force damage equal to 16 times the number of charges in the staff. Each other creature in the area makes a DC 17 Dexterity saving throw. On a failed save, a creature takes Force damage equal to 6 times the number of charges in the staff. On a successful save, a creature takes half as much damage."

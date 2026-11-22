@@ -453,6 +453,17 @@ describe('SRD compendium', () => {
       expect(m('staff_of_fire').effects).toEqual([{ type: 'resistance', damageType: 'fire' }]);
     });
 
+    it('gives advantage on saves against spells, or against spells and other magical effects (group 2)', () => {
+      const vs = (source: 'spell' | 'magic') => ({ type: 'advantage', target: 'save.all', when: { against: { source } } });
+      for (const id of ['mantle_of_spell_resistance', 'ring_of_spell_turning', 'scarab_of_protection', 'staff_of_the_magi']) {
+        expect(m(id).effects, id).toContainEqual(vs('spell'));
+      }
+      for (const id of ['spellguard_shield', 'robe_of_the_archmagi', 'holy_avenger']) expect(m(id).effects, id).toContainEqual(vs('magic'));
+      // Na ficha estática, a vantagem aparece como lembrete situacional da salvaguarda.
+      const sheet = derive({ inventory: { items: [{ instanceId: 'm', itemId: 'mantle_of_spell_resistance', equipped: true, attuned: true }] } });
+      expect(sheet.saves.wis.roll.situational).toContainEqual(expect.objectContaining({ kind: 'advantage', when: { against: { source: 'spell' } } }));
+    });
+
     it('has clean text (no page footers or broken characters)', () => {
       for (const i of magic) expect(i.description ?? '', i.id).not.toMatch(/System Reference Document|�|−|­/);
     });
@@ -578,6 +589,12 @@ describe('SRD compendium', () => {
       expect(sunlight).toContainEqual({ type: 'disadvantage', target: 'attack.all', note: 'Na luz do sol' });
       expect(sunlight.filter((e) => e.type === 'disadvantage' && e.target.startsWith('check.'))).toHaveLength(6);
       expect(trait('cloaker', 'light_sensitivity').effects).toEqual([{ type: 'disadvantage', target: 'attack.all', note: 'Na Luz Plena' }]);
+      // Grupo 2: Magic Resistance em todas as criaturas que têm o traço.
+      const withMagicResistance = srd.creatures.filter((c) => c.traits.some((t) => t.name === 'Magic Resistance'));
+      expect(withMagicResistance.length).toBeGreaterThan(20);
+      for (const c of withMagicResistance) {
+        expect(byId(c.traits, 'magic_resistance').effects, c.id).toEqual([{ type: 'advantage', target: 'save.all', when: { against: { source: 'magic' } } }]);
+      }
     });
 
     it('models defenses and senses as effects', () => {

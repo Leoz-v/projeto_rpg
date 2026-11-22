@@ -221,6 +221,11 @@ def spell_bonus(n):
     return [{"type": "flat_bonus", "target": "attack.spell", "value": n}]
 
 
+def vs_magic(source):
+    """Vantagem em salvaguardas contra magias (`spell`) ou contra magias e outros efeitos mágicos (`magic`)."""
+    return {"type": "advantage", "target": "save.all", "when": {"against": {"source": source}}}
+
+
 EFFECTS = {
     "Amulet of Health": ([{"type": "set_minimum_score", "ability": "con", "value": 19}], "Your Constitution is 19"),
     "Armor of Invulnerability": ([{"type": "resistance", "damageType": t} for t in ("bludgeoning", "piercing", "slashing")],
@@ -262,7 +267,8 @@ EFFECTS = {
                          "you have Darkvision out to 60 feet. If you already have Darkvision, wearing the goggles increases its range by 60 feet"),
     "Hammer of Thunderbolts": (weapon_plus(1), "+1 bonus to attack rolls and damage rolls"),
     "Headband of Intellect": ([{"type": "set_minimum_score", "ability": "int", "value": 19}], "Your Intelligence is 19"),
-    "Holy Avenger": (weapon_plus(3), "+3 bonus to attack rolls and damage rolls"),
+    "Holy Avenger": (weapon_plus(3) + [vs_magic("magic")],
+                     ["+3 bonus to attack rolls and damage rolls", "Advantage on saving throws against spells and other magical effects"]),
     "Luck Blade": (weapon_plus(1) + [{"type": "flat_bonus", "target": "save.all", "value": 1}], "you also gain a +1 bonus to saving throws"),
     "Mace of Smiting": (weapon_plus(1), "+1 bonus to attack rolls and damage rolls"),
     "Nine Lives Stealer": (weapon_plus(2), "+2 bonus to attack rolls and damage rolls"),
@@ -281,8 +287,9 @@ EFFECTS = {
                      "You have Darkvision and Truesight, both with a range of 120 feet"),
     "Robe of Stars": ([{"type": "flat_bonus", "target": "save.all", "value": 1}], "+1 bonus to saving throws"),
     "Robe of the Archmagi": ([{"type": "set_base_ac", "base": 15, "abilities": ["dex"], "when": {"wearingArmor": False}},
-                              {"type": "flat_bonus", "target": "spell_save_dc", "value": 2}] + spell_bonus(2),
-                             "Your spell save DC and spell attack bonus each increase by 2"),
+                              {"type": "flat_bonus", "target": "spell_save_dc", "value": 2}] + spell_bonus(2) + [vs_magic("magic")],
+                             ["Your spell save DC and spell attack bonus each increase by 2",
+                              "You have Advantage on saving throws against spells and other magical effects"]),
     "Rod of Alertness": ([{"type": "advantage", "target": "skill.perception"}, {"type": "advantage", "target": "initiative"}],
                          "Advantage on Wisdom (Perception) checks and on Initiative rolls"),
     "Scimitar of Speed": (weapon_plus(2), "+2 bonus to attack rolls and damage rolls"),
@@ -293,7 +300,8 @@ EFFECTS = {
     "Staff of Power": (weapon_plus(2) + [{"type": "flat_bonus", "target": "ac", "value": 2}, {"type": "flat_bonus", "target": "save.all", "value": 2}]
                        + spell_bonus(2), "you gain a +2 bonus to Armor Class, saving throws, and spell attack rolls"),
     "Staff of Striking": (weapon_plus(3), "grants a +3 bonus to attack rolls and damage rolls"),
-    "Staff of the Magi": (weapon_plus(2) + spell_bonus(2), "you gain a +2 bonus to spell attack rolls"),
+    "Staff of the Magi": (weapon_plus(2) + spell_bonus(2) + [vs_magic("spell")],
+                          ["you gain a +2 bonus to spell attack rolls", "you have Advantage on saving throws against spells"]),
     "Staff of the Woodlands": (weapon_plus(2) + spell_bonus(2), "you have a +2 bonus to spell attack rolls"),
     "Staff of Thunder and Lightning": (weapon_plus(2), "grants a +2 bonus to attack rolls and damage rolls"),
     "Stone of Good Luck (Luckstone)": (ALL_CHECKS + [{"type": "flat_bonus", "target": "save.all", "value": 1}],
@@ -305,7 +313,12 @@ EFFECTS = {
     "Staff of Frost": ([{"type": "resistance", "damageType": "cold"}], "You have Resistance to Cold damage while you hold this staff"),
     "Vorpal Sword": (weapon_plus(3), "You gain a +3 bonus to attack rolls and damage rolls made with this magic weapon"),
     "Rod of Lordly Might": (weapon_plus(3), "it functions as a magic Mace that grants a +3 bonus to attack rolls and damage rolls"),
-    "Scarab of Protection": ([{"type": "flat_bonus", "target": "ac", "value": 1}], "Defense. You gain a +1 bonus to Armor Class"),
+    "Scarab of Protection": ([{"type": "flat_bonus", "target": "ac", "value": 1}, vs_magic("spell")],
+                             ["Defense. You gain a +1 bonus to Armor Class", "You have Advantage on saving throws against spells"]),
+    # Fase 1.5, grupo 2 (`against.source`). O efeito sobre quem ataca (Spellguard Shield) é da Fase 4.
+    "Mantle of Spell Resistance": ([vs_magic("spell")], "You have Advantage on saving throws against spells while you wear this cloak"),
+    "Ring of Spell Turning": ([vs_magic("spell")], "you have Advantage on saving throws against spells"),
+    "Spellguard Shield": ([vs_magic("magic")], "you have Advantage on saving throws against spells and other magical effects"),
     "Gloves of Thievery": ([{"type": "flat_bonus", "target": "skill.sleight_of_hand", "value": 5}],
                            "you gain a +5 bonus to Dexterity (Sleight of Hand) checks"),
     # Só o próprio portador: o benefício aos aliados é da Fase 4 (auras).
@@ -431,8 +444,9 @@ for n, h in enumerate(starts):
     if name in EFFECTS:
         effects, evidence = EFFECTS[name]
         item["effects"] = effects
-        if evidence not in description.replace("\n", " "):
-            problems.append(f"{who}: efeito curado sem o texto de apoio '{evidence}'")
+        for quote in [evidence] if isinstance(evidence, str) else evidence:
+            if quote not in description.replace("\n", " "):
+                problems.append(f"{who}: efeito curado sem o texto de apoio '{quote}'")
     item["description"] = description
     items.append(item)
 
