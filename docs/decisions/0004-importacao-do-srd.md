@@ -51,4 +51,4 @@ Outros:
 
 - Ids de magias citados (`faerie_fire`, `prestidigitation`…) ainda não existem no compêndio. O teste de referência de magias entra junto com o capítulo de magias.
 - Ferramentas (`thieves_tools`, `gaming_set_*`) são citadas por id, mas ainda não são itens.
-- Corrigir um dado é editar o JSON e o teste correspondente; os scripts usados para gerar o primeiro rascunho não são versionados.
+- Corrigir um dado é editar o JSON e o teste correspondente; os rascunhos usados nesta transcrição não são versionados. Scripts reproduzíveis (ex.: o importador de magias) passaram a ser versionados (nota 0008).

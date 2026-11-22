@@ -56,8 +56,8 @@
 - **Não implementado ainda:**
   - efeitos das condições além da Exaustão (Fase 5; a ficha lista a condição e avisa);
   - Magia de Pacto (aviso);
-  - Ataque Desarmado na lista de ataques;
-  - verificação das magias escolhidas, que vira erro quando o capítulo de magias for importado.
+  - Ataque Desarmado na lista de ataques.
+- A verificação das magias escolhidas passou a ser erro com a importação das magias (nota 0007).
 - **Vantagens circunstanciais** (ex.: Dwarven Resilience) são só lembrete na ficha. Os dados já usam o predicado `against` (nota 0006); na Fase 4 serão aplicadas automaticamente na rolagem.
 - **Magias preparadas** mudam a cada descanso: são estado de sessão, não escolha de construção. A ficha mostra só quantas podem ser preparadas.
 - **Trocas permitidas pelas regras** (estilo de luta ao subir de nível, maestria no descanso longo, truque do Alto Elfo) são feitas editando a seleção correspondente.

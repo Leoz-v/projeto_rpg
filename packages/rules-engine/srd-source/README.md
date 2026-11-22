@@ -1,6 +1,6 @@
 # Fonte do SRD 5.2.1
 
-Fonte oficial usada para gerar os dados de `src/srd/data/`. Esta pasta fica fora de `src/` e não entra no app.
+Fonte oficial usada para gerar os dados de `src/srd/data/`. Esta pasta fica fora de `src/` e não entra no app. As ferramentas de importação ficam em `tools/`.
 
 | | |
 |---|---|
@@ -20,7 +20,9 @@ A Wizards pede que nenhuma outra atribuição a ela seja incluída além dessa. 
 
 ## Como os dados são gerados
 
-O texto é extraído com `pdftotext` (poppler): `pdftotext -f <página> -l <página> SRD_CC_v5.2.1.pdf -` para ler na ordem das colunas e `-layout` para tabelas. As tabelas do PDF são blocos de coluna separados, então a transcrição para JSON é feita à mão a partir do texto extraído e conferida pelos testes em `tests/srd/` (contagens e valores de referência por página). Ver `docs/decisions/0004-importacao-do-srd.md`.
+O texto é extraído com `pdftotext` (poppler, com `-enc UTF-8` no Windows): `pdftotext -f <página> -l <página> SRD_CC_v5.2.1.pdf -` para ler na ordem das colunas e `-layout` para tabelas. As tabelas do PDF são blocos de coluna separados, então a transcrição para JSON é feita à mão a partir do texto extraído e conferida pelos testes em `tests/srd/` (contagens e valores de referência por página). Ver `docs/decisions/0004-importacao-do-srd.md`.
+
+As **magias** seguem um formato regular e foram importadas por parser automático, que lê o cabeçalho de cada entrada e confere as classes contra as listas de magias dos capítulos de classe. Ver `docs/decisions/0007-importacao-das-magias.md`. O script fica em `tools/` (ver `tools/README.md`).
 
 ## O que já foi transcrito
 
@@ -33,5 +35,7 @@ O texto é extraído com `pdftotext` (poppler): `pdftotext -f <página> -l <pág
 | Talentos (19; Magic Initiate vira um por lista) | 87–88 | `feats.json` |
 | Guerreiro e Mago | 47–48, 77–79 | `classes.json` |
 | Campeão e Evocador | 49, 82 | `subclasses.json` |
+| Magias (339) | 107–175 (conferidas com as listas das classes) | `spells.json` |
+| Idiomas da criação de personagem | 20 | `creation.json` |
 
-**Faltam:** demais classes e subclasses, magias, equipamento de aventura e ferramentas, itens mágicos e monstros.
+**Faltam:** demais classes e subclasses, equipamento de aventura e ferramentas, itens mágicos e monstros.

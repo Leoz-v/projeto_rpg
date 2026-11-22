@@ -101,9 +101,6 @@ export function resolveBuild(character: Character, compendium: Compendium): Reso
   const error = (code: Issue['code'], message: string, choiceId?: string): void => {
     issues.push({ severity: 'error', code, message, stepIndex, choiceId });
   };
-  const warning = (code: Issue['code'], message: string, choiceId?: string): void => {
-    issues.push({ severity: 'warning', code, message, stepIndex, choiceId });
-  };
 
   const increaseScore = (ability: Ability, amount: number, cap: number, label: string, source: SourceLabel, choiceId?: string): void => {
     scoreValues[ability] += amount;
@@ -336,7 +333,7 @@ export function resolveBuild(character: Character, compendium: Compendium): Reso
           }
         }
         if (unknown.length) {
-          warning('unknown_spell', `Magias ainda fora do compêndio, não verificadas: ${unknown.join(', ')}.`, choiceId);
+          error('unknown_reference', `Magia(s) desconhecida(s): ${unknown.join(', ')}.`, choiceId);
         }
         return;
       }

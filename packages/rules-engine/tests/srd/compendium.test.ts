@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
 import { ItemSchema } from '../../src/schemas/item';
 import { BackgroundSchema, ClassSchema, FeatSchema, type Grant, SpeciesSchema, SubclassSchema } from '../../src/schemas/source';
+import { SpellSchema } from '../../src/schemas/spell';
 import { loadSrdCompendium, SRD_ATTRIBUTION, SRD_RAW } from '../../src/srd';
 
 /** Lista os erros de validação de cada entrada, com id e caminho, para o teste falhar com mensagem legível. */
@@ -22,6 +23,7 @@ describe('SRD raw data validates against the schemas', () => {
     ['feats', FeatSchema, SRD_RAW.feats],
     ['classes', ClassSchema, SRD_RAW.classes],
     ['subclasses', SubclassSchema, SRD_RAW.subclasses],
+    ['spells', SpellSchema, SRD_RAW.spells],
   ] as const)('%s', (_, schema, entries) => {
     expect(issuesOf(schema, entries)).toEqual([]);
   });
@@ -45,7 +47,7 @@ describe('SRD compendium', () => {
     expect(srd.feats).toHaveLength(19);
   });
 
-  it.each(['items', 'species', 'backgrounds', 'feats', 'classes', 'subclasses'] as const)('has unique ids in %s', (key) => {
+  it.each(['items', 'species', 'backgrounds', 'feats', 'classes', 'subclasses', 'spells'] as const)('has unique ids in %s', (key) => {
     const ids = srd[key].map((x) => x.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
@@ -154,6 +156,73 @@ describe('SRD compendium', () => {
       l.grants.flatMap((g) => (g.kind === 'choice' && g.options.pick === 'spell' && g.options.maxLevel === 0 ? [g.count] : [])),
     );
     expect(cantrips.reduce((a, b) => a + b, 0)).toBe(5); // 3 + 1 (nível 4) + 1 (nível 10)
+  });
+
+  describe('spells (pp. 107-175)', () => {
+    /** Contagens conferidas na importação contra as listas de magias de cada classe. */
+    it('has every spell, by level and by class', () => {
+      expect(srd.spells).toHaveLength(339);
+      const perLevel = Array.from({ length: 10 }, (_, level) => srd.spells.filter((sp) => sp.level === level).length);
+      expect(perLevel).toEqual([27, 57, 57, 42, 34, 38, 31, 20, 17, 16]);
+      const perClass = Object.fromEntries(
+        ['bard', 'cleric', 'druid', 'paladin', 'ranger', 'sorcerer', 'warlock', 'wizard'].map((c) => [c, srd.spells.filter((sp) => sp.classes.includes(c)).length]),
+      );
+      expect(perClass).toEqual({ bard: 130, cleric: 109, druid: 124, paladin: 38, ranger: 48, sorcerer: 140, warlock: 72, wizard: 218 });
+    });
+
+    it('follows the spell entry where the SRD class lists omit it (known SRD gaps)', () => {
+      expect(byId(srd.spells, 'phantasmal_force').classes).toEqual(['bard', 'sorcerer', 'wizard']);
+      expect(byId(srd.spells, 'mind_spike').classes).toEqual(['sorcerer', 'warlock', 'wizard']);
+    });
+
+    it('matches the PDF entries', () => {
+      expect(byId(srd.spells, 'fireball')).toMatchObject({
+        level: 3,
+        school: 'evocation',
+        castingTime: 'Action',
+        range: '150 feet',
+        components: { verbal: true, somatic: true, material: 'a ball of bat guano and sulfur' },
+        duration: 'Instantaneous',
+        classes: ['sorcerer', 'wizard'],
+      });
+      expect(byId(srd.spells, 'alarm')).toMatchObject({ castingTime: '1 minute', ritual: true, components: { material: 'a bell and silver wire' } });
+      expect(byId(srd.spells, 'guidance')).toMatchObject({ level: 0, concentration: true, duration: 'Concentration, up to 1 minute' });
+      expect(byId(srd.spells, 'acid_splash').description).toContain('Cantrip Upgrade.');
+      expect(byId(srd.spells, 'arcanists_magic_aura').name).toBe("Arcanist's Magic Aura");
+    });
+
+    it('has clean text (no page footers or broken characters)', () => {
+      for (const sp of srd.spells) {
+        expect(sp.description, sp.id).not.toMatch(/System Reference Document|�|−|­/);
+        expect(sp.description.length, sp.id).toBeGreaterThan(40);
+      }
+    });
+
+    it('resolves every spell cited by species, feats, classes and subclasses', () => {
+      const ids = new Set(srd.spells.map((sp) => sp.id));
+      const grants = (list: { levels?: { grants: Grant[] }[]; grants?: Grant[]; startingGrants?: Grant[] }[]): Grant[] =>
+        list.flatMap((x) => [...(x.grants ?? []), ...(x.startingGrants ?? []), ...(x.levels ?? []).flatMap((l) => l.grants)]);
+      const walk = (gs: Grant[]): string[] =>
+        gs.flatMap((g) => {
+          if (g.kind === 'effect') return g.effect.type === 'grant_spell' ? [g.effect.spellId] : [];
+          if (g.kind === 'feature') return g.feature.effects.flatMap((e) => (e.type === 'grant_spell' ? [e.spellId] : []));
+          if (g.kind === 'choice' && g.options.pick === 'option') {
+            return walk(g.options.options.flatMap((o) => [...o.grants, ...o.levels.flatMap((l) => l.grants)]));
+          }
+          return [];
+        });
+      const cited = walk([...grants(srd.species), ...grants(srd.feats), ...grants(srd.classes), ...grants(srd.subclasses)]);
+      expect(cited.length).toBeGreaterThan(20);
+      expect(cited.filter((id) => !ids.has(id))).toEqual([]);
+    });
+
+    it('uses only class lists that exist in spell choices', () => {
+      const lists = new Set(['bard', 'cleric', 'druid', 'paladin', 'ranger', 'sorcerer', 'warlock', 'wizard']);
+      const choices = [...srd.feats.flatMap((f) => f.grants), ...srd.classes.flatMap((c) => c.levels.flatMap((l) => l.grants)), ...srd.subclasses.flatMap((c) => c.levels.flatMap((l) => l.grants))];
+      for (const g of choices) {
+        if (g.kind === 'choice' && g.options.pick === 'spell') for (const l of g.options.lists) expect(lists.has(l), l).toBe(true);
+      }
+    });
   });
 
   it('exposes the CC-BY 4.0 attribution', () => {
