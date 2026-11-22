@@ -58,6 +58,6 @@
   - Magia de Pacto (aviso);
   - Ataque Desarmado na lista de ataques;
   - verificação das magias escolhidas, que vira erro quando o capítulo de magias for importado.
-- **Vantagens circunstanciais** (efeitos com `note`, ex.: Dwarven Resilience) são só lembrete na ficha. Na Fase 4 devem ser aplicadas automaticamente na rolagem contra a condição ou fonte correspondente, com um predicado estruturado no lugar do texto (ver Roadmap).
+- **Vantagens circunstanciais** (ex.: Dwarven Resilience) são só lembrete na ficha. Os dados já usam o predicado `against` (nota 0006); na Fase 4 serão aplicadas automaticamente na rolagem.
 - **Magias preparadas** mudam a cada descanso: são estado de sessão, não escolha de construção. A ficha mostra só quantas podem ser preparadas.
 - **Trocas permitidas pelas regras** (estilo de luta ao subir de nível, maestria no descanso longo, truque do Alto Elfo) são feitas editando a seleção correspondente.

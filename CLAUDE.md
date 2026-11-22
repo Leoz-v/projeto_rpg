@@ -152,7 +152,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 2. **Fase 2 — Mesa & Rede:** rede WebSocket (host/cliente) no processo main, executor de sessão do Host, handshake de protocolo, cache de assets SHA-256 (`vtt-asset://`), mapa em tempo real com tokens e rolagem de dados autoritativa no chat.
 3. **Fase 3 — Fichas & Progressão (interface):** telas de criação de personagem e de subida de nível sobre o motor da Fase 1, gerenciamento de inventário e sincronização offline com aprovação do mestre.
 4. **Fase 4 — Motor de Ações & Efeitos:** resolução assistida de ataques, dano, resistências, salvaguardas, maestrias e overrides do mestre.
-   - Vantagens circunstanciais aplicadas automaticamente na rolagem (ex.: Dwarven Resilience contra Envenenado, Fey Ancestry contra Enfeitiçado): trocar o `note` em texto livre por um predicado estruturado (ex.: `{ "against": { "condition": "poisoned" } }`, a entrar no `effects-spec.md`) e passar à rolagem o contexto do que está sendo resistido.
+   - Vantagens circunstanciais aplicadas automaticamente na rolagem (ex.: Dwarven Resilience contra Envenenado): passar `roll.against` ao motor na resolução. Os dados já usam o predicado `against` (ver `docs/decisions/0006-predicado-against.md`).
 5. **Fase 5 — Combate:** iniciativa, turnos, condições (incluindo Exaustão 2024) e concentração.
 
 *Extras futuros:* criação de token a partir de imagem com recorte/moldura automáticos, spawn de vários inimigos numerados (Goblin 1, Goblin 2…), colar texto de ficha de monstro e converter para o schema.

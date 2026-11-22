@@ -2,6 +2,7 @@ import {
   ABILITIES,
   type Ability,
   type AbilityScores,
+  type Condition,
   type Sense,
   SKILL_ABILITY,
   SKILLS,
@@ -66,21 +67,35 @@ const HEAVY_WEAPON_MINIMUM = 13;
 const HEAVY_ARMOR_SPEED_PENALTY = 10;
 const SPELL_DC_BASE = 8;
 
-/** Contexto para avaliar `when`. `attack` só existe ao calcular um ataque. */
-interface PredicateContext {
-  armor?: Armor | undefined;
-  shield: boolean;
+/** Uma rolagem concreta: o que é atacado ou evitado. */
+export interface RollContext {
   attack?: { kind: 'melee' | 'ranged' | 'spell'; properties: readonly string[] } | undefined;
+  against?: { condition: Condition } | undefined;
 }
 
-export function evaluatePredicate(p: Predicate, ctx: PredicateContext): boolean {
+/** Contexto para avaliar `when`. Sem `roll`, é a ficha estática. */
+export interface PredicateContext {
+  armor?: Armor | undefined;
+  shield: boolean;
+  roll?: RollContext | undefined;
+}
+
+/**
+ * Avalia um predicado com lógica de três valores (docs/effects-spec.md, seção 2):
+ * `undefined` = desconhecido, quando o predicado depende de uma rolagem e não há
+ * rolagem no contexto.
+ */
+export function evaluatePredicate(p: Predicate, ctx: PredicateContext): boolean | undefined {
   if ('wearingArmor' in p) return p.wearingArmor === (ctx.armor !== undefined);
   if ('armorCategory' in p) return ctx.armor?.category === p.armorCategory;
   if ('wieldingShield' in p) return p.wieldingShield === ctx.shield;
-  if ('attackKind' in p) return ctx.attack?.kind === p.attackKind;
-  if ('weaponProperty' in p) return ctx.attack?.properties.includes(p.weaponProperty) ?? false;
-  if ('all' in p) return p.all.every((x) => evaluatePredicate(x, ctx));
-  return p.any.some((x) => evaluatePredicate(x, ctx));
+  const { roll } = ctx;
+  if ('attackKind' in p) return roll ? roll.attack?.kind === p.attackKind : undefined;
+  if ('weaponProperty' in p) return roll ? (roll.attack?.properties.includes(p.weaponProperty) ?? false) : undefined;
+  if ('against' in p) return roll ? roll.against?.condition === p.against.condition : undefined;
+  const results = ('all' in p ? p.all : p.any).map((x) => evaluatePredicate(x, ctx));
+  if ('all' in p) return results.includes(false) ? false : results.includes(undefined) ? undefined : true;
+  return results.includes(true) ? true : results.includes(undefined) ? undefined : false;
 }
 
 /** Rótulo de uma parcela: o traço/opção, se houver, e a fonte ("Dwarven Toughness (Dwarf)"). */
@@ -151,9 +166,12 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     }
   }
 
-  const active = (e: Effect, attack?: PredicateContext['attack']): boolean => !e.when || evaluatePredicate(e.when, { ...ctx, attack });
-  const effectsOf = <T extends Effect['type']>(type: T, attack?: PredicateContext['attack']): (SourcedEffect & { effect: Extract<Effect, { type: T }> })[] =>
-    all.filter((e): e is SourcedEffect & { effect: Extract<Effect, { type: T }> } => e.effect.type === type && active(e.effect, attack));
+  /** Verdadeiro, falso ou desconhecido (depende de uma rolagem que não está no contexto). */
+  const applies = (e: Effect, roll?: RollContext): boolean | undefined => (e.when ? evaluatePredicate(e.when, { ...ctx, roll }) : true);
+  type Of<T extends Effect['type']> = SourcedEffect & { effect: Extract<Effect, { type: T }> };
+  const ofType = <T extends Effect['type']>(type: T): Of<T>[] => all.filter((e): e is Of<T> => e.effect.type === type);
+  /** Efeitos do tipo que valem com certeza no contexto. */
+  const effectsOf = <T extends Effect['type']>(type: T, roll?: RollContext): Of<T>[] => ofType(type).filter((e) => applies(e.effect, roll) === true);
 
   // --- Atributos ----------------------------------------------------------
 
@@ -198,17 +216,19 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     if ('proficiency' in value) return value.proficiency * pb;
     return value.perLevel * level;
   };
-  const bonuses = (targets: readonly string[], attack?: PredicateContext['attack']): Contribution[] =>
-    effectsOf('flat_bonus', attack)
+  const bonuses = (targets: readonly string[], roll?: RollContext): Contribution[] =>
+    effectsOf('flat_bonus', roll)
       .filter(({ effect }) => targets.includes(effect.target))
       .map((e) => ({ label: e.effect.note ?? labelOf(e), value: bonusValue(e.effect.value), source: e.source }));
 
-  const rollState = (targets: readonly string[], attack?: PredicateContext['attack'], extra: { kind: 'advantage' | 'disadvantage'; source: SourceLabel }[] = []): RollState => {
+  const rollState = (targets: readonly string[], roll?: RollContext, extra: { kind: 'advantage' | 'disadvantage'; source: SourceLabel }[] = []): RollState => {
     const state: RollState = { mode: 'normal', advantage: [], disadvantage: [], situational: [] };
     for (const kind of ['advantage', 'disadvantage'] as const) {
-      for (const { effect, source } of effectsOf(kind, attack)) {
+      for (const { effect, source } of ofType(kind)) {
         if (!targets.includes(effect.target)) continue;
-        if (effect.note) state.situational.push({ kind, note: effect.note, source });
+        const result = applies(effect, roll);
+        if (result === false) continue;
+        if (result === undefined || effect.note) state.situational.push({ kind, source, when: effect.when, note: effect.note });
         else state[kind].push(source);
       }
     }
@@ -388,7 +408,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     const ability: Ability =
       weapon.attackKind === 'ranged' ? 'dex' : finesse && mod('dex') > mod('str') ? 'dex' : 'str';
     const proficient = has('weapon', weapon.category) || has('weapon', weapon.id);
-    const attackCtx = { kind: weapon.attackKind, properties: weapon.properties };
+    const attackCtx: RollContext = { attack: { kind: weapon.attackKind, properties: weapon.properties } };
     const extra: { kind: 'disadvantage'; source: SourceLabel }[] = [];
     const heavyAbility: Ability = weapon.attackKind === 'melee' ? 'str' : 'dex';
     if (weapon.properties.includes('heavy') && scores[heavyAbility] < HEAVY_WEAPON_MINIMUM) {
@@ -435,7 +455,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     stat([
       { label: `Modificador de ${ABILITY_NAME[ability]}`, value: mod(ability) },
       { label: 'Proficiência', value: pb },
-      ...bonuses(['attack.spell'], { kind: 'spell', properties: [] }),
+      ...bonuses(['attack.spell'], { attack: { kind: 'spell', properties: [] } }),
       ...exhaustionPart(),
     ]);
 

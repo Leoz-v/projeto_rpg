@@ -68,10 +68,32 @@ describe('evaluatePredicate', () => {
     expect(evaluatePredicate({ wieldingShield: false }, armored)).toBe(false);
   });
 
-  it('is false for attack predicates outside an attack', () => {
-    expect(evaluatePredicate({ attackKind: 'melee' }, naked)).toBe(false);
-    expect(evaluatePredicate({ attackKind: 'melee' }, { ...naked, attack: { kind: 'melee', properties: [] } })).toBe(true);
-    expect(evaluatePredicate({ weaponProperty: 'finesse' }, { ...naked, attack: { kind: 'melee', properties: ['finesse'] } })).toBe(true);
+  it('treats roll predicates as unknown on the static sheet', () => {
+    expect(evaluatePredicate({ attackKind: 'melee' }, naked)).toBeUndefined();
+    expect(evaluatePredicate({ weaponProperty: 'finesse' }, naked)).toBeUndefined();
+    expect(evaluatePredicate({ against: { condition: 'poisoned' } }, naked)).toBeUndefined();
+  });
+
+  it('evaluates roll predicates inside a roll', () => {
+    const swing = { ...naked, roll: { attack: { kind: 'melee' as const, properties: ['finesse'] } } };
+    expect(evaluatePredicate({ attackKind: 'melee' }, swing)).toBe(true);
+    expect(evaluatePredicate({ weaponProperty: 'finesse' }, swing)).toBe(true);
+    expect(evaluatePredicate({ weaponProperty: 'heavy' }, swing)).toBe(false);
+    // Um ataque não é uma rolagem para evitar condição.
+    expect(evaluatePredicate({ against: { condition: 'poisoned' } }, swing)).toBe(false);
+    const save = { ...naked, roll: { against: { condition: 'poisoned' as const } } };
+    expect(evaluatePredicate({ against: { condition: 'poisoned' } }, save)).toBe(true);
+    expect(evaluatePredicate({ against: { condition: 'charmed' } }, save)).toBe(false);
+    expect(evaluatePredicate({ attackKind: 'melee' }, save)).toBe(false);
+  });
+
+  it('uses three-valued logic in all/any', () => {
+    const unknown = { against: { condition: 'poisoned' } } as const;
+    // Falso domina o desconhecido em `all`; verdadeiro domina em `any`.
+    expect(evaluatePredicate({ all: [{ wearingArmor: true }, unknown] }, naked)).toBe(false);
+    expect(evaluatePredicate({ all: [{ wearingArmor: false }, unknown] }, naked)).toBeUndefined();
+    expect(evaluatePredicate({ any: [{ wearingArmor: false }, unknown] }, naked)).toBe(true);
+    expect(evaluatePredicate({ any: [{ wearingArmor: true }, unknown] }, naked)).toBeUndefined();
   });
 
   it('combines with all/any', () => {

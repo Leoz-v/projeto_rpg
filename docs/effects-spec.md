@@ -36,8 +36,11 @@ Lista fechada. Um `when` é um objeto com **uma** destas chaves; para combinar, 
 | `{ "wieldingShield": true }`    | Empunha (ou não) um escudo. |
 | `{ "attackKind": "melee" }`     | Rolagem de ataque/dano `melee` \| `ranged` \| `spell`. |
 | `{ "weaponProperty": "finesse" }` | A arma usada tem a propriedade. |
+| `{ "against": { "condition": "poisoned" } }` | A rolagem é para evitar ou encerrar a condição (salvaguarda ou teste de atributo). |
 | `{ "all": [ … ] }`              | Todos os predicados são verdadeiros. |
 | `{ "any": [ … ] }`              | Pelo menos um é verdadeiro. |
+
+**Predicados de contexto** (`attackKind`, `weaponProperty`, `against`) só têm valor durante uma rolagem concreta. Fora dela (ficha estática), o motor os trata como *desconhecidos*, com lógica de três valores: `all` é falso se algum for falso e desconhecido se algum for desconhecido; `any` é verdadeiro se algum for verdadeiro e desconhecido se algum for desconhecido. Um efeito de vantagem/desvantagem com `when` desconhecido aparece como lembrete (`situational`); bônus planos com `when` desconhecido não entram no total.
 
 ## 3. Tipos de efeito
 
@@ -78,7 +81,8 @@ Fórmula base de Classe de Armadura.
 ```
 
 - `target`: `attack.<melee|ranged|spell>`, `attack.all`, `save.<ability>`, `save.all`, `check.<ability>`, `skill.<skill>`, `initiative`.
-- `note` marca circunstâncias que o motor não avalia sozinho (ex.: "contra ser amedrontado"). Nesse caso a UI mostra o lembrete e o mestre decide.
+- **Circunstâncias da rolagem:** prefira um predicado no `when` (ex.: `{ "against": { "condition": "frightened" } }`). O motor aplica automaticamente quando a rolagem tem esse contexto (Fase 4) e, na ficha estática, mostra o efeito como lembrete.
+- `note` fica para circunstâncias que nenhum predicado expressa. Nesse caso a UI mostra o lembrete e o mestre decide.
 - **Regra 2024:** havendo ao menos uma fonte de vantagem e uma de desvantagem, elas se anulam e a rolagem é normal, **qualquer que seja a quantidade** de cada uma.
 
 ### 3.4 `resistance` / `vulnerability` / `immunity`
