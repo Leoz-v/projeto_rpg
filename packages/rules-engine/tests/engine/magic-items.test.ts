@@ -187,3 +187,98 @@ describe('attunement', () => {
     expect(errorsOf(sheet)).toContain('too_many_attuned');
   });
 });
+
+describe('items granting proficiency and weapon-specific bonuses (Phase 1.5, group 3)', () => {
+  const wizard: CharacterInput['steps'] = [
+    { kind: 'species', speciesId: 'dwarf', selections: [LANGUAGES] },
+    { kind: 'background', backgroundId: 'sage', abilityIncreases: { int: 2, con: 1 } },
+    {
+      kind: 'class_level',
+      classId: 'wizard',
+      selections: [
+        sel('class', 'wizard', 'skills', 'arcana', 'investigation'),
+        sel('class', 'wizard', 'cantrips', 'fire_bolt', 'light', 'mage_hand'),
+        sel('class', 'wizard', 'spellbook', 'magic_missile', 'shield', 'sleep', 'detect_magic', 'mage_armor', 'burning_hands'),
+        sel('class', 'wizard', 'prepared', 'magic_missile', 'shield', 'sleep', 'detect_magic'),
+      ],
+    },
+  ];
+  const codes = (sheet: ReturnType<typeof derive>) => sheet.issues.map((i) => i.code);
+
+  it('trains the wearer with Elven Chain itself (SRD: "considered trained with this armor")', () => {
+    const plain = derive({ steps: wizard, inventory: { items: [{ instanceId: 'a', itemId: 'chain_shirt', equipped: true }] } });
+    expect(codes(plain)).toContain('armor_untrained');
+    const elven = derive({ steps: wizard, inventory: { items: [{ instanceId: 'a', itemId: 'elven_chain', baseItemId: 'chain_shirt', equipped: true }] } });
+    expect(codes(elven)).not.toContain('armor_untrained');
+    expect(elven.ac.total).toBe(plain.ac.total + 1);
+    // Treino só com o próprio item: não vira "armadura média" na lista de proficiências.
+    expect(elven.proficiencies.armor).not.toContain('self');
+    expect(elven.proficiencies.armor).not.toContain('medium');
+  });
+
+  it('grants Longbow/Shortbow proficiency and +2 damage only with them (Bracers of Archery)', () => {
+    const items = (bracers: boolean) => ({
+      items: [
+        { instanceId: 'bow', itemId: 'longbow', equipped: true },
+        { instanceId: 'xbow', itemId: 'light_crossbow', equipped: true },
+        ...(bracers ? [{ instanceId: 'b', itemId: 'bracers_of_archery', equipped: true, attuned: true }] : []),
+      ],
+    });
+    const without = derive({ steps: wizard, inventory: items(false) });
+    const withBracers = derive({ steps: wizard, inventory: items(true) });
+    const attack = (sheet: ReturnType<typeof derive>, id: string) => sheet.attacks.find((a) => a.instanceId === id);
+    expect(attack(without, 'bow')?.proficient).toBe(false);
+    expect(attack(withBracers, 'bow')?.proficient).toBe(true);
+    expect(attack(withBracers, 'bow')?.damage.bonus.total).toBe((attack(without, 'bow')?.damage.bonus.total ?? 0) + 2);
+    // A besta leve (arma simples, já proficiente) não ganha o +2.
+    expect(attack(withBracers, 'xbow')?.damage.bonus.total).toBe(attack(without, 'xbow')?.damage.bonus.total);
+    expect(withBracers.proficiencies.weapons).toEqual(expect.arrayContaining(['longbow', 'shortbow']));
+  });
+
+  it('teaches Dwarvish while the Belt of Dwarvenkind is attuned', () => {
+    const human: CharacterInput['steps'] = [{ kind: 'species', speciesId: 'human', size: 'medium', selections: [] }];
+    const sheet = (attuned: boolean) => derive({ steps: human, inventory: { items: [{ instanceId: 'belt', itemId: 'belt_of_dwarvenkind', equipped: true, attuned }] } });
+    expect(sheet(false).proficiencies.languages).not.toContain('dwarvish');
+    expect(sheet(true).proficiencies.languages).toContain('dwarvish');
+    expect(sheet(true).skills.persuasion.roll.situational).toContainEqual(expect.objectContaining({ kind: 'advantage', note: 'Interagir com anões e duergar' }));
+  });
+});
+
+describe('capped ability increases and proficiency bonus (Phase 1.5, group 4)', () => {
+  const ioun = (variantId: string) => ({ instanceId: `ioun_${variantId}`, itemId: 'ioun_stone', variantId, equipped: true, attuned: true });
+  const fighter = (scores: Record<'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha', number>, items: { instanceId: string; itemId: string }[]) =>
+    derive({ baseScores: { method: 'manual', scores }, inventory: { items } });
+  const base = { str: 15, dex: 13, con: 14, int: 8, wis: 12, cha: 10 };
+
+  it('raises the score by 2 up to the cap published by the item (20)', () => {
+    // Guerreiro anão (Soldado: FOR +2, CON +1): DES 13.
+    expect(fighter(base, [ioun('agility')]).abilities.dex.total).toBe(15);
+    // DES 19 + 2 para em 20; DES 20 não muda.
+    expect(fighter({ ...base, dex: 19 }, [ioun('agility')]).abilities.dex.total).toBe(20);
+    expect(fighter({ ...base, dex: 20 }, [ioun('agility')]).abilities.dex.total).toBe(20);
+  });
+
+  it('applies increases before minimum scores (Ioun Stone of Strength with Gauntlets of Ogre Power)', () => {
+    // FOR 15 + 2 (Soldado) = 17; +2 da Ioun = 19; as Gauntlets fixam o mínimo em 19.
+    const gauntlets = { instanceId: 'g', itemId: 'gauntlets_of_ogre_power', equipped: true, attuned: true };
+    expect(fighter(base, [ioun('strength'), gauntlets]).abilities.str.total).toBe(19);
+    // Belt of Giant Strength (hill) vale mais: 21.
+    const belt = { instanceId: 'b', itemId: 'belt_of_giant_strength', variantId: 'hill', equipped: true, attuned: true };
+    expect(fighter(base, [ioun('strength'), belt]).abilities.str.total).toBe(21);
+  });
+
+  it('adds +2 Constitution (max 20) with the Belt of Dwarvenkind', () => {
+    const belt = { instanceId: 'b', itemId: 'belt_of_dwarvenkind', equipped: true, attuned: true };
+    // CON 14 + 1 (Soldado) = 15 -> 17.
+    expect(fighter(base, [belt]).abilities.con.total).toBe(17);
+  });
+
+  it('raises the Proficiency Bonus with the Ioun Stone of Mastery', () => {
+    const without = fighter(base, []);
+    const sheet = fighter(base, [ioun('mastery')]);
+    expect(sheet.proficiencyBonus).toBe(without.proficiencyBonus + 1);
+    // Proficiente em salvaguarda de FOR (Guerreiro): sobe junto.
+    expect(sheet.saves.str.total).toBe(without.saves.str.total + 1);
+    expect(sheet.saves.int.total).toBe(without.saves.int.total);
+  });
+});

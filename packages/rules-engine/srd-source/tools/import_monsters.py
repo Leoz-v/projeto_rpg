@@ -486,6 +486,20 @@ def parse_details(who, details, c, saves, pb):
     return fields
 
 
+# Efeitos passivos de traços (Fase 1.5): (efeitos, regex do trecho de apoio na descrição).
+# A luz é contexto que o motor não conhece: a Desvantagem leva `note` e vira lembrete situacional.
+ALL_CHECKS_DIS = [{"type": "disadvantage", "target": f"check.{a}", "note": "Na luz do sol"} for a in ("str", "dex", "con", "int", "wis", "cha")]
+TRAIT_EFFECTS = {
+    "Magic Resistance": ([{"type": "advantage", "target": "save.all", "when": {"against": {"source": "magic"}}}],
+                         r"^The [\w -]+ has Advantage on saving throws against spells and other magical effects\.$"),
+    "Invisibility": ([{"type": "condition", "condition": "invisible"}], r"has the Invisible condition\.$"),
+    "Sunlight Sensitivity": ([{"type": "disadvantage", "target": "attack.all", "note": "Na luz do sol"}] + ALL_CHECKS_DIS,
+                             r"^While in sunlight, the [\w -]+ has Disadvantage on ability checks and attack rolls\.$"),
+    "Light Sensitivity": ([{"type": "disadvantage", "target": "attack.all", "note": "Na Luz Plena"}],
+                          r"^While in Bright Light, the [\w -]+ has Disadvantage on attack rolls\.$"),
+}
+traits_curated = set()
+
 lines = clean(text(FIRST_PAGE, LAST_PAGE))
 starts = [i for i, l in enumerate(lines) if HEADER.match(l)]
 creatures, dropped = [], []
@@ -574,7 +588,15 @@ for n, h in enumerate(starts):
             base["name"] = f"{e['name']} ({extra})"
         description = e["body"]
         if e["section"] == "Traits":
-            traits.append({**base, "description": description})
+            trait = {**base, "description": description}
+            curated = TRAIT_EFFECTS.get(e["name"])
+            if curated:
+                effects, evidence = curated
+                if not re.search(evidence, description):
+                    problems.append(f"{who} / {e['name']}: efeito curado sem o texto de apoio '{evidence}'")
+                trait["effects"] = effects
+                traits_curated.add(e["name"])
+            traits.append(trait)
             continue
         if e["section"] is None:
             problems.append(f"{who}: entrada fora de seção: {e['name']}")
@@ -607,6 +629,9 @@ for c in creatures:
         kinds[a["kind"]] = kinds.get(a["kind"], 0) + 1
 print("criaturas:", len(creatures), "ações por tipo:", kinds)
 print("linhas descartadas (títulos de seção entre blocos):", len(dropped))
+for name in TRAIT_EFFECTS:
+    if name not in traits_curated:
+        problems.append(f"curadoria de traço sem traço no compêndio: {name}")
 for d in dropped:
     print("   ", d)
 print("erros conhecidos do SRD:", len(errata_seen))

@@ -72,8 +72,14 @@ const SPELL_DC_BASE = 8;
 
 /** Uma rolagem concreta: o que é atacado ou evitado. */
 export interface RollContext {
-  attack?: { kind: 'melee' | 'ranged' | 'spell'; properties: readonly string[]; category?: 'simple' | 'martial' | undefined } | undefined;
-  against?: { condition: Condition } | undefined;
+  attack?:
+    | { kind: 'melee' | 'ranged' | 'spell'; properties: readonly string[]; category?: 'simple' | 'martial' | undefined; weaponId?: string | undefined }
+    | undefined;
+  /**
+   * O que a rolagem evita: uma condição e/ou a origem (`spell` = magia; `magic` = outro
+   * efeito mágico). Contra uma magia, use `spell`: ela satisfaz também `against.source: magic`.
+   */
+  against?: { condition?: Condition | undefined; source?: 'spell' | 'magic' | undefined } | undefined;
 }
 
 /** Contexto para avaliar `when`. Sem `roll`, é a ficha estática. */
@@ -97,8 +103,14 @@ export function evaluatePredicate(p: Predicate, ctx: PredicateContext): boolean 
   const { roll } = ctx;
   if ('attackKind' in p) return roll ? roll.attack?.kind === p.attackKind : undefined;
   if ('weaponProperty' in p) return roll ? (roll.attack?.properties.includes(p.weaponProperty) ?? false) : undefined;
-  if ('against' in p) return roll ? roll.against?.condition === p.against.condition : undefined;
+  if ('against' in p) {
+    if (!roll) return undefined;
+    if ('condition' in p.against) return roll.against?.condition === p.against.condition;
+    const source = roll.against?.source;
+    return p.against.source === 'spell' ? source === 'spell' : source === 'spell' || source === 'magic';
+  }
   if ('weaponCategory' in p) return roll ? roll.attack?.category === p.weaponCategory : undefined;
+  if ('weaponId' in p) return roll ? roll.attack?.weaponId === p.weaponId : undefined;
   if ('hasCondition' in p) return ctx.conditions.has(p.hasCondition);
   if ('not' in p) {
     const inner = evaluatePredicate(p.not, ctx);
@@ -138,7 +150,6 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
   const isItemActive = (activation: Item['activation'], entry: { equipped: boolean; attuned: boolean }): boolean =>
     activation === 'carried' || (activation === 'equipped' && entry.equipped) || (activation === 'attuned' && entry.attuned);
 
-  // Proficiências vêm só de escolhas e ajustes (itens não concedem treinamento com eles mesmos).
   const all: SourcedEffect[] = [
     ...build.effects,
     ...adjustments.flatMap((adj) => {
@@ -146,32 +157,49 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       return adj.effects.map((effect): SourcedEffect => ({ effect, source, refKey: `adjustment:${adj.id}` }));
     }),
   ];
-  const proficiencyEffects = all.filter((e) => e.effect.type === 'grant_proficiency');
-  const has = (category: 'armor' | 'weapon', id: string): boolean =>
-    proficiencyEffects.some(({ effect }) => effect.type === 'grant_proficiency' && effect.category === category && effect.id === id);
 
-  const shieldTrained = has('armor', 'shield');
-  if (shields.length && !shieldTrained) {
-    issues.push({ severity: 'warning', code: 'shield_untrained', message: 'Sem treinamento com escudo: o escudo não dá bônus de CA.' });
-  }
   /** A parte mágica vale quando ativa pela sua própria regra (vestido, sintonizado) e com sintonização permitida. */
   const magicActive = (magic: MagicPart | undefined, entry: InventoryEntry): boolean =>
     magic !== undefined && magic.attunable && isItemActive(magic.item.activation, entry);
-  for (const { entry, item, magic } of entries) {
-    // Escudo sem treinamento não dá CA, nem a do bônus mágico.
-    if (item.kind === 'armor' && item.category === 'shield' && !shieldTrained) continue;
+  /** Efeitos ativos de cada entrada do inventário (item base e parte mágica), com a fonte. */
+  const itemEffects = entries.map(({ entry, item, magic }) => {
     const refKey = `item:${entry.instanceId}`;
+    const list: SourcedEffect[] = [];
     if (item.kind !== 'magic_item' && isItemActive(item.activation, entry)) {
       const source: SourceLabel = { kind: 'item', id: item.id, name: item.name };
-      for (const effect of item.effects) all.push({ effect, source, refKey });
+      for (const effect of item.effects) list.push({ effect, source, refKey });
     }
     if (magic && magicActive(magic, entry)) {
       const source: SourceLabel = { kind: 'item', id: magic.item.id, name: magic.name };
-      for (const effect of magic.effects) all.push({ effect, source, refKey });
+      for (const effect of magic.effects) list.push({ effect, source, refKey });
     }
+    return { entry, item, effects: list };
+  });
+
+  // Proficiências: escolhas, ajustes e itens ativos (Bracers of Archery, Elven Chain). As dos itens entram
+  // antes da checagem de treinamento, para um item poder treinar o personagem com ele mesmo.
+  const proficiencyEffects = [...all, ...itemEffects.flatMap((i) => i.effects)].filter((e) => e.effect.type === 'grant_proficiency');
+  const has = (category: 'armor' | 'weapon', id: string): boolean =>
+    proficiencyEffects.some(({ effect }) => effect.type === 'grant_proficiency' && effect.category === category && effect.id === id);
+  /** Treinado com a armadura/escudo desta entrada: pela categoria, ou pelo próprio item (`id: self`). */
+  const trainedWith = (instanceId: string, category: 'light' | 'medium' | 'heavy' | 'shield'): boolean =>
+    has('armor', category) ||
+    proficiencyEffects.some(
+      ({ effect, refKey }) => effect.type === 'grant_proficiency' && effect.category === 'armor' && effect.id === 'self' && refKey === `item:${instanceId}`,
+    );
+
+  const shieldTrained = shields.every(({ entry }) => trainedWith(entry.instanceId, 'shield'));
+  if (shields.length && !shieldTrained) {
+    issues.push({ severity: 'warning', code: 'shield_untrained', message: 'Sem treinamento com escudo: o escudo não dá bônus de CA.' });
+  }
+  for (const { item, effects } of itemEffects) {
+    // Escudo sem treinamento não dá CA, nem a do bônus mágico.
+    if (item.kind === 'armor' && item.category === 'shield' && !shieldTrained) continue;
+    all.push(...effects);
   }
 
-  const armorTrained = armor === undefined || has('armor', armor.category);
+  const wornEntry = worn[0]?.entry;
+  const armorTrained = armor === undefined || wornEntry === undefined || trainedWith(wornEntry.instanceId, armor.category);
   if (!armorTrained) {
     issues.push({
       severity: 'warning',
@@ -194,6 +222,12 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
   // --- Atributos ----------------------------------------------------------
 
   const scoreParts = Object.fromEntries(ABILITIES.map((a) => [a, [...build.scores[a]]])) as Record<Ability, Contribution[]>;
+  // Aumentos de itens com teto ("+2, até o máximo de 20"), na ordem; depois os mínimos.
+  for (const { effect, source } of effectsOf('ability_increase')) {
+    const current = total(scoreParts[effect.ability]);
+    const raise = Math.min(effect.value, effect.max - current);
+    if (raise > 0) scoreParts[effect.ability].push({ label: `+${String(effect.value)} (máximo ${String(effect.max)})`, value: raise, source });
+  }
   for (const { effect, source } of effectsOf('set_minimum_score')) {
     const current = total(scoreParts[effect.ability]);
     if (current < effect.value) scoreParts[effect.ability].push({ label: `Mínimo ${effect.value}`, value: effect.value - current, source });
@@ -205,7 +239,12 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
   ) as Record<Ability, AbilityStat>;
 
   const level = build.level;
-  const pb = proficiencyBonus(level);
+  // Bônus de proficiência pelo nível, mais `flat_bonus` inteiros em `proficiency_bonus` (Ioun Stone of Mastery).
+  const pb =
+    proficiencyBonus(level) +
+    effectsOf('flat_bonus')
+      .filter(({ effect }) => effect.target === 'proficiency_bonus')
+      .reduce((sum, { effect }) => sum + (typeof effect.value === 'number' ? effect.value : 0), 0);
 
   // --- Condições -----------------------------------------------------------
 
@@ -436,7 +475,8 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
   // --- Proficiências ------------------------------------------------------------
 
   const uniqueIds = (category: string): string[] => [
-    ...new Set(effectsOf('grant_proficiency').flatMap(({ effect }) => (effect.category === category ? [effect.id] : []))),
+    // `self` (treinado com o próprio item) não é uma proficiência geral: fica fora da lista.
+    ...new Set(effectsOf('grant_proficiency').flatMap(({ effect }) => (effect.category === category && effect.id !== 'self' ? [effect.id] : []))),
   ];
   const proficiencies = {
     armor: uniqueIds('armor'),
@@ -457,12 +497,12 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
   const attackFor = (weapon: Weapon, instanceId: string, name: string): WeaponAttack => {
     const finesse = weapon.properties.includes('finesse');
     const allowed: Ability[] = weapon.attackKind === 'ranged' ? ['dex'] : finesse ? ['str', 'dex'] : ['str'];
-    const ctxForAbility: RollContext = { attack: { kind: weapon.attackKind, properties: weapon.properties, category: weapon.category } };
+    const ctxForAbility: RollContext = { attack: { kind: weapon.attackKind, properties: weapon.properties, category: weapon.category, weaponId: weapon.id } };
     for (const { effect } of effectsOf('attack_ability', ctxForAbility)) allowed.push(effect.ability);
     // O maior modificador entre os permitidos; empate fica com o primeiro (o atributo normal da arma).
     const ability = allowed.reduce((best, a) => (mod(a) > mod(best) ? a : best));
     const proficient = isWeaponProficient(proficiencyEffects, weapon);
-    const attackCtx: RollContext = { attack: { kind: weapon.attackKind, properties: weapon.properties, category: weapon.category } };
+    const attackCtx: RollContext = { attack: { kind: weapon.attackKind, properties: weapon.properties, category: weapon.category, weaponId: weapon.id } };
     const extra: { kind: 'disadvantage'; source: SourceLabel }[] = [];
     const heavyAbility: Ability = weapon.attackKind === 'melee' ? 'str' : 'dex';
     if (weapon.properties.includes('heavy') && scores[heavyAbility] < HEAVY_WEAPON_MINIMUM) {

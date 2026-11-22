@@ -1183,7 +1183,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The balor has Advantage on saving throws against spells and other magical effects."
+        "description": "The balor has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -1519,7 +1530,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The devil has Advantage on saving throws against spells and other magical effects."
+        "description": "The devil has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -1725,7 +1747,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The devil has Advantage on saving throws against spells and other magical effects."
+        "description": "The devil has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -3486,7 +3519,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The devil has Advantage on saving throws against spells and other magical effects."
+        "description": "The devil has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -5450,7 +5494,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The devil has Advantage on saving throws against spells and other magical effects."
+        "description": "The devil has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -5843,7 +5898,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The golem has Advantage on saving throws against spells and other magical effects."
+        "description": "The golem has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -5936,7 +6002,14 @@
       {
         "id": "light_sensitivity",
         "name": "Light Sensitivity",
-        "description": "While in Bright Light, the cloaker has Disadvantage on attack rolls."
+        "description": "While in Bright Light, the cloaker has Disadvantage on attack rolls.",
+        "effects": [
+          {
+            "type": "disadvantage",
+            "target": "attack.all",
+            "note": "Na Luz Plena"
+          }
+        ]
       }
     ],
     "actions": [
@@ -7681,7 +7754,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The deva has Advantage on saving throws against spells and other magical effects."
+        "description": "The deva has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -7823,7 +7907,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The djinni has Advantage on saving throws against spells and other magical effects."
+        "description": "The djinni has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       },
       {
         "id": "wishes",
@@ -8337,7 +8432,44 @@
       {
         "id": "sunlight_sensitivity",
         "name": "Sunlight Sensitivity",
-        "description": "While in sunlight, the drider has Disadvantage on ability checks and attack rolls."
+        "description": "While in sunlight, the drider has Disadvantage on ability checks and attack rolls.",
+        "effects": [
+          {
+            "type": "disadvantage",
+            "target": "attack.all",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.str",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.dex",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.con",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.int",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.wis",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.cha",
+            "note": "Na luz do sol"
+          }
+        ]
       },
       {
         "id": "web_walker",
@@ -8592,7 +8724,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The dryad has Advantage on saving throws against spells and other magical effects."
+        "description": "The dryad has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       },
       {
         "id": "speak_with_beasts_and_plants",
@@ -8876,7 +9019,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The efreeti has Advantage on saving throws against spells and other magical effects."
+        "description": "The efreeti has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       },
       {
         "id": "wishes",
@@ -9069,7 +9223,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The erinyes has Advantage on saving throws against spells and other magical effects."
+        "description": "The erinyes has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       },
       {
         "id": "magic_rope",
@@ -9710,7 +9875,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The golem has Advantage on saving throws against spells and other magical effects."
+        "description": "The golem has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -10784,7 +10960,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The glabrezu has Advantage on saving throws against spells and other magical effects."
+        "description": "The glabrezu has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -13969,7 +14156,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The hezrou has Advantage on saving throws against spells and other magical effects."
+        "description": "The hezrou has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       },
       {
         "id": "stench",
@@ -14542,7 +14740,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The devil has Advantage on saving throws against spells and other magical effects."
+        "description": "The devil has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -14794,7 +15003,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The devil has Advantage on saving throws against spells and other magical effects."
+        "description": "The devil has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -14928,7 +15148,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The imp has Advantage on saving throws against spells and other magical effects."
+        "description": "The imp has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -15215,7 +15446,13 @@
       {
         "id": "invisibility",
         "name": "Invisibility",
-        "description": "The stalker has the Invisible condition."
+        "description": "The stalker has the Invisible condition.",
+        "effects": [
+          {
+            "type": "condition",
+            "condition": "invisible"
+          }
+        ]
       }
     ],
     "actions": [
@@ -15352,7 +15589,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The golem has Advantage on saving throws against spells and other magical effects."
+        "description": "The golem has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -15592,7 +15840,44 @@
       {
         "id": "sunlight_sensitivity",
         "name": "Sunlight Sensitivity",
-        "description": "While in sunlight, the kobold has Disadvantage on ability checks and attack rolls."
+        "description": "While in sunlight, the kobold has Disadvantage on ability checks and attack rolls.",
+        "effects": [
+          {
+            "type": "disadvantage",
+            "target": "attack.all",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.str",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.dex",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.con",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.int",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.wis",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.cha",
+            "note": "Na luz do sol"
+          }
+        ]
       }
     ],
     "actions": [
@@ -16568,7 +16853,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The archmage has Advantage on saving throws against spells and other magical effects."
+        "description": "The archmage has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -16949,7 +17245,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The marilith has Advantage on saving throws against spells and other magical effects."
+        "description": "The marilith has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       },
       {
         "id": "reactive",
@@ -18184,7 +18491,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The mummy has Advantage on saving throws against spells and other magical effects."
+        "description": "The mummy has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       },
       {
         "id": "undead_restoration",
@@ -18414,7 +18732,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The nalfeshnee has Advantage on saving throws against spells and other magical effects."
+        "description": "The nalfeshnee has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -18548,7 +18877,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The hag has Advantage on saving throws against spells and other magical effects."
+        "description": "The hag has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       },
       {
         "id": "soul_bag",
@@ -19792,7 +20132,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The pit fiend has Advantage on saving throws against spells and other magical effects."
+        "description": "The pit fiend has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -19951,7 +20302,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The planetar has Advantage on saving throws against spells and other magical effects."
+        "description": "The planetar has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -20367,7 +20729,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The pseudodragon has Advantage on saving throws against spells and other magical effects."
+        "description": "The pseudodragon has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -20600,7 +20973,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The quasit has Advantage on saving throws against spells and other magical effects."
+        "description": "The quasit has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -22050,7 +22434,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The satyr has Advantage on saving throws against spells and other magical effects."
+        "description": "The satyr has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -23682,7 +24077,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The solar has Advantage on saving throws against spells and other magical effects."
+        "description": "The solar has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "legendaryActionUses": {
@@ -23942,7 +24348,44 @@
       {
         "id": "sunlight_sensitivity",
         "name": "Sunlight Sensitivity",
-        "description": "While in sunlight, the specter has Disadvantage on ability checks and attack rolls."
+        "description": "While in sunlight, the specter has Disadvantage on ability checks and attack rolls.",
+        "effects": [
+          {
+            "type": "disadvantage",
+            "target": "attack.all",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.str",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.dex",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.con",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.int",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.wis",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.cha",
+            "note": "Na luz do sol"
+          }
+        ]
       }
     ],
     "actions": [
@@ -24024,7 +24467,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The sphinx has Advantage on saving throws against spells and other magical effects."
+        "description": "The sphinx has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -25155,7 +25609,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The golem has Advantage on saving throws against spells and other magical effects."
+        "description": "The golem has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -25614,7 +26079,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The tarrasque has Advantage on saving throws against spells and other magical effects."
+        "description": "The tarrasque has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       },
       {
         "id": "reflective_carapace",
@@ -26271,7 +26747,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The unicorn has Advantage on saving throws against spells and other magical effects."
+        "description": "The unicorn has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "legendaryActionUses": {
@@ -26909,7 +27396,18 @@
       {
         "id": "magic_resistance",
         "name": "Magic Resistance",
-        "description": "The vrock has Advantage on saving throws against spells and other magical effects."
+        "description": "The vrock has Advantage on saving throws against spells and other magical effects.",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "source": "magic"
+              }
+            }
+          }
+        ]
       }
     ],
     "actions": [
@@ -28544,7 +29042,44 @@
       {
         "id": "sunlight_sensitivity",
         "name": "Sunlight Sensitivity",
-        "description": "While in sunlight, the wight has Disadvantage on ability checks and attack rolls."
+        "description": "While in sunlight, the wight has Disadvantage on ability checks and attack rolls.",
+        "effects": [
+          {
+            "type": "disadvantage",
+            "target": "attack.all",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.str",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.dex",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.con",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.int",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.wis",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.cha",
+            "note": "Na luz do sol"
+          }
+        ]
       }
     ],
     "actions": [
@@ -29046,7 +29581,44 @@
       {
         "id": "sunlight_sensitivity",
         "name": "Sunlight Sensitivity",
-        "description": "While in sunlight, the wraith has Disadvantage on ability checks and attack rolls."
+        "description": "While in sunlight, the wraith has Disadvantage on ability checks and attack rolls.",
+        "effects": [
+          {
+            "type": "disadvantage",
+            "target": "attack.all",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.str",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.dex",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.con",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.int",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.wis",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.cha",
+            "note": "Na luz do sol"
+          }
+        ]
       }
     ],
     "actions": [

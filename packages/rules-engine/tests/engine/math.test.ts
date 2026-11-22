@@ -88,6 +88,30 @@ describe('evaluatePredicate', () => {
     expect(evaluatePredicate({ attackKind: 'melee' }, save)).toBe(false);
   });
 
+  it('matches the weapon used by its compendium id', () => {
+    const bow = { ...naked, roll: { attack: { kind: 'ranged' as const, properties: ['ammunition'], weaponId: 'longbow' } } };
+    expect(evaluatePredicate({ weaponId: 'longbow' }, bow)).toBe(true);
+    expect(evaluatePredicate({ weaponId: 'shortbow' }, bow)).toBe(false);
+    expect(evaluatePredicate({ weaponId: 'longbow' }, naked)).toBeUndefined();
+  });
+
+  it('distinguishes saves against spells from saves against other magical effects', () => {
+    const vsSpell = { ...naked, roll: { against: { source: 'spell' as const } } };
+    const vsMagic = { ...naked, roll: { against: { source: 'magic' as const } } };
+    const mundane = { ...naked, roll: { against: { condition: 'poisoned' as const } } };
+    // "against spells": só magia.
+    expect(evaluatePredicate({ against: { source: 'spell' } }, vsSpell)).toBe(true);
+    expect(evaluatePredicate({ against: { source: 'spell' } }, vsMagic)).toBe(false);
+    // "against spells and other magical effects": magia satisfaz também.
+    expect(evaluatePredicate({ against: { source: 'magic' } }, vsSpell)).toBe(true);
+    expect(evaluatePredicate({ against: { source: 'magic' } }, vsMagic)).toBe(true);
+    expect(evaluatePredicate({ against: { source: 'magic' } }, mundane)).toBe(false);
+    expect(evaluatePredicate({ against: { source: 'spell' } }, naked)).toBeUndefined();
+    // Uma magia que causa uma condição: os dois predicados valem na mesma rolagem.
+    const holdPerson = { ...naked, roll: { against: { source: 'spell' as const, condition: 'paralyzed' as const } } };
+    expect(evaluatePredicate({ all: [{ against: { source: 'spell' } }, { against: { condition: 'paralyzed' } }] }, holdPerson)).toBe(true);
+  });
+
   it('uses three-valued logic in all/any', () => {
     const unknown = { against: { condition: 'poisoned' } } as const;
     // Falso domina o desconhecido em `all`; verdadeiro domina em `any`.

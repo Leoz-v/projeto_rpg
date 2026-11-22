@@ -31,7 +31,7 @@ const AttackKind = AttackKindSchema;
 // --- flat_bonus (3.1) -------------------------------------------------------
 
 export const FlatBonusTargetSchema = z.union([
-  z.enum(['ac', 'initiative', 'hp_max', 'speed.walk', 'speed.fly', 'speed.swim', 'speed.climb', 'speed.burrow', 'save.all', 'spell_save_dc', 'attunement_slots', 'attack.weapon', 'damage.weapon']),
+  z.enum(['ac', 'initiative', 'hp_max', 'speed.walk', 'speed.fly', 'speed.swim', 'speed.climb', 'speed.burrow', 'save.all', 'spell_save_dc', 'attunement_slots', 'attack.weapon', 'damage.weapon', 'proficiency_bonus']),
   z.templateLiteral(['attack.', AttackKind]),
   z.templateLiteral(['damage.', AttackKind]),
   z.templateLiteral(['save.', Ability]),
@@ -106,7 +106,8 @@ const GrantProficiencySchema = z.discriminatedUnion('category', [
   z.strictObject({ ...grantProficiency, category: z.literal('skill'), id: SkillSchema, level: ExpertiseLevelSchema.optional() }),
   z.strictObject({ ...grantProficiency, category: z.literal('tool'), id: IdSchema, level: ExpertiseLevelSchema.optional() }),
   z.strictObject({ ...grantProficiency, category: z.literal('save'), id: Ability }),
-  z.strictObject({ ...grantProficiency, category: z.literal('armor'), id: z.enum(['light', 'medium', 'heavy', 'shield']) }),
+  /** `self`: treinado com o próprio item que carrega o efeito (Elven Chain), não com a categoria. */
+  z.strictObject({ ...grantProficiency, category: z.literal('armor'), id: z.enum(['light', 'medium', 'heavy', 'shield', 'self']) }),
   z
     .strictObject({
       ...grantProficiency,
@@ -160,6 +161,17 @@ const GrantSenseSchema = z.strictObject({
   range: FeetSchema.positive(),
   /** Soma ao alcance dado por outras fontes (ou concede, se não houver). */
   extend: z.literal(true).optional(),
+  ...common,
+});
+
+// --- ability_increase (3.8.1) ----------------------------------------------
+
+const AbilityIncreaseSchema = z.strictObject({
+  type: z.literal('ability_increase'),
+  ability: Ability,
+  value: z.int().positive(),
+  /** Teto publicado pela fonte ("to a maximum of 20"). */
+  max: z.int().min(1).max(30),
   ...common,
 });
 
@@ -235,6 +247,7 @@ export const EffectSchema = z.discriminatedUnion('type', [
   GrantSpellSchema,
   GrantSenseSchema,
   DamageReductionSchema,
+  AbilityIncreaseSchema,
   SetMinimumScoreSchema,
   WeaponMasteryEffectSchema,
   ConditionEffectSchema,
