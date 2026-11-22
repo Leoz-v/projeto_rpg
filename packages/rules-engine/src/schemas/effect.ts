@@ -223,6 +223,39 @@ const DamageDieMinimumSchema = z.strictObject({
   ...common,
 });
 
+// --- minimum_speed (3.19) / base_override (3.20) ---------------------------
+
+const MinimumSpeedSchema = z.strictObject({
+  type: z.literal('minimum_speed'),
+  /** Deslocamento a pé mínimo, em pés (Boots of Striding and Springing: 30). */
+  value: FeetSchema.positive(),
+  /** A armadura com FOR não atendida não reduz o deslocamento. */
+  ignoreArmorPenalty: z.literal(true).optional(),
+  ...common,
+});
+
+/** Altera o item base da mesma entrada do inventário (Mithral Armor, Sun Blade). */
+const BaseOverrideSchema = z
+  .strictObject({
+    type: z.literal('base_override'),
+    removeStrength: z.literal(true).optional(),
+    removeStealthDisadvantage: z.literal(true).optional(),
+    addProperties: z.array(WeaponPropertySchema).min(1).optional(),
+    damageType: DamageTypeSchema.optional(),
+    /** Proficiente se tiver proficiência com alguma destas armas. */
+    proficiencyWith: z.array(IdSchema).min(1).optional(),
+    ...common,
+  })
+  .refine(
+    (e) =>
+      e.removeStrength !== undefined ||
+      e.removeStealthDisadvantage !== undefined ||
+      e.addProperties !== undefined ||
+      e.damageType !== undefined ||
+      e.proficiencyWith !== undefined,
+    { message: 'base_override exige pelo menos um campo' },
+  );
+
 // --- damage_reduction (3.14) ------------------------------------------------
 
 const DamageReductionSchema = z.strictObject({
@@ -299,6 +332,8 @@ export const EffectSchema = z.discriminatedUnion('type', [
   CritRangeSchema,
   D20RuleSchema,
   DamageDieMinimumSchema,
+  MinimumSpeedSchema,
+  BaseOverrideSchema,
   AbilityIncreaseSchema,
   SetMinimumScoreSchema,
   WeaponMasteryEffectSchema,

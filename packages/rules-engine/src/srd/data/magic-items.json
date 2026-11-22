@@ -520,6 +520,43 @@
         "ability": "con",
         "value": 2,
         "max": 20
+      },
+      {
+        "type": "grant_sense",
+        "sense": "darkvision",
+        "range": 60,
+        "when": {
+          "not": {
+            "species": "dwarf"
+          }
+        }
+      },
+      {
+        "type": "resistance",
+        "damageType": "poison",
+        "when": {
+          "not": {
+            "species": "dwarf"
+          }
+        }
+      },
+      {
+        "type": "advantage",
+        "target": "save.all",
+        "when": {
+          "all": [
+            {
+              "not": {
+                "species": "dwarf"
+              }
+            },
+            {
+              "against": {
+                "condition": "poisoned"
+              }
+            }
+          ]
+        }
       }
     ],
     "description": "While wearing this belt, you gain the following benefits:\nDwarvish. You know Dwarvish.\nFriend of Dwarvenkind. You have Advantage on Charisma (Persuasion) checks made to interact with dwarves and duergar.\nToughness. Your Constitution increases by 2, to a maximum of 20.\nIn addition, while attuned to the belt, you have a 50 percent chance each day at dawn of growing a full beard if you can grow one, or a thicker beard if you already have one.\nIf you aren't a dwarf or duergar, you gain the following additional benefits while wearing the belt:\nDarkvision. You have Darkvision with a range of 60 feet.\nResilience. You have Resistance to Poison damage.\nYou also have Advantage on saving throws you make to avoid or end the Poisoned condition."
@@ -674,6 +711,13 @@
     "rarity": "uncommon",
     "attunement": {},
     "activation": "attuned",
+    "effects": [
+      {
+        "type": "minimum_speed",
+        "value": 30,
+        "ignoreArmorPenalty": true
+      }
+    ],
     "description": "While you wear these boots, your Speed becomes 30 feet unless your Speed is higher, and your Speed isn't reduced by you carrying weight in excess of your carrying capacity or wearing Heavy Armor.\nOnce on each of your turns, you can jump up to 30 feet by spending only 10 feet of movement."
   },
   {
@@ -2495,6 +2539,13 @@
         "plate_armor"
       ]
     },
+    "effects": [
+      {
+        "type": "base_override",
+        "removeStrength": true,
+        "removeStealthDisadvantage": true
+      }
+    ],
     "description": "Mithral is a light, flexible metal. Armor made of this substance can be worn under normal clothes. If the armor normally imposes Disadvantage on Dexterity (Stealth) checks or has a Strength requirement, the mithral version of the armor doesn't."
   },
   {
@@ -4353,6 +4404,17 @@
         "type": "flat_bonus",
         "target": "damage.weapon",
         "value": 2
+      },
+      {
+        "type": "base_override",
+        "addProperties": [
+          "finesse"
+        ],
+        "damageType": "radiant",
+        "proficiencyWith": [
+          "longsword",
+          "shortsword"
+        ]
       }
     ],
     "description": "This item appears to be a sword hilt.\nBlade of Radiance. While grasping the hilt, you can take a Bonus Action to cause a blade of pure radiance to spring into existence or make the blade disappear. While the blade exists, this magic weapon functions as a Longsword with the Finesse property. If you are proficient with Longswords or Shortswords, you are proficient with the Sun Blade.\nYou gain a +2 bonus to attack rolls and damage rolls made with this weapon, which deals Radiant damage instead of Slashing damage. When you hit an Undead with it, that target takes an extra 1d8 Radiant damage.\nSunlight. The sword's luminous blade emits Bright Light in a 15-foot radius and Dim Light for an additional 15 feet. The light is sunlight. While the blade persists, you can take a Magic action to expand or reduce its radius of Bright Light and Dim Light by 5 feet each, to a maximum of 30 feet each or a minimum of 10 feet each."

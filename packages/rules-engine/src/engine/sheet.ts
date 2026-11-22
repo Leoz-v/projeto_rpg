@@ -98,6 +98,8 @@ export interface PredicateContext {
   shield: boolean;
   /** Condições atuais da criatura (para `hasCondition`). */
   conditions: ReadonlySet<Condition>;
+  /** Espécie do personagem (para `species`); ausente em criaturas sem espécie. */
+  speciesId?: string | undefined;
   roll?: RollContext | undefined;
 }
 
@@ -123,6 +125,7 @@ export function evaluatePredicate(p: Predicate, ctx: PredicateContext): boolean 
   if ('weaponId' in p) return roll ? roll.attack?.weaponId === p.weaponId : undefined;
   if ('twoHanded' in p) return roll ? (roll.attack?.twoHanded ?? false) === p.twoHanded : undefined;
   if ('hasCondition' in p) return ctx.conditions.has(p.hasCondition);
+  if ('species' in p) return ctx.speciesId === p.species;
   if ('not' in p) {
     const inner = evaluatePredicate(p.not, ctx);
     return inner === undefined ? undefined : !inner;
@@ -156,7 +159,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
   const armor = armorItem?.kind === 'armor' ? armorItem : undefined;
   // As condições são preenchidas depois de avaliar os efeitos `condition` (que não dependem delas).
   const currentConditions = new Set<Condition>();
-  const ctx: PredicateContext = { armor, shield: shields.length > 0, conditions: currentConditions };
+  const ctx: PredicateContext = { armor, shield: shields.length > 0, conditions: currentConditions, speciesId: build.speciesId };
 
   const isItemActive = (activation: Item['activation'], entry: { equipped: boolean; attuned: boolean }): boolean =>
     activation === 'carried' || (activation === 'equipped' && entry.equipped) || (activation === 'attuned' && entry.attuned);
@@ -172,13 +175,28 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
   /** A parte mágica vale quando ativa pela sua própria regra (vestido, sintonizado) e com sintonização permitida. */
   const magicActive = (magic: MagicPart | undefined, entry: InventoryEntry): boolean =>
     magic !== undefined && magic.attunable && isItemActive(magic.item.activation, entry);
+  type BaseOverride = Extract<Effect, { type: 'base_override' }>;
+  /** `base_override` da parte mágica ativa de cada entrada: altera o item base dela (Mithral Armor, Sun Blade). */
+  const overridesOf = new Map<string, BaseOverride[]>(
+    entries.map(({ entry, magic }) => [
+      entry.instanceId,
+      magic && magicActive(magic, entry)
+        ? magic.effects.filter((e): e is BaseOverride => e.type === 'base_override' && (!e.when || evaluatePredicate(e.when, ctx) === true))
+        : [],
+    ]),
+  );
+  const overrides = (instanceId: string): BaseOverride[] => overridesOf.get(instanceId) ?? [];
   /** Efeitos ativos de cada entrada do inventário (item base e parte mágica), com a fonte. */
   const itemEffects = entries.map(({ entry, item, magic }) => {
     const refKey = `item:${entry.instanceId}`;
     const list: SourcedEffect[] = [];
     if (item.kind !== 'magic_item' && isItemActive(item.activation, entry)) {
       const source: SourceLabel = { kind: 'item', id: item.id, name: item.name };
-      for (const effect of item.effects) list.push({ effect, source, refKey });
+      const noStealthDisadvantage = overrides(entry.instanceId).some((o) => o.removeStealthDisadvantage);
+      for (const effect of item.effects) {
+        if (noStealthDisadvantage && effect.type === 'disadvantage' && effect.target === 'skill.stealth') continue;
+        list.push({ effect, source, refKey });
+      }
     }
     if (magic && magicActive(magic, entry)) {
       const source: SourceLabel = { kind: 'item', id: magic.item.id, name: magic.name };
@@ -459,9 +477,14 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
   // --- Deslocamento -----------------------------------------------------------
 
   const species = build.speciesId ? find(compendium.species, build.speciesId) : undefined;
+  const wornId = worn[0]?.entry.instanceId;
+  // Mithral Armor: sem exigência de FOR. Boots of Striding and Springing: a armadura não reduz o deslocamento.
+  const armorStrength = wornId !== undefined && overrides(wornId).some((o) => o.removeStrength) ? undefined : armor?.strength;
+  const minimumSpeeds = effectsOf('minimum_speed');
+  const ignoreArmorPenalty = minimumSpeeds.some(({ effect }) => effect.ignoreArmorPenalty);
   const speedPenalties = (): Contribution[] => [
-    ...(armor?.strength !== undefined && scores.str < armor.strength
-      ? [{ label: `${armor.name} sem FOR ${armor.strength}`, value: -HEAVY_ARMOR_SPEED_PENALTY, source: { kind: 'item', id: armor.id, name: armor.name } as SourceLabel }]
+    ...(armor && armorStrength !== undefined && scores.str < armorStrength && !ignoreArmorPenalty
+      ? [{ label: `${armor.name} sem FOR ${armorStrength}`, value: -HEAVY_ARMOR_SPEED_PENALTY, source: { kind: 'item', id: armor.id, name: armor.name } as SourceLabel }]
       : []),
     ...(exhaustion ? [{ label: `Exaustão ${exhaustion}`, value: -EXHAUSTION_SPEED_PENALTY * exhaustion, source: RULE('exhaustion', 'Exaustão') }] : []),
   ];
@@ -471,7 +494,18 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     const result = stat([...parts, ...speedPenalties()]);
     return { ...result, total: Math.max(0, result.total) };
   };
-  const walk = speedStat('walk', species ? [{ label: species.name, value: species.speed, source: { kind: 'species', id: species.id, name: species.name } }] : []);
+  /** Deslocamento a pé mínimo ("becomes 30 feet unless your Speed is higher"), antes das penalidades. */
+  const minimumWalk = (base: Contribution[]): Contribution[] => {
+    const best = minimumSpeeds.reduce<(typeof minimumSpeeds)[number] | undefined>((b, e) => (!b || e.effect.value > b.effect.value ? e : b), undefined);
+    const current = total([...base, ...bonuses(['speed.walk'])]);
+    return best && current < best.effect.value
+      ? [...base, { label: `Mínimo ${String(best.effect.value)} ft (${labelOf(best)})`, value: best.effect.value - current, source: best.source }]
+      : base;
+  };
+  const walk = speedStat(
+    'walk',
+    minimumWalk(species ? [{ label: species.name, value: species.speed, source: { kind: 'species', id: species.id, name: species.name } }] : []),
+  );
   /**
    * Deslocamento especial: o maior entre as concessões. "Igual ao Deslocamento" usa o total
    * a pé (já com bônus e penalidades); um valor fixo recebe as penalidades aqui.
@@ -543,14 +577,35 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       .filter(({ effect, refKey }) => effect.target === target && refKey === `item:${instanceId}`)
       .map((e) => ({ label: e.effect.note ?? labelOf(e), value: bonusValue(e.effect.value, e.classId), source: e.source }));
 
-  const attackFor = (weapon: Weapon, instanceId: string, name: string): WeaponAttack => {
+  /** A arma base com os `base_override` da entrada (Sun Blade: Finesse, dano Radiant). */
+  const overriddenWeapon = (weapon: Weapon, instanceId: string): Weapon =>
+    overrides(instanceId).reduce<Weapon>(
+      (w, o) => ({
+        ...w,
+        properties: [...new Set([...w.properties, ...(o.addProperties ?? [])])],
+        damage: { ...w.damage, type: o.damageType ?? w.damage.type },
+      }),
+      weapon,
+    );
+  /** Proficiente com a arma, ou com alguma das armas de `proficiencyWith` ("Longswords or Shortswords"). */
+  const weaponProficient = (weapon: Weapon, instanceId: string): boolean =>
+    isWeaponProficient(proficiencyEffects, weapon) ||
+    overrides(instanceId).some((o) =>
+      (o.proficiencyWith ?? []).some((id) => {
+        const other = find(compendium.items, id);
+        return other?.kind === 'weapon' && isWeaponProficient(proficiencyEffects, other);
+      }),
+    );
+
+  const attackFor = (base: Weapon, instanceId: string, name: string): WeaponAttack => {
+    const weapon = overriddenWeapon(base, instanceId);
     const finesse = weapon.properties.includes('finesse');
     const allowed: Ability[] = weapon.attackKind === 'ranged' ? ['dex'] : finesse ? ['str', 'dex'] : ['str'];
     const ctxForAbility: RollContext = { attack: { kind: weapon.attackKind, properties: weapon.properties, category: weapon.category, weaponId: weapon.id } };
     for (const { effect } of effectsOf('attack_ability', ctxForAbility)) allowed.push(effect.ability);
     // O maior modificador entre os permitidos; empate fica com o primeiro (o atributo normal da arma).
     const ability = allowed.reduce((best, a) => (mod(a) > mod(best) ? a : best));
-    const proficient = isWeaponProficient(proficiencyEffects, weapon);
+    const proficient = weaponProficient(weapon, instanceId);
     const attackCtx: RollContext = {
       attack: { kind: weapon.attackKind, properties: weapon.properties, category: weapon.category, weaponId: weapon.id, twoHanded: weapon.properties.includes('two_handed') },
     };

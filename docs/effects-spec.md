@@ -42,6 +42,7 @@ Lista fechada. Um `when` é um objeto com **uma** destas chaves; para combinar, 
 | `{ "weaponCategory": "simple" }` | A arma usada é da categoria `simple` \| `martial`. |
 | `{ "weaponId": "longbow" }` | A arma usada é este item do compêndio (numa arma mágica, o item base). Ex.: Bracers of Archery, "+2 de dano com Longbow e Shortbow". |
 | `{ "twoHanded": true }` | A arma é empunhada com as duas mãos, como ela permite: propriedade Two-Handed, ou Versatile usada com as duas mãos (Great Weapon Fighting). |
+| `{ "species": "dwarf" }` | A espécie do personagem é esta (id do compêndio). Ex.: Belt of Dwarvenkind, "if you aren't a dwarf", com `not`. Criaturas sem espécie (monstros) nunca satisfazem. |
 | `{ "hasCondition": "incapacitated" }` | A criatura está com a condição (ex.: "a aura fica inativa enquanto você está Incapacitado"). |
 | `{ "not": { … } }` | O predicado interno é falso. |
 | `{ "all": [ … ] }`              | Todos os predicados são verdadeiros. |
@@ -288,6 +289,28 @@ Regra que muda o resultado de um Teste d20 (ataque, salvaguarda ou teste de atri
 
 - Cada dado de dano do ataque que mostrar menos que `min` vale `min` (Great Weapon Fighting: "treat any 1 or 2 on a damage die as a 3"). Vale para todos os dados de dano do ataque, inclusive os de `extra_damage` e os dobrados no crítico.
 - Vale o maior `min` entre as fontes. O `when` é avaliado no contexto do ataque; a ficha mostra o mínimo em cada ataque, separado para o uso com duas mãos de uma arma Versatile.
+
+### 3.19 `minimum_speed`
+
+```json
+{ "type": "minimum_speed", "value": 30, "ignoreArmorPenalty": true }
+```
+
+- O Deslocamento a pé passa a ser pelo menos `value` ("your Speed becomes 30 feet unless your Speed is higher", Boots of Striding and Springing). O mínimo vale sobre o deslocamento com os bônus, antes das penalidades.
+- `ignoreArmorPenalty: true`: a armadura com exigência de FOR não atendida não reduz o deslocamento ("your Speed isn't reduced by [...] wearing Heavy Armor"). A Exaustão continua reduzindo.
+- Vale o maior `value` entre as fontes. Carga (encumbrance) não é calculada pela ficha.
+
+### 3.20 `base_override`
+
+```json
+{ "type": "base_override", "removeStrength": true, "removeStealthDisadvantage": true }
+{ "type": "base_override", "addProperties": ["finesse"], "damageType": "radiant", "proficiencyWith": ["longsword", "shortsword"] }
+```
+
+- Só em itens mágicos com item base: altera o item base **daquela entrada do inventário** enquanto a parte mágica está ativa. Os outros itens não mudam.
+- Armadura: `removeStrength` (a exigência de FOR some) e `removeStealthDisadvantage` (a Desvantagem em Stealth do item base some). Ex.: Mithral Armor.
+- Arma: `addProperties` (propriedades a mais), `damageType` (troca o tipo do dano da arma) e `proficiencyWith` (proficiente se tiver proficiência com alguma destas armas, além da própria arma base). Ex.: Sun Blade, "functions as a Longsword with the Finesse property. If you are proficient with Longswords or Shortswords, you are proficient with the Sun Blade [...] deals Radiant damage instead of Slashing damage".
+- Pelo menos um campo. O id da arma (predicado `weaponId`) continua sendo o do item base.
 
 ## 4. Ordem de cálculo da ficha
 

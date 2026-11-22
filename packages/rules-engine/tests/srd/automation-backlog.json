@@ -1,9 +1,5 @@
 {
-  "mechanics": {
-    "minimum_speed": "Deslocamento mínimo ('your Speed becomes 30 feet unless higher').",
-    "base_override": "Item mágico que altera o item base: remove penalidades da armadura (Mithral) ou muda propriedades e proficiência da arma (Sun Blade).",
-    "species_predicate": "Predicado pela espécie do personagem ('if you aren't a dwarf')."
-  },
+  "mechanics": {},
   "entries": {
     "feature:class:barbarian/brutal_strike": {
       "category": "phase_4",
@@ -973,13 +969,6 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:belt_of_dwarvenkind#non_dwarf": {
-      "category": "automate",
-      "reason": "Darkvision 60 ft, Resistência a Veneno e vantagem contra Envenenado só se não for anão.",
-      "mechanics": [
-        "species_predicate"
-      ]
-    },
     "item:boots_of_levitation": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
@@ -988,12 +977,9 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:boots_of_striding_and_springing": {
-      "category": "automate",
-      "reason": "Passivo enquanto vestido, empunhado ou sintonizado.",
-      "mechanics": [
-        "minimum_speed"
-      ]
+    "item:boots_of_striding_and_springing#jump": {
+      "category": "phase_5",
+      "reason": "Salto de 30 ft gastando 10 ft de movimento, uma vez por turno (movimento no turno)."
     },
     "item:bowl_of_commanding_water_elementals": {
       "category": "phase_4",
@@ -1250,13 +1236,6 @@
     "item:mirror_of_life_trapping": {
       "category": "gm",
       "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
-    },
-    "item:mithral_armor": {
-      "category": "automate",
-      "reason": "Passivo enquanto vestido, empunhado ou sintonizado.",
-      "mechanics": [
-        "base_override"
-      ]
     },
     "item:mysterious_deck": {
       "category": "gm",
@@ -1538,12 +1517,9 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:sun_blade#longsword_with_finesse": {
-      "category": "automate",
-      "reason": "Funciona como Longsword com Finesse; proficiente se tiver Longsword ou Shortsword.",
-      "mechanics": [
-        "base_override"
-      ]
+    "item:sun_blade#undead_damage": {
+      "category": "phase_4",
+      "reason": "+1d8 Radiant ao acertar um Undead: dano que depende do alvo (resolução do ataque)."
     },
     "item:sword_of_life_stealing": {
       "category": "phase_4",
