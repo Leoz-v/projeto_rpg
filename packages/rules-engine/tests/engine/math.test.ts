@@ -57,8 +57,9 @@ describe('math', () => {
 
 describe('evaluatePredicate', () => {
   const heavy = ArmorSchema.parse({ id: 'plate', name: 'Plate', kind: 'armor', category: 'heavy' });
-  const armored = { armor: heavy, shield: true };
-  const naked = { armor: undefined, shield: false };
+  const none = new Set<never>();
+  const armored = { armor: heavy, shield: true, conditions: none };
+  const naked = { armor: undefined, shield: false, conditions: none };
 
   it('evaluates armor and shield predicates', () => {
     expect(evaluatePredicate({ wearingArmor: true }, armored)).toBe(true);

@@ -15,12 +15,14 @@ import type { Armor, Item, Weapon } from '../schemas/item';
 import type { Predicate } from '../schemas/predicate';
 import type { Compendium } from '../srd';
 import { resolveBuild, type SourcedEffect } from './build';
+import { isWeaponProficient } from './proficiency';
 import {
   abilityModifier,
   casterLevelContribution,
   EXHAUSTION_D20_PENALTY,
   EXHAUSTION_SPEED_PENALTY,
   fixedHitPointsPerLevel,
+  pactMagicSlots,
   MAX_EXHAUSTION,
   proficiencyBonus,
   spellSlots,
@@ -69,7 +71,7 @@ const SPELL_DC_BASE = 8;
 
 /** Uma rolagem concreta: o que é atacado ou evitado. */
 export interface RollContext {
-  attack?: { kind: 'melee' | 'ranged' | 'spell'; properties: readonly string[] } | undefined;
+  attack?: { kind: 'melee' | 'ranged' | 'spell'; properties: readonly string[]; category?: 'simple' | 'martial' | undefined } | undefined;
   against?: { condition: Condition } | undefined;
 }
 
@@ -77,6 +79,8 @@ export interface RollContext {
 export interface PredicateContext {
   armor?: Armor | undefined;
   shield: boolean;
+  /** Condições atuais da criatura (para `hasCondition`). */
+  conditions: ReadonlySet<Condition>;
   roll?: RollContext | undefined;
 }
 
@@ -93,6 +97,12 @@ export function evaluatePredicate(p: Predicate, ctx: PredicateContext): boolean 
   if ('attackKind' in p) return roll ? roll.attack?.kind === p.attackKind : undefined;
   if ('weaponProperty' in p) return roll ? (roll.attack?.properties.includes(p.weaponProperty) ?? false) : undefined;
   if ('against' in p) return roll ? roll.against?.condition === p.against.condition : undefined;
+  if ('weaponCategory' in p) return roll ? roll.attack?.category === p.weaponCategory : undefined;
+  if ('hasCondition' in p) return ctx.conditions.has(p.hasCondition);
+  if ('not' in p) {
+    const inner = evaluatePredicate(p.not, ctx);
+    return inner === undefined ? undefined : !inner;
+  }
   const results = ('all' in p ? p.all : p.any).map((x) => evaluatePredicate(x, ctx));
   if ('all' in p) return results.includes(false) ? false : results.includes(undefined) ? undefined : true;
   return results.includes(true) ? true : results.includes(undefined) ? undefined : false;
@@ -125,7 +135,9 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
   if (shields.length > 1) issues.push({ severity: 'error', code: 'multiple_armor', message: 'Só é possível empunhar um escudo por vez.' });
   const armorItem = worn[0]?.item;
   const armor = armorItem?.kind === 'armor' ? armorItem : undefined;
-  const ctx: PredicateContext = { armor, shield: shields.length > 0 };
+  // As condições são preenchidas depois de avaliar os efeitos `condition` (que não dependem delas).
+  const currentConditions = new Set<Condition>();
+  const ctx: PredicateContext = { armor, shield: shields.length > 0, conditions: currentConditions };
 
   const isItemActive = (activation: Item['activation'], entry: { equipped: boolean; attuned: boolean }): boolean =>
     activation === 'carried' || (activation === 'equipped' && entry.equipped) || (activation === 'attuned' && entry.attuned);
@@ -197,6 +209,8 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     if (effect.condition === 'exhaustion') exhaustion += effect.level;
     else conditions.push({ condition: effect.condition, source });
   }
+  for (const c of conditions) currentConditions.add(c.condition);
+  if (exhaustion) currentConditions.add('exhaustion');
   exhaustion = Math.min(exhaustion, MAX_EXHAUSTION);
   if (conditions.length) {
     issues.push({
@@ -210,16 +224,19 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
 
   // --- Bônus e rolagens -----------------------------------------------------
 
-  const bonusValue = (value: BonusValue): number => {
+  /** `perLevel` conta o nível na escala da fonte: o da classe para classe/subclasse, o de personagem nos demais. */
+  const scaleLevel = (classId: string | undefined): number =>
+    classId ? (build.classes.find((c) => c.classId === classId)?.level ?? 0) : level;
+  const bonusValue = (value: BonusValue, classId?: string): number => {
     if (typeof value === 'number') return value;
-    if ('ability' in value) return mod(value.ability);
+    if ('ability' in value) return Math.max(mod(value.ability), value.min ?? -Infinity);
     if ('proficiency' in value) return value.proficiency * pb;
-    return value.perLevel * level;
+    return value.perLevel * scaleLevel(classId);
   };
   const bonuses = (targets: readonly string[], roll?: RollContext): Contribution[] =>
     effectsOf('flat_bonus', roll)
       .filter(({ effect }) => targets.includes(effect.target))
-      .map((e) => ({ label: e.effect.note ?? labelOf(e), value: bonusValue(e.effect.value), source: e.source }));
+      .map((e) => ({ label: e.effect.note ?? labelOf(e), value: bonusValue(e.effect.value, e.classId), source: e.source }));
 
   const rollState = (targets: readonly string[], roll?: RollContext, extra: { kind: 'advantage' | 'disadvantage'; source: SourceLabel }[] = []): RollState => {
     const state: RollState = { mode: 'normal', advantage: [], disadvantage: [], situational: [] };
@@ -251,6 +268,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
 
   // --- Salvaguardas, perícias, iniciativa ------------------------------------
 
+  const halfProficiency = effectsOf('half_proficiency');
   const savesProficient = new Set(effectsOf('grant_proficiency').flatMap(({ effect }) => (effect.category === 'save' ? [effect.id] : [])));
   const saves = Object.fromEntries(
     ABILITIES.map((a) => {
@@ -271,9 +289,11 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       const proficiency = proficiencyLevel('skill', skill);
       const multiplier = proficiency === 'expertise' ? 2 : proficiency === 'proficient' ? 1 : 0;
       const targets = [`skill.${skill}`, `check.${ability}`];
+      const half = multiplier === 0 ? halfProficiency[0] : undefined;
       const parts: Contribution[] = [
         { label: `Modificador de ${ABILITY_NAME[ability]}`, value: mod(ability) },
         ...(multiplier ? [{ label: multiplier === 2 ? 'Especialização' : 'Proficiência', value: pb * multiplier }] : []),
+        ...(half ? [{ label: labelOf(half), value: Math.floor(pb / 2), source: half.source }] : []),
         ...bonuses(targets),
         ...exhaustionPart(),
       ];
@@ -351,18 +371,28 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       : []),
     ...(exhaustion ? [{ label: `Exaustão ${exhaustion}`, value: -EXHAUSTION_SPEED_PENALTY * exhaustion, source: RULE('exhaustion', 'Exaustão') }] : []),
   ];
-  const speedStat = (kind: 'walk' | 'fly' | 'swim' | 'climb', base: Contribution[]): Stat => {
+  const speedStat = (kind: 'walk' | 'fly' | 'swim' | 'climb' | 'burrow', base: Contribution[]): Stat => {
     const parts = [...base, ...bonuses([`speed.${kind}`])];
     if (total(parts) <= 0) return { total: 0, parts: [] };
     const result = stat([...parts, ...speedPenalties()]);
     return { ...result, total: Math.max(0, result.total) };
   };
-  const speed = {
-    walk: speedStat('walk', species ? [{ label: species.name, value: species.speed, source: { kind: 'species', id: species.id, name: species.name } }] : []),
-    fly: speedStat('fly', []),
-    swim: speedStat('swim', []),
-    climb: speedStat('climb', []),
+  const walk = speedStat('walk', species ? [{ label: species.name, value: species.speed, source: { kind: 'species', id: species.id, name: species.name } }] : []);
+  /**
+   * Deslocamento especial: o maior entre as concessões. "Igual ao Deslocamento" usa o total
+   * a pé (já com bônus e penalidades); um valor fixo recebe as penalidades aqui.
+   */
+  const specialSpeed = (kind: 'fly' | 'swim' | 'climb' | 'burrow'): Stat => {
+    const grants = effectsOf('grant_speed').filter(({ effect }) => effect.speed === kind);
+    const candidates: Stat[] = grants.map((e) =>
+      e.effect.value === 'walk'
+        ? stat([{ label: `${labelOf(e)} (igual ao deslocamento)`, value: walk.total, source: e.source }, ...bonuses([`speed.${kind}`])])
+        : speedStat(kind, [{ label: labelOf(e), value: e.effect.value, source: e.source }]),
+    );
+    if (!candidates.length) return speedStat(kind, []);
+    return candidates.reduce((best, c) => (c.total > best.total ? c : best));
   };
+  const speed = { walk, fly: specialSpeed('fly'), swim: specialSpeed('swim'), climb: specialSpeed('climb'), burrow: specialSpeed('burrow') };
 
   // --- Sentidos e defesas -----------------------------------------------------
 
@@ -405,10 +435,13 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
 
   const attackFor = (weapon: Weapon, instanceId: string): WeaponAttack => {
     const finesse = weapon.properties.includes('finesse');
-    const ability: Ability =
-      weapon.attackKind === 'ranged' ? 'dex' : finesse && mod('dex') > mod('str') ? 'dex' : 'str';
-    const proficient = has('weapon', weapon.category) || has('weapon', weapon.id);
-    const attackCtx: RollContext = { attack: { kind: weapon.attackKind, properties: weapon.properties } };
+    const allowed: Ability[] = weapon.attackKind === 'ranged' ? ['dex'] : finesse ? ['str', 'dex'] : ['str'];
+    const ctxForAbility: RollContext = { attack: { kind: weapon.attackKind, properties: weapon.properties, category: weapon.category } };
+    for (const { effect } of effectsOf('attack_ability', ctxForAbility)) allowed.push(effect.ability);
+    // O maior modificador entre os permitidos; empate fica com o primeiro (o atributo normal da arma).
+    const ability = allowed.reduce((best, a) => (mod(a) > mod(best) ? a : best));
+    const proficient = isWeaponProficient(proficiencyEffects, weapon);
+    const attackCtx: RollContext = { attack: { kind: weapon.attackKind, properties: weapon.properties, category: weapon.category } };
     const extra: { kind: 'disadvantage'; source: SourceLabel }[] = [];
     const heavyAbility: Ability = weapon.attackKind === 'melee' ? 'str' : 'dex';
     if (weapon.properties.includes('heavy') && scores[heavyAbility] < HEAVY_WEAPON_MINIMUM) {
@@ -460,13 +493,14 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     ]);
 
   let casterLevel = 0;
+  let pactSlots: { count: number; level: number } | undefined;
   const casterClasses: ClassSpellcasting[] = [];
   for (const { classId, level: classLevel } of build.classes) {
     const cls = find(compendium.classes, classId);
     if (!cls?.spellcasting) continue;
     const { ability, progression, preparedSpells } = cls.spellcasting;
     if (progression === 'pact') {
-      issues.push({ severity: 'warning', code: 'not_supported', message: `Magia de Pacto (${cls.name}) ainda não é calculada.` });
+      pactSlots = pactMagicSlots(classLevel);
     } else {
       casterLevel += casterLevelContribution(progression, classLevel);
     }
@@ -511,7 +545,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     proficiencies,
     weaponMasteries,
     attacks,
-    spellcasting: { classes: casterClasses, slots: spellSlots(casterLevel), granted, canCast: armorTrained },
+    spellcasting: { classes: casterClasses, slots: spellSlots(casterLevel), pactSlots, granted, canCast: armorTrained },
     feats: build.feats,
     features: build.features,
     conditions,

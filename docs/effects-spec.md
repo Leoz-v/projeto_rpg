@@ -37,10 +37,13 @@ Lista fechada. Um `when` é um objeto com **uma** destas chaves; para combinar, 
 | `{ "attackKind": "melee" }`     | Rolagem de ataque/dano `melee` \| `ranged` \| `spell`. |
 | `{ "weaponProperty": "finesse" }` | A arma usada tem a propriedade. |
 | `{ "against": { "condition": "poisoned" } }` | A rolagem é para evitar ou encerrar a condição (salvaguarda ou teste de atributo). |
+| `{ "weaponCategory": "simple" }` | A arma usada é da categoria `simple` \| `martial`. |
+| `{ "hasCondition": "incapacitated" }` | A criatura está com a condição (ex.: "a aura fica inativa enquanto você está Incapacitado"). |
+| `{ "not": { … } }` | O predicado interno é falso. |
 | `{ "all": [ … ] }`              | Todos os predicados são verdadeiros. |
 | `{ "any": [ … ] }`              | Pelo menos um é verdadeiro. |
 
-**Predicados de contexto** (`attackKind`, `weaponProperty`, `against`) só têm valor durante uma rolagem concreta. Fora dela (ficha estática), o motor os trata como *desconhecidos*, com lógica de três valores: `all` é falso se algum for falso e desconhecido se algum for desconhecido; `any` é verdadeiro se algum for verdadeiro e desconhecido se algum for desconhecido. Um efeito de vantagem/desvantagem com `when` desconhecido aparece como lembrete (`situational`); bônus planos com `when` desconhecido não entram no total.
+**Predicados de contexto** (`attackKind`, `weaponProperty`, `weaponCategory`, `against`) só têm valor durante uma rolagem concreta. Fora dela (ficha estática), o motor os trata como *desconhecidos*, com lógica de três valores: `all` é falso se algum for falso e desconhecido se algum for desconhecido; `any` é verdadeiro se algum for verdadeiro e desconhecido se algum for desconhecido; `not` de desconhecido é desconhecido. Um efeito de vantagem/desvantagem com `when` desconhecido aparece como lembrete (`situational`); bônus planos com `when` desconhecido não entram no total.
 
 ## 3. Tipos de efeito
 
@@ -54,8 +57,11 @@ Soma um valor a um alvo numérico.
 { "type": "flat_bonus", "target": "hp_max", "value": { "perLevel": 1 } }
 ```
 
-- `value`: inteiro (pode ser negativo) ou valor derivado: `{ "ability": "con" }` (modificador), `{ "proficiency": 1 }` (multiplicador do bônus de proficiência) ou `{ "perLevel": n }` (n × nível de personagem).
-- `target` (lista fechada): `ac`, `initiative`, `hp_max`, `speed.walk`, `speed.fly`, `speed.swim`, `speed.climb`, `attack.<melee|ranged|spell>`, `damage.<melee|ranged|spell>`, `save.<ability>`, `save.all`, `check.<ability>`, `skill.<skill>`, `passive.<skill>`, `spell_save_dc`.
+- `value`: inteiro (pode ser negativo) ou valor derivado:
+  - `{ "ability": "con" }`: o modificador; com `"min": 1`, nunca menos que isso ("bônus igual ao seu modificador de SAB, mínimo +1");
+  - `{ "proficiency": 1 }`: multiplicador do bônus de proficiência;
+  - `{ "perLevel": n }`: n × o nível **na escala da fonte**. Para espécie, antecedente, talento, item e ajuste do mestre é o nível de personagem; para classe e subclasse, o nível naquela classe (ex.: Draconic Resilience, +1 PV por nível de Feiticeiro).
+- `target` (lista fechada): `ac`, `initiative`, `hp_max`, `speed.walk`, `speed.fly`, `speed.swim`, `speed.climb`, `speed.burrow`, `attack.<melee|ranged|spell>`, `damage.<melee|ranged|spell>`, `save.<ability>`, `save.all`, `check.<ability>`, `skill.<skill>`, `passive.<skill>`, `spell_save_dc`.
 - `<ability>`: `str`, `dex`, `con`, `int`, `wis`, `cha`. `<skill>`: as 18 perícias do SRD em inglês, em `snake_case` (ex.: `sleight_of_hand`).
 - Bônus de mesmo alvo se **somam**.
 
@@ -108,6 +114,7 @@ Fórmula base de Classe de Armadura.
 ```
 
 - `category`: `skill`, `save`, `armor` (`light`, `medium`, `heavy`, `shield`), `weapon` (`simple`, `martial` ou id de arma), `tool` (id da ferramenta), `language` (id do idioma).
+- `properties` (só com `weapon` e id `simple`/`martial`): restringe às armas da categoria com **alguma** das propriedades. Ex.: `{ "type": "grant_proficiency", "category": "weapon", "id": "martial", "properties": ["finesse", "light"] }` ("armas marciais com Finesse ou Leve", Ladino).
 - `level`: `proficient` (padrão) ou `expertise` (só para `skill` e `tool`; dobra o bônus de proficiência).
 - Proficiências repetidas não se acumulam; vale o maior `level`.
 
@@ -163,13 +170,40 @@ O valor do atributo passa a ser pelo menos `value` (ex.: Manoplas de Força do O
 - `level` só para `exhaustion` (1–6). Níveis de várias fontes se somam, com teto em 6. Cada nível: `-2` em todos os testes d20 e `-5 ft` em todo deslocamento. No nível 6 a criatura morre.
 - Os efeitos mecânicos de cada condição são definidos pelo próprio motor a partir da tabela do SRD, não por dados externos.
 
+### 3.11 `half_proficiency`
+
+```json
+{ "type": "half_proficiency", "scope": "unproficient_skills" }
+```
+
+- Soma metade do bônus de proficiência (arredondada para baixo) aos testes de perícia em que a criatura **não** tem proficiência (Jack of All Trades, Bardo). Entra também na passiva dessas perícias.
+- `scope` (lista fechada): `unproficient_skills`.
+
+### 3.12 `grant_speed`
+
+```json
+{ "type": "grant_speed", "speed": "climb", "value": "walk" }
+{ "type": "grant_speed", "speed": "fly", "value": 60 }
+```
+
+- Concede um deslocamento especial: `fly`, `swim`, `climb` ou `burrow`. `value` é em pés, ou `"walk"` para "igual ao seu Deslocamento" (já com bônus e penalidades do deslocamento a pé).
+- Vale o maior entre as concessões. Depois somam-se os `flat_bonus` em `speed.<tipo>`.
+
+### 3.13 `attack_ability`
+
+```json
+{ "type": "attack_ability", "ability": "dex", "when": { "all": [{ "attackKind": "melee" }, { "any": [{ "weaponCategory": "simple" }, { "weaponProperty": "light" }] }, { "wearingArmor": false }, { "wieldingShield": false }] } }
+```
+
+- Permite usar outro atributo no ataque e no dano das armas que satisfazem o `when` (ex.: Martial Arts do Monge). O motor usa o maior entre o atributo normal da arma e os permitidos.
+
 ## 4. Ordem de cálculo da ficha
 
-1. Valores base dos atributos (lista de escolhas, incluindo ASIs do antecedente e de talentos).
+1. Valores base dos atributos (lista de escolhas: ASIs do antecedente e de talentos e aumentos fixos de classe, como Primal Champion).
 2. `set_minimum_score`.
 3. Modificadores, bônus de proficiência (pelo nível de personagem) e proficiências (`grant_proficiency`).
 4. `set_base_ac` (maior fórmula) + `flat_bonus` em `ac`.
-5. Demais `flat_bonus`, sentidos, resistências e imunidades.
+5. Demais `flat_bonus`, `half_proficiency`, deslocamentos (`grant_speed`), sentidos, resistências e imunidades.
 6. Condições (incluindo exaustão) por último.
 
 Cada número da ficha guarda a lista de contribuições com a fonte de cada uma, para a UI mostrar a conta completa.

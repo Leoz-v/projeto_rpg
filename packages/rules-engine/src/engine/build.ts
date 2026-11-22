@@ -1,10 +1,11 @@
 import { ABILITIES, type Ability, type AbilityScores, SKILLS, type Size, type Skill } from '../schemas/common';
 import type { BuildStep, Character, Selection } from '../schemas/character';
 import type { Effect } from '../schemas/effect';
-import type { Item } from '../schemas/item';
+import type { Item, Weapon } from '../schemas/item';
 import type { ChoiceOptions, Class, Feat, Grant, LevelGrants } from '../schemas/source';
 import type { Spell } from '../schemas/spell';
 import type { Compendium } from '../srd';
+import { isWeaponProficient } from './proficiency';
 import type { Contribution, Issue, PendingChoice, SheetFeature, SourceLabel } from './types';
 
 /**
@@ -21,6 +22,8 @@ export interface SourcedEffect {
   refKey: string;
   /** Traço ou opção de onde o efeito veio (ex.: "Dwarven Toughness", "High Elf"). */
   detail?: string | undefined;
+  /** Classe da escala da fonte (classe/subclasse), para `perLevel` contar o nível da classe. */
+  classId?: string | undefined;
 }
 
 export interface ResolvedBuild {
@@ -80,6 +83,9 @@ export function resolveBuild(character: Character, compendium: Compendium): Reso
   const levelOrder: string[] = [];
   const expertiseChecks: { skill: Skill; stepIndex: number; choiceId: string }[] = [];
   const masteredWeapons = new Set<string>();
+  const masteryChecks: { weapon: Weapon; stepIndex: number; choiceId: string }[] = [];
+  /** Opções já escolhidas por grupo (`fonte:grupo`), para unicidade e pré-requisitos. */
+  const optionGroups = new Map<string, string[]>();
 
   const scoreValues: AbilityScores = { ...character.baseScores.scores };
   const scores = Object.fromEntries(
@@ -111,6 +117,7 @@ export function resolveBuild(character: Character, compendium: Compendium): Reso
   };
 
   const classLabel = (cls: Class): SourceLabel => ({ kind: 'class', id: cls.id, name: cls.name });
+  const classOf = (scale: Scale): string | undefined => (scale.kind === 'class' ? scale.classId : undefined);
 
   // --- Concessões ----------------------------------------------------------
 
@@ -118,17 +125,20 @@ export function resolveBuild(character: Character, compendium: Compendium): Reso
     for (const grant of grants) {
       switch (grant.kind) {
         case 'effect':
-          effects.push({ effect: grant.effect, source, refKey, detail });
+          effects.push({ effect: grant.effect, source, refKey, detail, classId: classOf(scale) });
           break;
         case 'feature':
           features.push({ feature: grant.feature, source });
-          for (const effect of grant.feature.effects) effects.push({ effect, source, refKey, detail: grant.feature.name });
+          for (const effect of grant.feature.effects) effects.push({ effect, source, refKey, detail: grant.feature.name, classId: classOf(scale) });
           break;
         case 'feat':
           acquireFeat(grant.featId, source);
           break;
         case 'choice':
           processChoice(grant, source, refKey, scale);
+          break;
+        case 'ability_increase':
+          increaseScore(grant.ability, grant.amount, grant.max, detail ?? source.name, source);
           break;
       }
     }
@@ -221,11 +231,11 @@ export function resolveBuild(character: Character, compendium: Compendium): Reso
         for (const id of picks) {
           const asSkill = options.categories.includes('skill') && isSkill(id);
           if (asSkill) {
-            effects.push({ effect: { type: 'grant_proficiency', category: 'skill', id }, source, refKey });
+            effects.push({ effect: { type: 'grant_proficiency', category: 'skill', id }, source, refKey, classId: classOf(scale) });
           } else if (options.categories.includes('tool')) {
-            effects.push({ effect: { type: 'grant_proficiency', category: 'tool', id }, source, refKey });
+            effects.push({ effect: { type: 'grant_proficiency', category: 'tool', id }, source, refKey, classId: classOf(scale) });
           } else if (options.categories.includes('language')) {
-            effects.push({ effect: { type: 'grant_proficiency', category: 'language', id }, source, refKey });
+            effects.push({ effect: { type: 'grant_proficiency', category: 'language', id }, source, refKey, classId: classOf(scale) });
           } else {
             fail(`${id} não é uma perícia.`);
           }
@@ -241,7 +251,7 @@ export function resolveBuild(character: Character, compendium: Compendium): Reso
             continue;
           }
           expertiseChecks.push({ skill: id, stepIndex, choiceId });
-          effects.push({ effect: { type: 'grant_proficiency', category: 'skill', id, level: 'expertise' }, source, refKey });
+          effects.push({ effect: { type: 'grant_proficiency', category: 'skill', id, level: 'expertise' }, source, refKey, classId: classOf(scale) });
         }
         return;
       }
@@ -283,8 +293,13 @@ export function resolveBuild(character: Character, compendium: Compendium): Reso
             fail(`${item.name} já tem maestria.`);
             continue;
           }
+          if (options.melee && item.attackKind !== 'melee') {
+            fail(`${item.name} não é uma arma corpo a corpo.`);
+            continue;
+          }
+          if (options.proficient) masteryChecks.push({ weapon: item, stepIndex, choiceId });
           masteredWeapons.add(weaponId);
-          effects.push({ effect: { type: 'weapon_mastery', weaponId }, source, refKey });
+          effects.push({ effect: { type: 'weapon_mastery', weaponId }, source, refKey, classId: classOf(scale) });
         }
         return;
       }
@@ -320,6 +335,7 @@ export function resolveBuild(character: Character, compendium: Compendium): Reso
               effect: { type: 'grant_spell', spellId, ability: options.grantAs.ability, uses: options.grantAs.uses },
               source,
               refKey,
+              classId: classOf(scale),
             });
           } else {
             const classId = scale.kind === 'class' ? scale.classId : undefined;
@@ -338,15 +354,29 @@ export function resolveBuild(character: Character, compendium: Compendium): Reso
         return;
       }
       case 'option': {
+        const groupKey = options.group ? `${source.kind}:${source.id}:${options.group}` : undefined;
+        const taken = groupKey ? (optionGroups.get(groupKey) ?? []) : [];
+        const afterPick = [...taken, ...picks];
         for (const optionId of picks) {
           const option = options.options.find((o) => o.id === optionId);
           if (!option) {
             fail(`opção desconhecida: ${optionId}.`);
             continue;
           }
+          if (taken.includes(optionId) && !option.repeatable) {
+            fail(`${option.name} já foi escolhida.`);
+            continue;
+          }
+          const pre = option.prerequisite;
+          if (pre?.minLevel !== undefined && currentLevel(scale) < pre.minLevel) {
+            error('prerequisite_not_met', `${option.name} exige nível ${pre.minLevel}.`, choiceId);
+          }
+          const missing = (pre?.options ?? []).filter((o) => !afterPick.includes(o));
+          if (missing.length) error('prerequisite_not_met', `${option.name} exige: ${missing.join(', ')}.`, choiceId);
           processGrants(option.grants, source, refKey, scale, option.name);
           if (option.levels.length) leveled.push({ source, refKey, scale, levels: option.levels, detail: option.name, done: 0 });
         }
+        if (groupKey) optionGroups.set(groupKey, afterPick);
         return;
       }
     }
@@ -461,6 +491,17 @@ export function resolveBuild(character: Character, compendium: Compendium): Reso
   const proficientSkills = new Set(
     effects.flatMap(({ effect }) => (effect.type === 'grant_proficiency' && effect.category === 'skill' && effect.level !== 'expertise' ? [effect.id] : [])),
   );
+  for (const check of masteryChecks) {
+    if (!isWeaponProficient(effects, check.weapon)) {
+      issues.push({
+        severity: 'error',
+        code: 'invalid_selection',
+        message: `Maestria em ${check.weapon.name} exige proficiência com a arma.`,
+        stepIndex: check.stepIndex,
+        choiceId: check.choiceId,
+      });
+    }
+  }
   for (const check of expertiseChecks) {
     if (!proficientSkills.has(check.skill)) {
       issues.push({
