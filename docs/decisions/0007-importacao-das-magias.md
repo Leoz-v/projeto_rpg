@@ -41,4 +41,4 @@ Segundo incremento da importação (nota 0004): o capítulo de magias (pp. 107�
 ## Consequências
 
 - Magias com bloco de estatísticas embutido (ex.: Find Steed, Giant Insect) têm o bloco como texto na descrição, legível mas com a grade de atributos desalinhada. Esses blocos viram criaturas do compêndio na importação de monstros.
-- Como na nota 0004, o JSON é a fonte da verdade e o parser não é versionado. O método está descrito em `packages/rules-engine/srd-source/README.md`.
+- O JSON é a fonte da verdade. O parser foi versionado depois, em `srd-source/tools/import_spells.py` (nota 0008).

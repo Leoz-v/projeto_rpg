@@ -76,6 +76,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 ├── packages/
 │   └── rules-engine/        # Pacote TS puro: schemas Zod, motor de regras, SRD e testes
 │       ├── srd-source/      # PDF oficial do SRD 5.2.1 (SHA-256 e atribuição no README); fora do app
+│       │   └── tools/       # Scripts de importação (Python; ferramenta de dev, ver nota 0008)
 │       ├── src/
 │       │   ├── schemas/     # Criaturas, itens, magias, ações, efeitos, concessões, inventário
 │       │   ├── engine/      # Ficha derivada, resolução de ações, condições, RNG
@@ -187,6 +188,7 @@ pnpm build
 
 - **TypeScript estrito** (`strict: true`, `noUncheckedIndexedAccess: true`) em todo o projeto. Proibido usar `any` ou `@ts-ignore`.
 - **Idioma:** interface em português (`pt-BR`); código, identificadores, schemas e commits em inglês.
+- **Linguagens:** o código do app é só TypeScript. Ferramentas de desenvolvimento fora do build (ex.: importação do SRD em `srd-source/tools/`) podem usar Python (nota 0008).
 - **Colaboração:** o projeto tem vários contribuidores (ver `CONTRIBUTING.md`). Commits no estilo `feat:`/`fix:`/`docs:`/`test:`/`refactor:`/`chore:`, uma branch por mudança e PR para a `main`. Fins de linha normalizados em LF (`.gitattributes`).
 - **Fronteira inviolável do motor:** nunca importar `react`, `pixi.js`, `electron` ou módulos `node:*` dentro de `packages/rules-engine`. Nunca implementar regras de D&D fora dele.
 - **Fronteira dos processos:** o renderer nunca importa `electron` nem módulos do Node; tudo passa pela API exposta no preload. SQLite, sistema de arquivos e rede só no processo main.
