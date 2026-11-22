@@ -45,7 +45,11 @@ export type BaseScores = z.infer<typeof BaseScoresSchema>;
 
 // --- Seleções de escolhas pendentes ----------------------------------------
 
-export const SourceKindSchema = z.enum(['species', 'background', 'class', 'subclass', 'feat', 'option']);
+/**
+ * Fonte que declarou a escolha. Escolhas de dentro de uma opção pertencem à
+ * fonte da opção; `creation` são as regras de criação de personagem.
+ */
+export const SourceKindSchema = z.enum(['species', 'background', 'class', 'subclass', 'feat', 'creation']);
 
 /** Resolução de uma escolha declarada por uma fonte (`Grant` do tipo `choice`). */
 export const SelectionSchema = z.strictObject({

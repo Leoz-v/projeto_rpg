@@ -234,12 +234,19 @@ export const FeatSchema = z.strictObject({
 });
 export type Feat = z.infer<typeof FeatSchema>;
 
-export const SpellcastingProgressionSchema = z.enum(['full', 'half', 'third', 'pact']);
+/**
+ * Progressão de espaços de magia: `full` conta todos os níveis da classe, `half`
+ * metade arredondada para cima (SRD 5.2.1, Multiclassing). `pact` é a Magia de
+ * Pacto do Bruxo, com tabela própria.
+ */
+export const SpellcastingProgressionSchema = z.enum(['full', 'half', 'pact']);
 
 export const ClassSchema = z.strictObject({
   ...sourceBase,
   hitDie: z.union([z.literal(6), z.literal(8), z.literal(10), z.literal(12)]),
   primaryAbilities: z.array(AbilitySchema).min(1),
+  /** Pré-requisito de multiclasse: 13 em `all` (todos) ou `any` (um deles) dos atributos primários. */
+  primaryAbilityMode: z.enum(['all', 'any']).default('all'),
   spellcasting: z
     .strictObject({
       ability: AbilitySchema,
@@ -266,3 +273,14 @@ export const SubclassSchema = z.strictObject({
   checkSourceIntegrity(levelsGrants(x.levels), ctx);
 });
 export type Subclass = z.infer<typeof SubclassSchema>;
+
+/**
+ * Regras de criação de personagem que não vêm de nenhuma fonte (ex.: Comum +
+ * dois idiomas padrão). Resolvidas no passo `species`.
+ */
+export const CharacterCreationSchema = z
+  .strictObject({ grants: z.array(GrantSchema).min(1) })
+  .superRefine((x, ctx) => {
+    checkSourceIntegrity(x.grants, ctx);
+  });
+export type CharacterCreation = z.infer<typeof CharacterCreationSchema>;

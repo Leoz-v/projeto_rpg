@@ -1,12 +1,15 @@
 import { z } from 'zod';
 import { ItemSchema, type Item } from '../schemas/item';
+import { SpellSchema, type Spell } from '../schemas/spell';
 import {
   BackgroundSchema,
+  CharacterCreationSchema,
   ClassSchema,
   FeatSchema,
   SpeciesSchema,
   SubclassSchema,
   type Background,
+  type CharacterCreation,
   type Class,
   type Feat,
   type Species,
@@ -15,8 +18,10 @@ import {
 import armor from './data/armor.json';
 import backgrounds from './data/backgrounds.json';
 import classes from './data/classes.json';
+import creation from './data/creation.json';
 import feats from './data/feats.json';
 import species from './data/species.json';
+import spells from './data/spells.json';
 import subclasses from './data/subclasses.json';
 import weapons from './data/weapons.json';
 
@@ -41,6 +46,8 @@ export interface Compendium {
   feats: Feat[];
   classes: Class[];
   subclasses: Subclass[];
+  spells: Spell[];
+  creation: CharacterCreation;
 }
 
 const CompendiumSchema = z.strictObject({
@@ -50,6 +57,8 @@ const CompendiumSchema = z.strictObject({
   feats: z.array(FeatSchema),
   classes: z.array(ClassSchema),
   subclasses: z.array(SubclassSchema),
+  spells: z.array(SpellSchema),
+  creation: CharacterCreationSchema,
 });
 
 /** Dados brutos, antes da validação (exportados para os testes de integridade). */
@@ -60,6 +69,8 @@ export const SRD_RAW = {
   feats,
   classes,
   subclasses,
+  spells,
+  creation,
 } as const;
 
 let cache: Compendium | undefined;

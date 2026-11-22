@@ -102,7 +102,10 @@ describe('SRD compendium', () => {
   });
 
   it('models the dwarf traits (p. 84)', () => {
-    const effects = grantsAt(byId(srd.species, 'dwarf').levels, 1).flatMap((g) => (g.kind === 'effect' ? [g.effect] : []));
+    const grants = grantsAt(byId(srd.species, 'dwarf').levels, 1);
+    const effects = grants.flatMap((g) => (g.kind === 'effect' ? [g.effect] : g.kind === 'feature' ? g.feature.effects : []));
+    const traits = grants.flatMap((g) => (g.kind === 'feature' ? [g.feature.name] : []));
+    expect(traits).toEqual(['Darkvision', 'Dwarven Resilience', 'Dwarven Toughness', 'Stonecunning']);
     expect(effects).toContainEqual({ type: 'grant_sense', sense: 'darkvision', range: 120 });
     expect(effects).toContainEqual({ type: 'resistance', damageType: 'poison' });
     expect(effects).toContainEqual({ type: 'flat_bonus', target: 'hp_max', value: { perLevel: 1 } });

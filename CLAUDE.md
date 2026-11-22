@@ -148,10 +148,11 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - ✅ Setup do monorepo (electron-vite, pnpm workspaces, `.npmrc` com `node-linker=hoisted`) e dos scripts de verificação (`test`, `typecheck`, `lint`). Ver `docs/decisions/0002-toolchain-inicial.md`.
    - ✅ Schemas de dados (criatura, item, ação, efeito, magia, concessões por nível, lista de escolhas, inventário). Ver `docs/decisions/0003-schemas-de-conteudo.md`.
    - Importação do SRD 5.2.1 para o compêndio. *Em andamento:* armas, armaduras, espécies, antecedentes, talentos, Guerreiro/Campeão e Mago/Evocador feitos (ver `docs/decisions/0004-importacao-do-srd.md` e `packages/rules-engine/srd-source/README.md`); faltam demais classes, magias, itens mágicos e monstros.
-   - **Motor de cálculo da ficha derivada** (escolhas + concessões + efeitos de itens) e personagens de referência verdes.
+   - ✅ **Motor de cálculo da ficha derivada** (escolhas + concessões + efeitos de itens + ajustes do mestre) e personagens de referência verdes. Ver `docs/decisions/0005-motor-da-ficha-derivada.md` (inclui os limites conhecidos).
 2. **Fase 2 — Mesa & Rede:** rede WebSocket (host/cliente) no processo main, executor de sessão do Host, handshake de protocolo, cache de assets SHA-256 (`vtt-asset://`), mapa em tempo real com tokens e rolagem de dados autoritativa no chat.
 3. **Fase 3 — Fichas & Progressão (interface):** telas de criação de personagem e de subida de nível sobre o motor da Fase 1, gerenciamento de inventário e sincronização offline com aprovação do mestre.
 4. **Fase 4 — Motor de Ações & Efeitos:** resolução assistida de ataques, dano, resistências, salvaguardas, maestrias e overrides do mestre.
+   - Vantagens circunstanciais aplicadas automaticamente na rolagem (ex.: Dwarven Resilience contra Envenenado, Fey Ancestry contra Enfeitiçado): trocar o `note` em texto livre por um predicado estruturado (ex.: `{ "against": { "condition": "poisoned" } }`, a entrar no `effects-spec.md`) e passar à rolagem o contexto do que está sendo resistido.
 5. **Fase 5 — Combate:** iniciativa, turnos, condições (incluindo Exaustão 2024) e concentração.
 
 *Extras futuros:* criação de token a partir de imagem com recorte/moldura automáticos, spawn de vários inimigos numerados (Goblin 1, Goblin 2…), colar texto de ficha de monstro e converter para o schema.
