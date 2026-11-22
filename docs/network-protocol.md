@@ -6,7 +6,8 @@
 - **Transporte:** WebSocket puro (`ws://`) sobre rede virtual (Tailscale/ZeroTier). Porta padrão do Host: `47820`.
 - **Formato:** um objeto JSON (UTF-8) por frame de texto. Frames binários não são usados.
 - **Validação:** toda mensagem recebida, nos dois lados, passa pelo schema Zod antes de qualquer processamento. Mensagem inválida gera `Error` com `code: "invalid_message"` e é descartada. A conexão **não** cai por causa disso.
-- **Tamanho máximo de frame:** 1 MiB. Assets maiores trafegam em `AssetChunk`.
+- **Tamanho máximo de frame:** 1 MiB. Assets maiores trafegam em `AssetChunk`. Um frame maior fecha a conexão com o código WebSocket `1009` (o limite é aplicado antes de ler a mensagem).
+- **Lotação:** até 8 jogadores remotos conectados por padrão; o Host pode mudar o limite.
 
 ## 1. Envelope
 
@@ -60,9 +61,11 @@ Toda mensagem tem o formato:
 - `sessionPassword`: opcional; exigido só se o Host definiu senha para a mesa.
 
 Regras:
-- O Host aguarda `Handshake` por até **10 s** após abrir a conexão. Se não chegar, fecha o socket.
+- O Host aguarda `Handshake` por até **10 s** após abrir a conexão. Se não chegar, fecha o socket com o código `1008`.
 - Qualquer outra mensagem antes de um `HandshakeAccept` é ignorada.
 - `protocolVersion` diferente do Host → `HandshakeReject` com `reason: "protocol_mismatch"`.
+- As recusas são conferidas nesta ordem: `protocol_mismatch`, `bad_password`, `duplicate_player`, `session_full`. Depois do `HandshakeReject`, o Host fecha o socket.
+- `duplicate_player` vale também para o `playerId` do mestre, que está sempre conectado: ninguém entra pela rede com a identidade dele.
 
 ### 2.2 `HandshakeAccept`
 
