@@ -1,7 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { type RawData, WebSocket } from 'ws';
+import { AssetError, ChunkAssembler } from '../assets';
 import {
   applyPatch,
+  ASSET_TIMEOUT_MS,
+  type AssetMime,
   HANDSHAKE_TIMEOUT_MS,
   type HandshakeRejectReason,
   type HostMessage,
@@ -54,6 +57,14 @@ export class ConnectError extends Error {
 
 type Listener = (state: SessionState, rev: number) => void;
 
+interface AssetDownload {
+  sha256: string;
+  assembler: ChunkAssembler;
+  timer: NodeJS.Timeout;
+  resolve: (asset: { bytes: Buffer; mime: AssetMime }) => void;
+  reject: (error: AssetError) => void;
+}
+
 export class HostClient {
   private current: SessionState;
   private revision: number;
@@ -61,6 +72,12 @@ export class HostClient {
   private readonly listeners = new Set<Listener>();
   private readonly closeListeners = new Set<() => void>();
   private resyncing = false;
+  /** Downloads em andamento, pelo `id` do `AssetRequest`. */
+  private readonly downloads = new Map<string, AssetDownload>();
+  /** O mesmo hash pedido de novo antes de terminar reaproveita o download. */
+  private readonly downloadsBySha = new Map<string, Promise<{ bytes: Buffer; mime: AssetMime }>>();
+  /** Prazo sem pedaço novo (só os testes mudam). */
+  assetTimeoutMs = ASSET_TIMEOUT_MS;
 
   private constructor(
     private readonly socket: WebSocket,
@@ -73,6 +90,7 @@ export class HostClient {
     socket.on('close', () => {
       for (const resolve of this.pending.values()) resolve({ status: 'rejected', code: 'internal_error', message: 'Conexão com o Host perdida' });
       this.pending.clear();
+      for (const [id, download] of this.downloads) this.failDownload(id, download, new AssetError('Conexão com o Host perdida'));
       for (const listener of this.closeListeners) listener();
     });
   }
@@ -163,6 +181,61 @@ export class HostClient {
     this.socket.close(1000);
   }
 
+  /**
+   * Baixa um asset do Host. O resultado já foi conferido (ordem, tamanho e
+   * SHA-256); quem chama decide se guarda no cache.
+   */
+  requestAsset(sha256: string): Promise<{ bytes: Buffer; mime: AssetMime }> {
+    const running = this.downloadsBySha.get(sha256);
+    if (running) return running;
+    const promise = new Promise<{ bytes: Buffer; mime: AssetMime }>((resolve, reject) => {
+      if (this.socket.readyState !== WebSocket.OPEN) {
+        reject(new AssetError('Sem conexão com o Host'));
+        return;
+      }
+      const id = randomUUID();
+      const download: AssetDownload = { sha256, assembler: new ChunkAssembler(sha256), timer: this.assetTimer(id), resolve, reject };
+      this.downloads.set(id, download);
+      this.write({ type: 'AssetRequest', id, payload: { sha256 } });
+    });
+    this.downloadsBySha.set(sha256, promise);
+    const forget = (): void => {
+      this.downloadsBySha.delete(sha256);
+    };
+    promise.then(forget, forget);
+    return promise;
+  }
+
+  private assetTimer(id: string): NodeJS.Timeout {
+    return setTimeout(() => {
+      const download = this.downloads.get(id);
+      if (download) this.failDownload(id, download, new AssetError('O Host parou de enviar a imagem'));
+    }, this.assetTimeoutMs);
+  }
+
+  private failDownload(id: string, download: AssetDownload, error: AssetError): void {
+    clearTimeout(download.timer);
+    this.downloads.delete(id);
+    download.reject(error);
+  }
+
+  private receiveChunk(replyTo: string, chunk: Parameters<ChunkAssembler['add']>[0]): void {
+    const download = this.downloads.get(replyTo);
+    if (!download) return;
+    clearTimeout(download.timer);
+    try {
+      const asset = download.assembler.add(chunk);
+      if (!asset) {
+        download.timer = this.assetTimer(replyTo);
+        return;
+      }
+      this.downloads.delete(replyTo);
+      download.resolve(asset);
+    } catch (err: unknown) {
+      this.failDownload(replyTo, download, err instanceof AssetError ? err : new AssetError('Imagem inválida'));
+    }
+  }
+
   private write(message: OutgoingClientMessage): void {
     if (this.socket.readyState === WebSocket.OPEN) this.socket.send(encode(message));
   }
@@ -195,11 +268,19 @@ export class HostClient {
       case 'Ping':
         this.write({ type: 'Pong', replyTo: message.id, payload: { t: message.payload.t } });
         return;
+      case 'AssetChunk':
+        this.receiveChunk(message.replyTo, message.payload);
+        return;
+      case 'Error': {
+        const download = message.replyTo !== undefined ? this.downloads.get(message.replyTo) : undefined;
+        if (download && message.replyTo !== undefined) {
+          this.failDownload(message.replyTo, download, new AssetError(message.payload.code === 'asset_not_found' ? 'O Host não tem essa imagem' : 'Erro do Host ao enviar a imagem'));
+        }
+        return;
+      }
       case 'HandshakeAccept':
       case 'HandshakeReject':
-      case 'AssetChunk':
       case 'Pong':
-      case 'Error':
         return;
     }
   }

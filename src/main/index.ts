@@ -1,11 +1,13 @@
+import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, protocol, shell } from 'electron';
 import { loadSrdCompendium, RULES_ENGINE_VERSION } from 'rules-engine';
 import type { z } from 'zod';
 import { type AppInfo, IpcChannel, type IpcResult, type TableEvent } from '../shared/ipc';
 import { HostTableRequestSchema, JoinTableRequestSchema } from '../shared/ipc-schemas';
-import { IntentSchema } from '../shared/protocol';
+import { IntentSchema, MAX_ASSET_BYTES } from '../shared/protocol';
 import { PROTOCOL_VERSION } from '../shared/versions';
+import { ASSET_SCHEME, AssetError, assetResponse, AssetStore, type StoredAsset } from './assets';
 import { AppDb, CampaignLibrary } from './db';
 import { cryptoRng } from './session';
 import { localAddresses, TableController, TableError } from './table';
@@ -61,7 +63,7 @@ function handle<T>(channel: string, run: (payload: unknown) => T | Promise<T>): 
       return { ok: true, value: await run(payload) };
     } catch (err: unknown) {
       if (err instanceof InvalidPayload) return { ok: false, error: { code: 'invalid_payload', message: err.message } };
-      if (err instanceof TableError) return { ok: false, error: { code: 'table_error', message: err.message } };
+      if (err instanceof TableError || err instanceof AssetError) return { ok: false, error: { code: 'table_error', message: err.message } };
       console.error(`[ipc ${channel}]`, err);
       return { ok: false, error: { code: 'internal_error', message: 'Erro interno' } };
     }
@@ -79,7 +81,24 @@ const emit = (event: TableEvent): void => {
   for (const win of BrowserWindow.getAllWindows()) win.webContents.send(IpcChannel.tableEvent, event);
 };
 
-function registerIpc(appDb: AppDb, table: TableController, library: CampaignLibrary): void {
+/** O mestre escolhe uma imagem no disco; ela entra no armazenamento pelo hash. `null` se cancelou. */
+async function importAsset(assets: AssetStore): Promise<StoredAsset | null> {
+  const win = BrowserWindow.getFocusedWindow();
+  const options: Electron.OpenDialogOptions = {
+    title: 'Escolher imagem',
+    properties: ['openFile'],
+    filters: [{ name: 'Imagens (PNG, JPEG, WebP)', extensions: ['png', 'jpg', 'jpeg', 'webp'] }],
+  };
+  const result = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options);
+  const file = result.filePaths[0];
+  if (result.canceled || file === undefined) return null;
+  // Confere o tamanho antes de ler tudo para a memória.
+  if (statSync(file).size > MAX_ASSET_BYTES) throw new AssetError('Imagem maior que 32 MiB');
+  return assets.put(readFileSync(file));
+}
+
+function registerIpc(appDb: AppDb, table: TableController, library: CampaignLibrary, assets: AssetStore): void {
+  handle(IpcChannel.importAsset, () => importAsset(assets));
   handle(IpcChannel.getAppInfo, (): AppInfo => ({ appVersion: app.getVersion(), protocolVersion: PROTOCOL_VERSION, rulesEngineVersion: RULES_ENGINE_VERSION }));
   handle(IpcChannel.getPreferences, () => appDb.preferences());
   handle(IpcChannel.listCampaigns, () => library.list().map(({ id, name, lastOpenedAt }) => ({ id, name, lastOpenedAt })));
@@ -115,6 +134,9 @@ function openAppDb(): AppDb | undefined {
 
 let table: TableController | undefined;
 
+// `vtt-asset://<sha256>`: as imagens do mapa e dos tokens, servidas do armazenamento local (precisa vir antes do `ready`).
+protocol.registerSchemesAsPrivileged([{ scheme: ASSET_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }]);
+
 void app.whenReady().then(() => {
   const appDb = openAppDb();
   if (!appDb) {
@@ -122,7 +144,9 @@ void app.whenReady().then(() => {
     return;
   }
   const library = new CampaignLibrary(appDb, join(app.getPath('userData'), 'campaigns'));
-  table = new TableController({
+  const assets = new AssetStore(join(app.getPath('userData'), 'assets'));
+  const controller = new TableController({
+    assets,
     appVersion: app.getVersion(),
     playerId: appDb.playerId(),
     campaigns: library,
@@ -134,7 +158,9 @@ void app.whenReady().then(() => {
       console.error(`[mesa] ${message}`);
     },
   });
-  registerIpc(appDb, table, library);
+  table = controller;
+  protocol.handle(ASSET_SCHEME, (request) => assetResponse(request, (sha) => controller.asset(sha)));
+  registerIpc(appDb, controller, library, assets);
   app.on('will-quit', () => {
     appDb.close();
   });

@@ -57,7 +57,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
   - **Handshake de versão** ao conectar compara `PROTOCOL_VERSION`: versões incompatíveis são recusadas com a mensagem `"Atualize o app"`.
 - **Persistência local (SQLite embutido no Node, `node:sqlite`, com `PRAGMA journal_mode = WAL` e `PRAGMA foreign_keys = ON`; ver `docs/decisions/0023-sqlite-embutido-no-node.md`):**
   - Acesso ao banco só no processo main.
-  - `app.db` (global na máquina): id do jogador, preferências locais, índice das campanhas hospedadas e, com o PR de assets, o índice do cache. O compêndio do SRD 5.2.1 fica embutido no app (JSON validado), não no banco.
+  - `app.db` (global na máquina): id do jogador, preferências locais e índice das campanhas hospedadas. O cache de assets não tem índice: o arquivo na pasta `assets/` é a fonte da verdade (nota 0025). O compêndio do SRD 5.2.1 fica embutido no app (JSON validado), não no banco.
   - `<campanha>.db` (portátil, um arquivo por campanha): personagens, inventários, monstros, mapas, tokens, combate, log de chat/rolagens e conteúdo homebrew daquela mesa.
   - Migrações sequenciais controladas por `PRAGMA user_version`, gerando backup automático (`.bak`) antes de alterar o schema.
   - Sem módulo nativo: o `node:sqlite` vem com o Node (o do Electron no app, o do sistema nos testes). Todo o acesso fica em `src/main/db/`, para uma troca de biblioteca, se precisar, ficar restrita a essa pasta.
@@ -160,7 +160,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - ✅ Transporte WebSocket em `src/main/net/` (handshake, Ping/Pong, limites, cliente com ressincronização). Ver `docs/decisions/0021-transporte-websocket.md`.
    - ✅ IPC e tela da mesa (`src/main/table/`, telas de hospedar e entrar, chat com `/r` e `/gr`). Ver `docs/decisions/0022-tela-da-mesa-e-ipc.md`.
    - ✅ SQLite em `src/main/db/` (`app.db` com o id do jogador, preferências e índice de campanhas; `<campanha>.db` com a sessão; migrações com `.bak`). Ver `docs/decisions/0023-sqlite-embutido-no-node.md`.
-   - Assets (SHA-256, `vtt-asset://`, `AssetChunk`).
+   - ✅ Assets em `src/main/assets/` (armazenamento por SHA-256, `vtt-asset://` com CORS para o PixiJS, `AssetChunk` com conferência do hash, importação de imagens pelo mestre). Ver `docs/decisions/0025-assets-por-hash.md`.
    - Mapa PixiJS (grid, tokens, câmera, `token.move`).
 3. **Fase 3 — Fichas & Progressão (interface):** telas de criação de personagem e de subida de nível sobre o motor da Fase 1, gerenciamento de inventário e sincronização offline com aprovação do mestre.
 4. **Fase 4 — Motor de Ações & Efeitos:** resolução assistida de ataques, dano, resistências, salvaguardas, maestrias e overrides do mestre.

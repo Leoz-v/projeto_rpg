@@ -13,7 +13,7 @@ export const AppInfoSchema = z.object({
 export type AppInfo = z.infer<typeof AppInfoSchema>;
 
 export const IpcErrorSchema = z.object({
-  /** `table_error`: falha esperada da mesa (porta ocupada, Host recusou), com mensagem para a tela. */
+  /** `table_error`: falha esperada (porta ocupada, Host recusou, imagem inválida), com mensagem para a tela. */
   code: z.enum(['invalid_payload', 'table_error', 'internal_error']),
   message: z.string(),
 });

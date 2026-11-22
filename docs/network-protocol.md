@@ -162,6 +162,8 @@ Regras:
 ```
 
 - `sha256`: 64 caracteres hexadecimais minúsculos.
+- O cliente pede um asset quando o estado o referencia (`background` de um mapa, `image` de um token) e ele não está no cache local. Pedidos repetidos do mesmo hash, enquanto o primeiro não termina, viram um só.
+- O Host entrega qualquer asset do seu armazenamento: o hash funciona como nome impossível de adivinhar, e só quem viu a referência no estado sabe pedir.
 
 ### 2.9 `AssetChunk`
 
@@ -180,10 +182,11 @@ Regras:
 }
 ```
 
-- Pedaços de até **512 KiB** de dados brutos, antes do Base64.
-- O cliente junta os pedaços, recalcula o SHA-256 e descarta o asset se o hash não bater.
+- Pedaços de até **512 KiB** de dados brutos, antes do Base64, enviados em ordem (`index` de `0` a `count - 1`). Todos repetem `sha256`, `mime`, `totalSize` e `count`.
+- Tamanho máximo de um asset: **32 MiB** (`totalSize`).
+- O cliente junta os pedaços, recalcula o SHA-256 e descarta o asset se o hash não bater, se faltar ou sobrar pedaço, ou se o tamanho for diferente de `totalSize`. Sem pedaço novo por **30 s**, o pedido falha.
 - Asset inexistente → `Error` com `code: "asset_not_found"` e `replyTo` do pedido.
-- MIME permitidos: `image/png`, `image/jpeg`, `image/webp`.
+- MIME permitidos: `image/png`, `image/jpeg`, `image/webp`. O tipo é conferido pelos primeiros bytes do arquivo (assinatura), não pela extensão.
 
 ### 2.10 `Ping` / `Pong`
 
@@ -226,13 +229,13 @@ Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do
 
 - **Coordenadas** em unidades lógicas de mundo (`1 célula = 5 ft = 100 unidades`), nunca pixels. `position` é o canto superior esquerdo do token, dentro do mapa: `0 ≤ x < largura × 100` e `0 ≤ y < altura × 100`. Fora disso, o Host recusa com `rule_violation`.
 - **`dice.roll`:** o cliente manda só a fórmula, no formato de dados do motor (ex.: `2d6+3`, `1d20+1d4-1`), com até 100 caracteres e até 100 dados. O Host rola com o RNG do motor e publica o resultado no log via `StatePatch`.
-- **`map.create`:** `width` e `height` em células. O Host gera o `id`. O primeiro mapa criado fica ativo.
-- **`token.create`:** `size` é o tamanho da criatura (`tiny` … `gargantuan`). `monsterId` é o id do monstro no compêndio: quando vem, o Host confere que ele existe. `ownerIds` são os `playerId` que podem mover o token. O Host gera o `id`.
+- **`map.create`:** `width` e `height` em células. O Host gera o `id`. O primeiro mapa criado fica ativo. `background`, quando vem, precisa ser um asset que o Host tem (senão, `rule_violation`).
+- **`token.create`:** `size` é o tamanho da criatura (`tiny` … `gargantuan`). `monsterId` é o id do monstro no compêndio: quando vem, o Host confere que ele existe. `ownerIds` são os `playerId` que podem mover o token. `image`, quando vem, precisa ser um asset que o Host tem (senão, `rule_violation`). O Host gera o `id`.
 - **Ids gerados pelo Host** (mapas, tokens, entradas do chat) são UUID.
 - **`token.move`:** o mestre move qualquer token; o jogador, só os tokens em que está em `ownerIds`.
 - **`token.create`:** os `ownerIds` precisam ser jogadores que já entraram na sessão (estão em `players`).
 - **`session.resync`:** responde `applied` com o `rev` atual, seguido de um `StateSnapshot` só para quem pediu.
-- **Recusas** (`IntentResult` com `rejected`): `not_allowed` para permissão (jogador num `Intent` do mestre, token de outro jogador); `rule_violation` para estado inválido (mapa ou token inexistente, posição fora do mapa, monstro fora do compêndio). Um `Intent` recusado não muda o estado nem o `rev`.
+- **Recusas** (`IntentResult` com `rejected`): `not_allowed` para permissão (jogador num `Intent` do mestre, token de outro jogador); `rule_violation` para estado inválido (mapa ou token inexistente, posição fora do mapa, monstro fora do compêndio, imagem que o Host não tem). Um `Intent` recusado não muda o estado nem o `rev`.
 
 ## 4. Sequência típica
 

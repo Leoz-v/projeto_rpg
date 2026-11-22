@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import type { Rng } from 'rules-engine';
 import type { HostTableRequest, IntentResultPayload, JoinTableRequest, TableEvent, TableInfo, TableView } from '../../shared/ipc';
-import { DEFAULT_PORT, type Intent } from '../../shared/protocol';
+import { type AssetMime, DEFAULT_PORT, type Intent } from '../../shared/protocol';
 import type { CampaignChoice } from '../../shared/ipc-schemas';
+import { AssetError, type AssetStore } from '../assets';
 import { CampaignDbError, CampaignNotFoundError, DatabaseTooNewError, type OpenCampaign } from '../db';
 import { ConnectError, HostClient, HostServer } from '../net';
 import { HostSession } from '../session';
@@ -19,6 +20,8 @@ export interface TableControllerDeps {
   playerId: string;
   /** Abre ou cria a campanha a hospedar (`CampaignLibrary`). */
   campaigns: { open(choice: CampaignChoice): OpenCampaign };
+  /** Imagens: as do mestre (Host) e o cache do que veio do Host (jogador). */
+  assets: AssetStore;
   rng: Rng;
   monsterExists(id: string): boolean;
   /** Endereços desta máquina para mostrar aos jogadores. */
@@ -70,12 +73,13 @@ export class TableController {
     const session = new HostSession(
       store.campaign,
       { playerId: deps.playerId, displayName: request.displayName },
-      { rng: deps.rng, now: Date.now, newId: randomUUID, monsterExists: (id) => deps.monsterExists(id) },
+      { rng: deps.rng, now: Date.now, newId: randomUUID, monsterExists: (id) => deps.monsterExists(id), assetExists: (sha) => deps.assets.has(sha) },
       store.restored,
     );
     const server = new HostServer({
       session,
       appVersion: deps.appVersion,
+      assets: deps.assets,
       port: request.port ?? DEFAULT_PORT,
       ...(deps.listenHost !== undefined ? { host: deps.listenHost } : {}),
       ...(request.password !== undefined ? { password: request.password } : {}),
@@ -169,6 +173,28 @@ export class TableController {
     if (!table) throw new TableError('Você não está em uma mesa');
     if (table.mode === 'host') return table.server.dispatch(this.deps.playerId, intent).result;
     return table.client.send(intent);
+  }
+
+  /**
+   * Uma imagem para a tela (`vtt-asset://`): do armazenamento local; se não
+   * houver e este app for jogador, baixa do Host, confere e guarda no cache.
+   */
+  async asset(sha256: string): Promise<{ bytes: Buffer; mime: AssetMime } | undefined> {
+    const local = this.deps.assets.read(sha256);
+    if (local) return local;
+    const table = this.table;
+    if (table?.mode !== 'player') return undefined;
+    try {
+      const downloaded = await table.client.requestAsset(sha256);
+      this.deps.assets.put(downloaded.bytes, sha256);
+      return downloaded;
+    } catch (err: unknown) {
+      if (err instanceof AssetError) {
+        this.deps.log?.(`imagem ${sha256.slice(0, 12)}…: ${err.message}`);
+        return undefined;
+      }
+      throw err;
+    }
   }
 
   private requireIdle(): void {
