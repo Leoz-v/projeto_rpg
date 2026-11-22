@@ -13,6 +13,7 @@ Valeu por ajudar! O objetivo do projeto é um VTT **sólido e previsível**: pou
    ```
 
 4. Abra o PR para a `main` descrevendo **o quê** e **por quê**.
+5. A CI (GitHub Actions) roda as mesmas verificações em Windows, Linux e Mac. O PR só entra com tudo verde.
 
 ## Regras que não se negociam sem conversa
 
