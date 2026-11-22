@@ -156,7 +156,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 2. **Fase 2 — Mesa & Rede:** rede WebSocket (host/cliente) no processo main, executor de sessão do Host, handshake de protocolo, cache de assets SHA-256 (`vtt-asset://`), mapa em tempo real com tokens e rolagem de dados autoritativa no chat. Dividida em 7 PRs (ver `docs/decisions/0019-estado-da-sessao-e-fase-2.md`):
    - ✅ Schemas do protocolo em `src/shared/protocol/`, com o `SessionState` e os `Intent` de mapa e token.
    - ✅ Executor de sessão em `src/main/session/` (lógica pura: permissões, `rev`, visibilidade, rolagem com o RNG do Host). Ver `docs/decisions/0020-executor-de-sessao.md`.
-   - Transporte WebSocket (handshake, Ping/Pong, limites).
+   - ✅ Transporte WebSocket em `src/main/net/` (handshake, Ping/Pong, limites, cliente com ressincronização). Ver `docs/decisions/0021-transporte-websocket.md`.
    - IPC e tela da mesa com o chat e as rolagens.
    - SQLite (`app.db`, `<campanha>.db`, migrações).
    - Assets (SHA-256, `vtt-asset://`, `AssetChunk`).
