@@ -7,6 +7,11 @@ import type { DerivedSheet } from '../../src/engine/types';
 import { loadSrdCompendium } from '../../src/srd';
 import dwarfFighter from '../fixtures/dwarf-fighter-5.json';
 import elfWizard from '../fixtures/elf-wizard-7.json';
+import orcBarbarian from '../fixtures/orc-barbarian-5.json';
+import halflingBard from '../fixtures/halfling-bard-6.json';
+import humanCleric from '../fixtures/human-cleric-5.json';
+import woodElfDruid from '../fixtures/wood-elf-druid-3.json';
+import dwarfMonk from '../fixtures/dwarf-monk-6.json';
 
 /**
  * Personagens de referência: a ficha esperada de cada fixture foi calculada à
@@ -30,6 +35,7 @@ function project(sheet: DerivedSheet): unknown {
     speed: { walk: sheet.speed.walk.total },
     saves: Object.fromEntries(ABILITIES.map((a) => [a, sheet.saves[a].total])),
     saveProficiencies: ABILITIES.filter((a) => sheet.saves[a].proficient),
+    saveModes: Object.fromEntries(ABILITIES.flatMap((a) => (sheet.saves[a].roll.mode === 'normal' ? [] : [[a, sheet.saves[a].roll.mode]]))),
     skills: Object.fromEntries(SKILLS.map((s) => [s, sheet.skills[s].total])),
     skillModes: Object.fromEntries(SKILLS.flatMap((s) => (sheet.skills[s].roll.mode === 'normal' ? [] : [[s, sheet.skills[s].roll.mode]]))),
     passivePerception: sheet.skills.perception.passive.total,
@@ -74,6 +80,11 @@ function project(sheet: DerivedSheet): unknown {
 describe.each([
   ['dwarf-fighter-5', dwarfFighter],
   ['elf-wizard-7', elfWizard],
+  ['orc-barbarian-5', orcBarbarian],
+  ['halfling-bard-6', halflingBard],
+  ['human-cleric-5', humanCleric],
+  ['wood-elf-druid-3', woodElfDruid],
+  ['dwarf-monk-6', dwarfMonk],
 ])('reference character %s', (_, fixture) => {
   const sheet = deriveSheet({
     character: CharacterSchema.parse(fixture.character),

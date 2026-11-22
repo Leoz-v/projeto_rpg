@@ -1,0 +1,138 @@
+{
+  "description": "Halfling, Acólito, Bardo 6 (College of Lore). Exercita Jack of All Trades, Expertise, magias preparadas como escolha ao subir de nível e Magical Discoveries. Ficha esperada calculada à mão pelas regras do SRD 5.2.1.",
+  "character": {
+    "id": "pip",
+    "name": "Pip",
+    "baseScores": { "method": "standard_array", "scores": { "str": 8, "dex": 14, "con": 13, "int": 10, "wis": 12, "cha": 15 } },
+    "steps": [
+      {
+        "kind": "species",
+        "speciesId": "halfling",
+        "selections": [{ "source": { "kind": "creation", "id": "character" }, "choiceId": "languages", "picks": ["halfling", "elvish"] }]
+      },
+      {
+        "kind": "background",
+        "backgroundId": "acolyte",
+        "abilityIncreases": { "cha": 2, "wis": 1 },
+        "selections": [
+          { "source": { "kind": "feat", "id": "magic_initiate_cleric" }, "choiceId": "spellcasting_ability", "picks": ["wis"] },
+          { "source": { "kind": "feat", "id": "magic_initiate_cleric" }, "choiceId": "cantrips", "picks": ["guidance", "sacred_flame"] },
+          { "source": { "kind": "feat", "id": "magic_initiate_cleric" }, "choiceId": "level_1_spell", "picks": ["bless"] }
+        ]
+      },
+      {
+        "kind": "class_level",
+        "classId": "bard",
+        "selections": [
+          { "source": { "kind": "class", "id": "bard" }, "choiceId": "skills", "picks": ["performance", "persuasion", "deception"] },
+          { "source": { "kind": "class", "id": "bard" }, "choiceId": "instruments", "picks": ["musical_instrument_lute", "musical_instrument_flute", "musical_instrument_drum"] },
+          { "source": { "kind": "class", "id": "bard" }, "choiceId": "cantrips", "picks": ["vicious_mockery", "minor_illusion"] },
+          { "source": { "kind": "class", "id": "bard" }, "choiceId": "prepared_1", "picks": ["charm_person", "healing_word", "dissonant_whispers", "faerie_fire"] }
+        ]
+      },
+      {
+        "kind": "class_level",
+        "classId": "bard",
+        "selections": [
+          { "source": { "kind": "class", "id": "bard" }, "choiceId": "expertise_2", "picks": ["persuasion", "performance"] },
+          { "source": { "kind": "class", "id": "bard" }, "choiceId": "prepared_2", "picks": ["sleep"] }
+        ]
+      },
+      {
+        "kind": "class_level",
+        "classId": "bard",
+        "selections": [
+          { "source": { "kind": "class", "id": "bard" }, "choiceId": "subclass", "picks": ["college_of_lore"] },
+          { "source": { "kind": "class", "id": "bard" }, "choiceId": "prepared_3", "picks": ["hold_person"] },
+          { "source": { "kind": "subclass", "id": "college_of_lore" }, "choiceId": "bonus_proficiencies_skills", "picks": ["arcana", "history", "stealth"] }
+        ]
+      },
+      {
+        "kind": "class_level",
+        "classId": "bard",
+        "selections": [
+          { "source": { "kind": "class", "id": "bard" }, "choiceId": "feat_4", "picks": ["ability_score_improvement"] },
+          { "source": { "kind": "feat", "id": "ability_score_improvement" }, "choiceId": "increase", "picks": ["cha", "dex"] },
+          { "source": { "kind": "class", "id": "bard" }, "choiceId": "cantrip_4", "picks": ["mage_hand"] },
+          { "source": { "kind": "class", "id": "bard" }, "choiceId": "prepared_4", "picks": ["invisibility"] }
+        ]
+      },
+      {
+        "kind": "class_level",
+        "classId": "bard",
+        "selections": [{ "source": { "kind": "class", "id": "bard" }, "choiceId": "prepared_5", "picks": ["hypnotic_pattern", "dispel_magic"] }]
+      },
+      {
+        "kind": "class_level",
+        "classId": "bard",
+        "selections": [
+          { "source": { "kind": "class", "id": "bard" }, "choiceId": "prepared_6", "picks": ["fear"] },
+          { "source": { "kind": "subclass", "id": "college_of_lore" }, "choiceId": "magical_discoveries_spells", "picks": ["fireball", "counterspell"] }
+        ]
+      }
+    ]
+  },
+  "inventory": {
+    "items": [
+      { "instanceId": "armor", "itemId": "leather_armor", "equipped": true },
+      { "instanceId": "dagger", "itemId": "dagger", "equipped": true }
+    ]
+  },
+  "adjustments": [],
+  "expected": {
+    "complete": true,
+    "level": 6,
+    "proficiencyBonus": 3,
+    "abilities": { "str": 8, "dex": 15, "con": 13, "int": 10, "wis": 13, "cha": 18 },
+    "modifiers": { "str": -1, "dex": 2, "con": 1, "int": 0, "wis": 1, "cha": 4 },
+    "hpMax": 39,
+    "hitDice": [{ "die": 8, "count": 6 }],
+    "ac": 13,
+    "initiative": { "total": 2, "mode": "normal" },
+    "speed": { "walk": 30 },
+    "saves": { "str": -1, "dex": 5, "con": 1, "int": 0, "wis": 1, "cha": 7 },
+    "saveProficiencies": ["dex", "cha"],
+    "saveModes": {},
+    "skills": {
+      "acrobatics": 3, "animal_handling": 2, "arcana": 3, "athletics": 0, "deception": 7, "history": 3,
+      "insight": 4, "intimidation": 5, "investigation": 1, "medicine": 2, "nature": 1, "perception": 2,
+      "performance": 10, "persuasion": 10, "religion": 3, "sleight_of_hand": 3, "stealth": 5, "survival": 2
+    },
+    "skillModes": {},
+    "passivePerception": 12,
+    "senses": {},
+    "resistances": [],
+    "proficiencies": {
+      "armor": ["light"],
+      "weapons": ["simple"],
+      "tools": ["calligraphers_supplies", "musical_instrument_drum", "musical_instrument_flute", "musical_instrument_lute"],
+      "languages": ["common", "elvish", "halfling"]
+    },
+    "weaponMasteries": [],
+    "feats": ["ability_score_improvement", "magic_initiate_cleric"],
+    "attacks": [
+      { "itemId": "dagger", "attack": 5, "damage": "1d4", "damageBonus": 2, "damageType": "piercing", "mastery": "nick", "masteryAvailable": false }
+    ],
+    "spellcasting": {
+      "classes": [
+        {
+          "classId": "bard",
+          "ability": "cha",
+          "saveDc": 15,
+          "attack": 7,
+          "preparedSpells": 10,
+          "cantrips": ["vicious_mockery", "minor_illusion", "mage_hand"],
+          "spellCount": 10
+        }
+      ],
+      "slots": [4, 3, 3, 0, 0, 0, 0, 0, 0],
+      "granted": [
+        { "spellId": "bless", "ability": "wis", "saveDc": 12, "attackBonus": 4 },
+        { "spellId": "counterspell", "ability": "cha", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "fireball", "ability": "cha", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "guidance", "ability": "wis", "saveDc": 12, "attackBonus": 4 },
+        { "spellId": "sacred_flame", "ability": "wis", "saveDc": 12, "attackBonus": 4 }
+      ]
+    }
+  }
+}

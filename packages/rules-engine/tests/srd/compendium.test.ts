@@ -158,6 +158,35 @@ describe('SRD compendium', () => {
     expect(cantrips.reduce((a, b) => a + b, 0)).toBe(5); // 3 + 1 (nível 4) + 1 (nível 10)
   });
 
+  it('models the core traits of the batch B classes (pp. 28-52)', () => {
+    const core = (id: string) => {
+      const cls = byId(srd.classes, id);
+      const saves = cls.startingGrants.flatMap((g) =>
+        g.kind === 'effect' && g.effect.type === 'grant_proficiency' && g.effect.category === 'save' ? [g.effect.id] : [],
+      );
+      return { hitDie: cls.hitDie, primary: cls.primaryAbilities, saves, caster: cls.spellcasting?.progression };
+    };
+    expect(core('barbarian')).toEqual({ hitDie: 12, primary: ['str'], saves: ['str', 'con'], caster: undefined });
+    expect(core('bard')).toEqual({ hitDie: 8, primary: ['cha'], saves: ['dex', 'cha'], caster: 'full' });
+    expect(core('cleric')).toEqual({ hitDie: 8, primary: ['wis'], saves: ['wis', 'cha'], caster: 'full' });
+    expect(core('druid')).toEqual({ hitDie: 8, primary: ['wis'], saves: ['int', 'wis'], caster: 'full' });
+    expect(core('monk')).toEqual({ hitDie: 8, primary: ['dex', 'wis'], saves: ['str', 'dex'], caster: undefined });
+    // Multiclasse do Monge: só o dado de vida.
+    expect(byId(srd.classes, 'monk').multiclassGrants).toEqual([]);
+    // Cada classe tem a sua subclasse do SRD.
+    expect(srd.subclasses.map((s) => s.classId).sort()).toEqual(['barbarian', 'bard', 'cleric', 'druid', 'fighter', 'monk', 'wizard']);
+  });
+
+  it('follows the Bard prepared spells table as level-up choices (p. 31)', () => {
+    const bard = byId(srd.classes, 'bard');
+    const prepared = bard.levels.flatMap((l) =>
+      l.grants.flatMap((g) => (g.kind === 'choice' && g.id.startsWith('prepared_') ? [g.count] : [])),
+    );
+    // A soma dos ganhos por nível bate com a coluna Prepared Spells no nível 20 (22).
+    expect(prepared.reduce((a, b) => a + b, 0)).toBe(22);
+    expect(bard.spellcasting?.preparedSpells).toEqual([4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22]);
+  });
+
   describe('spells (pp. 107-175)', () => {
     /** Contagens conferidas na importação contra as listas de magias de cada classe. */
     it('has every spell, by level and by class', () => {
