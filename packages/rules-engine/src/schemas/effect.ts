@@ -30,7 +30,7 @@ const AttackKind = AttackKindSchema;
 // --- flat_bonus (3.1) -------------------------------------------------------
 
 export const FlatBonusTargetSchema = z.union([
-  z.enum(['ac', 'initiative', 'hp_max', 'speed.walk', 'speed.fly', 'speed.swim', 'speed.climb', 'speed.burrow', 'save.all', 'spell_save_dc']),
+  z.enum(['ac', 'initiative', 'hp_max', 'speed.walk', 'speed.fly', 'speed.swim', 'speed.climb', 'speed.burrow', 'save.all', 'spell_save_dc', 'attunement_slots']),
   z.templateLiteral(['attack.', AttackKind]),
   z.templateLiteral(['damage.', AttackKind]),
   z.templateLiteral(['save.', Ability]),
@@ -129,7 +129,12 @@ export const SpellUsesSchema = z.union([
   z.strictObject({
     per: RestSchema,
     /** Inteiro ou múltiplo do bônus de proficiência. */
-    count: z.union([z.int().positive(), z.strictObject({ proficiency: z.int().positive() })]),
+    count: z.union([
+      z.int().positive(),
+      z.strictObject({ proficiency: z.int().positive() }),
+      /** Tabela pelo nível na escala da fonte (índice 0 = nível 1). */
+      z.strictObject({ byLevel: z.array(z.int().nonnegative()).length(20) }),
+    ]),
     slots: z.literal(true).optional(),
   }),
 ]);

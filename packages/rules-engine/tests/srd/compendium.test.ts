@@ -173,8 +173,32 @@ describe('SRD compendium', () => {
     expect(core('monk')).toEqual({ hitDie: 8, primary: ['dex', 'wis'], saves: ['str', 'dex'], caster: undefined });
     // Multiclasse do Monge: só o dado de vida.
     expect(byId(srd.classes, 'monk').multiclassGrants).toEqual([]);
-    // Cada classe tem a sua subclasse do SRD.
-    expect(srd.subclasses.map((s) => s.classId).sort()).toEqual(['barbarian', 'bard', 'cleric', 'druid', 'fighter', 'monk', 'wizard']);
+    // As 12 classes do SRD, cada uma com a sua subclasse.
+    expect(srd.classes).toHaveLength(12);
+    expect(srd.subclasses.map((s) => s.classId).sort()).toEqual(srd.classes.map((c) => c.id).sort());
+  });
+
+  it('models the core traits of the batch C classes (pp. 53-76)', () => {
+    const core = (id: string) => {
+      const cls = byId(srd.classes, id);
+      const saves = cls.startingGrants.flatMap((g) =>
+        g.kind === 'effect' && g.effect.type === 'grant_proficiency' && g.effect.category === 'save' ? [g.effect.id] : [],
+      );
+      return { hitDie: cls.hitDie, primary: cls.primaryAbilities, saves, caster: cls.spellcasting?.progression };
+    };
+    expect(core('paladin')).toEqual({ hitDie: 10, primary: ['str', 'cha'], saves: ['wis', 'cha'], caster: 'half' });
+    expect(core('ranger')).toEqual({ hitDie: 10, primary: ['dex', 'wis'], saves: ['str', 'dex'], caster: 'half' });
+    expect(core('rogue')).toEqual({ hitDie: 8, primary: ['dex'], saves: ['dex', 'int'], caster: undefined });
+    expect(core('sorcerer')).toEqual({ hitDie: 6, primary: ['cha'], saves: ['con', 'cha'], caster: 'full' });
+    expect(core('warlock')).toEqual({ hitDie: 8, primary: ['cha'], saves: ['wis', 'cha'], caster: 'pact' });
+    // Rogue ganha talento também no nível 10.
+    const rogueFeats = byId(srd.classes, 'rogue').levels.flatMap((l) => (l.grants.some((g) => g.kind === 'choice' && g.id.startsWith('feat_')) ? [l.level] : []));
+    expect(rogueFeats).toEqual([4, 8, 10, 12, 16]);
+    // Invocações: 1 no nível 1 e 10 no total (Invocations column).
+    const invocations = byId(srd.classes, 'warlock').levels.flatMap((l) =>
+      l.grants.flatMap((g) => (g.kind === 'choice' && g.id.startsWith('invocations_') ? [g.count] : [])),
+    );
+    expect(invocations).toEqual([1, 2, 2, 1, 1, 1, 1, 1]);
   });
 
   it('follows the Bard prepared spells table as level-up choices (p. 31)', () => {

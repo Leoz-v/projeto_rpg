@@ -1,0 +1,111 @@
+{
+  "description": "Gnomo da Floresta, Criminoso (Alert), Patrulheiro 6 (Hunter), Estilo de Luta Arquearia. Exercita Roving (+10 ft e escalada/natação iguais ao deslocamento), Deft Explorer (especialização e idiomas), Favored Enemy (Hunter's Mark 3 vezes no nível 6), Gnomish Cunning (vantagem em salvaguardas de INT/SAB/CAR) e meio conjurador. Ficha esperada calculada à mão pelas regras do SRD 5.2.1.",
+  "character": {
+    "id": "tibbs",
+    "name": "Tibbs",
+    "baseScores": { "method": "standard_array", "scores": { "str": 12, "dex": 15, "con": 13, "int": 10, "wis": 14, "cha": 8 } },
+    "steps": [
+      {
+        "kind": "species",
+        "speciesId": "gnome",
+        "selections": [
+          { "source": { "kind": "species", "id": "gnome" }, "choiceId": "spellcasting_ability", "picks": ["wis"] },
+          { "source": { "kind": "species", "id": "gnome" }, "choiceId": "gnomish_lineage", "picks": ["forest_gnome"] },
+          { "source": { "kind": "creation", "id": "character" }, "choiceId": "languages", "picks": ["gnomish", "elvish"] }
+        ]
+      },
+      { "kind": "background", "backgroundId": "criminal", "abilityIncreases": { "dex": 2, "con": 1 } },
+      {
+        "kind": "class_level",
+        "classId": "ranger",
+        "selections": [
+          { "source": { "kind": "class", "id": "ranger" }, "choiceId": "skills", "picks": ["perception", "survival", "animal_handling"] },
+          { "source": { "kind": "class", "id": "ranger" }, "choiceId": "weapon_mastery_1", "picks": ["longbow", "shortsword"] }
+        ]
+      },
+      {
+        "kind": "class_level",
+        "classId": "ranger",
+        "selections": [
+          { "source": { "kind": "class", "id": "ranger" }, "choiceId": "deft_explorer_expertise", "picks": ["stealth"] },
+          { "source": { "kind": "class", "id": "ranger" }, "choiceId": "deft_explorer_languages", "picks": ["sylvan", "goblin"] },
+          { "source": { "kind": "class", "id": "ranger" }, "choiceId": "fighting_style", "picks": ["fighting_style_feat"] },
+          { "source": { "kind": "class", "id": "ranger" }, "choiceId": "fighting_style_feat", "picks": ["archery"] }
+        ]
+      },
+      {
+        "kind": "class_level",
+        "classId": "ranger",
+        "selections": [
+          { "source": { "kind": "class", "id": "ranger" }, "choiceId": "subclass", "picks": ["hunter"] },
+          { "source": { "kind": "subclass", "id": "hunter" }, "choiceId": "hunters_prey_choice", "picks": ["colossus_slayer"] }
+        ]
+      },
+      {
+        "kind": "class_level",
+        "classId": "ranger",
+        "selections": [
+          { "source": { "kind": "class", "id": "ranger" }, "choiceId": "feat_4", "picks": ["ability_score_improvement"] },
+          { "source": { "kind": "feat", "id": "ability_score_improvement" }, "choiceId": "increase", "picks": ["dex", "wis"] }
+        ]
+      },
+      { "kind": "class_level", "classId": "ranger" },
+      { "kind": "class_level", "classId": "ranger" }
+    ]
+  },
+  "inventory": {
+    "items": [
+      { "instanceId": "armor", "itemId": "studded_leather_armor", "equipped": true },
+      { "instanceId": "bow", "itemId": "longbow", "equipped": true },
+      { "instanceId": "sword", "itemId": "shortsword", "equipped": true }
+    ]
+  },
+  "adjustments": [],
+  "expected": {
+    "complete": true,
+    "level": 6,
+    "proficiencyBonus": 3,
+    "abilities": { "str": 12, "dex": 18, "con": 14, "int": 10, "wis": 15, "cha": 8 },
+    "modifiers": { "str": 1, "dex": 4, "con": 2, "int": 0, "wis": 2, "cha": -1 },
+    "hpMax": 52,
+    "hitDice": [{ "die": 10, "count": 6 }],
+    "ac": 16,
+    "initiative": { "total": 7, "mode": "normal" },
+    "speed": { "walk": 40, "climb": 40, "swim": 40 },
+    "saves": { "str": 4, "dex": 7, "con": 2, "int": 0, "wis": 2, "cha": -1 },
+    "saveProficiencies": ["str", "dex"],
+    "saveModes": { "int": "advantage", "wis": "advantage", "cha": "advantage" },
+    "skills": {
+      "acrobatics": 4, "animal_handling": 5, "arcana": 0, "athletics": 1, "deception": -1, "history": 0,
+      "insight": 2, "intimidation": -1, "investigation": 0, "medicine": 2, "nature": 0, "perception": 5,
+      "performance": -1, "persuasion": -1, "religion": 0, "sleight_of_hand": 7, "stealth": 10, "survival": 5
+    },
+    "skillModes": {},
+    "passivePerception": 15,
+    "senses": { "darkvision": 60 },
+    "resistances": [],
+    "proficiencies": {
+      "armor": ["light", "medium", "shield"],
+      "weapons": ["martial", "simple"],
+      "tools": ["thieves_tools"],
+      "languages": ["common", "elvish", "gnomish", "goblin", "sylvan"]
+    },
+    "weaponMasteries": ["longbow", "shortsword"],
+    "feats": ["ability_score_improvement", "alert", "archery"],
+    "attacks": [
+      { "itemId": "longbow", "attack": 9, "damage": "1d8", "damageBonus": 4, "damageType": "piercing", "mastery": "slow", "masteryAvailable": true },
+      { "itemId": "shortsword", "attack": 7, "damage": "1d6", "damageBonus": 4, "damageType": "piercing", "mastery": "vex", "masteryAvailable": true }
+    ],
+    "spellcasting": {
+      "classes": [
+        { "classId": "ranger", "ability": "wis", "saveDc": 13, "attack": 5, "preparedSpells": 6, "cantrips": [], "spellCount": 0 }
+      ],
+      "slots": [4, 2, 0, 0, 0, 0, 0, 0, 0],
+      "granted": [
+        { "spellId": "hunters_mark", "ability": "wis", "saveDc": 13, "attackBonus": 5 },
+        { "spellId": "minor_illusion", "ability": "wis", "saveDc": 13, "attackBonus": 5 },
+        { "spellId": "speak_with_animals", "ability": "wis", "saveDc": 13, "attackBonus": 5 }
+      ]
+    }
+  }
+}

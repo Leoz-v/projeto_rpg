@@ -55,6 +55,8 @@ export type ChoiceOptions =
       minLevel: number;
       maxLevel: number;
       school?: z.infer<typeof SpellSchoolSchema> | undefined;
+      /** Só magias com a etiqueta Ritual (ex.: Pact of the Tome). */
+      ritual?: boolean | undefined;
       grantAs?: SpellGrantTemplate | undefined;
     }
   /**
@@ -128,6 +130,7 @@ export const ChoiceOptionsSchema: z.ZodType<ChoiceOptions> = z.lazy(() =>
         minLevel: z.int().min(0).max(9).default(0),
         maxLevel: z.int().min(0).max(9),
         school: SpellSchoolSchema.optional(),
+        ritual: z.boolean().optional(),
         grantAs: z.strictObject({ ability: AbilityRefSchema, uses: SpellUsesSchema }).optional(),
       })
       .refine((c) => c.minLevel <= c.maxLevel, { message: 'minLevel maior que maxLevel' }),

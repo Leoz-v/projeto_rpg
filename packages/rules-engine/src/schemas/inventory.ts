@@ -6,6 +6,7 @@ import { IdSchema } from './common';
  * compêndio (SRD ou homebrew da campanha) por id.
  */
 
+/** Limite padrão de itens sintonizados; efeitos `attunement_slots` aumentam (validado no motor). */
 export const MAX_ATTUNED_ITEMS = 3;
 
 export const InventoryEntrySchema = z.strictObject({
@@ -33,9 +34,6 @@ export const InventorySchema = z.strictObject({
     .default([])
     .refine((items) => new Set(items.map((i) => i.instanceId)).size === items.length, {
       message: 'instanceId repetido',
-    })
-    .refine((items) => items.filter((i) => i.attuned).length <= MAX_ATTUNED_ITEMS, {
-      message: `no máximo ${MAX_ATTUNED_ITEMS} itens sintonizados`,
     }),
 });
 export type Inventory = z.infer<typeof InventorySchema>;

@@ -12,6 +12,11 @@ import halflingBard from '../fixtures/halfling-bard-6.json';
 import humanCleric from '../fixtures/human-cleric-5.json';
 import woodElfDruid from '../fixtures/wood-elf-druid-3.json';
 import dwarfMonk from '../fixtures/dwarf-monk-6.json';
+import dragonbornPaladin from '../fixtures/dragonborn-paladin-6.json';
+import gnomeRanger from '../fixtures/gnome-ranger-6.json';
+import tieflingRogue from '../fixtures/tiefling-rogue-5.json';
+import humanSorcerer from '../fixtures/human-sorcerer-3.json';
+import goliathWarlock from '../fixtures/goliath-warlock-5.json';
 
 /**
  * Personagens de referência: a ficha esperada de cada fixture foi calculada à
@@ -32,7 +37,8 @@ function project(sheet: DerivedSheet): unknown {
     hitDice: sheet.hitDice,
     ac: sheet.ac.total,
     initiative: { total: sheet.initiative.total, mode: sheet.initiative.roll.mode },
-    speed: { walk: sheet.speed.walk.total },
+    // Deslocamentos especiais só aparecem quando existem.
+    speed: Object.fromEntries((['walk', 'fly', 'swim', 'climb', 'burrow'] as const).flatMap((k) => (k === 'walk' || sheet.speed[k].total > 0 ? [[k, sheet.speed[k].total]] : []))),
     saves: Object.fromEntries(ABILITIES.map((a) => [a, sheet.saves[a].total])),
     saveProficiencies: ABILITIES.filter((a) => sheet.saves[a].proficient),
     saveModes: Object.fromEntries(ABILITIES.flatMap((a) => (sheet.saves[a].roll.mode === 'normal' ? [] : [[a, sheet.saves[a].roll.mode]]))),
@@ -70,6 +76,7 @@ function project(sheet: DerivedSheet): unknown {
         spellCount: c.spells.length,
       })),
       slots: sheet.spellcasting.slots,
+      ...(sheet.spellcasting.pactSlots ? { pactSlots: sheet.spellcasting.pactSlots } : {}),
       granted: [...sheet.spellcasting.granted]
         .sort((a, b) => a.spellId.localeCompare(b.spellId))
         .map((g) => ({ spellId: g.spellId, ability: g.ability, saveDc: g.saveDc, attackBonus: g.attackBonus })),
@@ -85,6 +92,11 @@ describe.each([
   ['human-cleric-5', humanCleric],
   ['wood-elf-druid-3', woodElfDruid],
   ['dwarf-monk-6', dwarfMonk],
+  ['dragonborn-paladin-6', dragonbornPaladin],
+  ['gnome-ranger-6', gnomeRanger],
+  ['tiefling-rogue-5', tieflingRogue],
+  ['human-sorcerer-3', humanSorcerer],
+  ['goliath-warlock-5', goliathWarlock],
 ])('reference character %s', (_, fixture) => {
   const sheet = deriveSheet({
     character: CharacterSchema.parse(fixture.character),
@@ -105,5 +117,25 @@ describe.each([
   it('keeps every total equal to the sum of its parts', () => {
     const stats = [sheet.hpMax, sheet.ac, sheet.initiative, ...Object.values(sheet.saves), ...Object.values(sheet.skills), ...Object.values(sheet.abilities)];
     for (const s of stats) expect(s.total).toBe(s.parts.reduce((sum, p) => sum + p.value, 0));
+  });
+});
+
+describe('reference character details not covered by the projection', () => {
+  const derived = (fixture: { character: unknown; inventory: unknown }) =>
+    deriveSheet({
+      character: CharacterSchema.parse(fixture.character),
+      inventory: InventorySchema.parse(fixture.inventory),
+      adjustments: [],
+      compendium: loadSrdCompendium(),
+    });
+
+  it('gnome-ranger-6 casts Hunters Mark 3 times for free at Ranger level 6 and Speak with Animals PB times', () => {
+    const counts = Object.fromEntries(derived(gnomeRanger).spellcasting.granted.map((g) => [g.spellId, g.count]));
+    expect(counts).toEqual({ hunters_mark: 3, minor_illusion: undefined, speak_with_animals: 3 });
+  });
+
+  it('human-sorcerer-3 adds Draconic Resilience per Sorcerer level', () => {
+    const hp = derived(humanSorcerer).hpMax.parts.find((p) => p.source?.kind === 'subclass');
+    expect(hp).toMatchObject({ value: 3, label: 'Draconic Resilience (Draconic Sorcery)' });
   });
 });

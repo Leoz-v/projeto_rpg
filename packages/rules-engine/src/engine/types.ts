@@ -80,6 +80,8 @@ export interface GrantedSpell {
   spellId: string;
   ability: Ability;
   uses: z.infer<typeof SpellUsesSchema>;
+  /** Usos sem espaço de magia já resolvidos (proficiência, tabela por nível); ausente para `at_will`/`slot`. */
+  count?: number | undefined;
   saveDc: number;
   attackBonus: number;
   source: SourceLabel;
@@ -125,6 +127,7 @@ export type IssueCode =
   | 'duplicate_feat'
   | 'size_required'
   | 'multiple_armor'
+  | 'too_many_attuned'
   | 'armor_untrained'
   | 'shield_untrained'
   | 'not_supported';

@@ -35,9 +35,11 @@ As **magias** seguem um formato regular e foram importadas por parser automátic
 | Talentos (19; Magic Initiate vira um por lista) | 87–88 | `feats.json` |
 | Guerreiro e Mago | 47–48, 77–79 | `classes.json` |
 | Bárbaro, Bardo, Clérigo, Druida e Monge | 28–52 | `classes.json` |
+| Paladino, Patrulheiro, Ladino, Feiticeiro e Bruxo | 53–76 | `classes.json` |
 | Campeão e Evocador | 49, 82 | `subclasses.json` |
 | Berserker, Lore, Life, Land e Open Hand | 30, 35, 40, 46, 52 | `subclasses.json` |
+| Devotion, Hunter, Thief, Draconic e Fiend | 56, 61, 64, 69, 76 | `subclasses.json` |
 | Magias (339) | 107–175 (conferidas com as listas das classes) | `spells.json` |
 | Idiomas da criação de personagem | 20 | `creation.json` |
 
-**Faltam:** Paladino, Patrulheiro, Ladino, Feiticeiro e Bruxo, equipamento de aventura e ferramentas, itens mágicos e monstros.
+**Faltam:** equipamento de aventura e ferramentas, itens mágicos e monstros.

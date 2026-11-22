@@ -1,0 +1,149 @@
+{
+  "description": "Golias (Fire's Burn), Acólito, Bruxo 5 (Fiend Patron), Pact of the Tome. Exercita Magia de Pacto (2 espaços de nível 3), invocações em grupo com pré-requisito de nível, escolhas dentro de uma invocação (truques e rituais do Livro das Sombras, com filtro de Ritual), magias preparadas escolhidas ao subir de nível e magias do patrono. Ficha esperada calculada à mão pelas regras do SRD 5.2.1.",
+  "character": {
+    "id": "brakka",
+    "name": "Brakka",
+    "baseScores": { "method": "standard_array", "scores": { "str": 8, "dex": 13, "con": 14, "int": 10, "wis": 12, "cha": 15 } },
+    "steps": [
+      {
+        "kind": "species",
+        "speciesId": "goliath",
+        "selections": [
+          { "source": { "kind": "species", "id": "goliath" }, "choiceId": "giant_ancestry", "picks": ["fires_burn"] },
+          { "source": { "kind": "creation", "id": "character" }, "choiceId": "languages", "picks": ["giant", "dwarvish"] }
+        ]
+      },
+      {
+        "kind": "background",
+        "backgroundId": "acolyte",
+        "abilityIncreases": { "cha": 2, "int": 1 },
+        "selections": [
+          { "source": { "kind": "feat", "id": "magic_initiate_cleric" }, "choiceId": "spellcasting_ability", "picks": ["cha"] },
+          { "source": { "kind": "feat", "id": "magic_initiate_cleric" }, "choiceId": "cantrips", "picks": ["guidance", "sacred_flame"] },
+          { "source": { "kind": "feat", "id": "magic_initiate_cleric" }, "choiceId": "level_1_spell", "picks": ["bless"] }
+        ]
+      },
+      {
+        "kind": "class_level",
+        "classId": "warlock",
+        "selections": [
+          { "source": { "kind": "class", "id": "warlock" }, "choiceId": "skills", "picks": ["arcana", "deception"] },
+          { "source": { "kind": "class", "id": "warlock" }, "choiceId": "cantrips", "picks": ["eldritch_blast", "prestidigitation"] },
+          { "source": { "kind": "class", "id": "warlock" }, "choiceId": "prepared_1", "picks": ["hex", "charm_person"] },
+          { "source": { "kind": "class", "id": "warlock" }, "choiceId": "invocations_1", "picks": ["pact_of_the_tome"] },
+          { "source": { "kind": "class", "id": "warlock" }, "choiceId": "invocations_1_tome_cantrips", "picks": ["druidcraft", "mage_hand", "message"] },
+          { "source": { "kind": "class", "id": "warlock" }, "choiceId": "invocations_1_tome_rituals", "picks": ["detect_magic", "find_familiar"] }
+        ]
+      },
+      {
+        "kind": "class_level",
+        "classId": "warlock",
+        "selections": [
+          { "source": { "kind": "class", "id": "warlock" }, "choiceId": "invocations_2", "picks": ["agonizing_blast", "devils_sight"] },
+          { "source": { "kind": "class", "id": "warlock" }, "choiceId": "prepared_2", "picks": ["expeditious_retreat"] }
+        ]
+      },
+      {
+        "kind": "class_level",
+        "classId": "warlock",
+        "selections": [
+          { "source": { "kind": "class", "id": "warlock" }, "choiceId": "subclass", "picks": ["fiend_patron"] },
+          { "source": { "kind": "class", "id": "warlock" }, "choiceId": "prepared_3", "picks": ["hold_person"] }
+        ]
+      },
+      {
+        "kind": "class_level",
+        "classId": "warlock",
+        "selections": [
+          { "source": { "kind": "class", "id": "warlock" }, "choiceId": "feat_4", "picks": ["ability_score_improvement"] },
+          { "source": { "kind": "feat", "id": "ability_score_improvement" }, "choiceId": "increase", "picks": ["cha", "con"] },
+          { "source": { "kind": "class", "id": "warlock" }, "choiceId": "cantrip_4", "picks": ["minor_illusion"] },
+          { "source": { "kind": "class", "id": "warlock" }, "choiceId": "prepared_4", "picks": ["invisibility"] }
+        ]
+      },
+      {
+        "kind": "class_level",
+        "classId": "warlock",
+        "selections": [
+          { "source": { "kind": "class", "id": "warlock" }, "choiceId": "invocations_5", "picks": ["ascendant_step", "mask_of_many_faces"] },
+          { "source": { "kind": "class", "id": "warlock" }, "choiceId": "prepared_5", "picks": ["counterspell"] }
+        ]
+      }
+    ]
+  },
+  "inventory": {
+    "items": [
+      { "instanceId": "armor", "itemId": "leather_armor", "equipped": true },
+      { "instanceId": "dagger", "itemId": "dagger", "equipped": true }
+    ]
+  },
+  "adjustments": [],
+  "expected": {
+    "complete": true,
+    "level": 5,
+    "proficiencyBonus": 3,
+    "abilities": { "str": 8, "dex": 13, "con": 15, "int": 11, "wis": 12, "cha": 18 },
+    "modifiers": { "str": -1, "dex": 1, "con": 2, "int": 0, "wis": 1, "cha": 4 },
+    "hpMax": 38,
+    "hitDice": [{ "die": 8, "count": 5 }],
+    "ac": 12,
+    "initiative": { "total": 1, "mode": "normal" },
+    "speed": { "walk": 35 },
+    "saves": { "str": -1, "dex": 1, "con": 2, "int": 0, "wis": 4, "cha": 7 },
+    "saveProficiencies": ["wis", "cha"],
+    "saveModes": {},
+    "skills": {
+      "acrobatics": 1, "animal_handling": 1, "arcana": 3, "athletics": -1, "deception": 7, "history": 0,
+      "insight": 4, "intimidation": 4, "investigation": 0, "medicine": 1, "nature": 0, "perception": 1,
+      "performance": 4, "persuasion": 4, "religion": 3, "sleight_of_hand": 1, "stealth": 1, "survival": 1
+    },
+    "skillModes": {},
+    "passivePerception": 11,
+    "senses": {},
+    "resistances": [],
+    "proficiencies": {
+      "armor": ["light"],
+      "weapons": ["simple"],
+      "tools": ["calligraphers_supplies"],
+      "languages": ["common", "dwarvish", "giant"]
+    },
+    "weaponMasteries": [],
+    "feats": ["ability_score_improvement", "magic_initiate_cleric"],
+    "attacks": [
+      { "itemId": "dagger", "attack": 4, "damage": "1d4", "damageBonus": 1, "damageType": "piercing", "mastery": "nick", "masteryAvailable": false }
+    ],
+    "spellcasting": {
+      "classes": [
+        {
+          "classId": "warlock",
+          "ability": "cha",
+          "saveDc": 15,
+          "attack": 7,
+          "preparedSpells": 6,
+          "cantrips": ["eldritch_blast", "prestidigitation", "minor_illusion"],
+          "spellCount": 6
+        }
+      ],
+      "slots": [0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "pactSlots": { "count": 2, "level": 3 },
+      "granted": [
+        { "spellId": "bless", "ability": "cha", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "burning_hands", "ability": "cha", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "command", "ability": "cha", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "detect_magic", "ability": "cha", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "disguise_self", "ability": "cha", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "druidcraft", "ability": "cha", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "find_familiar", "ability": "cha", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "fireball", "ability": "cha", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "guidance", "ability": "cha", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "levitate", "ability": "cha", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "mage_hand", "ability": "cha", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "message", "ability": "cha", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "sacred_flame", "ability": "cha", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "scorching_ray", "ability": "cha", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "stinking_cloud", "ability": "cha", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "suggestion", "ability": "cha", "saveDc": 15, "attackBonus": 7 }
+      ]
+    }
+  }
+}

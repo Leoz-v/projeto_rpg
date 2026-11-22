@@ -1113,5 +1113,1034 @@
         ]
       }
     ]
+  },
+  {
+    "id": "oath_of_devotion",
+    "classId": "paladin",
+    "name": "Oath of Devotion",
+    "levels": [
+      {
+        "level": 3,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "oath_of_devotion_spells",
+              "name": "Oath of Devotion Spells",
+              "description": "When you reach a Paladin level specified in the Oath of Devotion Spells table, you thereafter always have the listed spells prepared: level 3 Protection from Evil and Good, Shield of Faith; level 5 Aid, Zone of Truth; level 9 Beacon of Hope, Dispel Magic; level 13 Freedom of Movement, Guardian of Faith; level 17 Commune, Flame Strike."
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "protection_from_evil_and_good",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "shield_of_faith",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "sacred_weapon",
+              "name": "Sacred Weapon",
+              "description": "When you take the Attack action, you can expend one use of your Channel Divinity to imbue one Melee weapon that you are holding with positive energy. For 10 minutes or until you use this feature again, you add your Charisma modifier to attack rolls you make with that weapon (minimum bonus of +1), and each time you hit with it, you cause it to deal its normal damage type or Radiant damage. The weapon also emits Bright Light in a 20-foot radius and Dim Light 20 feet beyond that."
+            }
+          }
+        ]
+      },
+      {
+        "level": 5,
+        "grants": [
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "aid",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "zone_of_truth",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          }
+        ]
+      },
+      {
+        "level": 7,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "aura_of_devotion",
+              "name": "Aura of Devotion",
+              "description": "You and your allies have Immunity to the Charmed condition while in your Aura of Protection. If a Charmed ally enters the aura, that condition has no effect on that ally while there.",
+              "effects": [
+                {
+                  "type": "immunity",
+                  "condition": "charmed",
+                  "when": {
+                    "not": {
+                      "hasCondition": "incapacitated"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "level": 9,
+        "grants": [
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "beacon_of_hope",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "dispel_magic",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          }
+        ]
+      },
+      {
+        "level": 13,
+        "grants": [
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "freedom_of_movement",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "guardian_of_faith",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          }
+        ]
+      },
+      {
+        "level": 15,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "smite_of_protection",
+              "name": "Smite of Protection",
+              "description": "Whenever you cast Divine Smite, you and your allies have Half Cover while in your Aura of Protection. The aura has this benefit until the start of your next turn."
+            }
+          }
+        ]
+      },
+      {
+        "level": 17,
+        "grants": [
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "commune",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "flame_strike",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          }
+        ]
+      },
+      {
+        "level": 20,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "holy_nimbus",
+              "name": "Holy Nimbus",
+              "description": "As a Bonus Action, you can imbue your Aura of Protection with holy power for 10 minutes or until you end it: you have Advantage on any saving throw you are forced to make by a Fiend or an Undead; whenever an enemy starts its turn in the aura, it takes Radiant damage equal to your Charisma modifier plus your Proficiency Bonus; and the aura is filled with Bright Light that is sunlight. Once per Long Rest, or restore the use by expending a level 5 spell slot."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "hunter",
+    "classId": "ranger",
+    "name": "Hunter",
+    "levels": [
+      {
+        "level": 3,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "hunters_lore",
+              "name": "Hunter's Lore",
+              "description": "While a creature is marked by your Hunter's Mark, you know whether that creature has any Immunities, Resistances, or Vulnerabilities, and if the creature has any, you know what they are."
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "hunters_prey",
+              "name": "Hunter's Prey",
+              "description": "You gain one of the following feature options of your choice; whenever you finish a Short or Long Rest, you can replace it with the other one."
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "hunters_prey_choice",
+            "count": 1,
+            "options": {
+              "pick": "option",
+              "options": [
+                {
+                  "id": "colossus_slayer",
+                  "name": "Colossus Slayer",
+                  "grants": [
+                    {
+                      "kind": "feature",
+                      "feature": {
+                        "id": "colossus_slayer",
+                        "name": "Colossus Slayer",
+                        "description": "When you hit a creature with a weapon, the weapon deals an extra 1d8 damage to the target if it's missing any of its Hit Points. You can deal this extra damage only once per turn."
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "horde_breaker",
+                  "name": "Horde Breaker",
+                  "grants": [
+                    {
+                      "kind": "feature",
+                      "feature": {
+                        "id": "horde_breaker",
+                        "name": "Horde Breaker",
+                        "description": "Once on each of your turns when you make an attack with a weapon, you can make another attack with the same weapon against a different creature that is within 5 feet of the original target, that is within the weapon's range, and that you haven't attacked this turn."
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "level": 7,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "defensive_tactics",
+              "name": "Defensive Tactics",
+              "description": "You gain one of the following feature options of your choice; whenever you finish a Short or Long Rest, you can replace it with the other one."
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "defensive_tactics_choice",
+            "count": 1,
+            "options": {
+              "pick": "option",
+              "options": [
+                {
+                  "id": "escape_the_horde",
+                  "name": "Escape the Horde",
+                  "grants": [
+                    {
+                      "kind": "feature",
+                      "feature": {
+                        "id": "escape_the_horde",
+                        "name": "Escape the Horde",
+                        "description": "Opportunity Attacks have Disadvantage against you."
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "multiattack_defense",
+                  "name": "Multiattack Defense",
+                  "grants": [
+                    {
+                      "kind": "feature",
+                      "feature": {
+                        "id": "multiattack_defense",
+                        "name": "Multiattack Defense",
+                        "description": "When a creature hits you with an attack roll, that creature has Disadvantage on all other attack rolls against you this turn."
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "level": 11,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "superior_hunters_prey",
+              "name": "Superior Hunter's Prey",
+              "description": "Once per turn when you deal damage to a creature marked by your Hunter's Mark, you can also deal that spell's extra damage to a different creature that you can see within 30 feet of the first creature."
+            }
+          }
+        ]
+      },
+      {
+        "level": 15,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "superior_hunters_defense",
+              "name": "Superior Hunter's Defense",
+              "description": "When you take damage, you can take a Reaction to give yourself Resistance to that damage and any other damage of the same type until the end of the current turn."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "thief",
+    "classId": "rogue",
+    "name": "Thief",
+    "levels": [
+      {
+        "level": 3,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "fast_hands",
+              "name": "Fast Hands",
+              "description": "As a Bonus Action, you can make a Dexterity (Sleight of Hand) check to pick a lock or disarm a trap with Thieves' Tools or to pick a pocket, or take the Utilize action, or take the Magic action to use a magic item that requires that action."
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "second_story_work",
+              "name": "Second-Story Work",
+              "description": "Climber: you gain a Climb Speed equal to your Speed. Jumper: you can determine your jump distance using your Dexterity rather than your Strength.",
+              "effects": [
+                {
+                  "type": "grant_speed",
+                  "speed": "climb",
+                  "value": "walk"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "level": 9,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "supreme_sneak",
+              "name": "Supreme Sneak",
+              "description": "You gain the Stealth Attack Cunning Strike option (cost 1d6): if you have the Hide action's Invisible condition, this attack doesn't end that condition on you if you end the turn behind Three-Quarters Cover or Total Cover."
+            }
+          }
+        ]
+      },
+      {
+        "level": 13,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "use_magic_device",
+              "name": "Use Magic Device",
+              "description": "Attunement: you can attune to up to four magic items at once. Charges: whenever you use a magic item property that expends charges, roll 1d6; on a 6, you use the property without expending the charges. Scrolls: you can use any Spell Scroll, using Intelligence as your spellcasting ability; for a spell of level 2 or higher, you must first succeed on an Intelligence (Arcana) check (DC 10 plus the spell's level), or the scroll disintegrates.",
+              "effects": [
+                {
+                  "type": "flat_bonus",
+                  "target": "attunement_slots",
+                  "value": 1
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "level": 17,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "thiefs_reflexes",
+              "name": "Thief's Reflexes",
+              "description": "You can take two turns during the first round of any combat. You take your first turn at your normal Initiative and your second turn at your Initiative minus 10."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "draconic_sorcery",
+    "classId": "sorcerer",
+    "name": "Draconic Sorcery",
+    "levels": [
+      {
+        "level": 3,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "draconic_resilience",
+              "name": "Draconic Resilience",
+              "description": "Your Hit Point maximum increases by 3, and it increases by 1 whenever you gain another Sorcerer level. While you aren't wearing armor, your base Armor Class equals 10 plus your Dexterity and Charisma modifiers.",
+              "effects": [
+                {
+                  "type": "flat_bonus",
+                  "target": "hp_max",
+                  "value": {
+                    "perLevel": 1
+                  }
+                },
+                {
+                  "type": "set_base_ac",
+                  "base": 10,
+                  "abilities": [
+                    "dex",
+                    "cha"
+                  ],
+                  "when": {
+                    "wearingArmor": false
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "draconic_spells",
+              "name": "Draconic Spells",
+              "description": "When you reach a Sorcerer level specified in the Draconic Spells table, you thereafter always have the listed spells prepared: level 3 Alter Self, Chromatic Orb, Command, Dragon's Breath; level 5 Fear, Fly; level 7 Arcane Eye, Charm Monster; level 9 Legend Lore, Summon Dragon."
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "alter_self",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "chromatic_orb",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "command",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "dragons_breath",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          }
+        ]
+      },
+      {
+        "level": 5,
+        "grants": [
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "fear",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "fly",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          }
+        ]
+      },
+      {
+        "level": 6,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "elemental_affinity",
+              "name": "Elemental Affinity",
+              "description": "Choose one of these damage types: Acid, Cold, Fire, Lightning, or Poison. You have Resistance to that damage type, and when you cast a spell that deals damage of that type, you can add your Charisma modifier to one damage roll of that spell."
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "elemental_affinity_type",
+            "count": 1,
+            "options": {
+              "pick": "option",
+              "options": [
+                {
+                  "id": "acid",
+                  "name": "Acid",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "acid"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "cold",
+                  "name": "Cold",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "cold"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "fire",
+                  "name": "Fire",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "fire"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "lightning",
+                  "name": "Lightning",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "lightning"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "poison",
+                  "name": "Poison",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "poison"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "level": 7,
+        "grants": [
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "arcane_eye",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "charm_monster",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          }
+        ]
+      },
+      {
+        "level": 9,
+        "grants": [
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "legend_lore",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "summon_dragon",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          }
+        ]
+      },
+      {
+        "level": 14,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "dragon_wings",
+              "name": "Dragon Wings",
+              "description": "As a Bonus Action, you can cause draconic wings to appear on your back for 1 hour or until you dismiss them, giving you a Fly Speed of 60 feet. Once you use this feature, you can't use it again until you finish a Long Rest unless you spend 3 Sorcery Points to restore your use of it."
+            }
+          }
+        ]
+      },
+      {
+        "level": 18,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "dragon_companion",
+              "name": "Dragon Companion",
+              "description": "You can cast Summon Dragon without a Material component. You can also cast it once without a spell slot, and you regain the ability to cast it in this way when you finish a Long Rest. Whenever you start casting the spell, you can modify it so that it doesn't require Concentration; if you do so, the spell's duration becomes 1 minute for that casting.",
+              "effects": [
+                {
+                  "type": "grant_spell",
+                  "spellId": "summon_dragon",
+                  "ability": "cha",
+                  "uses": {
+                    "per": "long_rest",
+                    "count": 1,
+                    "slots": true
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "fiend_patron",
+    "classId": "warlock",
+    "name": "Fiend Patron",
+    "levels": [
+      {
+        "level": 3,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "dark_ones_blessing",
+              "name": "Dark One's Blessing",
+              "description": "When you reduce an enemy to 0 Hit Points, you gain Temporary Hit Points equal to your Charisma modifier plus your Warlock level (minimum of 1). You also gain this benefit if someone else reduces an enemy within 10 feet of you to 0 Hit Points."
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "fiend_spells",
+              "name": "Fiend Spells",
+              "description": "When you reach a Warlock level specified in the Fiend Spells table, you thereafter always have the listed spells prepared: level 3 Burning Hands, Command, Scorching Ray, Suggestion; level 5 Fireball, Stinking Cloud; level 7 Fire Shield, Wall of Fire; level 9 Geas, Insect Plague."
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "burning_hands",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "command",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "scorching_ray",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "suggestion",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          }
+        ]
+      },
+      {
+        "level": 5,
+        "grants": [
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "fireball",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "stinking_cloud",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          }
+        ]
+      },
+      {
+        "level": 6,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "dark_ones_own_luck",
+              "name": "Dark One's Own Luck",
+              "description": "When you make an ability check or a saving throw, you can add 1d10 to your roll, after seeing the roll but before any of its effects occur. You can do so a number of times equal to your Charisma modifier (minimum of once), but no more than once per roll. You regain all expended uses when you finish a Long Rest."
+            }
+          }
+        ]
+      },
+      {
+        "level": 7,
+        "grants": [
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "fire_shield",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "wall_of_fire",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          }
+        ]
+      },
+      {
+        "level": 9,
+        "grants": [
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "geas",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "insect_plague",
+              "ability": "cha",
+              "uses": "slot"
+            }
+          }
+        ]
+      },
+      {
+        "level": 10,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "fiendish_resilience",
+              "name": "Fiendish Resilience",
+              "description": "Choose one damage type, other than Force, whenever you finish a Short or Long Rest. You have Resistance to that damage type until you choose a different one with this feature. (Changing it is done by editing this choice.)"
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "fiendish_resilience_type",
+            "count": 1,
+            "options": {
+              "pick": "option",
+              "options": [
+                {
+                  "id": "acid",
+                  "name": "Acid",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "acid"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "bludgeoning",
+                  "name": "Bludgeoning",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "bludgeoning"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "cold",
+                  "name": "Cold",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "cold"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "fire",
+                  "name": "Fire",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "fire"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "lightning",
+                  "name": "Lightning",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "lightning"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "necrotic",
+                  "name": "Necrotic",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "necrotic"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "piercing",
+                  "name": "Piercing",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "piercing"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "poison",
+                  "name": "Poison",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "poison"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "psychic",
+                  "name": "Psychic",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "psychic"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "radiant",
+                  "name": "Radiant",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "radiant"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "slashing",
+                  "name": "Slashing",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "slashing"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "thunder",
+                  "name": "Thunder",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "thunder"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "level": 14,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "hurl_through_hell",
+              "name": "Hurl Through Hell",
+              "description": "Once per turn when you hit a creature with an attack roll, the target must succeed on a Charisma saving throw against your spell save DC or disappear through the Lower Planes, taking 8d10 Psychic damage if it isn't a Fiend and having the Incapacitated condition until the end of your next turn, when it returns. Once per Long Rest, or restore the use by expending a Pact Magic spell slot."
+            }
+          }
+        ]
+      }
+    ]
   }
 ]
