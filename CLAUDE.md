@@ -145,7 +145,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 1. **Fase 1 — Fundação, Dados & Ficha Derivada:**
    - ✅ Criar `docs/network-protocol.md`, `docs/effects-spec.md` e `docs/decisions/0001-electron-em-vez-de-tauri.md`.
    - ✅ Setup do monorepo (electron-vite, pnpm workspaces, `.npmrc` com `node-linker=hoisted`) e dos scripts de verificação (`test`, `typecheck`, `lint`). Ver `docs/decisions/0002-toolchain-inicial.md`.
-   - Schemas de dados (criatura, item, ação, efeito, concessões por nível, lista de escolhas, inventário).
+   - ✅ Schemas de dados (criatura, item, ação, efeito, magia, concessões por nível, lista de escolhas, inventário). Ver `docs/decisions/0003-schemas-de-conteudo.md`.
    - Importação do SRD 5.2.1 para o compêndio.
    - **Motor de cálculo da ficha derivada** (escolhas + concessões + efeitos de itens) e personagens de referência verdes.
 2. **Fase 2 — Mesa & Rede:** rede WebSocket (host/cliente) no processo main, executor de sessão do Host, handshake de protocolo, cache de assets SHA-256 (`vtt-asset://`), mapa em tempo real com tokens e rolagem de dados autoritativa no chat.

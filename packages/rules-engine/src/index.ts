@@ -4,3 +4,5 @@
  * Fronteira inviolável: nada de react, pixi.js, electron ou node:* aqui.
  */
 export const RULES_ENGINE_VERSION = '0.1.0';
+
+export * from './schemas';

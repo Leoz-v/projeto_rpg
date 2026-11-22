@@ -1,0 +1,42 @@
+import { z } from 'zod';
+import { IdSchema } from './common';
+
+/**
+ * Inventário: estado separado da lista de escolhas. Referencia itens do
+ * compêndio (SRD ou homebrew da campanha) por id.
+ */
+
+export const MAX_ATTUNED_ITEMS = 3;
+
+export const InventoryEntrySchema = z.strictObject({
+  /** Identifica esta cópia do item (duas espadas longas são duas entradas). */
+  instanceId: z.string().min(1).max(64),
+  itemId: IdSchema,
+  quantity: z.int().positive().default(1),
+  equipped: z.boolean().default(false),
+  attuned: z.boolean().default(false),
+});
+export type InventoryEntry = z.infer<typeof InventoryEntrySchema>;
+
+export const CurrencySchema = z.strictObject({
+  cp: z.int().nonnegative().default(0),
+  sp: z.int().nonnegative().default(0),
+  ep: z.int().nonnegative().default(0),
+  gp: z.int().nonnegative().default(0),
+  pp: z.int().nonnegative().default(0),
+});
+
+export const InventorySchema = z.strictObject({
+  currency: CurrencySchema.default({ cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }),
+  items: z
+    .array(InventoryEntrySchema)
+    .default([])
+    .refine((items) => new Set(items.map((i) => i.instanceId)).size === items.length, {
+      message: 'instanceId repetido',
+    })
+    .refine((items) => items.filter((i) => i.attuned).length <= MAX_ATTUNED_ITEMS, {
+      message: `no máximo ${MAX_ATTUNED_ITEMS} itens sintonizados`,
+    }),
+});
+export type Inventory = z.infer<typeof InventorySchema>;
+export type InventoryInput = z.input<typeof InventorySchema>;
