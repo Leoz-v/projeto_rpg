@@ -123,7 +123,6 @@ export type IssueCode =
   | 'duplicate_feat'
   | 'size_required'
   | 'multiple_armor'
-  | 'unknown_spell'
   | 'armor_untrained'
   | 'shield_untrained'
   | 'not_supported';

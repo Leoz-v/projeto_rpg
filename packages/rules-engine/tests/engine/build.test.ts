@@ -191,7 +191,7 @@ describe('feat prerequisites', () => {
 });
 
 describe('multiclass', () => {
-  const wizardLevel = { kind: 'class_level' as const, classId: 'wizard', selections: [sel('class', 'wizard', 'cantrips', 'fire_bolt', 'light', 'mage_hand'), sel('class', 'wizard', 'spellbook_1', 'a', 'b', 'c', 'd', 'e', 'f')] };
+  const wizardLevel = { kind: 'class_level' as const, classId: 'wizard', selections: [sel('class', 'wizard', 'cantrips', 'fire_bolt', 'light', 'mage_hand'), sel('class', 'wizard', 'spellbook_1', 'detect_magic', 'feather_fall', 'mage_armor', 'magic_missile', 'sleep', 'thunderwave')] };
 
   it('requires 13 in the primary ability of both classes', () => {
     // INT 8: não pode entrar em Mago.
@@ -224,11 +224,55 @@ describe('expertise', () => {
       {
         kind: 'class_level' as const,
         classId: 'wizard',
-        selections: [sel('class', 'wizard', 'skills', 'arcana', 'history'), sel('class', 'wizard', 'cantrips', 'a', 'b', 'c'), sel('class', 'wizard', 'spellbook_1', 'a', 'b', 'c', 'd', 'e', 'f')],
+        selections: [sel('class', 'wizard', 'skills', 'arcana', 'history'), sel('class', 'wizard', 'cantrips', 'fire_bolt', 'light', 'mage_hand'), sel('class', 'wizard', 'spellbook_1', 'detect_magic', 'feather_fall', 'mage_armor', 'magic_missile', 'sleep', 'thunderwave')],
       },
-      { kind: 'class_level' as const, classId: 'wizard', selections: [sel('class', 'wizard', 'spellbook_2', 'g', 'h'), sel('class', 'wizard', 'scholar', scholar)] },
+      { kind: 'class_level' as const, classId: 'wizard', selections: [sel('class', 'wizard', 'spellbook_2', 'burning_hands', 'find_familiar'), sel('class', 'wizard', 'scholar', scholar)] },
     ];
     expect(errorsOf(derive({ steps: wizard('arcana'), baseScores: smart }))).toEqual([]);
     expect(errorsOf(derive({ steps: wizard('nature'), baseScores: smart }))).toEqual(['invalid_selection']);
+  });
+});
+
+describe('spell choices', () => {
+  const smart = { method: 'standard_array' as const, scores: { str: 8, dex: 14, con: 13, int: 15, wis: 12, cha: 10 } };
+  const wizard = (cantrips: string[], spellbook: string[]): CharacterInput['steps'] => [
+    { kind: 'species', speciesId: 'dwarf', selections: [LANGUAGES] },
+    { kind: 'background', backgroundId: 'soldier', abilityIncreases: { dex: 1, con: 2 }, selections: [sel('background', 'soldier', 'gaming_set', 'gaming_set_dice')] },
+    {
+      kind: 'class_level',
+      classId: 'wizard',
+      selections: [sel('class', 'wizard', 'skills', 'arcana', 'history'), sel('class', 'wizard', 'cantrips', ...cantrips), sel('class', 'wizard', 'spellbook_1', ...spellbook)],
+    },
+  ];
+  const book = ['detect_magic', 'feather_fall', 'mage_armor', 'magic_missile', 'sleep', 'thunderwave'];
+
+  it('accepts valid wizard spells and records them', () => {
+    const sheet = derive({ steps: wizard(['fire_bolt', 'light', 'mage_hand'], book), baseScores: smart });
+    expect(errorsOf(sheet)).toEqual([]);
+    expect(sheet.spellcasting.classes[0]?.cantrips).toEqual(['fire_bolt', 'light', 'mage_hand']);
+    expect(sheet.spellcasting.classes[0]?.spells).toEqual(book);
+  });
+
+  it.each([
+    ['an unknown spell', ['fire_bolt', 'light', 'mage_hand'], ['detect_magic', 'feather_fall', 'mage_armor', 'magic_missile', 'sleep', 'magic_banana'], 'unknown_reference'],
+    ['a spell above the allowed level', ['fire_bolt', 'light', 'mage_hand'], ['detect_magic', 'feather_fall', 'mage_armor', 'magic_missile', 'sleep', 'fireball'], 'invalid_selection'],
+    ['a level 1 spell as a cantrip', ['fire_bolt', 'light', 'magic_missile'], book, 'invalid_selection'],
+    ['a spell from another class list', ['fire_bolt', 'light', 'mage_hand'], ['detect_magic', 'feather_fall', 'mage_armor', 'magic_missile', 'sleep', 'cure_wounds'], 'invalid_selection'],
+  ])('rejects %s', (_, cantrips, spellbook, code) => {
+    expect(errorsOf(derive({ steps: wizard(cantrips, spellbook), baseScores: smart }))).toEqual([code]);
+  });
+
+  it('checks the school of Evocation Savant', () => {
+    const steps = [
+      ...wizard(['fire_bolt', 'light', 'mage_hand'], book),
+      { kind: 'class_level' as const, classId: 'wizard', selections: [sel('class', 'wizard', 'spellbook_2', 'burning_hands', 'find_familiar'), sel('class', 'wizard', 'scholar', 'arcana')] },
+      {
+        kind: 'class_level' as const,
+        classId: 'wizard',
+        selections: [sel('class', 'wizard', 'subclass', 'evoker'), sel('class', 'wizard', 'spellbook_3', 'misty_step', 'web'), sel('subclass', 'evoker', 'evocation_savant', 'shatter', 'mirror_image')],
+      },
+    ];
+    // Mirror Image é de Ilusão.
+    expect(errorsOf(derive({ steps, baseScores: smart }))).toEqual(['invalid_selection']);
   });
 });

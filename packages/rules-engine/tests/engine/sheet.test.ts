@@ -7,11 +7,11 @@ import { compendiumWith, derive, errorsOf, fighterSteps, LANGUAGES, sel } from '
 
 const wizardSteps: CharacterInput['steps'] = [
   { kind: 'species' as const, speciesId: 'dwarf', selections: [LANGUAGES] },
-  { kind: 'background' as const, backgroundId: 'sage', abilityIncreases: { int: 2, con: 1 }, selections: [sel('feat', 'magic_initiate_wizard', 'spellcasting_ability', 'int'), sel('feat', 'magic_initiate_wizard', 'cantrips', 'a', 'b'), sel('feat', 'magic_initiate_wizard', 'level_1_spell', 'c')] },
+  { kind: 'background' as const, backgroundId: 'sage', abilityIncreases: { int: 2, con: 1 }, selections: [sel('feat', 'magic_initiate_wizard', 'spellcasting_ability', 'int'), sel('feat', 'magic_initiate_wizard', 'cantrips', 'minor_illusion', 'prestidigitation'), sel('feat', 'magic_initiate_wizard', 'level_1_spell', 'shield')] },
   {
     kind: 'class_level' as const,
     classId: 'wizard',
-    selections: [sel('class', 'wizard', 'skills', 'insight', 'medicine'), sel('class', 'wizard', 'cantrips', 'x', 'y', 'z'), sel('class', 'wizard', 'spellbook_1', 'a', 'b', 'c', 'd', 'e', 'f')],
+    selections: [sel('class', 'wizard', 'skills', 'insight', 'medicine'), sel('class', 'wizard', 'cantrips', 'fire_bolt', 'light', 'mage_hand'), sel('class', 'wizard', 'spellbook_1', 'detect_magic', 'feather_fall', 'mage_armor', 'magic_missile', 'sleep', 'thunderwave')],
   },
 ];
 
@@ -246,23 +246,23 @@ describe('spellcasting', () => {
   it('resolves the spellcasting ability chosen for granted spells', () => {
     const steps = wizardSteps.map((s) =>
       s.kind === 'background'
-        ? { ...s, selections: [sel('feat', 'magic_initiate_wizard', 'spellcasting_ability', 'wis'), sel('feat', 'magic_initiate_wizard', 'cantrips', 'a', 'b'), sel('feat', 'magic_initiate_wizard', 'level_1_spell', 'c')] }
+        ? { ...s, selections: [sel('feat', 'magic_initiate_wizard', 'spellcasting_ability', 'wis'), sel('feat', 'magic_initiate_wizard', 'cantrips', 'minor_illusion', 'prestidigitation'), sel('feat', 'magic_initiate_wizard', 'level_1_spell', 'shield')] }
         : s,
     );
     const smart = { method: 'standard_array' as const, scores: { str: 8, dex: 14, con: 13, int: 15, wis: 12, cha: 10 } };
     const sheet = derive({ steps, baseScores: smart });
     // SAB 12 (+1): CD 8 + 1 + 2 = 11. INT 17 (+3) do Mago: CD 13.
     expect(sheet.spellcasting.granted.map((g) => [g.spellId, g.ability, g.saveDc])).toEqual([
-      ['a', 'wis', 11],
-      ['b', 'wis', 11],
-      ['c', 'wis', 11],
+      ['minor_illusion', 'wis', 11],
+      ['prestidigitation', 'wis', 11],
+      ['shield', 'wis', 11],
     ]);
     expect(sheet.spellcasting.classes[0]?.saveDc.total).toBe(13);
   });
 
   it('omits granted spells whose ability choice is still pending', () => {
     const steps = wizardSteps.map((s) =>
-      s.kind === 'background' ? { ...s, selections: [sel('feat', 'magic_initiate_wizard', 'cantrips', 'a', 'b'), sel('feat', 'magic_initiate_wizard', 'level_1_spell', 'c')] } : s,
+      s.kind === 'background' ? { ...s, selections: [sel('feat', 'magic_initiate_wizard', 'cantrips', 'minor_illusion', 'prestidigitation'), sel('feat', 'magic_initiate_wizard', 'level_1_spell', 'shield')] } : s,
     );
     const sheet = derive({ steps });
     expect(sheet.spellcasting.granted).toEqual([]);
