@@ -1,0 +1,32 @@
+:root {
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: #16151a;
+  color: #e8e6ef;
+}
+
+body {
+  margin: 0;
+}
+
+.app {
+  padding: 2rem;
+}
+
+.versions {
+  display: grid;
+  grid-template-columns: max-content auto;
+  gap: 0.25rem 1rem;
+}
+
+.versions dt {
+  color: #a19dae;
+}
+
+.versions dd {
+  margin: 0;
+}
+
+.error {
+  color: #ff7a7a;
+}
