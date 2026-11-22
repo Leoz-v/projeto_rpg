@@ -16,7 +16,7 @@ describe('sources', () => {
           grants: [
             { kind: 'effect', effect: { type: 'grant_sense', sense: 'darkvision', range: 60 } },
             { kind: 'effect', effect: { type: 'advantage', target: 'save.all', note: 'contra ser enfeitiçado' } },
-            { kind: 'choice', id: 'keen_senses', count: 1, options: { pick: 'skill_proficiency', from: ['insight', 'perception', 'survival'] } },
+            { kind: 'choice', id: 'keen_senses', count: 1, options: { pick: 'proficiency', categories: ['skill'], from: ['insight', 'perception', 'survival'] } },
             {
               kind: 'choice',
               id: 'elven_lineage',
@@ -45,7 +45,7 @@ describe('sources', () => {
   });
 
   it('rejects duplicate levels and duplicate choice ids', () => {
-    const grant = { kind: 'choice', id: 'skill', count: 1, options: { pick: 'skill_proficiency' } };
+    const grant = { kind: 'choice', id: 'skill', count: 1, options: { pick: 'proficiency', categories: ['skill'] } };
     const base = { id: 'human', name: 'Human', sizes: ['medium', 'small'], speed: 30 };
     expect(
       SpeciesSchema.safeParse({ ...base, levels: [{ level: 1, grants: [grant] }, { level: 1, grants: [grant] }] }).success,
@@ -94,7 +94,7 @@ describe('sources', () => {
       startingGrants: [
         { kind: 'effect', effect: { type: 'grant_proficiency', category: 'save', id: 'str' } },
         { kind: 'effect', effect: { type: 'grant_proficiency', category: 'save', id: 'con' } },
-        { kind: 'choice', id: 'skills', count: 2, options: { pick: 'skill_proficiency', from: ['acrobatics', 'athletics', 'perception'] } },
+        { kind: 'choice', id: 'skills', count: 2, options: { pick: 'proficiency', categories: ['skill'], from: ['acrobatics', 'athletics', 'perception'] } },
       ],
       multiclassGrants: [{ kind: 'effect', effect: { type: 'grant_proficiency', category: 'weapon', id: 'martial' } }],
       levels: [
@@ -114,7 +114,127 @@ describe('sources', () => {
     expect(ClassSchema.safeParse({ ...fighter, hitDie: 7 }).success).toBe(false);
   });
 
+  describe('source integrity', () => {
+    const lineage = (abilityRef: unknown): object => ({
+      id: 'elf',
+      name: 'Elf',
+      sizes: ['medium'],
+      speed: 30,
+      levels: [
+        {
+          level: 1,
+          grants: [
+            { kind: 'choice', id: 'spellcasting_ability', count: 1, options: { pick: 'ability', from: ['int', 'wis', 'cha'] } },
+            {
+              kind: 'choice',
+              id: 'elven_lineage',
+              count: 1,
+              options: {
+                pick: 'option',
+                options: [
+                  {
+                    id: 'drow',
+                    name: 'Drow',
+                    grants: [{ kind: 'effect', effect: { type: 'grant_sense', sense: 'darkvision', range: 120 } }],
+                    levels: [
+                      {
+                        level: 3,
+                        grants: [
+                          {
+                            kind: 'effect',
+                            effect: {
+                              type: 'grant_spell',
+                              spellId: 'faerie_fire',
+                              ability: abilityRef,
+                              uses: { per: 'long_rest', count: 1, slots: true },
+                            },
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  { id: 'wood_elf', name: 'Wood Elf', grants: [{ kind: 'effect', effect: { type: 'flat_bonus', target: 'speed.walk', value: 5 } }] },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    it('accepts an ability reference to an ability choice of the same source, inside an option level', () => {
+      expect(SpeciesSchema.safeParse(lineage({ choice: 'spellcasting_ability' })).success).toBe(true);
+    });
+
+    it('rejects a reference to a missing choice', () => {
+      expect(SpeciesSchema.safeParse(lineage({ choice: 'nope' })).success).toBe(false);
+    });
+
+    it('rejects a reference to a choice that is not an ability pick', () => {
+      expect(SpeciesSchema.safeParse(lineage({ choice: 'elven_lineage' })).success).toBe(false);
+    });
+
+    it('rejects a choice id repeated inside an option', () => {
+      const dup = {
+        id: 'x',
+        name: 'X',
+        category: 'origin',
+        grants: [
+          { kind: 'choice', id: 'pick', count: 1, options: { pick: 'subclass' } },
+          {
+            kind: 'choice',
+            id: 'style',
+            count: 1,
+            options: {
+              pick: 'option',
+              options: [
+                { id: 'a', name: 'A', grants: [{ kind: 'choice', id: 'pick', count: 1, options: { pick: 'weapon_mastery' } }] },
+                { id: 'b', name: 'B' },
+              ],
+            },
+          },
+        ],
+      };
+      expect(FeatSchema.safeParse(dup).success).toBe(false);
+    });
+
+    it('checks references in spell choice templates (Magic Initiate)', () => {
+      const magicInitiate = (ref: unknown): object => ({
+        id: 'magic_initiate_wizard',
+        name: 'Magic Initiate (Wizard)',
+        category: 'origin',
+        repeatable: true,
+        grants: [
+          { kind: 'choice', id: 'spellcasting_ability', count: 1, options: { pick: 'ability', from: ['int', 'wis', 'cha'] } },
+          {
+            kind: 'choice',
+            id: 'cantrips',
+            count: 2,
+            options: { pick: 'spell', lists: ['wizard'], maxLevel: 0, grantAs: { ability: ref, uses: 'at_will' } },
+          },
+          {
+            kind: 'choice',
+            id: 'level_1_spell',
+            count: 1,
+            options: {
+              pick: 'spell',
+              lists: ['wizard'],
+              minLevel: 1,
+              maxLevel: 1,
+              grantAs: { ability: ref, uses: { per: 'long_rest', count: 1, slots: true } },
+            },
+          },
+        ],
+      });
+      expect(FeatSchema.safeParse(magicInitiate({ choice: 'spellcasting_ability' })).success).toBe(true);
+      expect(FeatSchema.safeParse(magicInitiate({ choice: 'cantrips' })).success).toBe(false);
+    });
+  });
+
   it.each([
+    ['spell choice with minLevel above maxLevel', { kind: 'choice', id: 'x', count: 1, options: { pick: 'spell', lists: ['wizard'], minLevel: 2, maxLevel: 1 } }],
+    ['ability choice with a single ability', { kind: 'choice', id: 'x', count: 1, options: { pick: 'ability', from: ['int'] } }],
+    ['proficiency choice without categories', { kind: 'choice', id: 'x', count: 1, options: { pick: 'proficiency', categories: [] } }],
     ['option choice with a single option', { kind: 'choice', id: 'x', count: 1, options: { pick: 'option', options: [{ id: 'a', name: 'A', grants: [] }] } }],
     ['zero count', { kind: 'choice', id: 'x', count: 0, options: { pick: 'subclass' } }],
     ['unknown pick', { kind: 'choice', id: 'x', count: 1, options: { pick: 'pet' } }],

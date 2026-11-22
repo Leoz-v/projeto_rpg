@@ -1,0 +1,288 @@
+[
+  {
+    "id": "padded_armor",
+    "name": "Padded Armor",
+    "kind": "armor",
+    "category": "light",
+    "weight": 8,
+    "cost": {
+      "amount": 5,
+      "coin": "gp"
+    },
+    "effects": [
+      {
+        "type": "set_base_ac",
+        "base": 11,
+        "abilities": [
+          "dex"
+        ]
+      },
+      {
+        "type": "disadvantage",
+        "target": "skill.stealth"
+      }
+    ]
+  },
+  {
+    "id": "leather_armor",
+    "name": "Leather Armor",
+    "kind": "armor",
+    "category": "light",
+    "weight": 10,
+    "cost": {
+      "amount": 10,
+      "coin": "gp"
+    },
+    "effects": [
+      {
+        "type": "set_base_ac",
+        "base": 11,
+        "abilities": [
+          "dex"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "studded_leather_armor",
+    "name": "Studded Leather Armor",
+    "kind": "armor",
+    "category": "light",
+    "weight": 13,
+    "cost": {
+      "amount": 45,
+      "coin": "gp"
+    },
+    "effects": [
+      {
+        "type": "set_base_ac",
+        "base": 12,
+        "abilities": [
+          "dex"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "hide_armor",
+    "name": "Hide Armor",
+    "kind": "armor",
+    "category": "medium",
+    "weight": 12,
+    "cost": {
+      "amount": 10,
+      "coin": "gp"
+    },
+    "effects": [
+      {
+        "type": "set_base_ac",
+        "base": 12,
+        "abilities": [
+          "dex"
+        ],
+        "dexCap": 2
+      }
+    ]
+  },
+  {
+    "id": "chain_shirt",
+    "name": "Chain Shirt",
+    "kind": "armor",
+    "category": "medium",
+    "weight": 20,
+    "cost": {
+      "amount": 50,
+      "coin": "gp"
+    },
+    "effects": [
+      {
+        "type": "set_base_ac",
+        "base": 13,
+        "abilities": [
+          "dex"
+        ],
+        "dexCap": 2
+      }
+    ]
+  },
+  {
+    "id": "scale_mail",
+    "name": "Scale Mail",
+    "kind": "armor",
+    "category": "medium",
+    "weight": 45,
+    "cost": {
+      "amount": 50,
+      "coin": "gp"
+    },
+    "effects": [
+      {
+        "type": "set_base_ac",
+        "base": 14,
+        "abilities": [
+          "dex"
+        ],
+        "dexCap": 2
+      },
+      {
+        "type": "disadvantage",
+        "target": "skill.stealth"
+      }
+    ]
+  },
+  {
+    "id": "breastplate",
+    "name": "Breastplate",
+    "kind": "armor",
+    "category": "medium",
+    "weight": 20,
+    "cost": {
+      "amount": 400,
+      "coin": "gp"
+    },
+    "effects": [
+      {
+        "type": "set_base_ac",
+        "base": 14,
+        "abilities": [
+          "dex"
+        ],
+        "dexCap": 2
+      }
+    ]
+  },
+  {
+    "id": "half_plate_armor",
+    "name": "Half Plate Armor",
+    "kind": "armor",
+    "category": "medium",
+    "weight": 40,
+    "cost": {
+      "amount": 750,
+      "coin": "gp"
+    },
+    "effects": [
+      {
+        "type": "set_base_ac",
+        "base": 15,
+        "abilities": [
+          "dex"
+        ],
+        "dexCap": 2
+      },
+      {
+        "type": "disadvantage",
+        "target": "skill.stealth"
+      }
+    ]
+  },
+  {
+    "id": "ring_mail",
+    "name": "Ring Mail",
+    "kind": "armor",
+    "category": "heavy",
+    "weight": 40,
+    "cost": {
+      "amount": 30,
+      "coin": "gp"
+    },
+    "effects": [
+      {
+        "type": "set_base_ac",
+        "base": 14,
+        "abilities": []
+      },
+      {
+        "type": "disadvantage",
+        "target": "skill.stealth"
+      }
+    ]
+  },
+  {
+    "id": "chain_mail",
+    "name": "Chain Mail",
+    "kind": "armor",
+    "category": "heavy",
+    "strength": 13,
+    "weight": 55,
+    "cost": {
+      "amount": 75,
+      "coin": "gp"
+    },
+    "effects": [
+      {
+        "type": "set_base_ac",
+        "base": 16,
+        "abilities": []
+      },
+      {
+        "type": "disadvantage",
+        "target": "skill.stealth"
+      }
+    ]
+  },
+  {
+    "id": "splint_armor",
+    "name": "Splint Armor",
+    "kind": "armor",
+    "category": "heavy",
+    "strength": 15,
+    "weight": 60,
+    "cost": {
+      "amount": 200,
+      "coin": "gp"
+    },
+    "effects": [
+      {
+        "type": "set_base_ac",
+        "base": 17,
+        "abilities": []
+      },
+      {
+        "type": "disadvantage",
+        "target": "skill.stealth"
+      }
+    ]
+  },
+  {
+    "id": "plate_armor",
+    "name": "Plate Armor",
+    "kind": "armor",
+    "category": "heavy",
+    "strength": 15,
+    "weight": 65,
+    "cost": {
+      "amount": 1500,
+      "coin": "gp"
+    },
+    "effects": [
+      {
+        "type": "set_base_ac",
+        "base": 18,
+        "abilities": []
+      },
+      {
+        "type": "disadvantage",
+        "target": "skill.stealth"
+      }
+    ]
+  },
+  {
+    "id": "shield",
+    "name": "Shield",
+    "kind": "armor",
+    "category": "shield",
+    "weight": 6,
+    "cost": {
+      "amount": 10,
+      "coin": "gp"
+    },
+    "effects": [
+      {
+        "type": "flat_bonus",
+        "target": "ac",
+        "value": 2
+      }
+    ]
+  }
+]

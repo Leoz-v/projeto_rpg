@@ -1,0 +1,1180 @@
+[
+  {
+    "id": "dragonborn",
+    "name": "Dragonborn",
+    "sizes": [
+      "medium"
+    ],
+    "speed": 30,
+    "levels": [
+      {
+        "level": 1,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "draconic_ancestry",
+            "count": 1,
+            "options": {
+              "pick": "option",
+              "options": [
+                {
+                  "id": "black",
+                  "name": "Black Dragon",
+                  "description": "Damage type: acid.",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "acid"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "blue",
+                  "name": "Blue Dragon",
+                  "description": "Damage type: lightning.",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "lightning"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "brass",
+                  "name": "Brass Dragon",
+                  "description": "Damage type: fire.",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "fire"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "bronze",
+                  "name": "Bronze Dragon",
+                  "description": "Damage type: lightning.",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "lightning"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "copper",
+                  "name": "Copper Dragon",
+                  "description": "Damage type: acid.",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "acid"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "gold",
+                  "name": "Gold Dragon",
+                  "description": "Damage type: fire.",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "fire"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "green",
+                  "name": "Green Dragon",
+                  "description": "Damage type: poison.",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "poison"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "red",
+                  "name": "Red Dragon",
+                  "description": "Damage type: fire.",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "fire"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "silver",
+                  "name": "Silver Dragon",
+                  "description": "Damage type: cold.",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "cold"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "white",
+                  "name": "White Dragon",
+                  "description": "Damage type: cold.",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "cold"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "breath_weapon",
+              "name": "Breath Weapon",
+              "description": "When you take the Attack action on your turn, you can replace one of your attacks with an exhalation of magical energy in either a 15-foot Cone or a 30-foot Line that is 5 feet wide (choose the shape each time). Each creature in that area must make a Dexterity saving throw (DC 8 plus your Constitution modifier and Proficiency Bonus). On a failed save, a creature takes 1d10 damage of the type determined by your Draconic Ancestry trait. On a successful save, a creature takes half as much damage. This damage increases by 1d10 when you reach character levels 5 (2d10), 11 (3d10), and 17 (4d10). You can use this Breath Weapon a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest."
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_sense",
+              "sense": "darkvision",
+              "range": 60
+            }
+          }
+        ]
+      },
+      {
+        "level": 5,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "draconic_flight",
+              "name": "Draconic Flight",
+              "description": "As a Bonus Action, you sprout spectral wings on your back that last for 10 minutes or until you retract the wings (no action required) or have the Incapacitated condition. During that time, you have a Fly Speed equal to your Speed. Your wings appear to be made of the same energy as your Breath Weapon. Once you use this trait, you can't use it again until you finish a Long Rest."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dwarf",
+    "name": "Dwarf",
+    "sizes": [
+      "medium"
+    ],
+    "speed": 30,
+    "levels": [
+      {
+        "level": 1,
+        "grants": [
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_sense",
+              "sense": "darkvision",
+              "range": 120
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "resistance",
+              "damageType": "poison"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "advantage",
+              "target": "save.all",
+              "note": "Para evitar ou encerrar a condição Envenenado."
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "flat_bonus",
+              "target": "hp_max",
+              "value": {
+                "perLevel": 1
+              }
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "stonecunning",
+              "name": "Stonecunning",
+              "description": "As a Bonus Action, you gain Tremorsense with a range of 60 feet for 10 minutes. You must be on a stone surface or touching a stone surface to use this Tremorsense. The stone can be natural or worked. You can use this Bonus Action a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "elf",
+    "name": "Elf",
+    "sizes": [
+      "medium"
+    ],
+    "speed": 30,
+    "levels": [
+      {
+        "level": 1,
+        "grants": [
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_sense",
+              "sense": "darkvision",
+              "range": 60
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "spellcasting_ability",
+            "count": 1,
+            "options": {
+              "pick": "ability",
+              "from": [
+                "int",
+                "wis",
+                "cha"
+              ]
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "elven_lineage",
+            "count": 1,
+            "options": {
+              "pick": "option",
+              "options": [
+                {
+                  "id": "drow",
+                  "name": "Drow",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_sense",
+                        "sense": "darkvision",
+                        "range": 120
+                      }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_spell",
+                        "spellId": "dancing_lights",
+                        "ability": {
+                          "choice": "spellcasting_ability"
+                        },
+                        "uses": "at_will"
+                      }
+                    }
+                  ],
+                  "levels": [
+                    {
+                      "level": 3,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "faerie_fire",
+                            "ability": {
+                              "choice": "spellcasting_ability"
+                            },
+                            "uses": {
+                              "per": "long_rest",
+                              "count": 1,
+                              "slots": true
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "level": 5,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "darkness",
+                            "ability": {
+                              "choice": "spellcasting_ability"
+                            },
+                            "uses": {
+                              "per": "long_rest",
+                              "count": 1,
+                              "slots": true
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "high_elf",
+                  "name": "High Elf",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_spell",
+                        "spellId": "prestidigitation",
+                        "ability": {
+                          "choice": "spellcasting_ability"
+                        },
+                        "uses": "at_will",
+                        "note": "Ao terminar um Descanso Longo, pode trocar por outro truque da lista de Mago."
+                      }
+                    }
+                  ],
+                  "levels": [
+                    {
+                      "level": 3,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "detect_magic",
+                            "ability": {
+                              "choice": "spellcasting_ability"
+                            },
+                            "uses": {
+                              "per": "long_rest",
+                              "count": 1,
+                              "slots": true
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "level": 5,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "misty_step",
+                            "ability": {
+                              "choice": "spellcasting_ability"
+                            },
+                            "uses": {
+                              "per": "long_rest",
+                              "count": 1,
+                              "slots": true
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "wood_elf",
+                  "name": "Wood Elf",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "flat_bonus",
+                        "target": "speed.walk",
+                        "value": 5
+                      }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_spell",
+                        "spellId": "druidcraft",
+                        "ability": {
+                          "choice": "spellcasting_ability"
+                        },
+                        "uses": "at_will"
+                      }
+                    }
+                  ],
+                  "levels": [
+                    {
+                      "level": 3,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "longstrider",
+                            "ability": {
+                              "choice": "spellcasting_ability"
+                            },
+                            "uses": {
+                              "per": "long_rest",
+                              "count": 1,
+                              "slots": true
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "level": 5,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "pass_without_trace",
+                            "ability": {
+                              "choice": "spellcasting_ability"
+                            },
+                            "uses": {
+                              "per": "long_rest",
+                              "count": 1,
+                              "slots": true
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "advantage",
+              "target": "save.all",
+              "note": "Para evitar ou encerrar a condição Enfeitiçado."
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "keen_senses",
+            "count": 1,
+            "options": {
+              "pick": "proficiency",
+              "categories": [
+                "skill"
+              ],
+              "from": [
+                "insight",
+                "perception",
+                "survival"
+              ]
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "trance",
+              "name": "Trance",
+              "description": "You don't need to sleep, and magic can't put you to sleep. You can finish a Long Rest in 4 hours if you spend those hours in a trancelike meditation, during which you retain consciousness."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "gnome",
+    "name": "Gnome",
+    "sizes": [
+      "small"
+    ],
+    "speed": 30,
+    "levels": [
+      {
+        "level": 1,
+        "grants": [
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_sense",
+              "sense": "darkvision",
+              "range": 60
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "advantage",
+              "target": "save.int"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "advantage",
+              "target": "save.wis"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "advantage",
+              "target": "save.cha"
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "spellcasting_ability",
+            "count": 1,
+            "options": {
+              "pick": "ability",
+              "from": [
+                "int",
+                "wis",
+                "cha"
+              ]
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "gnomish_lineage",
+            "count": 1,
+            "options": {
+              "pick": "option",
+              "options": [
+                {
+                  "id": "forest_gnome",
+                  "name": "Forest Gnome",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_spell",
+                        "spellId": "minor_illusion",
+                        "ability": {
+                          "choice": "spellcasting_ability"
+                        },
+                        "uses": "at_will"
+                      }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_spell",
+                        "spellId": "speak_with_animals",
+                        "ability": {
+                          "choice": "spellcasting_ability"
+                        },
+                        "uses": {
+                          "per": "long_rest",
+                          "count": {
+                            "proficiency": 1
+                          },
+                          "slots": true
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "rock_gnome",
+                  "name": "Rock Gnome",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_spell",
+                        "spellId": "mending",
+                        "ability": {
+                          "choice": "spellcasting_ability"
+                        },
+                        "uses": "at_will"
+                      }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_spell",
+                        "spellId": "prestidigitation",
+                        "ability": {
+                          "choice": "spellcasting_ability"
+                        },
+                        "uses": "at_will"
+                      }
+                    },
+                    {
+                      "kind": "feature",
+                      "feature": {
+                        "id": "clockwork_device",
+                        "name": "Clockwork Device",
+                        "description": "You can spend 10 minutes casting Prestidigitation to create a Tiny clockwork device (AC 5, 1 HP), such as a toy, fire starter, or music box. When you create the device, you determine its function by choosing one effect from Prestidigitation; the device produces that effect whenever you or another creature takes a Bonus Action to activate it with a touch. If the chosen effect has options within it, you choose one of those options for the device when you create it. You can have three such devices in existence at a time, and each falls apart 8 hours after its creation or when you dismantle it with a touch as a Utilize action."
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "goliath",
+    "name": "Goliath",
+    "sizes": [
+      "medium"
+    ],
+    "speed": 35,
+    "description": "Giant Ancestry: you can use the chosen benefit a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest.",
+    "levels": [
+      {
+        "level": 1,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "giant_ancestry",
+            "count": 1,
+            "options": {
+              "pick": "option",
+              "options": [
+                {
+                  "id": "clouds_jaunt",
+                  "name": "Cloud's Jaunt (Cloud Giant)",
+                  "grants": [
+                    {
+                      "kind": "feature",
+                      "feature": {
+                        "id": "clouds_jaunt",
+                        "name": "Cloud's Jaunt (Cloud Giant)",
+                        "description": "As a Bonus Action, you magically teleport up to 30 feet to an unoccupied space you can see."
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "fires_burn",
+                  "name": "Fire's Burn (Fire Giant)",
+                  "grants": [
+                    {
+                      "kind": "feature",
+                      "feature": {
+                        "id": "fires_burn",
+                        "name": "Fire's Burn (Fire Giant)",
+                        "description": "When you hit a target with an attack roll and deal damage to it, you can also deal 1d10 Fire damage to that target."
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "frosts_chill",
+                  "name": "Frost's Chill (Frost Giant)",
+                  "grants": [
+                    {
+                      "kind": "feature",
+                      "feature": {
+                        "id": "frosts_chill",
+                        "name": "Frost's Chill (Frost Giant)",
+                        "description": "When you hit a target with an attack roll and deal damage to it, you can also deal 1d6 Cold damage to that target and reduce its Speed by 10 feet until the start of your next turn."
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "hills_tumble",
+                  "name": "Hill's Tumble (Hill Giant)",
+                  "grants": [
+                    {
+                      "kind": "feature",
+                      "feature": {
+                        "id": "hills_tumble",
+                        "name": "Hill's Tumble (Hill Giant)",
+                        "description": "When you hit a Large or smaller creature with an attack roll and deal damage to it, you can give that target the Prone condition."
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "stones_endurance",
+                  "name": "Stone's Endurance (Stone Giant)",
+                  "grants": [
+                    {
+                      "kind": "feature",
+                      "feature": {
+                        "id": "stones_endurance",
+                        "name": "Stone's Endurance (Stone Giant)",
+                        "description": "When you take damage, you can take a Reaction to roll 1d12. Add your Constitution modifier to the number rolled and reduce the damage by that total."
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "storms_thunder",
+                  "name": "Storm's Thunder (Storm Giant)",
+                  "grants": [
+                    {
+                      "kind": "feature",
+                      "feature": {
+                        "id": "storms_thunder",
+                        "name": "Storm's Thunder (Storm Giant)",
+                        "description": "When you take damage from a creature within 60 feet of you, you can take a Reaction to deal 1d8 Thunder damage to that creature."
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "powerful_build",
+              "name": "Powerful Build",
+              "description": "You have Advantage on any ability check you make to end the Grappled condition. You also count as one size larger when determining your carrying capacity."
+            }
+          }
+        ]
+      },
+      {
+        "level": 5,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "large_form",
+              "name": "Large Form",
+              "description": "You can change your size to Large as a Bonus Action if you're in a big enough space. This transformation lasts for 10 minutes or until you end it (no action required). For that duration, you have Advantage on Strength checks, and your Speed increases by 10 feet. Once you use this trait, you can't use it again until you finish a Long Rest."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "halfling",
+    "name": "Halfling",
+    "sizes": [
+      "small"
+    ],
+    "speed": 30,
+    "levels": [
+      {
+        "level": 1,
+        "grants": [
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "advantage",
+              "target": "save.all",
+              "note": "Para evitar ou encerrar a condição Amedrontado."
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "halfling_nimbleness",
+              "name": "Halfling Nimbleness",
+              "description": "You can move through the space of any creature that is a size larger than you, but you can't stop in the same space."
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "luck",
+              "name": "Luck",
+              "description": "When you roll a 1 on the d20 of a D20 Test, you can reroll the die, and you must use the new roll."
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "naturally_stealthy",
+              "name": "Naturally Stealthy",
+              "description": "You can take the Hide action even when you are obscured only by a creature that is at least one size larger than you."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "human",
+    "name": "Human",
+    "sizes": [
+      "medium",
+      "small"
+    ],
+    "speed": 30,
+    "levels": [
+      {
+        "level": 1,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "resourceful",
+              "name": "Resourceful",
+              "description": "You gain Heroic Inspiration whenever you finish a Long Rest."
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "skillful",
+            "count": 1,
+            "options": {
+              "pick": "proficiency",
+              "categories": [
+                "skill"
+              ]
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "versatile",
+            "count": 1,
+            "options": {
+              "pick": "feat",
+              "categories": [
+                "origin"
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "orc",
+    "name": "Orc",
+    "sizes": [
+      "medium"
+    ],
+    "speed": 30,
+    "levels": [
+      {
+        "level": 1,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "adrenaline_rush",
+              "name": "Adrenaline Rush",
+              "description": "You can take the Dash action as a Bonus Action. When you do so, you gain a number of Temporary Hit Points equal to your Proficiency Bonus. You can use this trait a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Short or Long Rest."
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_sense",
+              "sense": "darkvision",
+              "range": 120
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "relentless_endurance",
+              "name": "Relentless Endurance",
+              "description": "When you are reduced to 0 Hit Points but not killed outright, you can drop to 1 Hit Point instead. Once you use this trait, you can't do so again until you finish a Long Rest."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "tiefling",
+    "name": "Tiefling",
+    "sizes": [
+      "medium",
+      "small"
+    ],
+    "speed": 30,
+    "levels": [
+      {
+        "level": 1,
+        "grants": [
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_sense",
+              "sense": "darkvision",
+              "range": 60
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "spellcasting_ability",
+            "count": 1,
+            "options": {
+              "pick": "ability",
+              "from": [
+                "int",
+                "wis",
+                "cha"
+              ]
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "fiendish_legacy",
+            "count": 1,
+            "options": {
+              "pick": "option",
+              "options": [
+                {
+                  "id": "abyssal",
+                  "name": "Abyssal",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "poison"
+                      }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_spell",
+                        "spellId": "poison_spray",
+                        "ability": {
+                          "choice": "spellcasting_ability"
+                        },
+                        "uses": "at_will"
+                      }
+                    }
+                  ],
+                  "levels": [
+                    {
+                      "level": 3,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "ray_of_sickness",
+                            "ability": {
+                              "choice": "spellcasting_ability"
+                            },
+                            "uses": {
+                              "per": "long_rest",
+                              "count": 1,
+                              "slots": true
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "level": 5,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "hold_person",
+                            "ability": {
+                              "choice": "spellcasting_ability"
+                            },
+                            "uses": {
+                              "per": "long_rest",
+                              "count": 1,
+                              "slots": true
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "chthonic",
+                  "name": "Chthonic",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "necrotic"
+                      }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_spell",
+                        "spellId": "chill_touch",
+                        "ability": {
+                          "choice": "spellcasting_ability"
+                        },
+                        "uses": "at_will"
+                      }
+                    }
+                  ],
+                  "levels": [
+                    {
+                      "level": 3,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "false_life",
+                            "ability": {
+                              "choice": "spellcasting_ability"
+                            },
+                            "uses": {
+                              "per": "long_rest",
+                              "count": 1,
+                              "slots": true
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "level": 5,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "ray_of_enfeeblement",
+                            "ability": {
+                              "choice": "spellcasting_ability"
+                            },
+                            "uses": {
+                              "per": "long_rest",
+                              "count": 1,
+                              "slots": true
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "infernal",
+                  "name": "Infernal",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "resistance",
+                        "damageType": "fire"
+                      }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_spell",
+                        "spellId": "fire_bolt",
+                        "ability": {
+                          "choice": "spellcasting_ability"
+                        },
+                        "uses": "at_will"
+                      }
+                    }
+                  ],
+                  "levels": [
+                    {
+                      "level": 3,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "hellish_rebuke",
+                            "ability": {
+                              "choice": "spellcasting_ability"
+                            },
+                            "uses": {
+                              "per": "long_rest",
+                              "count": 1,
+                              "slots": true
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "level": 5,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "darkness",
+                            "ability": {
+                              "choice": "spellcasting_ability"
+                            },
+                            "uses": {
+                              "per": "long_rest",
+                              "count": 1,
+                              "slots": true
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "thaumaturgy",
+              "ability": {
+                "choice": "spellcasting_ability"
+              },
+              "uses": "at_will"
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

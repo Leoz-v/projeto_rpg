@@ -113,13 +113,23 @@ const GrantProficiencySchema = z.discriminatedUnion('category', [
 export const SpellUsesSchema = z.union([
   z.literal('at_will'),
   z.literal('slot'),
-  z.strictObject({ per: RestSchema, count: z.int().positive() }),
+  /** `slots: true`: também pode ser conjurada com espaços de magia. */
+  z.strictObject({
+    per: RestSchema,
+    /** Inteiro ou múltiplo do bônus de proficiência. */
+    count: z.union([z.int().positive(), z.strictObject({ proficiency: z.int().positive() })]),
+    slots: z.literal(true).optional(),
+  }),
 ]);
+
+/** Atributo fixo ou o escolhido numa escolha `ability` da mesma fonte. */
+export const AbilityRefSchema = z.union([Ability, z.strictObject({ choice: IdSchema })]);
+export type AbilityRef = z.infer<typeof AbilityRefSchema>;
 
 const GrantSpellSchema = z.strictObject({
   type: z.literal('grant_spell'),
   spellId: IdSchema,
-  ability: Ability,
+  ability: AbilityRefSchema,
   uses: SpellUsesSchema,
   ...common,
 });

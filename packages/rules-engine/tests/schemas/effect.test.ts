@@ -22,6 +22,13 @@ const SPEC_EXAMPLES: unknown[] = [
   { type: 'grant_proficiency', category: 'skill', id: 'stealth', level: 'expertise' },
   { type: 'grant_spell', spellId: 'light', ability: 'int', uses: 'at_will' },
   { type: 'grant_spell', spellId: 'misty_step', ability: 'wis', uses: { per: 'long_rest', count: 1 } },
+  {
+    type: 'grant_spell',
+    spellId: 'faerie_fire',
+    ability: { choice: 'spellcasting_ability' },
+    uses: { per: 'long_rest', count: 1, slots: true },
+  },
+  { type: 'grant_spell', spellId: 'speak_with_animals', ability: 'wis', uses: { per: 'long_rest', count: { proficiency: 1 }, slots: true } },
   { type: 'grant_sense', sense: 'darkvision', range: 60 },
   { type: 'set_minimum_score', ability: 'str', value: 19 },
   { type: 'weapon_mastery', weaponId: 'longsword' },
@@ -50,6 +57,7 @@ describe('EffectSchema', () => {
     ['level on non-exhaustion condition', { type: 'condition', condition: 'poisoned', level: 1 }],
     ['sense range not multiple of 5', { type: 'grant_sense', sense: 'darkvision', range: 62 }],
     ['spell uses count zero', { type: 'grant_spell', spellId: 'light', ability: 'int', uses: { per: 'long_rest', count: 0 } }],
+    ['spell uses with slots: false', { type: 'grant_spell', spellId: 'light', ability: 'int', uses: { per: 'long_rest', count: 1, slots: false } }],
     ['non snake_case id', { type: 'weapon_mastery', weaponId: 'Longsword' }],
     ['advantage on damage target', { type: 'advantage', target: 'damage.melee' }],
   ])('rejects %s', (_, invalid) => {
