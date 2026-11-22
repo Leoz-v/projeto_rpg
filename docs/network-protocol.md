@@ -132,7 +132,7 @@ Regras:
 ```
 
 - Enviado logo após `HandshakeAccept` e sempre que o cliente precisar ressincronizar (ver 2.7).
-- `state` é o estado visível para aquele cliente (o Host filtra informação oculta, como tokens invisíveis e notas do mestre). O schema de `state` é `SessionState`, definido em `src/shared/protocol/` na Fase 2.
+- `state` é o estado visível para aquele cliente (seção 2.12), no formato `SessionState` (seção 5).
 
 ### 2.7 `StatePatch`
 
@@ -150,6 +150,7 @@ Regras:
 
 - `ops` segue **JSON Patch (RFC 6902)**, restrito a `add`, `remove` e `replace`.
 - `rev` cresce de 1 em 1 por sessão. O cliente aplica um patch só se `baseRev` for igual à revisão local. Se houver lacuna, o cliente descarta o patch e manda `Intent` `session.resync`; o Host responde com `StateSnapshot`.
+- Cada cliente recebe o patch filtrado para o que pode ver (seção 2.12). O `rev` é o mesmo para todos; um patch pode chegar com `ops` vazio.
 
 ### 2.8 `AssetRequest`
 
@@ -198,6 +199,13 @@ O Host envia `Ping` a cada 15 s. Sem `Pong` em 30 s, a conexão é considerada m
 
 `code` ∈ `invalid_message`, `not_ready`, `asset_not_found`, `internal_error`.
 
+### 2.12 Visibilidade
+
+O Host guarda o estado completo e envia a cada cliente só o que ele pode ver, no `StateSnapshot` e no `StatePatch`:
+
+- **Mestre:** vê tudo.
+- **Jogador:** uma rolagem com `visibility: "gm"` chega como `hidden_roll`, sem fórmula, rótulo nem resultado. A entrada continua no log, na mesma posição, para que os índices de `chat` sejam iguais em todos os clientes.
+
 ## 3. Catálogo de `Intent`
 
 Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do Roadmap, sempre aqui primeiro.
@@ -208,9 +216,16 @@ Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do
 | `chat.message`    | 2    | `{ text: string (1..2000) }` | todos |
 | `dice.roll`       | 2    | `{ formula: string, label?: string, visibility: "public" \| "gm" }` | todos |
 | `token.move`      | 2    | `{ tokenId: string, to: { x: int, y: int } }` | mestre; jogador só nos próprios tokens |
+| `map.create`      | 2    | `{ name: string (1..100), width: int (1..200), height: int (1..200), background?: sha256 }` | mestre |
+| `map.activate`    | 2    | `{ mapId: string }` | mestre |
+| `token.create`    | 2    | `{ mapId: string, name: string (1..100), position: { x: int, y: int }, size: Size, monsterId?: string, image?: sha256, ownerIds?: string[] }` | mestre |
+| `token.remove`    | 2    | `{ tokenId: string }` | mestre |
 
-- **Coordenadas** em unidades lógicas de mundo (`1 célula = 5 ft = 100 unidades`), nunca pixels.
-- **`dice.roll`:** o cliente manda só a fórmula (ex.: `2d6+3`). O Host valida, rola com o RNG do motor e publica o resultado no log via `StatePatch`.
+- **Coordenadas** em unidades lógicas de mundo (`1 célula = 5 ft = 100 unidades`), nunca pixels. `position` é o canto superior esquerdo do token; `x` e `y` ficam entre `0` e a largura e a altura do mapa em unidades.
+- **`dice.roll`:** o cliente manda só a fórmula, no formato de dados do motor (ex.: `2d6+3`, `1d20+1d4-1`), com até 100 caracteres e até 100 dados. O Host rola com o RNG do motor e publica o resultado no log via `StatePatch`.
+- **`map.create`:** `width` e `height` em células. O Host gera o `id`. O primeiro mapa criado fica ativo.
+- **`token.create`:** `size` é o tamanho da criatura (`tiny` … `gargantuan`). `monsterId` é o id do monstro no compêndio: quando vem, o Host confere que ele existe. `ownerIds` são os `playerId` que podem mover o token. O Host gera o `id`.
+- **Ids gerados pelo Host** (mapas, tokens, entradas do chat) são UUID.
 
 ## 4. Sequência típica
 
@@ -225,3 +240,39 @@ cliente                                  Host
 ```
 
 O mestre usa o mesmo fluxo via IPC local: o executor de sessão recebe o `Intent` dele exatamente como receberia de um cliente remoto.
+
+## 5. `SessionState`
+
+Estado da mesa (visão do mestre; a dos jogadores é filtrada pela seção 2.12). Os `StatePatch` apontam para estes caminhos (ex.: `/tokens/<id>/position`, `/chat/-`).
+
+```json
+{
+  "campaign": { "id": "c9a0…", "name": "A Mina Perdida" },
+  "players": {
+    "b2e4…": { "displayName": "Ana", "role": "player", "connected": true }
+  },
+  "chat": [
+    { "kind": "message", "id": "…", "at": 1763769600000, "authorId": "b2e4…", "text": "Olá!" },
+    { "kind": "roll", "id": "…", "at": 1763769601000, "authorId": "b2e4…", "formula": "2d6+3", "label": "Dano", "visibility": "public",
+      "rolls": [ { "sides": 6, "value": 4 }, { "sides": 6, "value": 2 } ], "total": 9 },
+    { "kind": "hidden_roll", "id": "…", "at": 1763769602000, "authorId": "e7f1…" }
+  ],
+  "maps": {
+    "m1…": { "id": "m1…", "name": "Caverna", "width": 30, "height": 20, "background": "9f86d081…" }
+  },
+  "activeMapId": "m1…",
+  "tokens": {
+    "t1…": { "id": "t1…", "mapId": "m1…", "name": "Goblin 1", "position": { "x": 300, "y": 500 }, "size": "small",
+      "monsterId": "goblin", "image": null, "ownerIds": [] }
+  }
+}
+```
+
+| Campo         | Descrição |
+|---------------|-----------|
+| `campaign`    | Id e nome da campanha. |
+| `players`     | Todos os jogadores que já entraram na sessão, por `playerId`, incluindo o mestre (`role: "gm"`). `connected` muda quando a conexão abre ou cai. |
+| `chat`        | Log da sessão, em ordem. Só cresce: entradas novas entram com `add` em `/chat/-`. |
+| `maps`        | Mapas por id. `width`/`height` em células; `background` é o SHA-256 da imagem, ou `null`. |
+| `activeMapId` | Mapa exibido para todos, ou `null` antes do primeiro `map.create`. |
+| `tokens`      | Tokens por id. `image` é o SHA-256 da imagem, ou `null`. |

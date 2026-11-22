@@ -153,7 +153,14 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 1.5. **✅ Fase 1.5 — Automação de efeitos:** tudo o que o compêndio tem só como texto, mas com mecânica, é inventariado e classificado em `docs/automation-backlog.md` (dados em `packages/rules-engine/tests/srd/automation-backlog.json`). O que é passivo e cabe no catálogo estendido é automatizado agora; o que depende de combate ou sessão fica marcado para a fase certa; o que é julgamento do mestre fica como texto, com o motivo registrado. Um teste de guarda impede conteúdo novo sem classificação. Ver `docs/decisions/0015-etapa-de-automacao.md`.
    - ✅ Inventário e classificação, com o teste de guarda.
    - ✅ Automação dos casos passivos, em 7 grupos por tipo de mecânica (contrato em `docs/effects-spec.md` primeiro; notas 0016 a 0018). A fila `automate` está vazia; o resto do backlog é das Fases 4 e 5 ou do mestre.
-2. **Fase 2 — Mesa & Rede:** rede WebSocket (host/cliente) no processo main, executor de sessão do Host, handshake de protocolo, cache de assets SHA-256 (`vtt-asset://`), mapa em tempo real com tokens e rolagem de dados autoritativa no chat.
+2. **Fase 2 — Mesa & Rede:** rede WebSocket (host/cliente) no processo main, executor de sessão do Host, handshake de protocolo, cache de assets SHA-256 (`vtt-asset://`), mapa em tempo real com tokens e rolagem de dados autoritativa no chat. Dividida em 7 PRs (ver `docs/decisions/0019-estado-da-sessao-e-fase-2.md`):
+   - ✅ Schemas do protocolo em `src/shared/protocol/`, com o `SessionState` e os `Intent` de mapa e token.
+   - Executor de sessão (lógica pura: permissões, `rev`, visibilidade, rolagem com o RNG do Host).
+   - Transporte WebSocket (handshake, Ping/Pong, limites).
+   - IPC e tela da mesa com o chat e as rolagens.
+   - SQLite (`app.db`, `<campanha>.db`, migrações).
+   - Assets (SHA-256, `vtt-asset://`, `AssetChunk`).
+   - Mapa PixiJS (grid, tokens, câmera, `token.move`).
 3. **Fase 3 — Fichas & Progressão (interface):** telas de criação de personagem e de subida de nível sobre o motor da Fase 1, gerenciamento de inventário e sincronização offline com aprovação do mestre.
 4. **Fase 4 — Motor de Ações & Efeitos:** resolução assistida de ataques, dano, resistências, salvaguardas, maestrias e overrides do mestre.
    - *Antecipado:* aplicação de dano na ordem do SRD (`applyDamage`: imunidade, reduções roladas, Resistência, Vulnerabilidade) e RNG injetável com rolagens registradas (`engine/dice.ts`). Ver `docs/decisions/0014-itens-magicos.md`.
