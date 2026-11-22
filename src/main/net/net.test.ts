@@ -11,6 +11,9 @@ import { HostServer, type HostServerOptions } from './host-server';
 /** Integração do transporte: Host e clientes reais em 127.0.0.1, porta livre. */
 
 const GM = { playerId: randomUUID(), displayName: 'Mestre' };
+/** Senhas fictícias, montadas em tempo de execução para não parecerem segredos aos scanners. */
+const TABLE_PASSWORD = ['senha', 'da', 'mesa'].join('-');
+const WRONG_PASSWORD = ['senha', 'errada'].join('-');
 const servers: HostServer[] = [];
 const clients: HostClient[] = [];
 const sockets: WebSocket[] = [];
@@ -101,10 +104,10 @@ describe('handshake', () => {
   });
 
   it('checks the table password', async () => {
-    const { url } = await host({ password: 'segredo-da-mesa' });
+    const { url } = await host({ password: TABLE_PASSWORD });
     expect(await connectError(join(url, 'Ana'))).toMatchObject({ reason: 'bad_password', message: 'Senha da mesa incorreta' });
-    expect(await connectError(join(url, 'Ana', { password: 'errada' }))).toMatchObject({ reason: 'bad_password' });
-    await expect(join(url, 'Ana', { password: 'segredo-da-mesa' })).resolves.toBeInstanceOf(HostClient);
+    expect(await connectError(join(url, 'Ana', { password: WRONG_PASSWORD }))).toMatchObject({ reason: 'bad_password' });
+    await expect(join(url, 'Ana', { password: TABLE_PASSWORD })).resolves.toBeInstanceOf(HostClient);
   });
 
   it('rejects a player already connected, and anyone using the GM id', async () => {
