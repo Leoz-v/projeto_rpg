@@ -5,13 +5,20 @@
     "category": "origin",
     "grants": [
       {
-        "kind": "effect",
-        "effect": {
-          "type": "flat_bonus",
-          "target": "initiative",
-          "value": {
-            "proficiency": 1
-          }
+        "kind": "feature",
+        "feature": {
+          "id": "initiative_proficiency",
+          "name": "Initiative Proficiency",
+          "description": "When you roll Initiative, you can add your Proficiency Bonus to the roll.",
+          "effects": [
+            {
+              "type": "flat_bonus",
+              "target": "initiative",
+              "value": {
+                "proficiency": 1
+              }
+            }
+          ]
         }
       },
       {

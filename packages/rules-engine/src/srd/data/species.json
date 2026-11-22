@@ -11,6 +11,22 @@
         "level": 1,
         "grants": [
           {
+            "kind": "feature",
+            "feature": {
+              "id": "draconic_ancestry_trait",
+              "name": "Draconic Ancestry",
+              "description": "Your lineage stems from a dragon progenitor. Choose the kind of dragon from the Draconic Ancestors table. Your choice affects your Breath Weapon and Damage Resistance traits as well as your appearance."
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "damage_resistance",
+              "name": "Damage Resistance",
+              "description": "You have Resistance to the damage type determined by your Draconic Ancestry trait."
+            }
+          },
+          {
             "kind": "choice",
             "id": "draconic_ancestry",
             "count": 1,
@@ -169,11 +185,18 @@
             }
           },
           {
-            "kind": "effect",
-            "effect": {
-              "type": "grant_sense",
-              "sense": "darkvision",
-              "range": 60
+            "kind": "feature",
+            "feature": {
+              "id": "darkvision",
+              "name": "Darkvision",
+              "description": "You have Darkvision with a range of 60 feet.",
+              "effects": [
+                {
+                  "type": "grant_sense",
+                  "sense": "darkvision",
+                  "range": 60
+                }
+              ]
             }
           }
         ]
@@ -205,36 +228,54 @@
         "level": 1,
         "grants": [
           {
-            "kind": "effect",
-            "effect": {
-              "type": "grant_sense",
-              "sense": "darkvision",
-              "range": 120
+            "kind": "feature",
+            "feature": {
+              "id": "darkvision",
+              "name": "Darkvision",
+              "description": "You have Darkvision with a range of 120 feet.",
+              "effects": [
+                {
+                  "type": "grant_sense",
+                  "sense": "darkvision",
+                  "range": 120
+                }
+              ]
             }
           },
           {
-            "kind": "effect",
-            "effect": {
-              "type": "resistance",
-              "damageType": "poison"
+            "kind": "feature",
+            "feature": {
+              "id": "dwarven_resilience",
+              "name": "Dwarven Resilience",
+              "description": "You have Resistance to Poison damage. You also have Advantage on saving throws you make to avoid or end the Poisoned condition.",
+              "effects": [
+                {
+                  "type": "resistance",
+                  "damageType": "poison"
+                },
+                {
+                  "type": "advantage",
+                  "target": "save.all",
+                  "note": "Para evitar ou encerrar a condição Envenenado."
+                }
+              ]
             }
           },
           {
-            "kind": "effect",
-            "effect": {
-              "type": "advantage",
-              "target": "save.all",
-              "note": "Para evitar ou encerrar a condição Envenenado."
-            }
-          },
-          {
-            "kind": "effect",
-            "effect": {
-              "type": "flat_bonus",
-              "target": "hp_max",
-              "value": {
-                "perLevel": 1
-              }
+            "kind": "feature",
+            "feature": {
+              "id": "dwarven_toughness",
+              "name": "Dwarven Toughness",
+              "description": "Your Hit Point maximum increases by 1, and it increases by 1 again whenever you gain a level.",
+              "effects": [
+                {
+                  "type": "flat_bonus",
+                  "target": "hp_max",
+                  "value": {
+                    "perLevel": 1
+                  }
+                }
+              ]
             }
           },
           {
@@ -261,11 +302,26 @@
         "level": 1,
         "grants": [
           {
-            "kind": "effect",
-            "effect": {
-              "type": "grant_sense",
-              "sense": "darkvision",
-              "range": 60
+            "kind": "feature",
+            "feature": {
+              "id": "darkvision",
+              "name": "Darkvision",
+              "description": "You have Darkvision with a range of 60 feet.",
+              "effects": [
+                {
+                  "type": "grant_sense",
+                  "sense": "darkvision",
+                  "range": 60
+                }
+              ]
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "elven_lineage_trait",
+              "name": "Elven Lineage",
+              "description": "You are part of a lineage that grants you supernatural abilities. You gain the level 1 benefit of that lineage. When you reach character levels 3 and 5, you learn a higher-level spell, as shown on the table. You always have that spell prepared. You can cast it once without a spell slot, and you regain the ability to cast it in that way when you finish a Long Rest. You can also cast the spell using any spell slots you have of the appropriate level. Intelligence, Wisdom, or Charisma is your spellcasting ability for the spells you cast with this trait (choose the ability when you select the lineage)."
             }
           },
           {
@@ -486,11 +542,26 @@
             }
           },
           {
-            "kind": "effect",
-            "effect": {
-              "type": "advantage",
-              "target": "save.all",
-              "note": "Para evitar ou encerrar a condição Enfeitiçado."
+            "kind": "feature",
+            "feature": {
+              "id": "fey_ancestry",
+              "name": "Fey Ancestry",
+              "description": "You have Advantage on saving throws you make to avoid or end the Charmed condition.",
+              "effects": [
+                {
+                  "type": "advantage",
+                  "target": "save.all",
+                  "note": "Para evitar ou encerrar a condição Enfeitiçado."
+                }
+              ]
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "keen_senses_trait",
+              "name": "Keen Senses",
+              "description": "You have proficiency in the Insight, Perception, or Survival skill."
             }
           },
           {
@@ -533,32 +604,48 @@
         "level": 1,
         "grants": [
           {
-            "kind": "effect",
-            "effect": {
-              "type": "grant_sense",
-              "sense": "darkvision",
-              "range": 60
+            "kind": "feature",
+            "feature": {
+              "id": "darkvision",
+              "name": "Darkvision",
+              "description": "You have Darkvision with a range of 60 feet.",
+              "effects": [
+                {
+                  "type": "grant_sense",
+                  "sense": "darkvision",
+                  "range": 60
+                }
+              ]
             }
           },
           {
-            "kind": "effect",
-            "effect": {
-              "type": "advantage",
-              "target": "save.int"
+            "kind": "feature",
+            "feature": {
+              "id": "gnomish_cunning",
+              "name": "Gnomish Cunning",
+              "description": "You have Advantage on Intelligence, Wisdom, and Charisma saving throws.",
+              "effects": [
+                {
+                  "type": "advantage",
+                  "target": "save.int"
+                },
+                {
+                  "type": "advantage",
+                  "target": "save.wis"
+                },
+                {
+                  "type": "advantage",
+                  "target": "save.cha"
+                }
+              ]
             }
           },
           {
-            "kind": "effect",
-            "effect": {
-              "type": "advantage",
-              "target": "save.wis"
-            }
-          },
-          {
-            "kind": "effect",
-            "effect": {
-              "type": "advantage",
-              "target": "save.cha"
+            "kind": "feature",
+            "feature": {
+              "id": "gnomish_lineage_trait",
+              "name": "Gnomish Lineage",
+              "description": "You are part of a lineage that grants you supernatural abilities. Choose one of the following options; whichever one you choose, Intelligence, Wisdom, or Charisma is your spellcasting ability for the spells you cast with this trait (choose the ability when you select the lineage)."
             }
           },
           {
@@ -670,6 +757,14 @@
       {
         "level": 1,
         "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "giant_ancestry_trait",
+              "name": "Giant Ancestry",
+              "description": "You are descended from Giants. Choose one of the following benefits--a supernatural boon from your ancestry; you can use the chosen benefit a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest."
+            }
+          },
           {
             "kind": "choice",
             "id": "giant_ancestry",
@@ -801,11 +896,18 @@
         "level": 1,
         "grants": [
           {
-            "kind": "effect",
-            "effect": {
-              "type": "advantage",
-              "target": "save.all",
-              "note": "Para evitar ou encerrar a condição Amedrontado."
+            "kind": "feature",
+            "feature": {
+              "id": "brave",
+              "name": "Brave",
+              "description": "You have Advantage on saving throws you make to avoid or end the Frightened condition.",
+              "effects": [
+                {
+                  "type": "advantage",
+                  "target": "save.all",
+                  "note": "Para evitar ou encerrar a condição Amedrontado."
+                }
+              ]
             }
           },
           {
@@ -857,6 +959,14 @@
             }
           },
           {
+            "kind": "feature",
+            "feature": {
+              "id": "skillful_trait",
+              "name": "Skillful",
+              "description": "You gain proficiency in one skill of your choice."
+            }
+          },
+          {
             "kind": "choice",
             "id": "skillful",
             "count": 1,
@@ -865,6 +975,14 @@
               "categories": [
                 "skill"
               ]
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "versatile_trait",
+              "name": "Versatile",
+              "description": "You gain an Origin feat of your choice (see Feats). Skilled is recommended."
             }
           },
           {
@@ -902,11 +1020,18 @@
             }
           },
           {
-            "kind": "effect",
-            "effect": {
-              "type": "grant_sense",
-              "sense": "darkvision",
-              "range": 120
+            "kind": "feature",
+            "feature": {
+              "id": "darkvision",
+              "name": "Darkvision",
+              "description": "You have Darkvision with a range of 120 feet.",
+              "effects": [
+                {
+                  "type": "grant_sense",
+                  "sense": "darkvision",
+                  "range": 120
+                }
+              ]
             }
           },
           {
@@ -934,11 +1059,26 @@
         "level": 1,
         "grants": [
           {
-            "kind": "effect",
-            "effect": {
-              "type": "grant_sense",
-              "sense": "darkvision",
-              "range": 60
+            "kind": "feature",
+            "feature": {
+              "id": "darkvision",
+              "name": "Darkvision",
+              "description": "You have Darkvision with a range of 60 feet.",
+              "effects": [
+                {
+                  "type": "grant_sense",
+                  "sense": "darkvision",
+                  "range": 60
+                }
+              ]
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "fiendish_legacy_trait",
+              "name": "Fiendish Legacy",
+              "description": "You are the recipient of a legacy that grants you supernatural abilities. Choose a legacy from the Fiendish Legacies table. You gain the level 1 benefit of the chosen legacy. When you reach character levels 3 and 5, you learn a higher-level spell, as shown on the table. You always have that spell prepared. You can cast it once without a spell slot, and you regain the ability to cast it in that way when you finish a Long Rest. You can also cast the spell using any spell slots you have of the appropriate level. Intelligence, Wisdom, or Charisma is your spellcasting ability for the spells you cast with this trait (choose the ability when you select the legacy)."
             }
           },
           {
@@ -1163,14 +1303,21 @@
             }
           },
           {
-            "kind": "effect",
-            "effect": {
-              "type": "grant_spell",
-              "spellId": "thaumaturgy",
-              "ability": {
-                "choice": "spellcasting_ability"
-              },
-              "uses": "at_will"
+            "kind": "feature",
+            "feature": {
+              "id": "otherworldly_presence",
+              "name": "Otherworldly Presence",
+              "description": "You know the Thaumaturgy cantrip. When you cast it with this trait, the spell uses the same spellcasting ability you use for your Fiendish Legacy trait.",
+              "effects": [
+                {
+                  "type": "grant_spell",
+                  "spellId": "thaumaturgy",
+                  "ability": {
+                    "choice": "spellcasting_ability"
+                  },
+                  "uses": "at_will"
+                }
+              ]
             }
           }
         ]

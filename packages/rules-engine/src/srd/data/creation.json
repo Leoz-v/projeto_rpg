@@ -1,0 +1,34 @@
+{
+  "grants": [
+    {
+      "kind": "effect",
+      "effect": {
+        "type": "grant_proficiency",
+        "category": "language",
+        "id": "common"
+      }
+    },
+    {
+      "kind": "choice",
+      "id": "languages",
+      "count": 2,
+      "options": {
+        "pick": "proficiency",
+        "categories": [
+          "language"
+        ],
+        "from": [
+          "common_sign_language",
+          "draconic",
+          "dwarvish",
+          "elvish",
+          "giant",
+          "gnomish",
+          "goblin",
+          "halfling",
+          "orc"
+        ]
+      }
+    }
+  ]
+}

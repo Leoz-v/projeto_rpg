@@ -169,3 +169,24 @@ O valor do atributo passa a ser pelo menos `value` (ex.: Manoplas de Força do O
 6. Condições (incluindo exaustão) por último.
 
 Cada número da ficha guarda a lista de contribuições com a fonte de cada uma, para a UI mostrar a conta completa.
+
+### Quais alvos cada rolagem consulta
+
+| Rolagem | `flat_bonus` / `advantage` / `disadvantage` em |
+|---|---|
+| Salvaguarda de X | `save.X`, `save.all` |
+| Perícia S (atributo X) | `skill.S`, `check.X` |
+| Iniciativa | `initiative`, `check.dex` (iniciativa é um teste de DES) |
+| Passiva de S | total da perícia S (com ±5 por vantagem/desvantagem) + `passive.S` |
+| Ataque com arma do tipo K | `attack.K`, `attack.all` (bônus planos só em `attack.K`); dano em `damage.K` |
+| Ataque mágico | `attack.spell`; CD em `spell_save_dc` |
+
+### Efeitos gerados pelo próprio motor (regras do SRD, não dados)
+
+- Armadura sem treinamento: `disadvantage` em `save.str`, `save.dex`, `check.str`, `check.dex` e nos ataques com arma, e a criatura não pode conjurar.
+- Escudo sem treinamento: os efeitos do escudo são ignorados.
+- Armadura com exigência de FOR não atendida: −10 ft de deslocamento.
+- Arma Pesada com o atributo de ataque abaixo de 13: `disadvantage` no ataque.
+- Exaustão: −2 × nível nos testes d20 e −5 ft × nível no deslocamento.
+
+O motor implementa essas regras em `engine/sheet.ts`; o detalhamento está em `docs/decisions/0005-motor-da-ficha-derivada.md`.
