@@ -1,0 +1,178 @@
+import { z } from 'zod';
+import {
+  AbilitySchema,
+  AttackKindSchema,
+  ConditionSchema,
+  DamageTypeSchema,
+  FeetSchema,
+  IdSchema,
+  RestSchema,
+  SenseSchema,
+  SkillSchema,
+} from './common';
+import { PredicateSchema } from './predicate';
+
+/**
+ * Catálogo fechado de efeitos (docs/effects-spec.md). Para criar um tipo novo,
+ * atualize primeiro o documento, depois este arquivo, o interpretador e os testes.
+ */
+
+/** Campos comuns a todo efeito (seção 1). */
+const common = {
+  when: PredicateSchema.optional(),
+  note: z.string().min(1).optional(),
+};
+
+const Ability = AbilitySchema;
+const AttackKind = AttackKindSchema;
+
+// --- flat_bonus (3.1) -------------------------------------------------------
+
+export const FlatBonusTargetSchema = z.union([
+  z.enum(['ac', 'initiative', 'hp_max', 'speed.walk', 'speed.fly', 'speed.swim', 'speed.climb', 'save.all', 'spell_save_dc']),
+  z.templateLiteral(['attack.', AttackKind]),
+  z.templateLiteral(['damage.', AttackKind]),
+  z.templateLiteral(['save.', Ability]),
+  z.templateLiteral(['check.', Ability]),
+  z.templateLiteral(['skill.', SkillSchema]),
+  z.templateLiteral(['passive.', SkillSchema]),
+]);
+export type FlatBonusTarget = z.infer<typeof FlatBonusTargetSchema>;
+
+export const BonusValueSchema = z.union([
+  z.int(),
+  z.strictObject({ ability: Ability }),
+  z.strictObject({ proficiency: z.int().positive() }),
+  z.strictObject({ perLevel: z.int() }),
+]);
+export type BonusValue = z.infer<typeof BonusValueSchema>;
+
+const FlatBonusSchema = z.strictObject({
+  type: z.literal('flat_bonus'),
+  target: FlatBonusTargetSchema,
+  value: BonusValueSchema,
+  ...common,
+});
+
+// --- set_base_ac (3.2) ------------------------------------------------------
+
+const SetBaseAcSchema = z.strictObject({
+  type: z.literal('set_base_ac'),
+  base: z.int().nonnegative(),
+  abilities: z.array(Ability),
+  dexCap: z.int().nonnegative().optional(),
+  ...common,
+});
+
+// --- advantage / disadvantage (3.3) -----------------------------------------
+
+export const RollTargetSchema = z.union([
+  z.enum(['attack.all', 'save.all', 'initiative']),
+  z.templateLiteral(['attack.', AttackKind]),
+  z.templateLiteral(['save.', Ability]),
+  z.templateLiteral(['check.', Ability]),
+  z.templateLiteral(['skill.', SkillSchema]),
+]);
+export type RollTarget = z.infer<typeof RollTargetSchema>;
+
+const AdvantageSchema = z.strictObject({ type: z.literal('advantage'), target: RollTargetSchema, ...common });
+const DisadvantageSchema = z.strictObject({ type: z.literal('disadvantage'), target: RollTargetSchema, ...common });
+
+// --- resistance / vulnerability / immunity (3.4) ----------------------------
+
+const ResistanceSchema = z.strictObject({ type: z.literal('resistance'), damageType: DamageTypeSchema, ...common });
+const VulnerabilitySchema = z.strictObject({ type: z.literal('vulnerability'), damageType: DamageTypeSchema, ...common });
+/** `immunity` aceita `damageType` ou `condition`, exatamente um. */
+const ImmunitySchema = z
+  .strictObject({
+    type: z.literal('immunity'),
+    damageType: DamageTypeSchema.optional(),
+    condition: ConditionSchema.optional(),
+    ...common,
+  })
+  .refine((e) => (e.damageType === undefined) !== (e.condition === undefined), {
+    message: 'immunity exige exatamente um entre damageType e condition',
+  });
+
+// --- grant_proficiency (3.5) ------------------------------------------------
+
+const ExpertiseLevelSchema = z.enum(['proficient', 'expertise']);
+const grantProficiency = { type: z.literal('grant_proficiency'), ...common };
+
+const GrantProficiencySchema = z.discriminatedUnion('category', [
+  z.strictObject({ ...grantProficiency, category: z.literal('skill'), id: SkillSchema, level: ExpertiseLevelSchema.optional() }),
+  z.strictObject({ ...grantProficiency, category: z.literal('tool'), id: IdSchema, level: ExpertiseLevelSchema.optional() }),
+  z.strictObject({ ...grantProficiency, category: z.literal('save'), id: Ability }),
+  z.strictObject({ ...grantProficiency, category: z.literal('armor'), id: z.enum(['light', 'medium', 'heavy', 'shield']) }),
+  z.strictObject({ ...grantProficiency, category: z.literal('weapon'), id: IdSchema }),
+  z.strictObject({ ...grantProficiency, category: z.literal('language'), id: IdSchema }),
+]);
+
+// --- grant_spell (3.6) ------------------------------------------------------
+
+export const SpellUsesSchema = z.union([
+  z.literal('at_will'),
+  z.literal('slot'),
+  z.strictObject({ per: RestSchema, count: z.int().positive() }),
+]);
+
+const GrantSpellSchema = z.strictObject({
+  type: z.literal('grant_spell'),
+  spellId: IdSchema,
+  ability: Ability,
+  uses: SpellUsesSchema,
+  ...common,
+});
+
+// --- grant_sense (3.7) ------------------------------------------------------
+
+const GrantSenseSchema = z.strictObject({
+  type: z.literal('grant_sense'),
+  sense: SenseSchema,
+  range: FeetSchema.positive(),
+  ...common,
+});
+
+// --- set_minimum_score (3.8) ------------------------------------------------
+
+const SetMinimumScoreSchema = z.strictObject({
+  type: z.literal('set_minimum_score'),
+  ability: Ability,
+  value: z.int().min(1).max(30),
+  ...common,
+});
+
+// --- weapon_mastery (3.9) ---------------------------------------------------
+
+const WeaponMasteryEffectSchema = z.strictObject({
+  type: z.literal('weapon_mastery'),
+  weaponId: IdSchema,
+  ...common,
+});
+
+// --- condition (3.10) -------------------------------------------------------
+
+const ConditionEffectSchema = z.discriminatedUnion('condition', [
+  z.strictObject({ type: z.literal('condition'), condition: z.literal('exhaustion'), level: z.int().min(1).max(6), ...common }),
+  z.strictObject({ type: z.literal('condition'), condition: ConditionSchema.exclude(['exhaustion']), ...common }),
+]);
+
+// --- União -------------------------------------------------------------------
+
+export const EffectSchema = z.discriminatedUnion('type', [
+  FlatBonusSchema,
+  SetBaseAcSchema,
+  AdvantageSchema,
+  DisadvantageSchema,
+  ResistanceSchema,
+  VulnerabilitySchema,
+  ImmunitySchema,
+  GrantProficiencySchema,
+  GrantSpellSchema,
+  GrantSenseSchema,
+  SetMinimumScoreSchema,
+  WeaponMasteryEffectSchema,
+  ConditionEffectSchema,
+]);
+export type Effect = z.infer<typeof EffectSchema>;
+export type EffectType = Effect['type'];
