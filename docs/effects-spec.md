@@ -61,9 +61,10 @@ Soma um valor a um alvo numérico.
   - `{ "ability": "con" }`: o modificador; com `"min": 1`, nunca menos que isso ("bônus igual ao seu modificador de SAB, mínimo +1");
   - `{ "proficiency": 1 }`: multiplicador do bônus de proficiência;
   - `{ "perLevel": n }`: n × o nível **na escala da fonte**. Para espécie, antecedente, talento, item e ajuste do mestre é o nível de personagem; para classe e subclasse, o nível naquela classe (ex.: Draconic Resilience, +1 PV por nível de Feiticeiro).
-- `target` (lista fechada): `ac`, `initiative`, `hp_max`, `speed.walk`, `speed.fly`, `speed.swim`, `speed.climb`, `speed.burrow`, `attack.<melee|ranged|spell>`, `damage.<melee|ranged|spell>`, `save.<ability>`, `save.all`, `check.<ability>`, `skill.<skill>`, `passive.<skill>`, `spell_save_dc`, `attunement_slots` (soma ao limite de 3 itens sintonizados; ex.: Use Magic Device do Ladrão).
+- `target` (lista fechada): `ac`, `initiative`, `hp_max`, `speed.walk`, `speed.fly`, `speed.swim`, `speed.climb`, `speed.burrow`, `attack.<melee|ranged|spell>`, `damage.<melee|ranged|spell>`, `save.<ability>`, `save.all`, `check.<ability>`, `skill.<skill>`, `passive.<skill>`, `spell_save_dc`, `attunement_slots` (soma ao limite de 3 itens sintonizados; ex.: Use Magic Device do Ladrão), `attack.weapon` e `damage.weapon` (só nos ataques com a arma que carrega o efeito; ex.: Weapon, +1, Dwarven Thrower).
 - `<ability>`: `str`, `dex`, `con`, `int`, `wis`, `cha`. `<skill>`: as 18 perícias do SRD em inglês, em `snake_case` (ex.: `sleight_of_hand`).
 - Bônus de mesmo alvo se **somam**.
+- `attack.weapon` e `damage.weapon` só valem em itens: o bônus entra no ataque da arma daquela entrada do inventário (a arma mágica com o seu item base), e em nenhuma outra.
 
 ### 3.2 `set_base_ac`
 
@@ -137,8 +138,13 @@ Fórmula base de Classe de Armadura.
 { "type": "grant_sense", "sense": "darkvision", "range": 60 }
 ```
 
+```json
+{ "type": "grant_sense", "sense": "darkvision", "range": 60, "extend": true }
+```
+
 - `sense`: `darkvision`, `blindsight`, `tremorsense`, `truesight`. `range` em pés.
 - Vale o maior `range` de cada sentido (não se acumulam).
+- `extend: true` ("se você já tem Darkvision, o alcance aumenta em 60 ft", Goggles of Night): soma `range` ao alcance que as outras fontes dão; sem outra fonte, concede `range`. Vários `extend` se somam.
 
 ### 3.8 `set_minimum_score`
 
@@ -196,6 +202,16 @@ O valor do atributo passa a ser pelo menos `value` (ex.: Manoplas de Força do O
 ```
 
 - Permite usar outro atributo no ataque e no dano das armas que satisfazem o `when` (ex.: Martial Arts do Monge). O motor usa o maior entre o atributo normal da arma e os permitidos.
+
+### 3.14 `damage_reduction`
+
+```json
+{ "type": "damage_reduction", "damageType": "cold", "amount": "2d8" }
+```
+
+- Reduz o dano do tipo recebido em `amount` (dados ou inteiro), a cada vez que a criatura sofre esse dano (Ring of Warmth).
+- Rolada pelo motor ao aplicar o dano (`applyDamage`), com o RNG do Host. Várias reduções se somam. O dano não fica negativo.
+- Ordem no dano (SRD 5.2.1, "Damage Resistance and Vulnerability"): imunidade zera; senão, reduções (ajustes), depois Resistência (metade, para baixo), depois Vulnerabilidade (dobro).
 
 ## 4. Ordem de cálculo da ficha
 

@@ -1029,18 +1029,6 @@
     "description": "You can use a Portable Ram to break down doors. When doing so, you gain a +4 bonus to the Strength check. One other character can help you use the ram, giving you Advantage on this check."
   },
   {
-    "id": "potion_of_healing",
-    "name": "Potion of Healing",
-    "kind": "gear",
-    "weight": 0.5,
-    "cost": {
-      "amount": 50,
-      "coin": "gp"
-    },
-    "consumable": true,
-    "description": "This potion is a magic item. As a Bonus Action, you can drink it or administer it to another creature within 5 feet of yourself. The creature that drinks the magical red fluid in this vial regains 2d4 + 2 Hit Points."
-  },
-  {
     "id": "pouch",
     "name": "Pouch",
     "kind": "gear",
@@ -1227,30 +1215,6 @@
     "perPurchase": 20,
     "consumable": true,
     "description": "Ammunition, sold in bundles of 20. Typically stored in a Pouch."
-  },
-  {
-    "id": "spell_scroll_cantrip",
-    "name": "Spell Scroll (Cantrip)",
-    "kind": "gear",
-    "weight": 0,
-    "cost": {
-      "amount": 30,
-      "coin": "gp"
-    },
-    "consumable": true,
-    "description": "A Spell Scroll (Cantrip) or Spell Scroll (Level 1) is a magic item that bears the words of a cantrip or level 1 spell, respectively, determined by the scroll's creator. If the spell is on your class's spell list, you can read the scroll and cast the spell using its normal casting time and without providing any Material components.\nIf the spell requires a saving throw or an attack roll, the spell save DC is 13, and the attack bonus is +5. The scroll disintegrates when the casting is completed."
-  },
-  {
-    "id": "spell_scroll_level_1",
-    "name": "Spell Scroll (Level 1)",
-    "kind": "gear",
-    "weight": 0,
-    "cost": {
-      "amount": 50,
-      "coin": "gp"
-    },
-    "consumable": true,
-    "description": "A Spell Scroll (Cantrip) or Spell Scroll (Level 1) is a magic item that bears the words of a cantrip or level 1 spell, respectively, determined by the scroll's creator. If the spell is on your class's spell list, you can read the scroll and cast the spell using its normal casting time and without providing any Material components.\nIf the spell requires a saving throw or an attack roll, the spell save DC is 13, and the attack bonus is +5. The scroll disintegrates when the casting is completed."
   },
   {
     "id": "spyglass",

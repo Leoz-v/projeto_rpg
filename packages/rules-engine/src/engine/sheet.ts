@@ -10,11 +10,12 @@ import {
 } from '../schemas/common';
 import type { Character, GmAdjustment } from '../schemas/character';
 import type { BonusValue, Effect } from '../schemas/effect';
-import { type Inventory, MAX_ATTUNED_ITEMS } from '../schemas/inventory';
+import { type Inventory, type InventoryEntry, MAX_ATTUNED_ITEMS } from '../schemas/inventory';
 import type { Armor, Item, Weapon } from '../schemas/item';
 import type { Predicate } from '../schemas/predicate';
 import type { Compendium } from '../srd';
 import { resolveBuild, type SourcedEffect } from './build';
+import { type MagicPart, resolveInventory } from './items';
 import { isWeaponProficient } from './proficiency';
 import {
   abilityModifier,
@@ -121,14 +122,9 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
 
   // --- Itens -------------------------------------------------------------
 
-  const entries = inventory.items.flatMap((entry) => {
-    const item = find(compendium.items, entry.itemId);
-    if (!item) {
-      issues.push({ severity: 'error', code: 'unknown_reference', message: `Item desconhecido no inventário: ${entry.itemId}.` });
-      return [];
-    }
-    return [{ entry, item }];
-  });
+  const classIds = build.classes.map((c) => c.classId);
+  const spellcaster = classIds.some((id) => find(compendium.classes, id)?.spellcasting !== undefined);
+  const entries = resolveInventory(inventory, compendium, { classIds, spellcaster }, issues);
   const worn = entries.filter(({ entry, item }) => entry.equipped && item.kind === 'armor' && item.category !== 'shield');
   const shields = entries.filter(({ entry, item }) => entry.equipped && item.kind === 'armor' && item.category === 'shield');
   if (worn.length > 1) issues.push({ severity: 'error', code: 'multiple_armor', message: 'Só é possível vestir uma armadura por vez.' });
@@ -158,11 +154,21 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
   if (shields.length && !shieldTrained) {
     issues.push({ severity: 'warning', code: 'shield_untrained', message: 'Sem treinamento com escudo: o escudo não dá bônus de CA.' });
   }
-  for (const { entry, item } of entries) {
-    if (!isItemActive(item.activation, entry)) continue;
+  /** A parte mágica vale quando ativa pela sua própria regra (vestido, sintonizado) e com sintonização permitida. */
+  const magicActive = (magic: MagicPart | undefined, entry: InventoryEntry): boolean =>
+    magic !== undefined && magic.attunable && isItemActive(magic.item.activation, entry);
+  for (const { entry, item, magic } of entries) {
+    // Escudo sem treinamento não dá CA, nem a do bônus mágico.
     if (item.kind === 'armor' && item.category === 'shield' && !shieldTrained) continue;
-    const source: SourceLabel = { kind: 'item', id: item.id, name: item.name };
-    for (const effect of item.effects) all.push({ effect, source, refKey: `item:${entry.instanceId}` });
+    const refKey = `item:${entry.instanceId}`;
+    if (item.kind !== 'magic_item' && isItemActive(item.activation, entry)) {
+      const source: SourceLabel = { kind: 'item', id: item.id, name: item.name };
+      for (const effect of item.effects) all.push({ effect, source, refKey });
+    }
+    if (magic && magicActive(magic, entry)) {
+      const source: SourceLabel = { kind: 'item', id: magic.item.id, name: magic.name };
+      for (const effect of magic.effects) all.push({ effect, source, refKey });
+    }
   }
 
   const armorTrained = armor === undefined || has('armor', armor.category);
@@ -397,9 +403,17 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
   // --- Sentidos e defesas -----------------------------------------------------
 
   const senseMap = new Map<Sense, { sense: Sense; range: number; source: SourceLabel }>();
-  for (const { effect, source } of effectsOf('grant_sense')) {
+  const senseEffects = effectsOf('grant_sense');
+  for (const { effect, source } of senseEffects) {
+    if (effect.extend) continue;
     const current = senseMap.get(effect.sense);
     if (!current || effect.range > current.range) senseMap.set(effect.sense, { sense: effect.sense, range: effect.range, source });
+  }
+  // `extend`: soma ao alcance já concedido; sem outra fonte, concede (Goggles of Night).
+  for (const { effect, source } of senseEffects) {
+    if (!effect.extend) continue;
+    const current = senseMap.get(effect.sense);
+    senseMap.set(effect.sense, current ? { ...current, range: current.range + effect.range } : { sense: effect.sense, range: effect.range, source });
   }
   const groupBy = <K extends string>(list: { key: K; source: SourceLabel }[]): { key: K; sources: SourceLabel[] }[] => {
     const map = new Map<K, SourceLabel[]>();
@@ -408,6 +422,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
   };
   const immunities = effectsOf('immunity');
   const defenses = {
+    damageReductions: effectsOf('damage_reduction').map(({ effect, source }) => ({ damageType: effect.damageType, amount: effect.amount, source })),
     resistances: groupBy(effectsOf('resistance').map(({ effect, source }) => ({ key: effect.damageType, source }))).map(({ key, sources }) => ({ damageType: key, sources })),
     vulnerabilities: groupBy(effectsOf('vulnerability').map(({ effect, source }) => ({ key: effect.damageType, source }))).map(({ key, sources }) => ({ damageType: key, sources })),
     damageImmunities: groupBy(immunities.flatMap(({ effect, source }) => (effect.damageType ? [{ key: effect.damageType, source }] : []))).map(
@@ -433,7 +448,13 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
 
   // --- Ataques ------------------------------------------------------------------
 
-  const attackFor = (weapon: Weapon, instanceId: string): WeaponAttack => {
+  /** Bônus `attack.weapon`/`damage.weapon` da própria entrada do inventário (arma mágica). */
+  const weaponBonuses = (target: 'attack.weapon' | 'damage.weapon', instanceId: string, roll: RollContext): Contribution[] =>
+    effectsOf('flat_bonus', roll)
+      .filter(({ effect, refKey }) => effect.target === target && refKey === `item:${instanceId}`)
+      .map((e) => ({ label: e.effect.note ?? labelOf(e), value: bonusValue(e.effect.value, e.classId), source: e.source }));
+
+  const attackFor = (weapon: Weapon, instanceId: string, name: string): WeaponAttack => {
     const finesse = weapon.properties.includes('finesse');
     const allowed: Ability[] = weapon.attackKind === 'ranged' ? ['dex'] : finesse ? ['str', 'dex'] : ['str'];
     const ctxForAbility: RollContext = { attack: { kind: weapon.attackKind, properties: weapon.properties, category: weapon.category } };
@@ -452,16 +473,18 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       { label: `Modificador de ${ABILITY_NAME[ability]}`, value: mod(ability) },
       ...(proficient ? [{ label: 'Proficiência', value: pb }] : []),
       ...bonuses([`attack.${weapon.attackKind}`], attackCtx),
+      ...weaponBonuses('attack.weapon', instanceId, attackCtx),
       ...exhaustionPart(),
     ];
     const damageParts: Contribution[] = [
       { label: `Modificador de ${ABILITY_NAME[ability]}`, value: mod(ability) },
       ...bonuses([`damage.${weapon.attackKind}`], attackCtx),
+      ...weaponBonuses('damage.weapon', instanceId, attackCtx),
     ];
     return {
       itemId: weapon.id,
       instanceId,
-      name: weapon.name,
+      name,
       kind: weapon.attackKind,
       ability,
       proficient,
@@ -473,7 +496,9 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       mastery: { property: weapon.mastery, available: weaponMasteries.includes(weapon.id) },
     };
   };
-  const attacks = entries.flatMap(({ entry, item }) => (entry.equipped && item.kind === 'weapon' ? [attackFor(item, entry.instanceId)] : []));
+  const attacks = entries.flatMap(({ entry, item, magic }) =>
+    entry.equipped && item.kind === 'weapon' ? [attackFor(item, entry.instanceId, magic ? `${magic.name} (${item.name})` : item.name)] : [],
+  );
 
   // --- Magias -------------------------------------------------------------------
 

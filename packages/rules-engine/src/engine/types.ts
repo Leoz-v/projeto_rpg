@@ -128,6 +128,8 @@ export type IssueCode =
   | 'size_required'
   | 'multiple_armor'
   | 'too_many_attuned'
+  | 'invalid_item'
+  | 'attunement_restricted'
   | 'armor_untrained'
   | 'shield_untrained'
   | 'not_supported';
@@ -147,6 +149,8 @@ export interface SheetFeature {
 }
 
 export interface Defenses {
+  /** Reduções roladas a cada dano do tipo (Ring of Warmth), aplicadas por `applyDamage`. */
+  damageReductions: { damageType: DamageType; amount: string; source: SourceLabel }[];
   resistances: { damageType: DamageType; sources: SourceLabel[] }[];
   vulnerabilities: { damageType: DamageType; sources: SourceLabel[] }[];
   damageImmunities: { damageType: DamageType; sources: SourceLabel[] }[];

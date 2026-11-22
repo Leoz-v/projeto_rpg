@@ -115,7 +115,78 @@ export const GearSchema = z.strictObject({
 });
 export type Gear = z.infer<typeof GearSchema>;
 
-export const ItemSchema = z.discriminatedUnion('kind', [WeaponSchema, ArmorSchema, ToolSchema, GearSchema]);
+// --- Itens mágicos ----------------------------------------------------------
+
+export const RaritySchema = z.enum(['common', 'uncommon', 'rare', 'very_rare', 'legendary', 'artifact']);
+export type Rarity = z.infer<typeof RaritySchema>;
+
+export const MagicItemCategorySchema = z.enum(['armor', 'weapon', 'wondrous', 'potion', 'ring', 'rod', 'scroll', 'staff', 'wand']);
+
+/** Quem pode sintonizar. Sem restrição: qualquer criatura. */
+export const AttunementSchema = z.strictObject({
+  /** Restrição como publicada ("by a Spellcaster", "by a Dwarf"), para a UI. */
+  by: z.string().optional(),
+  /** Classes que podem sintonizar (vazio = sem restrição de classe). */
+  classes: z.array(IdSchema).default([]),
+  /** Exige ser conjurador (ter Spellcasting ou Pact Magic). */
+  spellcaster: z.boolean().default(false),
+});
+
+/**
+ * Item base de uma arma ou armadura mágica ("Weapon (Any Simple or Martial)",
+ * "Armor (Chain Mail or Chain Shirt)"). O inventário escolhe o item concreto em
+ * `baseItemId`; com um único id permitido, ele é usado por padrão.
+ */
+export const MagicBaseSchema = z.strictObject({
+  kind: z.enum(['weapon', 'armor', 'gear']),
+  /** Itens permitidos; vazio = qualquer item do tipo que satisfaça os filtros abaixo. */
+  ids: z.array(IdSchema).default([]),
+  categories: z.array(z.enum(['simple', 'martial', 'light', 'medium', 'heavy', 'shield'])).default([]),
+  attackKind: z.enum(['melee', 'ranged']).optional(),
+});
+
+/** Variante do item (+1/+2/+3, tipo de gigante, tipo de dano): o inventário escolhe em `variantId`. */
+export const MagicVariantSchema = z.strictObject({
+  id: IdSchema,
+  name: TextSchema,
+  rarity: RaritySchema,
+  cost: CostSchema.optional(),
+  /** Somados aos efeitos do item. */
+  effects: z.array(EffectSchema).default([]),
+});
+
+export const MagicItemSchema = z
+  .strictObject({
+    ...itemBase,
+    kind: z.literal('magic_item'),
+    category: MagicItemCategorySchema,
+    /** Ausente quando a raridade vem da variante. */
+    rarity: RaritySchema.optional(),
+    /** Presente quando o item exige sintonização. */
+    attunement: AttunementSchema.optional(),
+    base: MagicBaseSchema.optional(),
+    variants: z.array(MagicVariantSchema).default([]),
+    /** Cargas máximas e recuperação, como publicadas (o gasto é estado de sessão, Fase 4). */
+    charges: z.strictObject({ max: z.int().positive(), regain: z.string().optional() }).optional(),
+    consumable: z.boolean().default(false),
+  })
+  .superRefine((m, ctx) => {
+    if ((m.rarity === undefined) === (m.variants.length === 0)) {
+      ctx.addIssue({ code: 'custom', path: ['rarity'], message: 'raridade no item ou nas variantes (exatamente um)' });
+    }
+    if ((m.attunement !== undefined) !== (m.activation === 'attuned')) {
+      ctx.addIssue({ code: 'custom', path: ['activation'], message: 'activation attuned exige (e é exigida por) attunement' });
+    }
+    if (new Set(m.variants.map((v) => v.id)).size !== m.variants.length) {
+      ctx.addIssue({ code: 'custom', path: ['variants'], message: 'variante repetida' });
+    }
+    if ((m.category === 'weapon' || m.category === 'armor') && m.base === undefined) {
+      ctx.addIssue({ code: 'custom', path: ['base'], message: 'arma ou armadura mágica exige item base' });
+    }
+  });
+export type MagicItem = z.infer<typeof MagicItemSchema>;
+
+export const ItemSchema = z.discriminatedUnion('kind', [WeaponSchema, ArmorSchema, ToolSchema, GearSchema, MagicItemSchema]);
 export type Item = z.infer<typeof ItemSchema>;
 /** Item como escrito no JSON, antes dos valores padrão. */
 export type ItemInput = z.input<typeof ItemSchema>;

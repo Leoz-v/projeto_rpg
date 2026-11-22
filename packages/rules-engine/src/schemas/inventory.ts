@@ -13,6 +13,10 @@ export const InventoryEntrySchema = z.strictObject({
   /** Identifica esta cópia do item (duas espadas longas são duas entradas). */
   instanceId: z.string().min(1).max(64),
   itemId: IdSchema,
+  /** Item base de uma arma ou armadura mágica genérica (ex.: `longsword` para Weapon, +1). */
+  baseItemId: IdSchema.optional(),
+  /** Variante de um item mágico (ex.: `plus_2`, `hill`). */
+  variantId: IdSchema.optional(),
   quantity: z.int().positive().default(1),
   equipped: z.boolean().default(false),
   attuned: z.boolean().default(false),
