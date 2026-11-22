@@ -1,4 +1,4 @@
-name: CI
+﻿name: CI
 
 on:
   push:
@@ -21,7 +21,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     env:
-      # Typecheck, lint e testes não precisam do binário do Electron.
+      # Typecheck, lint e testes nÃ£o precisam do binÃ¡rio do Electron.
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
     steps:
       - uses: actions/checkout@v5
@@ -29,7 +29,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-          # O cache automático procura o pnpm antes do Corepack ativá-lo; o cache é feito abaixo.
+          # O cache automÃ¡tico procura o pnpm antes do Corepack ativÃ¡-lo; o cache Ã© feito abaixo.
           package-manager-cache: false
 
       - name: Enable Corepack (pnpm pinned in package.json)
@@ -40,7 +40,7 @@ jobs:
         shell: bash
         run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
           key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
