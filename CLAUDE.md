@@ -155,7 +155,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - ✅ Automação dos casos passivos, em 7 grupos por tipo de mecânica (contrato em `docs/effects-spec.md` primeiro; notas 0016 a 0018). A fila `automate` está vazia; o resto do backlog é das Fases 4 e 5 ou do mestre.
 2. **Fase 2 — Mesa & Rede:** rede WebSocket (host/cliente) no processo main, executor de sessão do Host, handshake de protocolo, cache de assets SHA-256 (`vtt-asset://`), mapa em tempo real com tokens e rolagem de dados autoritativa no chat. Dividida em 7 PRs (ver `docs/decisions/0019-estado-da-sessao-e-fase-2.md`):
    - ✅ Schemas do protocolo em `src/shared/protocol/`, com o `SessionState` e os `Intent` de mapa e token.
-   - Executor de sessão (lógica pura: permissões, `rev`, visibilidade, rolagem com o RNG do Host).
+   - ✅ Executor de sessão em `src/main/session/` (lógica pura: permissões, `rev`, visibilidade, rolagem com o RNG do Host). Ver `docs/decisions/0020-executor-de-sessao.md`.
    - Transporte WebSocket (handshake, Ping/Pong, limites).
    - IPC e tela da mesa com o chat e as rolagens.
    - SQLite (`app.db`, `<campanha>.db`, migrações).

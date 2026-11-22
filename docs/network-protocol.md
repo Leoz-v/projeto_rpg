@@ -221,11 +221,15 @@ Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do
 | `token.create`    | 2    | `{ mapId: string, name: string (1..100), position: { x: int, y: int }, size: Size, monsterId?: string, image?: sha256, ownerIds?: string[] }` | mestre |
 | `token.remove`    | 2    | `{ tokenId: string }` | mestre |
 
-- **Coordenadas** em unidades lógicas de mundo (`1 célula = 5 ft = 100 unidades`), nunca pixels. `position` é o canto superior esquerdo do token; `x` e `y` ficam entre `0` e a largura e a altura do mapa em unidades.
+- **Coordenadas** em unidades lógicas de mundo (`1 célula = 5 ft = 100 unidades`), nunca pixels. `position` é o canto superior esquerdo do token, dentro do mapa: `0 ≤ x < largura × 100` e `0 ≤ y < altura × 100`. Fora disso, o Host recusa com `rule_violation`.
 - **`dice.roll`:** o cliente manda só a fórmula, no formato de dados do motor (ex.: `2d6+3`, `1d20+1d4-1`), com até 100 caracteres e até 100 dados. O Host rola com o RNG do motor e publica o resultado no log via `StatePatch`.
 - **`map.create`:** `width` e `height` em células. O Host gera o `id`. O primeiro mapa criado fica ativo.
 - **`token.create`:** `size` é o tamanho da criatura (`tiny` … `gargantuan`). `monsterId` é o id do monstro no compêndio: quando vem, o Host confere que ele existe. `ownerIds` são os `playerId` que podem mover o token. O Host gera o `id`.
 - **Ids gerados pelo Host** (mapas, tokens, entradas do chat) são UUID.
+- **`token.move`:** o mestre move qualquer token; o jogador, só os tokens em que está em `ownerIds`.
+- **`token.create`:** os `ownerIds` precisam ser jogadores que já entraram na sessão (estão em `players`).
+- **`session.resync`:** responde `applied` com o `rev` atual, seguido de um `StateSnapshot` só para quem pediu.
+- **Recusas** (`IntentResult` com `rejected`): `not_allowed` para permissão (jogador num `Intent` do mestre, token de outro jogador); `rule_violation` para estado inválido (mapa ou token inexistente, posição fora do mapa, monstro fora do compêndio). Um `Intent` recusado não muda o estado nem o `rev`.
 
 ## 4. Sequência típica
 
