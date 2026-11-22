@@ -22,7 +22,9 @@ A Wizards pede que nenhuma outra atribuição a ela seja incluída além dessa. 
 
 O texto é extraído com `pdftotext` (poppler, com `-enc UTF-8` no Windows): `pdftotext -f <página> -l <página> SRD_CC_v5.2.1.pdf -` para ler na ordem das colunas e `-layout` para tabelas. As tabelas do PDF são blocos de coluna separados, então a transcrição para JSON é feita à mão a partir do texto extraído e conferida pelos testes em `tests/srd/` (contagens e valores de referência por página). Ver `docs/decisions/0004-importacao-do-srd.md`.
 
-As **magias** seguem um formato regular e foram importadas por parser automático, que lê o cabeçalho de cada entrada e confere as classes contra as listas de magias dos capítulos de classe. Ver `docs/decisions/0007-importacao-das-magias.md`. O script fica em `tools/` (ver `tools/README.md`).
+As **magias** seguem um formato regular e foram importadas por parser automático, que lê o cabeçalho de cada entrada e confere as classes contra as listas de magias dos capítulos de classe. Ver `docs/decisions/0007-importacao-das-magias.md`.
+
+Os **monstros** também vêm de parser automático, que confere os números redundantes de cada bloco (XP, PV, modificadores, Percepção passiva, dano médio). Ver `docs/decisions/0012-importacao-dos-monstros.md`. Os scripts ficam em `tools/` (ver `tools/README.md`).
 
 ## O que já foi transcrito
 
@@ -41,5 +43,6 @@ As **magias** seguem um formato regular e foram importadas por parser automátic
 | Devotion, Hunter, Thief, Draconic e Fiend | 56, 61, 64, 69, 76 | `subclasses.json` |
 | Magias (339) | 107–175 (conferidas com as listas das classes) | `spells.json` |
 | Idiomas da criação de personagem | 20 | `creation.json` |
+| Monstros e animais (330) | 258–364 | `monsters.json` |
 
-**Faltam:** equipamento de aventura e ferramentas, itens mágicos e monstros.
+**Faltam:** equipamento de aventura e ferramentas, e itens mágicos.

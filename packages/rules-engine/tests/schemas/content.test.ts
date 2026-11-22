@@ -144,8 +144,35 @@ describe('ActionSchema', () => {
     expect(ActionSchema.safeParse({ id: 'multiattack', name: 'Multiattack', kind: 'text', description: 'Two attacks.' }).success).toBe(true);
   });
 
-  it('rejects an attack without damage', () => {
-    expect(ActionSchema.safeParse({ id: 'x', name: 'X', kind: 'attack', attackKind: 'melee', toHit: 4, damage: [] }).success).toBe(false);
+  it('accepts an attack whose hit only applies effects (e.g. a grapple)', () => {
+    expect(ActionSchema.safeParse({ id: 'x', name: 'X', kind: 'attack', attackKind: 'melee', toHit: 4, damage: [] }).success).toBe(true);
+  });
+
+  it('rejects an attack without a to-hit bonus', () => {
+    expect(ActionSchema.safeParse({ id: 'x', name: 'X', kind: 'attack', attackKind: 'melee', damage: [] }).success).toBe(false);
+  });
+
+  it('accepts a creature Spellcasting with at-will and per-day spells', () => {
+    const spellcasting = {
+      id: 'spellcasting',
+      name: 'Spellcasting',
+      kind: 'spellcasting',
+      ability: 'int',
+      dc: 14,
+      spells: [
+        { spellId: 'detect_magic', uses: 'at_will' },
+        { spellId: 'fireball', uses: { per: 'day', count: 2 }, level: 4 },
+      ],
+    };
+    expect(ActionSchema.safeParse(spellcasting).success).toBe(true);
+    expect(ActionSchema.safeParse({ ...spellcasting, spells: [] }).success).toBe(false);
+    expect(ActionSchema.safeParse({ ...spellcasting, spells: [{ spellId: 'fireball', uses: { per: 'short_rest', count: 1 } }] }).success).toBe(false);
+  });
+
+  it('accepts lair use counts on per-day limits', () => {
+    expect(
+      ActionSchema.safeParse({ id: 'x', name: 'X', kind: 'text', description: 'X.', limit: { per: 'day', count: 3, lairCount: 4 } }).success,
+    ).toBe(true);
   });
 });
 
@@ -153,16 +180,20 @@ describe('CreatureSchema', () => {
   const goblin = {
     id: 'goblin_warrior',
     name: 'Goblin Warrior',
-    size: 'small',
+    size: ['small'],
     type: 'fey',
     tags: ['goblinoid'],
+    alignment: 'Chaotic Neutral',
     ac: 15,
+    initiative: 2,
     hp: { average: 10, formula: '3d6' },
     speed: { walk: 30 },
     abilities: { str: 8, dex: 15, con: 10, int: 10, wis: 8, cha: 8 },
     skills: { stealth: 6 },
-    languages: ['common', 'goblin'],
+    passivePerception: 9,
+    languages: 'Common, Goblin',
     cr: 0.25,
+    xp: 50,
     effects: [{ type: 'grant_sense', sense: 'darkvision', range: 60 }],
     actions: [
       {
@@ -187,6 +218,11 @@ describe('CreatureSchema', () => {
 
   it('rejects unknown skills', () => {
     expect(CreatureSchema.safeParse({ ...goblin, skills: { cooking: 2 } }).success).toBe(false);
+  });
+
+  it('requires at least one size', () => {
+    expect(CreatureSchema.safeParse({ ...goblin, size: ['medium', 'small'] }).success).toBe(true);
+    expect(CreatureSchema.safeParse({ ...goblin, size: [] }).success).toBe(false);
   });
 });
 
