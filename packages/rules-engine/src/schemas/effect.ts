@@ -106,7 +106,8 @@ const GrantProficiencySchema = z.discriminatedUnion('category', [
   z.strictObject({ ...grantProficiency, category: z.literal('skill'), id: SkillSchema, level: ExpertiseLevelSchema.optional() }),
   z.strictObject({ ...grantProficiency, category: z.literal('tool'), id: IdSchema, level: ExpertiseLevelSchema.optional() }),
   z.strictObject({ ...grantProficiency, category: z.literal('save'), id: Ability }),
-  z.strictObject({ ...grantProficiency, category: z.literal('armor'), id: z.enum(['light', 'medium', 'heavy', 'shield']) }),
+  /** `self`: treinado com o próprio item que carrega o efeito (Elven Chain), não com a categoria. */
+  z.strictObject({ ...grantProficiency, category: z.literal('armor'), id: z.enum(['light', 'medium', 'heavy', 'shield', 'self']) }),
   z
     .strictObject({
       ...grantProficiency,

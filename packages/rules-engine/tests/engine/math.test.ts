@@ -88,6 +88,13 @@ describe('evaluatePredicate', () => {
     expect(evaluatePredicate({ attackKind: 'melee' }, save)).toBe(false);
   });
 
+  it('matches the weapon used by its compendium id', () => {
+    const bow = { ...naked, roll: { attack: { kind: 'ranged' as const, properties: ['ammunition'], weaponId: 'longbow' } } };
+    expect(evaluatePredicate({ weaponId: 'longbow' }, bow)).toBe(true);
+    expect(evaluatePredicate({ weaponId: 'shortbow' }, bow)).toBe(false);
+    expect(evaluatePredicate({ weaponId: 'longbow' }, naked)).toBeUndefined();
+  });
+
   it('distinguishes saves against spells from saves against other magical effects', () => {
     const vsSpell = { ...naked, roll: { against: { source: 'spell' as const } } };
     const vsMagic = { ...naked, roll: { against: { source: 'magic' as const } } };

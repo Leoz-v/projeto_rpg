@@ -27,15 +27,14 @@ OUT = PKG / "tests" / "srd" / "automation-backlog.json"
 
 # Extensões de catálogo agrupadas (um PR por grupo, contrato em docs/effects-spec.md primeiro).
 MECHANICS = {
-    "weapon_id": "Predicado por arma específica ('+2 de dano com Longbow e Shortbow').",
-    "item_proficiency": "Itens concedendo proficiência (hoje o motor ignora proficiências vindas de itens).",
     "capped_ability_increase": "Aumento de atributo com teto ('+2, até o máximo de 20').",
     "extra_damage": "Dano extra em dados nos ataques da ficha ('+1d8 Radiant em ataques corpo a corpo').",
     "crit_range": "Faixa de crítico ampliada (19-20, 18-20).",
     "d20_rules": "Regras automáticas da rolagem d20/dano: rerrolar 1, mínimo 10, usar o valor do atributo, tratar 1-2 como 3.",
     "death_saves": "Alvo de rolagem para salvaguardas contra a morte (vantagem).",
     "minimum_speed": "Deslocamento mínimo ('your Speed becomes 30 feet unless higher').",
-    "armor_override": "Item que remove penalidades da armadura base (Desvantagem em Furtividade, Força mínima).",
+    "base_override": "Item mágico que altera o item base: remove penalidades da armadura (Mithral) ou muda propriedades e proficiência da arma (Sun Blade).",
+    "species_predicate": "Predicado pela espécie do personagem ('if you aren't a dwarf').",
     "proficiency_bonus": "Bônus no próprio bônus de proficiência.",
 }
 
@@ -92,9 +91,7 @@ FEATURE_REASONS = {
 # --- Itens mágicos -------------------------------------------------------------------------------------------
 ITEM = {
     "automate": {
-        "bracers_of_archery": ["weapon_id", "item_proficiency"],
-        "belt_of_dwarvenkind": ["capped_ability_increase", "item_proficiency"],
-        "boots_of_striding_and_springing": "minimum_speed", "mithral_armor": "armor_override", "vicious_weapon": "extra_damage",
+        "boots_of_striding_and_springing": "minimum_speed", "mithral_armor": "base_override", "vicious_weapon": "extra_damage",
     },
     "gm": [
         "amulet_of_proof_against_detection_and_location", "bag_of_holding", "handy_haversack", "efficient_quiver", "portable_hole",
@@ -185,6 +182,16 @@ for it in load("magic-items.json"):
     else:
         put(key, "phase_4", ITEM_REASONS["phase_4"])
 # Variantes sem efeito com mecânica passiva (Ioun Stones).
+# Entradas parciais (`item:<id>#<aspecto>`): o item já tem efeitos, mas parte da mecânica segue pendente.
+PARTIAL = {
+    "item:belt_of_dwarvenkind#toughness": ("Constituição +2, até o máximo de 20.", "capped_ability_increase"),
+    "item:belt_of_dwarvenkind#non_dwarf": ("Darkvision 60 ft, Resistência a Veneno e vantagem contra Envenenado só se não for anão.",
+                                           "species_predicate"),
+    "item:sun_blade#longsword_with_finesse": ("Funciona como Longsword com Finesse; proficiente se tiver Longsword ou Shortsword.",
+                                              "base_override"),
+}
+for key, (reason, mechanic) in PARTIAL.items():
+    put(key, "automate", reason, mechanic)
 IOUN_CAPPED = ["agility", "fortitude", "insight", "intellect", "leadership", "strength"]
 for vid in IOUN_CAPPED:
     put(f"item:ioun_stone/{vid}", "automate", "Passivo enquanto orbita (sintonizado).", "capped_ability_increase")
@@ -204,10 +211,14 @@ for name in sorted({snake(a["name"].split(" (")[0]) for m in monsters for a in m
     put(f"monster_action:{name}", "phase_4", MONSTER_REASONS["phase_4"])
 
 # Conferência: toda exceção listada aqui precisa existir no compêndio (curadoria não fica órfã).
+magic_ids = {i["id"] for i in load("magic-items.json")}
 problems = []
 listed = ([f"feature:{k}" for c in ("structural", "phase_5", "gm") for k in FEATURE[c]] + [f"feature:{k}" for k in FEATURE["automate"]]
           + [f"item:{k}" for k in ITEM["automate"]] + [f"item:{k}" for k in ITEM["gm"]]
           + [f"monster_trait:{k}" for k in MONSTER_TRAIT["automate"]] + [f"monster_trait:{k}" for k in MONSTER_TRAIT["gm"]])
+for k in PARTIAL:
+    if k.split("#")[0].split(":")[1] not in magic_ids:
+        problems.append(f"entrada parcial de item inexistente: {k}")
 for k in listed:
     if k not in entries:
         problems.append(f"exceção sem entrada no compêndio (ou já tem efeito): {k}")

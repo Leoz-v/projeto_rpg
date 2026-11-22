@@ -1,14 +1,13 @@
 {
   "mechanics": {
-    "weapon_id": "Predicado por arma específica ('+2 de dano com Longbow e Shortbow').",
-    "item_proficiency": "Itens concedendo proficiência (hoje o motor ignora proficiências vindas de itens).",
     "capped_ability_increase": "Aumento de atributo com teto ('+2, até o máximo de 20').",
     "extra_damage": "Dano extra em dados nos ataques da ficha ('+1d8 Radiant em ataques corpo a corpo').",
     "crit_range": "Faixa de crítico ampliada (19-20, 18-20).",
     "d20_rules": "Regras automáticas da rolagem d20/dano: rerrolar 1, mínimo 10, usar o valor do atributo, tratar 1-2 como 3.",
     "death_saves": "Alvo de rolagem para salvaguardas contra a morte (vantagem).",
     "minimum_speed": "Deslocamento mínimo ('your Speed becomes 30 feet unless higher').",
-    "armor_override": "Item que remove penalidades da armadura base (Desvantagem em Furtividade, Força mínima).",
+    "base_override": "Item mágico que altera o item base: remove penalidades da armadura (Mithral) ou muda propriedades e proficiência da arma (Sun Blade).",
+    "species_predicate": "Predicado pela espécie do personagem ('if you aren't a dwarf').",
     "proficiency_bonus": "Bônus no próprio bônus de proficiência."
   },
   "entries": {
@@ -1032,12 +1031,18 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:belt_of_dwarvenkind": {
+    "item:belt_of_dwarvenkind#non_dwarf": {
       "category": "automate",
-      "reason": "Passivo enquanto vestido, empunhado ou sintonizado.",
+      "reason": "Darkvision 60 ft, Resistência a Veneno e vantagem contra Envenenado só se não for anão.",
       "mechanics": [
-        "capped_ability_increase",
-        "item_proficiency"
+        "species_predicate"
+      ]
+    },
+    "item:belt_of_dwarvenkind#toughness": {
+      "category": "automate",
+      "reason": "Constituição +2, até o máximo de 20.",
+      "mechanics": [
+        "capped_ability_increase"
       ]
     },
     "item:boots_of_levitation": {
@@ -1058,14 +1063,6 @@
     "item:bowl_of_commanding_water_elementals": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:bracers_of_archery": {
-      "category": "automate",
-      "reason": "Passivo enquanto vestido, empunhado ou sintonizado.",
-      "mechanics": [
-        "weapon_id",
-        "item_proficiency"
-      ]
     },
     "item:brazier_of_commanding_fire_elementals": {
       "category": "phase_4",
@@ -1372,7 +1369,7 @@
       "category": "automate",
       "reason": "Passivo enquanto vestido, empunhado ou sintonizado.",
       "mechanics": [
-        "armor_override"
+        "base_override"
       ]
     },
     "item:mysterious_deck": {
@@ -1654,6 +1651,13 @@
     "item:stone_of_controlling_earth_elementals": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
+    },
+    "item:sun_blade#longsword_with_finesse": {
+      "category": "automate",
+      "reason": "Funciona como Longsword com Finesse; proficiente se tiver Longsword ou Shortsword.",
+      "mechanics": [
+        "base_override"
+      ]
     },
     "item:sword_of_life_stealing": {
       "category": "phase_4",

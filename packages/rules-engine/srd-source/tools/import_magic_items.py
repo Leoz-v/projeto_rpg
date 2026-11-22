@@ -251,7 +251,8 @@ EFFECTS = {
     "Dragon Slayer": (weapon_plus(1), "+1 bonus to attack rolls and damage rolls"),
     "Dwarven Plate": ([{"type": "flat_bonus", "target": "ac", "value": 2}], "+2 bonus to Armor Class"),
     "Dwarven Thrower": (weapon_plus(3), "+3 bonus to attack rolls and damage rolls"),
-    "Elven Chain": ([{"type": "flat_bonus", "target": "ac", "value": 1}], "+1 bonus to Armor Class"),
+    "Elven Chain": ([{"type": "flat_bonus", "target": "ac", "value": 1}, {"type": "grant_proficiency", "category": "armor", "id": "self"}],
+                    ["+1 bonus to Armor Class", "You are considered trained with this armor even if you lack training with Medium or Heavy armor"]),
     "Energy Bow": (weapon_plus(1), "+1 bonus to attack rolls and damage rolls"),
     "Eyes of the Eagle": ([{"type": "advantage", "target": "skill.perception", "note": "Testes que dependem da visão"}],
                           "Advantage on Wisdom (Perception) checks that rely on sight"),
@@ -316,6 +317,17 @@ EFFECTS = {
     "Scarab of Protection": ([{"type": "flat_bonus", "target": "ac", "value": 1}, vs_magic("spell")],
                              ["Defense. You gain a +1 bonus to Armor Class", "You have Advantage on saving throws against spells"]),
     # Fase 1.5, grupo 2 (`against.source`). O efeito sobre quem ataca (Spellguard Shield) é da Fase 4.
+    # Fase 1.5, grupo 3 (itens concedem proficiência; predicado `weaponId`).
+    "Bracers of Archery": ([{"type": "grant_proficiency", "category": "weapon", "id": "longbow"},
+                            {"type": "grant_proficiency", "category": "weapon", "id": "shortbow"},
+                            {"type": "flat_bonus", "target": "damage.ranged", "value": 2,
+                             "when": {"any": [{"weaponId": "longbow"}, {"weaponId": "shortbow"}]}}],
+                           "you have proficiency with the Longbow and Shortbow, and you gain a +2 bonus to damage rolls made with such weapons"),
+    # Parcial: CON +2 (teto 20) e os benefícios "se você não é anão" seguem no backlog.
+    "Belt of Dwarvenkind": ([{"type": "grant_proficiency", "category": "language", "id": "dwarvish"},
+                             {"type": "advantage", "target": "skill.persuasion", "note": "Interagir com anões e duergar"}],
+                            ["Dwarvish. You know Dwarvish",
+                             "You have Advantage on Charisma (Persuasion) checks made to interact with dwarves and duergar"]),
     "Mantle of Spell Resistance": ([vs_magic("spell")], "You have Advantage on saving throws against spells while you wear this cloak"),
     "Ring of Spell Turning": ([vs_magic("spell")], "you have Advantage on saving throws against spells"),
     "Spellguard Shield": ([vs_magic("magic")], "you have Advantage on saving throws against spells and other magical effects"),

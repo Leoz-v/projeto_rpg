@@ -40,12 +40,13 @@ Lista fechada. Um `when` é um objeto com **uma** destas chaves; para combinar, 
 | `{ "against": { "source": "spell" } }` | A rolagem é contra uma magia ("saving throws against spells"). |
 | `{ "against": { "source": "magic" } }` | A rolagem é contra uma magia **ou** outro efeito mágico ("against spells and other magical effects"). Uma rolagem contra magia satisfaz os dois. |
 | `{ "weaponCategory": "simple" }` | A arma usada é da categoria `simple` \| `martial`. |
+| `{ "weaponId": "longbow" }` | A arma usada é este item do compêndio (numa arma mágica, o item base). Ex.: Bracers of Archery, "+2 de dano com Longbow e Shortbow". |
 | `{ "hasCondition": "incapacitated" }` | A criatura está com a condição (ex.: "a aura fica inativa enquanto você está Incapacitado"). |
 | `{ "not": { … } }` | O predicado interno é falso. |
 | `{ "all": [ … ] }`              | Todos os predicados são verdadeiros. |
 | `{ "any": [ … ] }`              | Pelo menos um é verdadeiro. |
 
-**Predicados de contexto** (`attackKind`, `weaponProperty`, `weaponCategory`, `against`) só têm valor durante uma rolagem concreta. Fora dela (ficha estática), o motor os trata como *desconhecidos*, com lógica de três valores: `all` é falso se algum for falso e desconhecido se algum for desconhecido; `any` é verdadeiro se algum for verdadeiro e desconhecido se algum for desconhecido; `not` de desconhecido é desconhecido. Um efeito de vantagem/desvantagem com `when` desconhecido aparece como lembrete (`situational`); bônus planos com `when` desconhecido não entram no total.
+**Predicados de contexto** (`attackKind`, `weaponProperty`, `weaponCategory`, `weaponId`, `against`) só têm valor durante uma rolagem concreta. Fora dela (ficha estática), o motor os trata como *desconhecidos*, com lógica de três valores: `all` é falso se algum for falso e desconhecido se algum for desconhecido; `any` é verdadeiro se algum for verdadeiro e desconhecido se algum for desconhecido; `not` de desconhecido é desconhecido. Um efeito de vantagem/desvantagem com `when` desconhecido aparece como lembrete (`situational`); bônus planos com `when` desconhecido não entram no total.
 
 ## 3. Tipos de efeito
 
@@ -120,6 +121,8 @@ Fórmula base de Classe de Armadura.
 - `properties` (só com `weapon` e id `simple`/`martial`): restringe às armas da categoria com **alguma** das propriedades. Ex.: `{ "type": "grant_proficiency", "category": "weapon", "id": "martial", "properties": ["finesse", "light"] }` ("armas marciais com Finesse ou Leve", Ladino).
 - `level`: `proficient` (padrão) ou `expertise` (só para `skill` e `tool`; dobra o bônus de proficiência).
 - Proficiências repetidas não se acumulam; vale o maior `level`.
+- **Itens podem conceder proficiência** enquanto estão ativos (vestidos, empunhados ou sintonizados), como diz o texto de cada item no SRD (Bracers of Archery: Longbow e Shortbow; Belt of Dwarvenkind: Dwarvish). As proficiências dos itens entram antes da checagem de treinamento com armadura e escudo.
+- `{ "category": "armor", "id": "self" }`: treinado com o próprio item que carrega o efeito, e não com a categoria inteira. Ex.: Elven Chain, "You are considered trained with this armor even if you lack training with Medium or Heavy armor". Só faz sentido em armaduras e escudos, e não aparece na lista de proficiências da ficha.
 
 ### 3.6 `grant_spell`
 

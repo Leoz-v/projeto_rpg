@@ -504,6 +504,18 @@
     "rarity": "rare",
     "attunement": {},
     "activation": "attuned",
+    "effects": [
+      {
+        "type": "grant_proficiency",
+        "category": "language",
+        "id": "dwarvish"
+      },
+      {
+        "type": "advantage",
+        "target": "skill.persuasion",
+        "note": "Interagir com anões e duergar"
+      }
+    ],
     "description": "While wearing this belt, you gain the following benefits:\nDwarvish. You know Dwarvish.\nFriend of Dwarvenkind. You have Advantage on Charisma (Persuasion) checks made to interact with dwarves and duergar.\nToughness. Your Constitution increases by 2, to a maximum of 20.\nIn addition, while attuned to the belt, you have a 50 percent chance each day at dawn of growing a full beard if you can grow one, or a thicker beard if you already have one.\nIf you aren't a dwarf or duergar, you gain the following additional benefits while wearing the belt:\nDarkvision. You have Darkvision with a range of 60 feet.\nResilience. You have Resistance to Poison damage.\nYou also have Advantage on saving throws you make to avoid or end the Poisoned condition."
   },
   {
@@ -690,6 +702,33 @@
     "rarity": "uncommon",
     "attunement": {},
     "activation": "attuned",
+    "effects": [
+      {
+        "type": "grant_proficiency",
+        "category": "weapon",
+        "id": "longbow"
+      },
+      {
+        "type": "grant_proficiency",
+        "category": "weapon",
+        "id": "shortbow"
+      },
+      {
+        "type": "flat_bonus",
+        "target": "damage.ranged",
+        "value": 2,
+        "when": {
+          "any": [
+            {
+              "weaponId": "longbow"
+            },
+            {
+              "weaponId": "shortbow"
+            }
+          ]
+        }
+      }
+    ],
     "description": "While wearing these bracers, you have proficiency with the Longbow and Shortbow, and you gain a +2 bonus to damage rolls made with such weapons."
   },
   {
@@ -1407,6 +1446,11 @@
         "type": "flat_bonus",
         "target": "ac",
         "value": 1
+      },
+      {
+        "type": "grant_proficiency",
+        "category": "armor",
+        "id": "self"
       }
     ],
     "description": "You gain a +1 bonus to Armor Class while you wear this armor. You are considered trained with this armor even if you lack training with Medium or Heavy armor."

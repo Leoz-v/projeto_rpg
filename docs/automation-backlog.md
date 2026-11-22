@@ -22,12 +22,14 @@ Magias ficam fora: a resolução delas é toda da Fase 4.
 | Categoria | O que é | Quantas |
 |---|---|---|
 | `structural` | A mecânica já existe em outro ponto do modelo: escolha, concessão ou conjuração no mesmo nível (ex.: "Expertise" é a escolha `expertise_1`). | 53 |
-| `automate` | Passivo e automatizável agora, estendendo o catálogo de efeitos. Fila abaixo. | 21 |
+| `automate` | Passivo e automatizável agora, estendendo o catálogo de efeitos. Fila abaixo. | 22 |
 | `phase_4` | Ação, reação, recurso, uso de item, ou efeito no momento da rolagem ou do dano contra um alvo (Sneak Attack, cargas, poções, Multiattack). | 440 |
 | `phase_5` | Depende do estado de combate: iniciativa, turnos, fúria ativa, concentração (Alert, Persistent Rage, Mindless Rage). | 11 |
 | `gm` | Exploração, percepção, narrativa ou efeito permanente que é ajuste do mestre (Bag of Holding, Manuals e Tomes, Spider Climb). | 94 |
 
-Total: 619 entradas.
+Total: 620 entradas.
+
+Uma entrada **parcial** (`item:<id>#<aspecto>`) marca a parte pendente de um item que já tem outros efeitos (ex.: `item:sun_blade#longsword_with_finesse`).
 
 ## Fila `automate`, por extensão de catálogo
 
@@ -35,11 +37,10 @@ Um PR por grupo. Em cada um: primeiro `docs/effects-spec.md`, depois o schema, o
 
 | Ordem | Mecânica | Entradas |
 |---|---|---|
-| 1 | `weapon_id` e `item_proficiency` | Bracers of Archery (+2 de dano e proficiência com Longbow e Shortbow), Belt of Dwarvenkind (Dwarvish) |
-| 2 | `capped_ability_increase` e `proficiency_bonus` | Belt of Dwarvenkind (CON +2 até 20), Ioun Stones (Agility, Fortitude, Insight, Intellect, Leadership, Strength; Mastery: +1 de proficiência) |
-| 3 | `extra_damage` e `crit_range` | Radiant Strikes (Paladino 11), Vicious Weapon; Improved Critical e Superior Critical (Champion) |
-| 4 | `d20_rules` e `death_saves` | Halfling Luck, Reliable Talent, Indomitable Might, Great Weapon Fighting, Greater Magic Resistance (sucesso automático contra magia); Survivor (vantagem contra a morte) |
-| 5 | `minimum_speed` e `armor_override` | Boots of Striding and Springing; Mithral Armor |
+| 1 | `capped_ability_increase` e `proficiency_bonus` | Belt of Dwarvenkind (CON +2 até 20, parcial), Ioun Stones (Agility, Fortitude, Insight, Intellect, Leadership, Strength; Mastery: +1 de proficiência) |
+| 2 | `extra_damage` e `crit_range` | Radiant Strikes (Paladino 11), Vicious Weapon; Improved Critical e Superior Critical (Champion) |
+| 3 | `d20_rules` e `death_saves` | Halfling Luck, Reliable Talent, Indomitable Might, Great Weapon Fighting, Greater Magic Resistance (sucesso automático contra magia); Survivor (vantagem contra a morte) |
+| 4 | `minimum_speed`, `base_override` e `species_predicate` | Boots of Striding and Springing; Mithral Armor e Sun Blade (Longsword com Finesse, proficiência por Longsword ou Shortsword; parcial); Belt of Dwarvenkind (benefícios "se você não é anão", parcial) |
 
 As regras de rolagem (`d20_rules`) são declaradas e testadas no motor agora. Elas passam a valer nas rolagens do chat quando a rolagem autoritativa existir (Fase 2), com o RNG injetável que já existe (`engine/dice.ts`).
 
@@ -59,3 +60,7 @@ As regras de rolagem (`d20_rules`) são declaradas e testadas no motor agora. El
   - Itens: Mantle of Spell Resistance, Ring of Spell Turning, Scarab of Protection e Staff of the Magi (`spell`); Spellguard Shield, Robe of the Archmagi e Holy Avenger (`magic`, só o portador).
   - Monstros: Magic Resistance (`magic`, 27 criaturas). O Greater Magic Resistance é sucesso automático e foi para o grupo das regras de rolagem.
   - Fica para a Fase 4: a Desvantagem que o Spellguard Shield impõe a quem ataca com magia.
+- **Grupo 3 — itens concedem proficiência; predicado `weaponId`** (nota 0016). O SRD diz em cada item que ele concede proficiência, e a proibição antiga do motor não tinha base nas regras.
+  - Bracers of Archery: proficiência com Longbow e Shortbow, e +2 de dano só com eles.
+  - Elven Chain: treinado com a própria armadura (`armor: self`). Antes, um mago vestindo a armadura recebia Desvantagem.
+  - Belt of Dwarvenkind: Dwarvish e vantagem situacional em Persuasion (parcial).

@@ -72,7 +72,9 @@ describe('automation backlog (Fase 1.5)', () => {
 
   it('lists only things that still lack effects (automated entries leave the backlog)', () => {
     const known = new Set([...features.keys(), ...itemKeys, ...variantKeys, ...traitKeys, ...actionKeys]);
-    expect(Object.keys(entries).filter((k) => !known.has(k))).toEqual([]);
+    // Entradas parciais (`item:<id>#<aspecto>`): o item já tem efeitos e guarda uma parte pendente.
+    const isPartial = (k: string): boolean => k.includes('#') && magic.some((i) => `item:${i.id}` === k.split('#')[0]);
+    expect(Object.keys(entries).filter((k) => !known.has(k) && !isPartial(k))).toEqual([]);
   });
 
   it('uses known categories, and a known mechanic for every automate entry', () => {
