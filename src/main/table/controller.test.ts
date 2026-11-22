@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -6,6 +6,7 @@ import { seededRng } from 'rules-engine';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { TableEvent } from '../../shared/ipc';
 import { HostAddressSchema } from '../../shared/ipc-schemas';
+import { AssetStore } from '../assets';
 import { AppDb, CampaignLibrary } from '../db';
 import { TableController, TableError, hostUrl } from './controller';
 
@@ -25,7 +26,7 @@ afterEach(async () => {
 });
 
 /** Um app com o próprio `app.db` e a própria pasta de campanhas, como numa máquina. */
-function app(): { controller: TableController; events: TableEvent[]; playerId: string; library: CampaignLibrary } {
+function app(): { controller: TableController; events: TableEvent[]; playerId: string; library: CampaignLibrary; assets: AssetStore } {
   const events: TableEvent[] = [];
   const dir = mkdtempSync(join(tmpdir(), 'vtt-table-'));
   dirs.push(dir);
@@ -33,7 +34,9 @@ function app(): { controller: TableController; events: TableEvent[]; playerId: s
   appDbs.push(appDb);
   const library = new CampaignLibrary(appDb, join(dir, 'campaigns'));
   const playerId = appDb.playerId();
+  const assets = new AssetStore(join(dir, 'assets'));
   const controller = new TableController({
+    assets,
     appVersion: '0.1.0',
     playerId,
     campaigns: library,
@@ -44,7 +47,7 @@ function app(): { controller: TableController; events: TableEvent[]; playerId: s
     listenHost: '127.0.0.1',
   });
   controllers.push(controller);
-  return { controller, events, playerId, library };
+  return { controller, events, playerId, library, assets };
 }
 
 /** Espera um evento que satisfaça a condição. */
@@ -161,6 +164,45 @@ describe('TableController: saved campaigns', () => {
   it('turns a missing campaign into a TableError', async () => {
     const gm = app();
     await expect(gm.controller.host({ campaign: { kind: 'existing', id: randomUUID() }, displayName: 'Mestre', port: 0 })).rejects.toThrow('Arquivo da campanha não encontrado');
+  });
+});
+
+describe('TableController: images', () => {
+  /** Uma "imagem" PNG de ~1,2 MB: assinatura PNG e bytes aleatórios (3 pedaços de 512 KiB). */
+  const fakePng = (size: number): Buffer => Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), randomBytes(size)]);
+
+  it('downloads an image from the Host in chunks, checks it and keeps it in the player cache', async () => {
+    const { gm, port } = await hosted();
+    const image = gm.assets.put(fakePng(1_200_000));
+    expect(await gm.controller.send({ kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10, background: image.sha256 } })).toMatchObject({ status: 'applied' });
+
+    const ana = app();
+    await ana.controller.join({ address: `127.0.0.1:${port}`, displayName: 'Ana' });
+    expect(ana.assets.has(image.sha256)).toBe(false);
+    const [first, second] = await Promise.all([ana.controller.asset(image.sha256), ana.controller.asset(image.sha256)]);
+    expect(first?.mime).toBe('image/png');
+    expect(first?.bytes.equals(gm.assets.read(image.sha256)?.bytes ?? Buffer.alloc(0))).toBe(true);
+    expect(second?.bytes.length).toBe(first?.bytes.length);
+    expect(ana.assets.has(image.sha256)).toBe(true);
+
+    // Do cache, mesmo sem mesa.
+    await ana.controller.leave();
+    expect((await ana.controller.asset(image.sha256))?.mime).toBe('image/png');
+  });
+
+  it('returns nothing for an image the Host does not have', async () => {
+    const { port } = await hosted();
+    const ana = app();
+    await ana.controller.join({ address: `127.0.0.1:${port}`, displayName: 'Ana' });
+    expect(await ana.controller.asset('c'.repeat(64))).toBeUndefined();
+  });
+
+  it('rejects a map whose background the Host does not have', async () => {
+    const { gm } = await hosted();
+    expect(await gm.controller.send({ kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10, background: 'd'.repeat(64) } })).toMatchObject({
+      status: 'rejected',
+      code: 'rule_violation',
+    });
   });
 });
 

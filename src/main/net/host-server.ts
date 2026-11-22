@@ -1,6 +1,7 @@
 import type { AddressInfo } from 'node:net';
 import { type RawData, WebSocket, WebSocketServer } from 'ws';
 import {
+  type AssetMime,
   type ClientMessage,
   ClientMessageSchema,
   DEFAULT_PORT,
@@ -13,6 +14,7 @@ import {
   PONG_TIMEOUT_MS,
 } from '../../shared/protocol';
 import { PROTOCOL_VERSION } from '../../shared/versions';
+import { toChunks } from '../assets';
 import type { HostSession, IntentOutcome, StateChange } from '../session';
 import { decode, encode, type OutgoingHostMessage } from './codec';
 
@@ -39,6 +41,8 @@ export interface HostServerOptions {
   onChange?: (change: StateChange) => void;
   /** Problemas que não chegam a nenhum cliente. */
   log?: (message: string) => void;
+  /** Assets que o Host entrega (`AssetRequest`); sem ele, todo pedido é `asset_not_found`. */
+  assets?: { read(sha256: string): { bytes: Buffer; mime: AssetMime } | undefined };
 }
 
 interface Peer {
@@ -145,8 +149,7 @@ export class HostServer {
         this.intent(peer, peer.playerId, message);
         return;
       case 'AssetRequest':
-        // O cache de assets chega no PR 6; até lá, nenhum asset existe.
-        this.send(peer, { type: 'Error', replyTo: message.id, payload: { code: 'asset_not_found', message: 'Asset não encontrado' } });
+        this.sendAsset(peer, message.id, message.payload.sha256);
         return;
       case 'Ping':
         this.send(peer, { type: 'Pong', replyTo: message.id, payload: { t: message.payload.t } });
@@ -158,6 +161,16 @@ export class HostServer {
         this.log(`cliente relatou erro: ${message.payload.code}`);
         return;
     }
+  }
+
+  /** Manda o asset em pedaços, em ordem, todos como resposta ao mesmo pedido. */
+  private sendAsset(peer: Peer, replyTo: string, sha256: string): void {
+    const asset = this.options.assets?.read(sha256);
+    if (!asset) {
+      this.send(peer, { type: 'Error', replyTo, payload: { code: 'asset_not_found', message: 'Asset não encontrado' } });
+      return;
+    }
+    for (const chunk of toChunks(sha256, asset.mime, asset.bytes)) this.send(peer, { type: 'AssetChunk', replyTo, payload: chunk });
   }
 
   private rejectHandshake(peer: Peer, replyTo: string, reason: HandshakeRejectReason): void {

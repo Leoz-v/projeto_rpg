@@ -10,6 +10,7 @@ const api: VttApi = {
   leaveTable: () => ipcRenderer.invoke(IpcChannel.leaveTable),
   getTable: () => ipcRenderer.invoke(IpcChannel.getTable),
   sendIntent: (intent) => ipcRenderer.invoke(IpcChannel.sendIntent, intent),
+  importAsset: () => ipcRenderer.invoke(IpcChannel.importAsset),
   onTableEvent: (listener) => {
     // O evento do Electron não passa para o renderer: só o payload.
     const handler = (_event: IpcRendererEvent, payload: TableEvent): void => {

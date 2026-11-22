@@ -6,6 +6,10 @@ export const DEFAULT_PORT = 47820;
 export const MAX_FRAME_BYTES = 1024 * 1024;
 /** Dados brutos por `AssetChunk`, antes do Base64. */
 export const ASSET_CHUNK_BYTES = 512 * 1024;
+/** Tamanho máximo de um asset. */
+export const MAX_ASSET_BYTES = 32 * 1024 * 1024;
+/** Sem pedaço novo nesse tempo, o pedido de asset falha. */
+export const ASSET_TIMEOUT_MS = 30_000;
 /** Tempo que o Host espera pelo `Handshake` depois de abrir a conexão. */
 export const HANDSHAKE_TIMEOUT_MS = 10_000;
 /** Intervalo dos `Ping` do Host. */

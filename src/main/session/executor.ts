@@ -35,6 +35,8 @@ export interface SessionDeps {
   newId(): string;
   /** O id existe entre as criaturas do compêndio. */
   monsterExists(id: string): boolean;
+  /** O Host tem o asset (imagem de fundo ou de token). */
+  assetExists(sha256: string): boolean;
 }
 
 /** Uma revisão do estado, na visão do mestre (o transporte filtra com `patchFor`). */
@@ -232,7 +234,12 @@ export class HostSession {
     return [{ op: 'replace', path: toPointer('tokens', token.id, 'position'), value: data.to }];
   }
 
+  private requireAsset(sha256: string | undefined): void {
+    if (sha256 !== undefined && !this.deps.assetExists(sha256)) throw violation('Imagem não encontrada no Host');
+  }
+
   private createMap(data: IntentData<'map.create'>): PatchOp[] {
+    this.requireAsset(data.background);
     const map: GameMap = { id: this.deps.newId(), name: data.name, width: data.width, height: data.height, background: data.background ?? null };
     const ops: PatchOp[] = [{ op: 'add', path: toPointer('maps', map.id), value: map }];
     if (this.current.activeMapId === null) ops.push({ op: 'replace', path: '/activeMapId', value: map.id });
@@ -242,6 +249,7 @@ export class HostSession {
   private createToken(data: IntentData<'token.create'>): PatchOp[] {
     this.requireInside(this.map(data.mapId), data.position);
     if (data.monsterId !== undefined && !this.deps.monsterExists(data.monsterId)) throw violation('Monstro não encontrado no compêndio');
+    this.requireAsset(data.image);
     const ownerIds = [...new Set(data.ownerIds ?? [])];
     if (ownerIds.some((id) => this.current.players[id] === undefined)) throw violation('Dono do token não está na mesa');
     const token: Token = {

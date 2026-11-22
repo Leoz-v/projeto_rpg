@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { NameSchema, Sha256Schema, UuidSchema } from './common';
+import { ASSET_CHUNK_BYTES, MAX_ASSET_BYTES } from './constants';
 import { IntentSchema } from './intents';
 import { RoleSchema, SessionStateSchema } from './state';
 
@@ -28,6 +29,7 @@ export type IntentRejectCode = z.infer<typeof IntentRejectCodeSchema>;
 export const ErrorCodeSchema = z.enum(['invalid_message', 'not_ready', 'asset_not_found', 'internal_error']);
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
 export const AssetMimeSchema = z.enum(['image/png', 'image/jpeg', 'image/webp']);
+export type AssetMime = z.infer<typeof AssetMimeSchema>;
 
 /** Operação JSON Patch (RFC 6902), restrita a `add`, `remove` e `replace`. */
 const PointerSchema = z.string().regex(/^(\/[^/]*)+$/, 'JSON Pointer inválido');
@@ -88,9 +90,9 @@ export const AssetChunkSchema = reply(
     .strictObject({
       sha256: Sha256Schema,
       mime: AssetMimeSchema,
-      totalSize: z.int().nonnegative(),
+      totalSize: z.int().positive().max(MAX_ASSET_BYTES),
       index: z.int().nonnegative(),
-      count: z.int().positive(),
+      count: z.int().positive().max(Math.ceil(MAX_ASSET_BYTES / ASSET_CHUNK_BYTES)),
       data: z.base64(),
     })
     .refine((c) => c.index < c.count, { message: 'index deve ser menor que count' }),

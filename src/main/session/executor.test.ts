@@ -9,6 +9,8 @@ const CAMPAIGN = { id: randomUUID(), name: 'A Mina Perdida' };
 const GM = { playerId: randomUUID(), displayName: 'Mestre' };
 const ANA = { playerId: randomUUID(), displayName: 'Ana' };
 const BRUNO = { playerId: randomUUID(), displayName: 'Bruno' };
+const KNOWN_IMAGE = 'a'.repeat(64);
+const UNKNOWN_IMAGE = 'b'.repeat(64);
 
 function setup(overrides: Partial<SessionDeps> = {}): HostSession {
   const session = new HostSession(CAMPAIGN, GM, {
@@ -16,6 +18,7 @@ function setup(overrides: Partial<SessionDeps> = {}): HostSession {
     now: () => 1763769600000,
     newId: randomUUID,
     monsterExists: (id) => id === 'goblin',
+    assetExists: (sha) => sha === KNOWN_IMAGE,
     ...overrides,
   });
   session.connect(ANA);
@@ -175,6 +178,8 @@ describe('HostSession: maps', () => {
     expect(applied(session.handle(GM.playerId, { kind: 'map.activate', data: { mapId: second } }))).toBe(true);
     expect(session.state.activeMapId).toBe(second);
     expect(rejection(session.handle(GM.playerId, { kind: 'map.activate', data: { mapId: randomUUID() } }))).toBe('rule_violation');
+    expect(applied(session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Com fundo', width: 5, height: 5, background: KNOWN_IMAGE } }))).toBe(true);
+    expect(rejection(session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Sem fundo', width: 5, height: 5, background: UNKNOWN_IMAGE } }))).toBe('rule_violation');
   });
 });
 
@@ -192,6 +197,8 @@ describe('HostSession: tokens', () => {
     expect(rejection(create({ position: { x: 1000, y: 0 } }))).toBe('rule_violation');
     expect(applied(create({ position: { x: 999, y: 999 } }))).toBe(true);
     expect(rejection(create({ ownerIds: [randomUUID()] }))).toBe('rule_violation');
+    expect(applied(create({ image: KNOWN_IMAGE }))).toBe(true);
+    expect(rejection(create({ image: UNKNOWN_IMAGE }))).toBe('rule_violation');
     expect(rejection(session.handle(ANA.playerId, { kind: 'token.create', data: { mapId, name: 'X', position: { x: 0, y: 0 }, size: 'tiny' } }))).toBe('not_allowed');
   });
 

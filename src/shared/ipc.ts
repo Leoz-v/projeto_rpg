@@ -13,6 +13,7 @@ export const IpcChannel = {
   joinTable: 'table:join',
   leaveTable: 'table:leave',
   getTable: 'table:get',
+  importAsset: 'assets:import',
   sendIntent: 'table:intent',
   tableEvent: 'table:event',
 } as const;
@@ -41,6 +42,13 @@ export interface CampaignSummary {
   lastOpenedAt: number;
 }
 
+/** Uma imagem importada: use `vtt-asset://<sha256>` para exibir e o `sha256` nos `Intent`. */
+export interface ImportedAsset {
+  sha256: string;
+  mime: 'image/png' | 'image/jpeg' | 'image/webp';
+  size: number;
+}
+
 /** O que o renderer precisa para desenhar a mesa. */
 export interface TableView {
   info: TableInfo;
@@ -62,6 +70,8 @@ export interface VttApi {
   /** A mesa atual, ou `null` (ex.: depois de recarregar a janela). */
   getTable(): Promise<IpcResult<TableView | null>>;
   sendIntent(intent: Intent): Promise<IpcResult<IntentResultPayload>>;
+  /** Abre o seletor de arquivos e importa uma imagem; `null` se o usuário cancelou. */
+  importAsset(): Promise<IpcResult<ImportedAsset | null>>;
   /** Avisa a cada estado novo e quando a mesa fecha. Devolve a função que cancela. */
   onTableEvent(listener: (event: TableEvent) => void): () => void;
 }
