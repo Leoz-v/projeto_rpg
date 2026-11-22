@@ -2,6 +2,7 @@ import { type CharacterInput, CharacterSchema, GmAdjustmentSchema } from '../../
 import { type InventoryInput, InventorySchema } from '../../src/schemas/inventory';
 import { type ItemInput, ItemSchema } from '../../src/schemas/item';
 import { deriveSheet } from '../../src/engine/sheet';
+import { FeatSchema, SubclassSchema } from '../../src/schemas/source';
 import type { DerivedSheet } from '../../src/engine/types';
 import { type Compendium, loadSrdCompendium } from '../../src/srd';
 
@@ -31,6 +32,17 @@ export function fighterSteps(extra: CharacterInput['steps'] = []): CharacterInpu
 }
 
 export const STANDARD = { method: 'standard_array' as const, scores: { str: 15, dex: 13, con: 14, int: 8, wis: 12, cha: 10 } };
+
+/** Compêndio do SRD com conteúdo extra de teste (itens, talentos, subclasses). */
+export function compendiumPlus(extra: { items?: ItemInput[]; feats?: unknown[]; subclasses?: unknown[] }): Compendium {
+  const srd = loadSrdCompendium();
+  return {
+    ...srd,
+    items: [...srd.items, ...(extra.items ?? []).map((i) => ItemSchema.parse(i))],
+    feats: [...srd.feats, ...(extra.feats ?? []).map((f) => FeatSchema.parse(f))],
+    subclasses: [...srd.subclasses, ...(extra.subclasses ?? []).map((x) => SubclassSchema.parse(x))],
+  };
+}
 
 /** Compêndio do SRD com itens extras (homebrew de teste). */
 export function compendiumWith(items: ItemInput[] = []): Compendium {

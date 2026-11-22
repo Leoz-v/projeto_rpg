@@ -60,6 +60,20 @@ export function casterLevelContribution(progression: 'full' | 'half', classLevel
   return progression === 'full' ? classLevel : Math.ceil(classLevel / 2);
 }
 
+/**
+ * Magia de Pacto (tabela Warlock Features): quantidade e nível dos espaços por
+ * nível de Bruxo. Todos os espaços são do mesmo nível.
+ */
+const PACT_SLOTS: readonly (readonly [count: number, level: number])[] = [
+  [1, 1], [2, 1], [2, 2], [2, 2], [2, 3], [2, 3], [2, 4], [2, 4], [2, 5], [2, 5],
+  [3, 5], [3, 5], [3, 5], [3, 5], [3, 5], [3, 5], [4, 5], [4, 5], [4, 5], [4, 5],
+];
+
+export function pactMagicSlots(warlockLevel: number): { count: number; level: number } | undefined {
+  const row = PACT_SLOTS[Math.min(warlockLevel, MAX_LEVEL) - 1];
+  return row ? { count: row[0], level: row[1] } : undefined;
+}
+
 /** Penalidade da Exaustão por nível: −2 em testes d20 e −5 ft de deslocamento. */
 export const EXHAUSTION_D20_PENALTY = 2;
 export const EXHAUSTION_SPEED_PENALTY = 5;

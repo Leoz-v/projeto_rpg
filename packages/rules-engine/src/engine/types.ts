@@ -101,6 +101,8 @@ export interface Spellcasting {
   classes: ClassSpellcasting[];
   /** Espaços por nível de magia (índice 0 = nível 1), somando as classes conjuradoras. */
   slots: number[];
+  /** Espaços da Magia de Pacto (Bruxo), separados dos demais. */
+  pactSlots?: { count: number; level: number } | undefined;
   granted: GrantedSpell[];
   /** Falso vestindo armadura sem treinamento. */
   canCast: boolean;
@@ -166,7 +168,7 @@ export interface DerivedSheet {
   hitDice: { die: number; count: number }[];
   ac: Stat;
   initiative: RollStat;
-  speed: { walk: Stat; fly: Stat; swim: Stat; climb: Stat };
+  speed: { walk: Stat; fly: Stat; swim: Stat; climb: Stat; burrow: Stat };
   saves: Record<Ability, SaveStat>;
   skills: Record<Skill, SkillStat>;
   senses: { sense: Sense; range: number; source: SourceLabel }[];

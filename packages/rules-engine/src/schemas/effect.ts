@@ -9,6 +9,7 @@ import {
   RestSchema,
   SenseSchema,
   SkillSchema,
+  WeaponPropertySchema,
 } from './common';
 import { PredicateSchema } from './predicate';
 
@@ -29,7 +30,7 @@ const AttackKind = AttackKindSchema;
 // --- flat_bonus (3.1) -------------------------------------------------------
 
 export const FlatBonusTargetSchema = z.union([
-  z.enum(['ac', 'initiative', 'hp_max', 'speed.walk', 'speed.fly', 'speed.swim', 'speed.climb', 'save.all', 'spell_save_dc']),
+  z.enum(['ac', 'initiative', 'hp_max', 'speed.walk', 'speed.fly', 'speed.swim', 'speed.climb', 'speed.burrow', 'save.all', 'spell_save_dc']),
   z.templateLiteral(['attack.', AttackKind]),
   z.templateLiteral(['damage.', AttackKind]),
   z.templateLiteral(['save.', Ability]),
@@ -41,7 +42,8 @@ export type FlatBonusTarget = z.infer<typeof FlatBonusTargetSchema>;
 
 export const BonusValueSchema = z.union([
   z.int(),
-  z.strictObject({ ability: Ability }),
+  /** Modificador do atributo; `min` é o piso ("mínimo +1"). */
+  z.strictObject({ ability: Ability, min: z.int().optional() }),
   z.strictObject({ proficiency: z.int().positive() }),
   z.strictObject({ perLevel: z.int() }),
 ]);
@@ -104,7 +106,17 @@ const GrantProficiencySchema = z.discriminatedUnion('category', [
   z.strictObject({ ...grantProficiency, category: z.literal('tool'), id: IdSchema, level: ExpertiseLevelSchema.optional() }),
   z.strictObject({ ...grantProficiency, category: z.literal('save'), id: Ability }),
   z.strictObject({ ...grantProficiency, category: z.literal('armor'), id: z.enum(['light', 'medium', 'heavy', 'shield']) }),
-  z.strictObject({ ...grantProficiency, category: z.literal('weapon'), id: IdSchema }),
+  z
+    .strictObject({
+      ...grantProficiency,
+      category: z.literal('weapon'),
+      id: IdSchema,
+      /** Só armas da categoria com alguma destas propriedades (ex.: marciais Leves, para o Monge). */
+      properties: z.array(WeaponPropertySchema).min(1).optional(),
+    })
+    .refine((e) => e.properties === undefined || e.id === 'simple' || e.id === 'martial', {
+      message: 'properties só vale para as categorias simple e martial',
+    }),
   z.strictObject({ ...grantProficiency, category: z.literal('language'), id: IdSchema }),
 ]);
 
@@ -154,6 +166,30 @@ const SetMinimumScoreSchema = z.strictObject({
 
 // --- weapon_mastery (3.9) ---------------------------------------------------
 
+// --- half_proficiency (3.11), grant_speed (3.12), attack_ability (3.13) -----
+
+const HalfProficiencySchema = z.strictObject({
+  type: z.literal('half_proficiency'),
+  scope: z.literal('unproficient_skills'),
+  ...common,
+});
+
+export const SpecialSpeedSchema = z.enum(['fly', 'swim', 'climb', 'burrow']);
+
+const GrantSpeedSchema = z.strictObject({
+  type: z.literal('grant_speed'),
+  speed: SpecialSpeedSchema,
+  /** Pés, ou `walk` = igual ao deslocamento a pé. */
+  value: z.union([FeetSchema.positive(), z.literal('walk')]),
+  ...common,
+});
+
+const AttackAbilitySchema = z.strictObject({
+  type: z.literal('attack_ability'),
+  ability: Ability,
+  ...common,
+});
+
 const WeaponMasteryEffectSchema = z.strictObject({
   type: z.literal('weapon_mastery'),
   weaponId: IdSchema,
@@ -183,6 +219,9 @@ export const EffectSchema = z.discriminatedUnion('type', [
   SetMinimumScoreSchema,
   WeaponMasteryEffectSchema,
   ConditionEffectSchema,
+  HalfProficiencySchema,
+  GrantSpeedSchema,
+  AttackAbilitySchema,
 ]);
 export type Effect = z.infer<typeof EffectSchema>;
 export type EffectType = Effect['type'];

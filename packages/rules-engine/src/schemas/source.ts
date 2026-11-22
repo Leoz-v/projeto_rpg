@@ -41,7 +41,8 @@ export type ChoiceOptions =
   /** Aumento de atributo; repetir o atributo nos picks soma de novo. */
   | { pick: 'ability_score'; from?: z.infer<typeof AbilitySchema>[] | undefined; max: number }
   | { pick: 'feat'; categories: FeatCategory[] }
-  | { pick: 'weapon_mastery' }
+  /** `melee`: só armas corpo a corpo; `proficient`: só armas com que tem proficiência. */
+  | { pick: 'weapon_mastery'; melee?: boolean | undefined; proficient?: boolean | undefined }
   | { pick: 'subclass' }
   /**
    * Magias de uma ou mais listas de classe, de `minLevel` a `maxLevel`. Sem
@@ -56,7 +57,11 @@ export type ChoiceOptions =
       school?: z.infer<typeof SpellSchoolSchema> | undefined;
       grantAs?: SpellGrantTemplate | undefined;
     }
-  | { pick: 'option'; options: ChoiceOption[] };
+  /**
+   * `group`: escolhas com o mesmo grupo na mesma fonte não podem repetir uma
+   * opção (a menos que ela seja `repeatable`), ex.: Eldritch Invocations.
+   */
+  | { pick: 'option'; group?: string | undefined; options: ChoiceOption[] };
 
 /**
  * Opção nomeada de uma escolha genérica (ex.: linhagem élfica). `grants` vale
@@ -69,13 +74,18 @@ export interface ChoiceOption {
   description?: string | undefined;
   grants: Grant[];
   levels: LevelGrants;
+  /** Nível mínimo (na escala da fonte) e opções do mesmo grupo já escolhidas. */
+  prerequisite?: { minLevel?: number | undefined; options?: string[] | undefined } | undefined;
+  repeatable?: boolean | undefined;
 }
 
 export type Grant =
   | { kind: 'effect'; effect: z.infer<typeof EffectSchema> }
   | { kind: 'feature'; feature: Feature }
   | { kind: 'feat'; featId: string }
-  | { kind: 'choice'; id: string; count: number; options: ChoiceOptions };
+  | { kind: 'choice'; id: string; count: number; options: ChoiceOptions }
+  /** Aumento fixo de atributo (ex.: Primal Champion, +4 FOR até 25). */
+  | { kind: 'ability_increase'; ability: z.infer<typeof AbilitySchema>; amount: number; max: number };
 
 export type LevelGrants = { level: number; grants: Grant[] }[];
 
@@ -86,6 +96,10 @@ const ChoiceOptionSchema: z.ZodType<ChoiceOption> = z.lazy(() =>
     description: z.string().optional(),
     grants: z.array(GrantSchema).default([]),
     levels: LevelGrantsSchema,
+    prerequisite: z
+      .strictObject({ minLevel: z.int().min(1).max(20).optional(), options: z.array(IdSchema).min(1).optional() })
+      .optional(),
+    repeatable: z.boolean().optional(),
   }),
 );
 
@@ -105,7 +119,7 @@ export const ChoiceOptionsSchema: z.ZodType<ChoiceOptions> = z.lazy(() =>
       max: z.int().min(1).max(30),
     }),
     z.strictObject({ pick: z.literal('feat'), categories: z.array(FeatCategorySchema).min(1) }),
-    z.strictObject({ pick: z.literal('weapon_mastery') }),
+    z.strictObject({ pick: z.literal('weapon_mastery'), melee: z.boolean().optional(), proficient: z.boolean().optional() }),
     z.strictObject({ pick: z.literal('subclass') }),
     z
       .strictObject({
@@ -119,6 +133,7 @@ export const ChoiceOptionsSchema: z.ZodType<ChoiceOptions> = z.lazy(() =>
       .refine((c) => c.minLevel <= c.maxLevel, { message: 'minLevel maior que maxLevel' }),
     z.strictObject({
       pick: z.literal('option'),
+      group: IdSchema.optional(),
       options: z.array(ChoiceOptionSchema).min(2).refine(uniqueIds, { message: 'ids de opção repetidos' }),
     }),
   ]),
@@ -130,6 +145,7 @@ export const GrantSchema: z.ZodType<Grant> = z.lazy(() =>
     z.strictObject({ kind: z.literal('feature'), feature: FeatureSchema }),
     z.strictObject({ kind: z.literal('feat'), featId: IdSchema }),
     z.strictObject({ kind: z.literal('choice'), id: IdSchema, count: z.int().positive(), options: ChoiceOptionsSchema }),
+    z.strictObject({ kind: z.literal('ability_increase'), ability: AbilitySchema, amount: z.int().positive(), max: z.int().min(1).max(30) }),
   ]),
 );
 
