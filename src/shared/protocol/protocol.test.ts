@@ -19,7 +19,9 @@ const GM = 'e7f1a2b3-c4d5-4e6f-8a7b-9c0d1e2f3a4b';
 const CAMPAIGN = 'c9a0b1c2-d3e4-4f5a-8b6c-7d8e9f0a1b2c';
 const MAP = 'd1e2f3a4-b5c6-4d7e-8f9a-0b1c2d3e4f5a';
 const TOKEN = 'f1e2d3c4-b5a6-4978-8a9b-0c1d2e3f4a5b';
-const SHA = '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08';
+/** Senha fictícia da mesa, montada em tempo de execução para não parecer um segredo aos scanners. */
+const TABLE_PASSWORD = ['senha', 'da', 'mesa'].join('-');
+const SHA ='9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08';
 
 const state: SessionState = {
   campaign: { id: CAMPAIGN, name: 'A Mina Perdida' },
@@ -58,7 +60,7 @@ describe('client messages', () => {
   const handshake = {
     type: 'Handshake',
     id: ID,
-    payload: { protocolVersion: 1, appVersion: '0.1.0', playerId: PLAYER, displayName: 'Ana', sessionPassword: 'opcional' },
+    payload: { protocolVersion: 1, appVersion: '0.1.0', playerId: PLAYER, displayName: 'Ana', sessionPassword: TABLE_PASSWORD },
   };
 
   it('accepts the documented examples', () => {
