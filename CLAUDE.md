@@ -12,7 +12,7 @@ Este documento é **vivo**: a direção do projeto pode mudar e novas funcionali
 - **Princípios vs. escolhas atuais:**
   - **Princípios** (marcados com 🔒 neste arquivo): a essência do projeto. Mudá-los é possível, mas exige discussão explícita com o usuário, nota em `docs/decisions/` e revisão do impacto no resto do sistema.
   - **Escolhas atuais** (todo o resto: bibliotecas, ordem das fases, estrutura de pastas, catálogo de efeitos, formato das mensagens): podem ser trocadas livremente quando o usuário pedir, seguindo as regras acima.
-- **Ao mudar algo que outra parte do sistema assume** (schema, protocolo, banco): incrementar a versão correspondente (`PROTOCOL_VERSION`, `DB_SCHEMA_VERSION`), criar migração quando aplicável e ajustar testes e fixtures.
+- **Ao mudar algo que outra parte do sistema assume** (schema, protocolo, banco): incrementar a versão correspondente (`PROTOCOL_VERSION`; no banco, uma migração nova em `src/main/db/`, que já sobe `APP_DB_SCHEMA_VERSION` ou `CAMPAIGN_DB_SCHEMA_VERSION`), criar migração quando aplicável e ajustar testes e fixtures.
 
 ### 🔒 Princípios
 
@@ -53,14 +53,14 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
   - Fluxo de uma ação: `renderer (cliente) -> IPC -> main (cliente) -> WS -> main (Host) -> rules-engine -> WS broadcast -> main -> IPC -> renderers`. O próprio mestre usa o mesmo fluxo via IPC local, sem atalhos.
   - **Consequência operacional:** a sessão roda no processo main do Host, então **o app do Host precisa ficar aberto** durante toda a sessão (pode minimizar; fechar o app encerra a mesa).
 - **Versionamento desacoplado:**
-  - `APP_VERSION` (SemVer), `PROTOCOL_VERSION` (inteiro) e `DB_SCHEMA_VERSION` (inteiro) evoluem de forma independente.
+  - `APP_VERSION` (SemVer), `PROTOCOL_VERSION` (inteiro) e as versões de esquema do banco (`APP_DB_SCHEMA_VERSION` e `CAMPAIGN_DB_SCHEMA_VERSION`, inteiros: o número de migrações) evoluem de forma independente.
   - **Handshake de versão** ao conectar compara `PROTOCOL_VERSION`: versões incompatíveis são recusadas com a mensagem `"Atualize o app"`.
-- **Persistência local (SQLite via `better-sqlite3`, com `PRAGMA journal_mode = WAL` e `PRAGMA foreign_keys = ON`):**
+- **Persistência local (SQLite embutido no Node, `node:sqlite`, com `PRAGMA journal_mode = WAL` e `PRAGMA foreign_keys = ON`; ver `docs/decisions/0023-sqlite-embutido-no-node.md`):**
   - Acesso ao banco só no processo main.
-  - `app.db` (global na máquina): compêndio do SRD 5.2.1, preferências locais, histórico de campanhas e índice do cache de assets.
+  - `app.db` (global na máquina): id do jogador, preferências locais, índice das campanhas hospedadas e, com o PR de assets, o índice do cache. O compêndio do SRD 5.2.1 fica embutido no app (JSON validado), não no banco.
   - `<campanha>.db` (portátil, um arquivo por campanha): personagens, inventários, monstros, mapas, tokens, combate, log de chat/rolagens e conteúdo homebrew daquela mesa.
   - Migrações sequenciais controladas por `PRAGMA user_version`, gerando backup automático (`.bak`) antes de alterar o schema.
-  - `better-sqlite3` é módulo nativo: deve ser recompilado para o Electron (o electron-builder faz isso; não usar o binário compilado para o Node do sistema).
+  - Sem módulo nativo: o `node:sqlite` vem com o Node (o do Electron no app, o do sistema nos testes). Todo o acesso fica em `src/main/db/`, para uma troca de biblioteca, se precisar, ficar restrita a essa pasta.
 - **Assets endereçados por hash do conteúdo (SHA-256 via `node:crypto`):** cacheados localmente e transferidos uma única vez sob demanda. Servidos ao PixiJS via protocolo customizado `vtt-asset://` registrado com `protocol.handle` (evitando tráfego Base64 pelo IPC).
 - **Fichas offline:** cada jogador mantém cópia local do personagem (lista de escolhas + inventário).
   - **Lista de escolhas** (construção do personagem): fora da sessão o jogador pode editar; ao reconectar, o Host compara o hash e exibe o *diff* das escolhas para o mestre aprovar ou rejeitar antes de aplicar.
@@ -159,7 +159,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - ✅ Executor de sessão em `src/main/session/` (lógica pura: permissões, `rev`, visibilidade, rolagem com o RNG do Host). Ver `docs/decisions/0020-executor-de-sessao.md`.
    - ✅ Transporte WebSocket em `src/main/net/` (handshake, Ping/Pong, limites, cliente com ressincronização). Ver `docs/decisions/0021-transporte-websocket.md`.
    - ✅ IPC e tela da mesa (`src/main/table/`, telas de hospedar e entrar, chat com `/r` e `/gr`). Ver `docs/decisions/0022-tela-da-mesa-e-ipc.md`.
-   - SQLite (`app.db`, `<campanha>.db`, migrações).
+   - ✅ SQLite em `src/main/db/` (`app.db` com o id do jogador, preferências e índice de campanhas; `<campanha>.db` com a sessão; migrações com `.bak`). Ver `docs/decisions/0023-sqlite-embutido-no-node.md`.
    - Assets (SHA-256, `vtt-asset://`, `AssetChunk`).
    - Mapa PixiJS (grid, tokens, câmera, `token.move`).
 3. **Fase 3 — Fichas & Progressão (interface):** telas de criação de personagem e de subida de nível sobre o motor da Fase 1, gerenciamento de inventário e sincronização offline com aprovação do mestre.

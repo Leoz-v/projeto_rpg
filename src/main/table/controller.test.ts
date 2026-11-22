@@ -1,8 +1,12 @@
 import { randomUUID } from 'node:crypto';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { seededRng } from 'rules-engine';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { TableEvent } from '../../shared/ipc';
 import { HostAddressSchema } from '../../shared/ipc-schemas';
+import { AppDb, CampaignLibrary } from '../db';
 import { TableController, TableError, hostUrl } from './controller';
 
 /** Dois apps na mesma máquina: um hospeda, o outro entra (127.0.0.1, porta livre). */
@@ -11,16 +15,28 @@ import { TableController, TableError, hostUrl } from './controller';
 const ANY_PASSWORD = ['qualquer', 'senha'].join('-');
 const controllers: TableController[] = [];
 
+const dirs: string[] = [];
+const appDbs: AppDb[] = [];
+
 afterEach(async () => {
   await Promise.all(controllers.splice(0).map((c) => c.leave()));
+  for (const db of appDbs.splice(0)) db.close();
+  for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
-function app(): { controller: TableController; events: TableEvent[]; playerId: string } {
+/** Um app com o próprio `app.db` e a própria pasta de campanhas, como numa máquina. */
+function app(): { controller: TableController; events: TableEvent[]; playerId: string; library: CampaignLibrary } {
   const events: TableEvent[] = [];
-  const playerId = randomUUID();
+  const dir = mkdtempSync(join(tmpdir(), 'vtt-table-'));
+  dirs.push(dir);
+  const appDb = AppDb.open(join(dir, 'app.db'));
+  appDbs.push(appDb);
+  const library = new CampaignLibrary(appDb, join(dir, 'campaigns'));
+  const playerId = appDb.playerId();
   const controller = new TableController({
     appVersion: '0.1.0',
     playerId,
+    campaigns: library,
     rng: seededRng(3),
     monsterExists: (id) => id === 'goblin',
     addresses: () => ['100.64.0.7'],
@@ -28,7 +44,7 @@ function app(): { controller: TableController; events: TableEvent[]; playerId: s
     listenHost: '127.0.0.1',
   });
   controllers.push(controller);
-  return { controller, events, playerId };
+  return { controller, events, playerId, library };
 }
 
 /** Espera um evento que satisfaça a condição. */
@@ -46,7 +62,7 @@ const chatLength = (n: number) => (e: TableEvent) => e.kind === 'state' && e.sta
 async function hosted(): Promise<{ gm: ReturnType<typeof app>; port: number }> {
   const gm = app();
   // Porta 0 não passa no schema de IPC (1024–65535); o controlador aceita para o teste.
-  const view = await gm.controller.host({ campaignName: 'A Mina Perdida', displayName: 'Mestre', port: 0 });
+  const view = await gm.controller.host({ campaign: { kind: 'new', name: 'A Mina Perdida' }, displayName: 'Mestre', port: 0 });
   return { gm, port: view.info.port ?? 0 };
 }
 
@@ -94,10 +110,10 @@ describe('TableController', () => {
 
   it('turns expected failures into TableError with a pt-BR message', async () => {
     const { gm, port } = await hosted();
-    await expect(gm.controller.host({ campaignName: 'Outra', displayName: 'Mestre' })).rejects.toThrow('Você já está em uma mesa');
+    await expect(gm.controller.host({ campaign: { kind: 'new', name: 'Outra' }, displayName: 'Mestre' })).rejects.toThrow('Você já está em uma mesa');
 
     const other = app();
-    await expect(other.controller.host({ campaignName: 'Outra', displayName: 'Mestre', port })).rejects.toThrow(`A porta ${port} já está em uso`);
+    await expect(other.controller.host({ campaign: { kind: 'new', name: 'Outra' }, displayName: 'Mestre', port })).rejects.toThrow(`A porta ${port} já está em uso`);
     await expect(other.controller.join({ address: `127.0.0.1:${port}`, displayName: 'Ana', password: ANY_PASSWORD })).resolves.toBeDefined();
     await other.controller.leave();
 
@@ -106,6 +122,45 @@ describe('TableController', () => {
     const error = await lost.controller.join({ address: `127.0.0.1:${port}`, displayName: 'Ana' }).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(TableError);
     await expect(lost.controller.send({ kind: 'chat.message', data: { text: 'oi' } })).rejects.toThrow('Você não está em uma mesa');
+  });
+});
+
+describe('TableController: saved campaigns', () => {
+  it('restores the log, maps and players when the GM hosts the same campaign again', async () => {
+    const { gm, port } = await hosted();
+    const ana = app();
+    await ana.controller.join({ address: `127.0.0.1:${port}`, displayName: 'Ana' });
+    await ana.controller.send({ kind: 'chat.message', data: { text: 'Antes de fechar' } });
+    await gm.controller.send({ kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10 } });
+    await waitFor(gm.events, (e) => e.kind === 'state' && Object.keys(e.state.maps).length === 1);
+    await ana.controller.leave();
+    await gm.controller.leave();
+
+    const [saved] = gm.library.list();
+    expect(saved?.name).toBe('A Mina Perdida');
+    const view = await gm.controller.host({ campaign: { kind: 'existing', id: saved?.id ?? '' }, displayName: 'Mestre Leo', port: 0 });
+    expect(view.state.campaign).toEqual({ id: saved?.id, name: 'A Mina Perdida' });
+    expect(view.state.chat).toMatchObject([{ kind: 'message', text: 'Antes de fechar', authorId: ana.playerId }]);
+    expect(Object.values(view.state.maps).map((m) => m.name)).toEqual(['Caverna']);
+    expect(view.state.activeMapId).not.toBeNull();
+    expect(view.state.players[ana.playerId]).toEqual({ displayName: 'Ana', role: 'player', connected: false });
+    expect(view.state.players[gm.playerId]).toEqual({ displayName: 'Mestre Leo', role: 'gm', connected: true });
+  });
+
+  it('keeps the same player id across app restarts', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'vtt-app-'));
+    dirs.push(dir);
+    const first = AppDb.open(join(dir, 'app.db'));
+    const id = first.playerId();
+    first.close();
+    const second = AppDb.open(join(dir, 'app.db'));
+    expect(second.playerId()).toBe(id);
+    second.close();
+  });
+
+  it('turns a missing campaign into a TableError', async () => {
+    const gm = app();
+    await expect(gm.controller.host({ campaign: { kind: 'existing', id: randomUUID() }, displayName: 'Mestre', port: 0 })).rejects.toThrow('Arquivo da campanha não encontrado');
   });
 });
 

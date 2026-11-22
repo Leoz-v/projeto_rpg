@@ -1,12 +1,14 @@
-import type { AppInfo, HostTableRequest, IpcError, JoinTableRequest } from './ipc-schemas';
+import type { AppInfo, HostTableRequest, IpcError, JoinTableRequest, Preferences } from './ipc-schemas';
 import type { Intent, IntentResultSchema, Role, SessionState } from './protocol';
 import type { z } from 'zod';
 
-export type { AppInfo, HostTableRequest, IpcError, JoinTableRequest } from './ipc-schemas';
+export type { AppInfo, CampaignChoice, HostTableRequest, IpcError, JoinTableRequest, Preferences } from './ipc-schemas';
 
 /** Canais de IPC. `table:event` vai do main para o renderer; os outros são `invoke`. */
 export const IpcChannel = {
   getAppInfo: 'app:get-info',
+  getPreferences: 'app:get-preferences',
+  listCampaigns: 'campaigns:list',
   hostTable: 'table:host',
   joinTable: 'table:join',
   leaveTable: 'table:leave',
@@ -32,6 +34,13 @@ export interface TableInfo {
   addresses?: string[];
 }
 
+/** Uma campanha hospedada nesta máquina. */
+export interface CampaignSummary {
+  id: string;
+  name: string;
+  lastOpenedAt: number;
+}
+
 /** O que o renderer precisa para desenhar a mesa. */
 export interface TableView {
   info: TableInfo;
@@ -44,6 +53,9 @@ export type TableEvent = { kind: 'state'; rev: number; state: SessionState } | {
 /** API exposta pelo preload em `window.vtt`. */
 export interface VttApi {
   getAppInfo(): Promise<IpcResult<AppInfo>>;
+  getPreferences(): Promise<IpcResult<Preferences>>;
+  /** Campanhas hospedadas aqui, da mais recente para a mais antiga. */
+  listCampaigns(): Promise<IpcResult<CampaignSummary[]>>;
   hostTable(request: HostTableRequest): Promise<IpcResult<TableView>>;
   joinTable(request: JoinTableRequest): Promise<IpcResult<TableView>>;
   leaveTable(): Promise<IpcResult<null>>;

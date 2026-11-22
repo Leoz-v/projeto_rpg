@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { NameSchema } from './protocol/common';
+import { NameSchema, UuidSchema } from './protocol/common';
 
 /**
  * Schemas Zod dos payloads de IPC. Usados no processo main para validar tudo
@@ -21,10 +21,19 @@ export type IpcError = z.infer<typeof IpcErrorSchema>;
 
 const PasswordSchema = z.string().min(1).max(100);
 
+const PortSchema = z.int().min(1024).max(65535);
+
+/** Campanha a hospedar: uma nova (cria o `<campanha>.db`) ou uma já hospedada nesta máquina. */
+export const CampaignChoiceSchema = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('new'), name: NameSchema }),
+  z.strictObject({ kind: z.literal('existing'), id: UuidSchema }),
+]);
+export type CampaignChoice = z.infer<typeof CampaignChoiceSchema>;
+
 export const HostTableRequestSchema = z.strictObject({
-  campaignName: NameSchema,
+  campaign: CampaignChoiceSchema,
   displayName: NameSchema,
-  port: z.int().min(1024).max(65535).optional(),
+  port: PortSchema.optional(),
   password: PasswordSchema.optional(),
 });
 export type HostTableRequest = z.infer<typeof HostTableRequestSchema>;
@@ -41,3 +50,11 @@ export const JoinTableRequestSchema = z.strictObject({
   password: PasswordSchema.optional(),
 });
 export type JoinTableRequest = z.infer<typeof JoinTableRequestSchema>;
+
+/** Preferências da tela inicial, guardadas no `app.db` para preencher os formulários. */
+export const PreferencesSchema = z.strictObject({
+  displayName: NameSchema.optional(),
+  lastAddress: HostAddressSchema.optional(),
+  lastPort: PortSchema.optional(),
+});
+export type Preferences = z.infer<typeof PreferencesSchema>;

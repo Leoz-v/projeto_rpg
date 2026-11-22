@@ -30,4 +30,4 @@ Valeu por ajudar! O objetivo do projeto é um VTT **sólido e previsível**: pou
 - **Mensagens de commit** no imperativo, com prefixo: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`.
   Ex.: `feat(rules-engine): add set_base_ac effect`.
 - **Decisões relevantes** (trocar biblioteca, mudar arquitetura) ganham uma nota em `docs/decisions/NNNN-titulo.md` e atualização no `CLAUDE.md`.
-- Mudou algo incompatível no protocolo ou no banco? Incremente `PROTOCOL_VERSION` ou `DB_SCHEMA_VERSION` e crie a migração.
+- Mudou algo incompatível no protocolo ou no banco? Incremente `PROTOCOL_VERSION`, ou acrescente uma migração em `src/main/db/` (nunca edite uma migração já publicada).

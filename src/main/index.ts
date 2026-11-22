@@ -1,12 +1,12 @@
-import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { loadSrdCompendium, RULES_ENGINE_VERSION } from 'rules-engine';
 import type { z } from 'zod';
 import { type AppInfo, IpcChannel, type IpcResult, type TableEvent } from '../shared/ipc';
 import { HostTableRequestSchema, JoinTableRequestSchema } from '../shared/ipc-schemas';
 import { IntentSchema } from '../shared/protocol';
 import { PROTOCOL_VERSION } from '../shared/versions';
+import { AppDb, CampaignLibrary } from './db';
 import { cryptoRng } from './session';
 import { localAddresses, TableController, TableError } from './table';
 
@@ -79,13 +79,22 @@ const emit = (event: TableEvent): void => {
   for (const win of BrowserWindow.getAllWindows()) win.webContents.send(IpcChannel.tableEvent, event);
 };
 
-// Até o SQLite (app.db), o id deste app muda a cada execução.
-const table = new TableController({ appVersion: app.getVersion(), playerId: randomUUID(), rng: cryptoRng, monsterExists, addresses: localAddresses, emit });
-
-function registerIpc(): void {
+function registerIpc(appDb: AppDb, table: TableController, library: CampaignLibrary): void {
   handle(IpcChannel.getAppInfo, (): AppInfo => ({ appVersion: app.getVersion(), protocolVersion: PROTOCOL_VERSION, rulesEngineVersion: RULES_ENGINE_VERSION }));
-  handle(IpcChannel.hostTable, (payload) => table.host(parse(HostTableRequestSchema, payload)));
-  handle(IpcChannel.joinTable, (payload) => table.join(parse(JoinTableRequestSchema, payload)));
+  handle(IpcChannel.getPreferences, () => appDb.preferences());
+  handle(IpcChannel.listCampaigns, () => library.list().map(({ id, name, lastOpenedAt }) => ({ id, name, lastOpenedAt })));
+  handle(IpcChannel.hostTable, async (payload) => {
+    const request = parse(HostTableRequestSchema, payload);
+    const view = await table.host(request);
+    appDb.savePreferences({ displayName: request.displayName, ...(request.port !== undefined ? { lastPort: request.port } : {}) });
+    return view;
+  });
+  handle(IpcChannel.joinTable, async (payload) => {
+    const request = parse(JoinTableRequestSchema, payload);
+    const view = await table.join(request);
+    appDb.savePreferences({ displayName: request.displayName, lastAddress: request.address });
+    return view;
+  });
   handle(IpcChannel.leaveTable, async () => {
     await table.leave();
     return null;
@@ -94,8 +103,41 @@ function registerIpc(): void {
   handle(IpcChannel.sendIntent, (payload) => table.send(parse(IntentSchema, payload)));
 }
 
+/** Abre o `app.db` na pasta de dados do app. Sem ele, o app não abre: avisa e sai. */
+function openAppDb(): AppDb | undefined {
+  try {
+    return AppDb.open(join(app.getPath('userData'), 'app.db'));
+  } catch (err: unknown) {
+    dialog.showErrorBox('Não foi possível abrir os dados do app', err instanceof Error ? err.message : String(err));
+    return undefined;
+  }
+}
+
+let table: TableController | undefined;
+
 void app.whenReady().then(() => {
-  registerIpc();
+  const appDb = openAppDb();
+  if (!appDb) {
+    app.quit();
+    return;
+  }
+  const library = new CampaignLibrary(appDb, join(app.getPath('userData'), 'campaigns'));
+  table = new TableController({
+    appVersion: app.getVersion(),
+    playerId: appDb.playerId(),
+    campaigns: library,
+    rng: cryptoRng,
+    monsterExists,
+    addresses: localAddresses,
+    emit,
+    log: (message) => {
+      console.error(`[mesa] ${message}`);
+    },
+  });
+  registerIpc(appDb, table, library);
+  app.on('will-quit', () => {
+    appDb.close();
+  });
   createWindow();
 
   app.on('activate', () => {
@@ -105,7 +147,7 @@ void app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   // Fechar a janela encerra a mesa (CLAUDE.md: o app do Host precisa ficar aberto).
-  void table.leave().finally(() => {
+  void (table?.leave() ?? Promise.resolve()).finally(() => {
     if (process.platform !== 'darwin') app.quit();
   });
 });

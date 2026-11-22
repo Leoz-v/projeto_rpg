@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 import type { Rng } from 'rules-engine';
 import type { HostTableRequest, IntentResultPayload, JoinTableRequest, TableEvent, TableInfo, TableView } from '../../shared/ipc';
 import { DEFAULT_PORT, type Intent } from '../../shared/protocol';
+import type { CampaignChoice } from '../../shared/ipc-schemas';
+import { CampaignDbError, CampaignNotFoundError, DatabaseTooNewError, type OpenCampaign } from '../db';
 import { ConnectError, HostClient, HostServer } from '../net';
 import { HostSession } from '../session';
 
@@ -13,8 +15,10 @@ import { HostSession } from '../session';
 
 export interface TableControllerDeps {
   appVersion: string;
-  /** Id deste app (salvo em `app.db` quando o SQLite chegar). */
+  /** Id deste app (`app.db`). */
   playerId: string;
+  /** Abre ou cria a campanha a hospedar (`CampaignLibrary`). */
+  campaigns: { open(choice: CampaignChoice): OpenCampaign };
   rng: Rng;
   monsterExists(id: string): boolean;
   /** Endereços desta máquina para mostrar aos jogadores. */
@@ -23,6 +27,8 @@ export interface TableControllerDeps {
   emit(event: TableEvent): void;
   /** Interface de rede do Host; padrão: todas (testes usam 127.0.0.1). */
   listenHost?: string;
+  /** Problemas que não chegam à tela (ex.: falha ao salvar). */
+  log?: (message: string) => void;
 }
 
 /** Falha esperada, com mensagem em pt-BR para a tela. */
@@ -34,7 +40,7 @@ export class TableError extends Error {
 }
 
 type Table =
-  | { mode: 'host'; info: TableInfo; session: HostSession; server: HostServer }
+  | { mode: 'host'; info: TableInfo; session: HostSession; server: HostServer; store: OpenCampaign }
   | { mode: 'player'; info: TableInfo; client: HostClient; unsubscribe: () => void };
 
 const hasCode = (err: unknown, code: string): boolean => err instanceof Error && 'code' in err && err.code === code;
@@ -60,34 +66,58 @@ export class TableController {
   async host(request: HostTableRequest): Promise<TableView> {
     this.requireIdle();
     const { deps } = this;
-    const session = new HostSession({ id: randomUUID(), name: request.campaignName }, { playerId: deps.playerId, displayName: request.displayName }, {
-      rng: deps.rng,
-      now: Date.now,
-      newId: randomUUID,
-      monsterExists: (id) => deps.monsterExists(id),
-    });
+    const store = this.openCampaign(request.campaign);
+    const session = new HostSession(
+      store.campaign,
+      { playerId: deps.playerId, displayName: request.displayName },
+      { rng: deps.rng, now: Date.now, newId: randomUUID, monsterExists: (id) => deps.monsterExists(id) },
+      store.restored,
+    );
     const server = new HostServer({
       session,
       appVersion: deps.appVersion,
       port: request.port ?? DEFAULT_PORT,
       ...(deps.listenHost !== undefined ? { host: deps.listenHost } : {}),
       ...(request.password !== undefined ? { password: request.password } : {}),
-      // O mestre vê o estado completo. Depois de encerrar, as quedas dos jogadores não chegam à tela.
+      // Salva e avisa a tela (o mestre vê o estado completo). Depois de encerrar, as quedas dos jogadores são ignoradas.
       onChange: (change) => {
-        if (this.table?.mode === 'host' && this.table.session === session) deps.emit({ kind: 'state', rev: change.rev, state: session.state });
+        if (this.table?.mode !== 'host' || this.table.session !== session) return;
+        this.persist(store, session);
+        deps.emit({ kind: 'state', rev: change.rev, state: session.state });
       },
     });
     let port: number;
     try {
       port = await server.start();
     } catch (err: unknown) {
+      store.close();
       if (hasCode(err, 'EADDRINUSE')) throw new TableError(`A porta ${request.port ?? DEFAULT_PORT} já está em uso`);
       if (hasCode(err, 'EACCES')) throw new TableError(`Sem permissão para usar a porta ${request.port ?? DEFAULT_PORT}`);
       throw err;
     }
-    const info: TableInfo = { mode: 'host', role: 'gm', playerId: deps.playerId, campaignName: request.campaignName, port, addresses: deps.addresses() };
-    this.table = { mode: 'host', info, session, server };
+    // Grava o mestre desta sessão (e o nome dele) logo ao abrir.
+    this.persist(store, session);
+    const info: TableInfo = { mode: 'host', role: 'gm', playerId: deps.playerId, campaignName: store.campaign.name, port, addresses: deps.addresses() };
+    this.table = { mode: 'host', info, session, server, store };
     return { info, rev: session.rev, state: session.state };
+  }
+
+  private openCampaign(choice: CampaignChoice): OpenCampaign {
+    try {
+      return this.deps.campaigns.open(choice);
+    } catch (err: unknown) {
+      if (err instanceof CampaignNotFoundError || err instanceof CampaignDbError || err instanceof DatabaseTooNewError) throw new TableError(err.message);
+      throw err;
+    }
+  }
+
+  /** Salvar nunca derruba a mesa: a falha é registrada e a sessão segue em memória. */
+  private persist(store: OpenCampaign, session: HostSession): void {
+    try {
+      store.save(session.state);
+    } catch (err: unknown) {
+      this.deps.log?.(`falha ao salvar a campanha: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
   async join(request: JoinTableRequest): Promise<TableView> {
@@ -126,6 +156,8 @@ export class TableController {
     if (!table) return;
     if (table.mode === 'host') {
       await table.server.stop();
+      this.persist(table.store, table.session);
+      table.store.close();
       return;
     }
     table.unsubscribe();

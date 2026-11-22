@@ -73,18 +73,27 @@ export class HostSession {
   private current: SessionState;
   private revision = 0;
 
+  /**
+   * `restored`: o estado salvo da campanha (`<campanha>.db`). Ninguém começa
+   * conectado além do mestre, e só o mestre desta sessão tem o papel `gm`
+   * (o arquivo é portátil e pode ter sido hospedado por outra pessoa).
+   */
   constructor(
     campaign: SessionState['campaign'],
     private readonly gm: Identity,
     private readonly deps: SessionDeps,
+    restored?: SessionState,
   ) {
+    const players = Object.fromEntries(
+      Object.entries(restored?.players ?? {}).map(([id, p]) => [id, { displayName: p.displayName, role: 'player' as const, connected: false }]),
+    );
     this.current = {
-      campaign,
-      players: { [gm.playerId]: { displayName: gm.displayName, role: 'gm', connected: true } },
-      chat: [],
-      maps: {},
-      activeMapId: null,
-      tokens: {},
+      campaign: restored?.campaign ?? campaign,
+      players: { ...players, [gm.playerId]: { displayName: gm.displayName, role: 'gm', connected: true } },
+      chat: restored?.chat ?? [],
+      maps: restored?.maps ?? {},
+      activeMapId: restored?.activeMapId ?? null,
+      tokens: restored?.tokens ?? {},
     };
   }
 
