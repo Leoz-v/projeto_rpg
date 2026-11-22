@@ -69,6 +69,10 @@ export interface WeaponAttack {
   proficient: boolean;
   attack: RollStat;
   damage: { dice: string; bonus: Stat; type: DamageType };
+  /** Dano extra ao acertar (Radiant Strikes, Vicious Weapon), com a fonte. */
+  extraDamage: { dice: string; type: DamageType; source: SourceLabel }[];
+  /** Menor resultado do d20 que faz Acerto Crítico (20 sem efeitos `crit_range`). */
+  critRange: number;
   /** Dano com duas mãos (propriedade Versatile). */
   versatileDice?: string | undefined;
   range?: { normal: number; long: number } | undefined;

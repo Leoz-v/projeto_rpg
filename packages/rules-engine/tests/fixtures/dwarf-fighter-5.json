@@ -85,8 +85,8 @@
     "weaponMasteries": ["greatsword", "handaxe", "heavy_crossbow", "longsword"],
     "feats": ["ability_score_improvement", "defense", "savage_attacker"],
     "attacks": [
-      { "itemId": "longsword", "attack": 7, "damage": "1d8", "damageBonus": 4, "damageType": "slashing", "versatileDice": "1d10", "mastery": "sap", "masteryAvailable": true },
-      { "itemId": "javelin", "attack": 7, "damage": "1d6", "damageBonus": 4, "damageType": "piercing", "mastery": "slow", "masteryAvailable": false }
+      { "itemId": "longsword", "attack": 7, "damage": "1d8", "damageBonus": 4, "damageType": "slashing", "versatileDice": "1d10", "critRange": 19, "mastery": "sap", "masteryAvailable": true },
+      { "itemId": "javelin", "attack": 7, "damage": "1d6", "damageBonus": 4, "damageType": "piercing", "critRange": 19, "mastery": "slow", "masteryAvailable": false }
     ],
     "spellcasting": { "classes": [], "slots": [0, 0, 0, 0, 0, 0, 0, 0, 0], "granted": [] }
   }

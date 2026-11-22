@@ -229,6 +229,28 @@ O valor do atributo passa a ser pelo menos `value` (ex.: Manoplas de Força do O
 - Rolada pelo motor ao aplicar o dano (`applyDamage`), com o RNG do Host. Várias reduções se somam. O dano não fica negativo.
 - Ordem no dano (SRD 5.2.1, "Damage Resistance and Vulnerability"): imunidade zera; senão, reduções (ajustes), depois Resistência (metade, para baixo), depois Vulnerabilidade (dobro).
 
+### 3.15 `extra_damage`
+
+```json
+{ "type": "extra_damage", "dice": "1d8", "damageType": "radiant", "when": { "attackKind": "melee" } }
+{ "type": "extra_damage", "dice": "2d6", "scope": "weapon" }
+```
+
+- Dano extra em dados quando o ataque com arma acerta (Radiant Strikes do Paladino: "+1d8 Radiant" em ataques corpo a corpo).
+- `damageType` ausente: o mesmo tipo do dano da arma (Vicious Weapon: "of the same type as the weapon's normal damage").
+- `scope: "weapon"` (só em itens): vale só nos ataques com a arma daquela entrada do inventário, como `attack.weapon`.
+- O `when` é avaliado no contexto do ataque. A ficha lista o dano extra em cada ataque; a rolagem soma quando o ataque acerta. O crítico dobra esses dados também (regra do SRD para dados de dano), na Fase 4.
+- Dano extra que depende do alvo ("contra Undead") ou de escolha por turno (Divine Strike, Sneak Attack) não usa este efeito: é resolução da Fase 4.
+
+### 3.16 `crit_range`
+
+```json
+{ "type": "crit_range", "min": 19 }
+```
+
+- Os ataques com arma da criatura fazem Acerto Crítico com `min` ou mais no d20 (Improved Critical: 19–20; Superior Critical: 18–20).
+- Vale o menor `min` entre as fontes ativas (não se acumulam). O `when` é avaliado no contexto do ataque.
+
 ## 4. Ordem de cálculo da ficha
 
 1. Valores base dos atributos (lista de escolhas: ASIs do antecedente e de talentos e aumentos fixos de classe, como Primal Champion).

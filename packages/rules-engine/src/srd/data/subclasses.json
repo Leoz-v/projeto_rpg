@@ -12,7 +12,13 @@
             "feature": {
               "id": "improved_critical",
               "name": "Improved Critical",
-              "description": "Your attack rolls with weapons and Unarmed Strikes can score a Critical Hit on a roll of 19 or 20 on the d20."
+              "description": "Your attack rolls with weapons and Unarmed Strikes can score a Critical Hit on a roll of 19 or 20 on the d20.",
+              "effects": [
+                {
+                  "type": "crit_range",
+                  "min": 19
+                }
+              ]
             }
           },
           {
@@ -72,7 +78,13 @@
             "feature": {
               "id": "superior_critical",
               "name": "Superior Critical",
-              "description": "Your attack rolls with weapons and Unarmed Strikes can now score a Critical Hit on a roll of 18-20 on the d20."
+              "description": "Your attack rolls with weapons and Unarmed Strikes can now score a Critical Hit on a roll of 18-20 on the d20.",
+              "effects": [
+                {
+                  "type": "crit_range",
+                  "min": 18
+                }
+              ]
             }
           }
         ]

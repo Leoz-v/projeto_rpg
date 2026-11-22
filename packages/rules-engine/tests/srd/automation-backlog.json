@@ -1,7 +1,5 @@
 {
   "mechanics": {
-    "extra_damage": "Dano extra em dados nos ataques da ficha ('+1d8 Radiant em ataques corpo a corpo').",
-    "crit_range": "Faixa de crítico ampliada (19-20, 18-20).",
     "d20_rules": "Regras automáticas da rolagem d20/dano: rerrolar 1, mínimo 10, usar o valor do atributo, tratar 1-2 como 3.",
     "death_saves": "Alvo de rolagem para salvaguardas contra a morte (vantagem).",
     "minimum_speed": "Deslocamento mínimo ('your Speed becomes 30 feet unless higher').",
@@ -291,13 +289,6 @@
     "feature:class:paladin/lay_on_hands": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:class:paladin/radiant_strikes": {
-      "category": "automate",
-      "reason": "Passivo: vale sempre que a característica está ativa.",
-      "mechanics": [
-        "extra_damage"
-      ]
     },
     "feature:class:paladin/restoring_touch": {
       "category": "phase_4",
@@ -767,20 +758,6 @@
     "feature:subclass:champion/heroic_warrior": {
       "category": "phase_5",
       "reason": "Depende do estado de combate (iniciativa, turnos, fúria ativa, concentração, condições)."
-    },
-    "feature:subclass:champion/improved_critical": {
-      "category": "automate",
-      "reason": "Passivo: vale sempre que a característica está ativa.",
-      "mechanics": [
-        "crit_range"
-      ]
-    },
-    "feature:subclass:champion/superior_critical": {
-      "category": "automate",
-      "reason": "Passivo: vale sempre que a característica está ativa.",
-      "mechanics": [
-        "crit_range"
-      ]
     },
     "feature:subclass:champion/survivor": {
       "category": "automate",
@@ -1640,13 +1617,6 @@
     "item:universal_solvent": {
       "category": "gm",
       "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
-    },
-    "item:vicious_weapon": {
-      "category": "automate",
-      "reason": "Passivo enquanto vestido, empunhado ou sintonizado.",
-      "mechanics": [
-        "extra_damage"
-      ]
     },
     "item:wand_of_binding": {
       "category": "phase_4",

@@ -69,6 +69,8 @@ const REACH_BONUS = 5;
 const HEAVY_WEAPON_MINIMUM = 13;
 const HEAVY_ARMOR_SPEED_PENALTY = 10;
 const SPELL_DC_BASE = 8;
+/** Acerto Crítico padrão: 20 natural. */
+const CRITICAL_HIT = 20;
 
 /** Uma rolagem concreta: o que é atacado ou evitado. */
 export interface RollContext {
@@ -530,6 +532,10 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       proficient,
       attack: { ...stat(attackParts), roll: rollState([`attack.${weapon.attackKind}`, 'attack.all'], attackCtx, extra) },
       damage: { dice: weapon.damage.dice, bonus: stat(damageParts), type: weapon.damage.type },
+      extraDamage: effectsOf('extra_damage', attackCtx)
+        .filter(({ effect, refKey }) => effect.scope !== 'weapon' || refKey === `item:${instanceId}`)
+        .map(({ effect, source }) => ({ dice: effect.dice, type: effect.damageType ?? weapon.damage.type, source })),
+      critRange: Math.min(CRITICAL_HIT, ...effectsOf('crit_range', attackCtx).map(({ effect }) => effect.min)),
       versatileDice: weapon.versatileDice,
       range: weapon.range,
       reach: weapon.attackKind === 'melee' ? DEFAULT_REACH + (weapon.properties.includes('reach') ? REACH_BONUS : 0) : 0,

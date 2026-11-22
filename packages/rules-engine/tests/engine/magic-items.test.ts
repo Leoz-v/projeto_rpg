@@ -282,3 +282,32 @@ describe('capped ability increases and proficiency bonus (Phase 1.5, group 4)', 
     expect(sheet.saves.int.total).toBe(without.saves.int.total);
   });
 });
+
+describe('extra damage and critical range (Phase 1.5, group 5)', () => {
+  const weapons = [
+    { instanceId: 'sword', itemId: 'longsword', equipped: true },
+    { instanceId: 'bow', itemId: 'longbow', equipped: true },
+  ];
+  const attack = (sheet: ReturnType<typeof derive>, id: string) => sheet.attacks.find((a) => a.instanceId === id);
+
+  it('adds extra damage dice only to the attacks its `when` allows (Radiant Strikes: melee)', () => {
+    const radiant = { id: 'radiant', name: 'Radiant Strikes', effects: [{ type: 'extra_damage', dice: '1d8', damageType: 'radiant', when: { attackKind: 'melee' } }] };
+    const sheet = derive({ inventory: { items: weapons }, adjustments: [radiant] });
+    expect(attack(sheet, 'sword')?.extraDamage).toEqual([{ dice: '1d8', type: 'radiant', source: { kind: 'adjustment', id: 'radiant', name: 'Radiant Strikes' } }]);
+    expect(attack(sheet, 'bow')?.extraDamage).toEqual([]);
+  });
+
+  it('keeps Vicious Weapon damage on that weapon, with its damage type', () => {
+    const sheet = derive({
+      inventory: { items: [{ instanceId: 'sword', itemId: 'vicious_weapon', baseItemId: 'longsword', equipped: true }, { instanceId: 'bow', itemId: 'longbow', equipped: true }] },
+    });
+    expect(attack(sheet, 'sword')?.extraDamage.map((x) => `${x.dice} ${x.type}`)).toEqual(['2d6 slashing']);
+    expect(attack(sheet, 'bow')?.extraDamage).toEqual([]);
+  });
+
+  it('uses the lowest critical range among active sources', () => {
+    const crit = (min: number) => ({ id: `crit_${String(min)}`, name: `Crit ${String(min)}`, effects: [{ type: 'crit_range', min }] });
+    expect(attack(derive({ inventory: { items: weapons } }), 'bow')?.critRange).toBe(20);
+    expect(attack(derive({ inventory: { items: weapons }, adjustments: [crit(19), crit(18)] }), 'bow')?.critRange).toBe(18);
+  });
+});

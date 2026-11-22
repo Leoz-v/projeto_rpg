@@ -62,6 +62,9 @@ function project(sheet: DerivedSheet): unknown {
       damageBonus: a.damage.bonus.total,
       damageType: a.damage.type,
       ...(a.versatileDice ? { versatileDice: a.versatileDice } : {}),
+      // Só quando diferem do padrão (crítico só no 20, sem dano extra).
+      ...(a.critRange !== 20 ? { critRange: a.critRange } : {}),
+      ...(a.extraDamage.length ? { extraDamage: a.extraDamage.map((x) => `${x.dice} ${x.type}`) } : {}),
       mastery: a.mastery.property,
       masteryAvailable: a.mastery.available,
     })),
