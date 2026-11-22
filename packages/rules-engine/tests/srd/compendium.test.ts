@@ -5,6 +5,7 @@ import { type Item, ItemSchema } from '../../src/schemas/item';
 import { BackgroundSchema, ClassSchema, FeatSchema, type Grant, SpeciesSchema, SubclassSchema } from '../../src/schemas/source';
 import { SpellSchema } from '../../src/schemas/spell';
 import { loadSrdCompendium, SRD_ATTRIBUTION, SRD_RAW } from '../../src/srd';
+import { derive } from '../engine/helpers';
 
 /** Lista os erros de validação de cada entrada, com id e caminho, para o teste falhar com mensagem legível. */
 function issuesOf(schema: z.ZodType, entries: readonly unknown[]): string[] {
@@ -289,8 +290,9 @@ describe('SRD compendium', () => {
       expect(tools).toHaveLength(37);
       const perCategory = Object.fromEntries(['artisan', 'gaming_set', 'musical_instrument', 'other'].map((c) => [c, tools.filter((t) => t.category === c).length]));
       expect(perCategory).toEqual({ artisan: 17, gaming_set: 4, musical_instrument: 10, other: 6 });
-      // 78 das 82 linhas da tabela (as 4 genéricas viram munições e formas de foco), 5 munições e 11 formas de foco.
-      expect(gear).toHaveLength(94);
+      // 75 das 82 linhas da tabela (sem as 4 genéricas, que viram munições e formas de foco, e sem Potion of Healing e os dois
+      // Spell Scrolls, que são itens mágicos), 5 munições e 11 formas de foco.
+      expect(gear).toHaveLength(91);
       expect(gear.filter((g) => g.focus !== undefined)).toHaveLength(11);
       expect(gear.filter((g) => g.contents.length > 0).map((g) => g.id)).toEqual([
         'burglars_pack', 'diplomats_pack', 'dungeoneers_pack', 'entertainers_pack', 'explorers_pack', 'priests_pack', 'scholars_pack',
@@ -352,6 +354,85 @@ describe('SRD compendium', () => {
         const text = `${g.description ?? ''} ${g.kind === 'tool' ? g.utilize : ''}`;
         expect(text, g.id).not.toMatch(/System Reference Document|�|−|­|\d+ GP \d+ GP/);
       }
+    });
+  });
+
+  describe('magic items (pp. 209-253)', () => {
+    const magic = srd.items.filter((i): i is Extract<Item, { kind: 'magic_item' }> => i.kind === 'magic_item');
+    const m = (id: string): Extract<Item, { kind: 'magic_item' }> => {
+      const found = magic.find((i) => i.id === id);
+      if (!found) throw new Error(`não encontrado: ${id}`);
+      return found;
+    };
+
+    it('has every item of Magic Items A-Z', () => {
+      expect(magic).toHaveLength(258);
+      const perCategory = Object.fromEntries(
+        ['armor', 'weapon', 'wondrous', 'potion', 'ring', 'rod', 'scroll', 'staff', 'wand'].map((c) => [c, magic.filter((i) => i.category === c).length]),
+      );
+      expect(perCategory).toEqual({ armor: 19, weapon: 33, wondrous: 127, potion: 24, ring: 22, rod: 7, scroll: 1, staff: 12, wand: 13 });
+      expect(magic.filter((i) => i.attunement)).toHaveLength(140);
+    });
+
+    it('matches the PDF entries', () => {
+      expect(m('weapon_plus')).toMatchObject({ category: 'weapon', base: { kind: 'weapon', categories: ['simple', 'martial'] } });
+      expect(m('weapon_plus').variants.map((v) => [v.id, v.rarity])).toEqual([['plus_1', 'uncommon'], ['plus_2', 'rare'], ['plus_3', 'very_rare']]);
+      expect(m('armor_plus').variants.map((v) => v.rarity)).toEqual(['rare', 'very_rare', 'legendary']);
+      expect(m('ring_of_protection')).toMatchObject({ category: 'ring', rarity: 'rare', activation: 'attuned', attunement: {} });
+      expect(m('staff_of_power')).toMatchObject({
+        rarity: 'very_rare',
+        attunement: { classes: ['sorcerer', 'warlock', 'wizard'] },
+        base: { kind: 'weapon', ids: ['quarterstaff'] },
+        charges: { max: 20, regain: '2d8 + 4 daily at dawn' },
+      });
+      expect(m('wand_of_the_war_mage').attunement).toMatchObject({ spellcaster: true });
+      // "Any Medium or Heavy, Except Hide Armor": todas as médias e pesadas menos Hide.
+      expect(m('adamantine_armor').base?.ids).not.toContain('hide_armor');
+      expect(m('adamantine_armor').base?.ids).toContain('plate_armor');
+      expect(m('belt_of_giant_strength').variants.map((v) => [v.id, v.rarity, v.effects])).toEqual([
+        ['hill', 'rare', [{ type: 'set_minimum_score', ability: 'str', value: 21 }]],
+        ['frost_or_stone', 'very_rare', [{ type: 'set_minimum_score', ability: 'str', value: 23 }]],
+        ['fire', 'very_rare', [{ type: 'set_minimum_score', ability: 'str', value: 25 }]],
+        ['cloud', 'legendary', [{ type: 'set_minimum_score', ability: 'str', value: 27 }]],
+        ['storm', 'legendary', [{ type: 'set_minimum_score', ability: 'str', value: 29 }]],
+      ]);
+      expect(m('spell_scroll').variants).toHaveLength(10);
+      expect(m('spell_scroll').variants[0]).toMatchObject({ id: 'cantrip', rarity: 'common', cost: { amount: 30, coin: 'gp' } });
+      expect(m('potion_of_healing')).toMatchObject({ weight: 0.5, consumable: true });
+      expect(m('ring_of_resistance').variants).toHaveLength(10);
+    });
+
+    it('resolves every base item and keeps ids unique across all items', () => {
+      const ids = srd.items.map((i) => i.id);
+      expect(new Set(ids).size).toBe(ids.length);
+      for (const i of magic) {
+        for (const id of i.base?.ids ?? []) expect(byId(srd.items, id).kind, `${i.id} -> ${id}`).toBe(i.base?.kind);
+      }
+    });
+
+    it('applies SRD magic items to a derived sheet', () => {
+      const baseline = derive({ inventory: { items: [{ instanceId: 'sword', itemId: 'longsword', equipped: true }] } });
+      const sheet = derive({
+        inventory: {
+          items: [
+            { instanceId: 'sword', itemId: 'weapon_plus', baseItemId: 'longsword', variantId: 'plus_1', equipped: true },
+            { instanceId: 'belt', itemId: 'belt_of_giant_strength', variantId: 'hill', equipped: true, attuned: true },
+            { instanceId: 'cloak', itemId: 'cloak_of_protection', equipped: true, attuned: true },
+          ],
+        },
+      });
+      expect(sheet.issues.filter((i) => i.severity === 'error')).toEqual([]);
+      expect(sheet.abilities.str.total).toBe(21);
+      expect(sheet.ac.total).toBe(baseline.ac.total + 1);
+      expect(sheet.saves.dex.total).toBe(baseline.saves.dex.total + 1);
+      const [before, after] = [baseline.attacks[0], sheet.attacks[0]];
+      // FOR 17 -> 21 (+3 -> +5) e +1 da arma.
+      expect(after?.attack.total).toBe((before?.attack.total ?? 0) + 2 + 1);
+      expect(after?.name).toBe('Weapon, +1 (Longsword)');
+    });
+
+    it('has clean text (no page footers or broken characters)', () => {
+      for (const i of magic) expect(i.description ?? '', i.id).not.toMatch(/System Reference Document|�|−|­/);
     });
   });
 

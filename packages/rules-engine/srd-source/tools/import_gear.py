@@ -241,11 +241,13 @@ CONSUMABLE = {"Acid", "Alchemist's Fire", "Antitoxin", "Candle", "Holy Water", "
 # Itens vendidos em lote: preço e peso valem para `perPurchase` unidades.
 BUNDLES = {"Spikes, Iron": 10}
 GENERIC = {"Ammunition", "Arcane Focus", "Druidic Focus", "Holy Symbol"}
+# Itens mágicos listados na tabela de equipamento: vêm de import_magic_items.py (com o preço e o peso daqui).
+MAGIC = {"Potion of Healing", "Spell Scroll (Cantrip)", "Spell Scroll (Level 1)"}
 table_names = {r["name"] for r in table}
 gear = []
 for row in table:
     name = row["name"]
-    if name in GENERIC:
+    if name in GENERIC or name in MAGIC:
         continue
     key = "Spell Scroll" if name.startswith("Spell Scroll") else name
     d = descriptions.get(key)
@@ -265,7 +267,7 @@ for row in table:
     item["description"] = clean_description(d["lines"])
     gear.append(item)
 for name in descriptions:
-    if name not in table_names and name not in GENERIC and name != "Spell Scroll":
+    if name not in table_names and name not in GENERIC and name not in MAGIC and name != "Spell Scroll":
         problems.append(f"{name}: descrição sem linha na tabela")
 
 for typ, amount, storage, w, c in ammo:
@@ -328,7 +330,7 @@ for item in gear:
 
 # Ferramentas: tudo que fabricam precisa existir (exceto categorias genéricas).
 # Categorias: o item fabricado é qualquer uma das formas (focos, pergaminhos).
-GENERIC_CRAFT = re.compile(r"^(Any Melee weapon|Medium armor|Heavy armor|Ranged weapons|Arcane Focus|Druidic Focus|Holy Symbol|Spell Scroll)")
+GENERIC_CRAFT = re.compile(r"^(Any Melee weapon|Medium armor|Heavy armor|Ranged weapons|Arcane Focus|Druidic Focus|Holy Symbol|Spell Scroll|Potion of Healing)")
 for t in tool_items:
     for c in t.get("craft", []):
         if GENERIC_CRAFT.match(c):

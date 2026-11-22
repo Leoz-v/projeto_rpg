@@ -26,7 +26,9 @@ As **magias** seguem um formato regular e foram importadas por parser automátic
 
 Os **monstros** também vêm de parser automático, que confere os números redundantes de cada bloco (XP, PV, modificadores, Percepção passiva, dano médio). Ver `docs/decisions/0012-importacao-dos-monstros.md`.
 
-As **ferramentas e o equipamento de aventura** vêm de parser automático, que confere a tabela contra as descrições e o peso de cada pacote contra a soma do conteúdo. Ver `docs/decisions/0013-ferramentas-e-equipamento.md`. Os scripts ficam em `tools/` (ver `tools/README.md`).
+As **ferramentas e o equipamento de aventura** vêm de parser automático, que confere a tabela contra as descrições e o peso de cada pacote contra a soma do conteúdo. Ver `docs/decisions/0013-ferramentas-e-equipamento.md`.
+
+Os **itens mágicos** vêm de parser automático. Os efeitos passivos são curados no script, e cada efeito traz o trecho da descrição que o justifica (conferido a cada importação). Ver `docs/decisions/0014-itens-magicos.md`. Os scripts ficam em `tools/` (ver `tools/README.md`).
 
 ## O que já foi transcrito
 
@@ -47,6 +49,7 @@ As **ferramentas e o equipamento de aventura** vêm de parser automático, que c
 | Idiomas da criação de personagem | 20 | `creation.json` |
 | Monstros e animais (330) | 258–364 | `monsters.json` |
 | Ferramentas (37, uma por variante) | 93–94 | `tools.json` |
-| Equipamento de aventura, munição e focos (94) | 94–100 | `gear.json` |
+| Equipamento de aventura, munição e focos (91) | 94–100 | `gear.json` |
+| Itens mágicos (258) | 209–253 | `magic-items.json` |
 
-**Faltam:** itens mágicos; montarias, veículos e serviços (pp. 100–102).
+**Faltam:** montarias, veículos e serviços (pp. 100–102).

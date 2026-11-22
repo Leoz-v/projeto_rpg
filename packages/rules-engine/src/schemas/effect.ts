@@ -4,6 +4,7 @@ import {
   AttackKindSchema,
   ConditionSchema,
   DamageTypeSchema,
+  DiceSchema,
   FeetSchema,
   IdSchema,
   RestSchema,
@@ -30,7 +31,7 @@ const AttackKind = AttackKindSchema;
 // --- flat_bonus (3.1) -------------------------------------------------------
 
 export const FlatBonusTargetSchema = z.union([
-  z.enum(['ac', 'initiative', 'hp_max', 'speed.walk', 'speed.fly', 'speed.swim', 'speed.climb', 'speed.burrow', 'save.all', 'spell_save_dc', 'attunement_slots']),
+  z.enum(['ac', 'initiative', 'hp_max', 'speed.walk', 'speed.fly', 'speed.swim', 'speed.climb', 'speed.burrow', 'save.all', 'spell_save_dc', 'attunement_slots', 'attack.weapon', 'damage.weapon']),
   z.templateLiteral(['attack.', AttackKind]),
   z.templateLiteral(['damage.', AttackKind]),
   z.templateLiteral(['save.', Ability]),
@@ -157,6 +158,18 @@ const GrantSenseSchema = z.strictObject({
   type: z.literal('grant_sense'),
   sense: SenseSchema,
   range: FeetSchema.positive(),
+  /** Soma ao alcance dado por outras fontes (ou concede, se não houver). */
+  extend: z.literal(true).optional(),
+  ...common,
+});
+
+// --- damage_reduction (3.14) ------------------------------------------------
+
+const DamageReductionSchema = z.strictObject({
+  type: z.literal('damage_reduction'),
+  damageType: DamageTypeSchema,
+  /** Dados ou inteiro, rolados a cada dano recebido do tipo. */
+  amount: DiceSchema,
   ...common,
 });
 
@@ -221,6 +234,7 @@ export const EffectSchema = z.discriminatedUnion('type', [
   GrantProficiencySchema,
   GrantSpellSchema,
   GrantSenseSchema,
+  DamageReductionSchema,
   SetMinimumScoreSchema,
   WeaponMasteryEffectSchema,
   ConditionEffectSchema,

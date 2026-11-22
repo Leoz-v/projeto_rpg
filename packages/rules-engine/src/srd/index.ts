@@ -22,6 +22,7 @@ import classes from './data/classes.json';
 import creation from './data/creation.json';
 import feats from './data/feats.json';
 import gear from './data/gear.json';
+import magicItems from './data/magic-items.json';
 import monsters from './data/monsters.json';
 import species from './data/species.json';
 import spells from './data/spells.json';
@@ -70,7 +71,7 @@ const CompendiumSchema = z.strictObject({
 
 /** Dados brutos, antes da validação (exportados para os testes de integridade). */
 export const SRD_RAW = {
-  items: [...weapons, ...armor, ...tools, ...gear],
+  items: [...weapons, ...armor, ...tools, ...gear, ...magicItems],
   species,
   backgrounds,
   feats,
