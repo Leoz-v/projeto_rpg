@@ -108,6 +108,7 @@
     "speed": { "walk": 30 },
     "saves": { "str": -1, "dex": 2, "con": 2, "int": 7, "wis": 4, "cha": 0 },
     "saveProficiencies": ["int", "wis"],
+    "saveModes": {},
     "skills": {
       "acrobatics": 2, "animal_handling": 1, "arcana": 10, "athletics": -1, "deception": 0, "history": 7,
       "insight": 4, "intimidation": 0, "investigation": 7, "medicine": 1, "nature": 4, "perception": 4,

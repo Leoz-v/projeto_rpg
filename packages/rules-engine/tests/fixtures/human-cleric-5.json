@@ -1,0 +1,124 @@
+{
+  "description": "Humano (Alert), Acólito, Clérigo 5 (Life Domain), Divine Order Thaumaturge. Exercita o bônus de SAB com mínimo, cantrip extra dentro de opção, magias de domínio por nível e Alert na iniciativa. Ficha esperada calculada à mão pelas regras do SRD 5.2.1.",
+  "character": {
+    "id": "miriel",
+    "name": "Miriel",
+    "baseScores": { "method": "standard_array", "scores": { "str": 13, "dex": 10, "con": 14, "int": 8, "wis": 15, "cha": 12 } },
+    "steps": [
+      {
+        "kind": "species",
+        "speciesId": "human",
+        "size": "medium",
+        "selections": [
+          { "source": { "kind": "creation", "id": "character" }, "choiceId": "languages", "picks": ["dwarvish", "elvish"] },
+          { "source": { "kind": "species", "id": "human" }, "choiceId": "skillful", "picks": ["perception"] },
+          { "source": { "kind": "species", "id": "human" }, "choiceId": "versatile", "picks": ["alert"] }
+        ]
+      },
+      {
+        "kind": "background",
+        "backgroundId": "acolyte",
+        "abilityIncreases": { "wis": 2, "cha": 1 },
+        "selections": [
+          { "source": { "kind": "feat", "id": "magic_initiate_cleric" }, "choiceId": "spellcasting_ability", "picks": ["wis"] },
+          { "source": { "kind": "feat", "id": "magic_initiate_cleric" }, "choiceId": "cantrips", "picks": ["guidance", "light"] },
+          { "source": { "kind": "feat", "id": "magic_initiate_cleric" }, "choiceId": "level_1_spell", "picks": ["shield_of_faith"] }
+        ]
+      },
+      {
+        "kind": "class_level",
+        "classId": "cleric",
+        "selections": [
+          { "source": { "kind": "class", "id": "cleric" }, "choiceId": "skills", "picks": ["medicine", "persuasion"] },
+          { "source": { "kind": "class", "id": "cleric" }, "choiceId": "cantrips", "picks": ["sacred_flame", "thaumaturgy", "spare_the_dying"] },
+          { "source": { "kind": "class", "id": "cleric" }, "choiceId": "divine_order_choice", "picks": ["thaumaturge"] },
+          { "source": { "kind": "class", "id": "cleric" }, "choiceId": "thaumaturge_cantrip", "picks": ["resistance"] }
+        ]
+      },
+      { "kind": "class_level", "classId": "cleric" },
+      {
+        "kind": "class_level",
+        "classId": "cleric",
+        "selections": [{ "source": { "kind": "class", "id": "cleric" }, "choiceId": "subclass", "picks": ["life_domain"] }]
+      },
+      {
+        "kind": "class_level",
+        "classId": "cleric",
+        "selections": [
+          { "source": { "kind": "class", "id": "cleric" }, "choiceId": "feat_4", "picks": ["ability_score_improvement"] },
+          { "source": { "kind": "feat", "id": "ability_score_improvement" }, "choiceId": "increase", "picks": ["wis", "con"] },
+          { "source": { "kind": "class", "id": "cleric" }, "choiceId": "cantrip_4", "picks": ["mending"] }
+        ]
+      },
+      { "kind": "class_level", "classId": "cleric" }
+    ]
+  },
+  "inventory": {
+    "items": [
+      { "instanceId": "armor", "itemId": "chain_shirt", "equipped": true },
+      { "instanceId": "shield", "itemId": "shield", "equipped": true },
+      { "instanceId": "mace", "itemId": "mace", "equipped": true }
+    ]
+  },
+  "adjustments": [],
+  "expected": {
+    "complete": true,
+    "level": 5,
+    "proficiencyBonus": 3,
+    "abilities": { "str": 13, "dex": 10, "con": 15, "int": 8, "wis": 18, "cha": 13 },
+    "modifiers": { "str": 1, "dex": 0, "con": 2, "int": -1, "wis": 4, "cha": 1 },
+    "hpMax": 38,
+    "hitDice": [{ "die": 8, "count": 5 }],
+    "ac": 15,
+    "initiative": { "total": 3, "mode": "normal" },
+    "speed": { "walk": 30 },
+    "saves": { "str": 1, "dex": 0, "con": 2, "int": -1, "wis": 7, "cha": 4 },
+    "saveProficiencies": ["wis", "cha"],
+    "saveModes": {},
+    "skills": {
+      "acrobatics": 0, "animal_handling": 4, "arcana": 3, "athletics": 1, "deception": 1, "history": -1,
+      "insight": 7, "intimidation": 1, "investigation": -1, "medicine": 7, "nature": -1, "perception": 7,
+      "performance": 1, "persuasion": 4, "religion": 6, "sleight_of_hand": 0, "stealth": 0, "survival": 4
+    },
+    "skillModes": {},
+    "passivePerception": 17,
+    "senses": {},
+    "resistances": [],
+    "proficiencies": {
+      "armor": ["light", "medium", "shield"],
+      "weapons": ["simple"],
+      "tools": ["calligraphers_supplies"],
+      "languages": ["common", "dwarvish", "elvish"]
+    },
+    "weaponMasteries": [],
+    "feats": ["ability_score_improvement", "alert", "magic_initiate_cleric"],
+    "attacks": [
+      { "itemId": "mace", "attack": 4, "damage": "1d6", "damageBonus": 1, "damageType": "bludgeoning", "mastery": "sap", "masteryAvailable": false }
+    ],
+    "spellcasting": {
+      "classes": [
+        {
+          "classId": "cleric",
+          "ability": "wis",
+          "saveDc": 15,
+          "attack": 7,
+          "preparedSpells": 9,
+          "cantrips": ["sacred_flame", "thaumaturgy", "spare_the_dying", "resistance", "mending"],
+          "spellCount": 0
+        }
+      ],
+      "slots": [4, 3, 2, 0, 0, 0, 0, 0, 0],
+      "granted": [
+        { "spellId": "aid", "ability": "wis", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "bless", "ability": "wis", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "cure_wounds", "ability": "wis", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "guidance", "ability": "wis", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "lesser_restoration", "ability": "wis", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "light", "ability": "wis", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "mass_healing_word", "ability": "wis", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "revivify", "ability": "wis", "saveDc": 15, "attackBonus": 7 },
+        { "spellId": "shield_of_faith", "ability": "wis", "saveDc": 15, "attackBonus": 7 }
+      ]
+    }
+  }
+}

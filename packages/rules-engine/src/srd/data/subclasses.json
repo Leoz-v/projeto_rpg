@@ -305,5 +305,813 @@
         ]
       }
     ]
+  },
+  {
+    "id": "berserker",
+    "classId": "barbarian",
+    "name": "Path of the Berserker",
+    "levels": [
+      {
+        "level": 3,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "frenzy",
+              "name": "Frenzy",
+              "description": "If you use Reckless Attack while your Rage is active, you deal extra damage to the first target you hit on your turn with a Strength-based attack. To determine the extra damage, roll a number of d6s equal to your Rage Damage bonus, and add them together. The damage has the same type as the weapon or Unarmed Strike used for the attack."
+            }
+          }
+        ]
+      },
+      {
+        "level": 6,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "mindless_rage",
+              "name": "Mindless Rage",
+              "description": "You have Immunity to the Charmed and Frightened conditions while your Rage is active. If you're Charmed or Frightened when you enter your Rage, the condition ends on you."
+            }
+          }
+        ]
+      },
+      {
+        "level": 10,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "retaliation",
+              "name": "Retaliation",
+              "description": "When you take damage from a creature that is within 5 feet of you, you can take a Reaction to make one melee attack against that creature, using a weapon or an Unarmed Strike."
+            }
+          }
+        ]
+      },
+      {
+        "level": 14,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "intimidating_presence",
+              "name": "Intimidating Presence",
+              "description": "As a Bonus Action, each creature of your choice in a 30-foot Emanation originating from you must make a Wisdom saving throw (DC 8 plus your Strength modifier and Proficiency Bonus). On a failed save, a creature has the Frightened condition for 1 minute, repeating the save at the end of each of its turns. Once you use this feature, you can't use it again until you finish a Long Rest unless you expend a use of your Rage (no action required) to restore your use of it."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "college_of_lore",
+    "classId": "bard",
+    "name": "College of Lore",
+    "levels": [
+      {
+        "level": 3,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "bonus_proficiencies",
+              "name": "Bonus Proficiencies",
+              "description": "You gain proficiency with three skills of your choice."
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "bonus_proficiencies_skills",
+            "count": 3,
+            "options": {
+              "pick": "proficiency",
+              "categories": [
+                "skill"
+              ]
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "cutting_words",
+              "name": "Cutting Words",
+              "description": "When a creature that you can see within 60 feet of yourself makes a damage roll or succeeds on an ability check or attack roll, you can take a Reaction to expend one use of your Bardic Inspiration; roll your Bardic Inspiration die, and subtract the number rolled from the creature's roll, reducing the damage or potentially turning the success into a failure."
+            }
+          }
+        ]
+      },
+      {
+        "level": 6,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "magical_discoveries",
+              "name": "Magical Discoveries",
+              "description": "You learn two spells of your choice from the Cleric, Druid, or Wizard spell lists. Each must be a cantrip or a spell for which you have spell slots. You always have the chosen spells prepared, and whenever you gain a Bard level, you can replace one of them with another spell that meets these requirements."
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "magical_discoveries_spells",
+            "count": 2,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "cleric",
+                "druid",
+                "wizard"
+              ],
+              "minLevel": 0,
+              "maxLevel": 3,
+              "grantAs": {
+                "ability": "cha",
+                "uses": "slot"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "level": 14,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "peerless_skill",
+              "name": "Peerless Skill",
+              "description": "When you make an ability check or attack roll and fail, you can expend one use of Bardic Inspiration; roll the Bardic Inspiration die, and add the number rolled to the d20, potentially turning a failure into a success. On a failure, the Bardic Inspiration isn't expended."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "life_domain",
+    "classId": "cleric",
+    "name": "Life Domain",
+    "levels": [
+      {
+        "level": 3,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "disciple_of_life",
+              "name": "Disciple of Life",
+              "description": "When a spell you cast with a spell slot restores Hit Points to a creature, that creature regains additional Hit Points on the turn you cast the spell. The additional Hit Points equal 2 plus the spell slot's level."
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "life_domain_spells",
+              "name": "Life Domain Spells",
+              "description": "When you reach a Cleric level specified in the Life Domain Spells table, you thereafter always have the listed spells prepared: level 3 Aid, Bless, Cure Wounds, Lesser Restoration; level 5 Mass Healing Word, Revivify; level 7 Aura of Life, Death Ward; level 9 Greater Restoration, Mass Cure Wounds."
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "aid",
+              "ability": "wis",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "bless",
+              "ability": "wis",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "cure_wounds",
+              "ability": "wis",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "lesser_restoration",
+              "ability": "wis",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "preserve_life",
+              "name": "Preserve Life",
+              "description": "As a Magic action, you present your Holy Symbol and expend a use of your Channel Divinity to restore a number of Hit Points equal to five times your Cleric level, divided among Bloodied creatures within 30 feet of yourself (which can include you). This feature can restore a creature to no more than half its Hit Point maximum."
+            }
+          }
+        ]
+      },
+      {
+        "level": 5,
+        "grants": [
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "mass_healing_word",
+              "ability": "wis",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "revivify",
+              "ability": "wis",
+              "uses": "slot"
+            }
+          }
+        ]
+      },
+      {
+        "level": 6,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "blessed_healer",
+              "name": "Blessed Healer",
+              "description": "Immediately after you cast a spell with a spell slot that restores Hit Points to one or more creatures other than yourself, you regain Hit Points equal to 2 plus the spell slot's level."
+            }
+          }
+        ]
+      },
+      {
+        "level": 7,
+        "grants": [
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "aura_of_life",
+              "ability": "wis",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "death_ward",
+              "ability": "wis",
+              "uses": "slot"
+            }
+          }
+        ]
+      },
+      {
+        "level": 9,
+        "grants": [
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "greater_restoration",
+              "ability": "wis",
+              "uses": "slot"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_spell",
+              "spellId": "mass_cure_wounds",
+              "ability": "wis",
+              "uses": "slot"
+            }
+          }
+        ]
+      },
+      {
+        "level": 17,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "supreme_healing",
+              "name": "Supreme Healing",
+              "description": "When you would normally roll one or more dice to restore Hit Points to a creature with a spell or Channel Divinity, don't roll those dice for the healing; instead use the highest number possible for each die."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "circle_of_the_land",
+    "classId": "druid",
+    "name": "Circle of the Land",
+    "levels": [
+      {
+        "level": 3,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "circle_of_the_land_spells",
+              "name": "Circle of the Land Spells",
+              "description": "Whenever you finish a Long Rest, choose one type of land: arid, polar, temperate, or tropical. You have the spells listed for your Druid level and lower prepared. (Changing the land type is done by editing this choice.)"
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "land_type",
+            "count": 1,
+            "options": {
+              "pick": "option",
+              "options": [
+                {
+                  "id": "arid",
+                  "name": "Arid Land",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_spell",
+                        "spellId": "blur",
+                        "ability": "wis",
+                        "uses": "slot"
+                      }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_spell",
+                        "spellId": "burning_hands",
+                        "ability": "wis",
+                        "uses": "slot"
+                      }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_spell",
+                        "spellId": "fire_bolt",
+                        "ability": "wis",
+                        "uses": "at_will"
+                      }
+                    }
+                  ],
+                  "levels": [
+                    {
+                      "level": 5,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "fireball",
+                            "ability": "wis",
+                            "uses": "slot"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "level": 7,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "blight",
+                            "ability": "wis",
+                            "uses": "slot"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "level": 9,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "wall_of_stone",
+                            "ability": "wis",
+                            "uses": "slot"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "level": 10,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "resistance",
+                            "damageType": "fire"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "polar",
+                  "name": "Polar Land",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_spell",
+                        "spellId": "fog_cloud",
+                        "ability": "wis",
+                        "uses": "slot"
+                      }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_spell",
+                        "spellId": "hold_person",
+                        "ability": "wis",
+                        "uses": "slot"
+                      }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_spell",
+                        "spellId": "ray_of_frost",
+                        "ability": "wis",
+                        "uses": "at_will"
+                      }
+                    }
+                  ],
+                  "levels": [
+                    {
+                      "level": 5,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "sleet_storm",
+                            "ability": "wis",
+                            "uses": "slot"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "level": 7,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "ice_storm",
+                            "ability": "wis",
+                            "uses": "slot"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "level": 9,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "cone_of_cold",
+                            "ability": "wis",
+                            "uses": "slot"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "level": 10,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "resistance",
+                            "damageType": "cold"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "temperate",
+                  "name": "Temperate Land",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_spell",
+                        "spellId": "misty_step",
+                        "ability": "wis",
+                        "uses": "slot"
+                      }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_spell",
+                        "spellId": "shocking_grasp",
+                        "ability": "wis",
+                        "uses": "at_will"
+                      }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_spell",
+                        "spellId": "sleep",
+                        "ability": "wis",
+                        "uses": "slot"
+                      }
+                    }
+                  ],
+                  "levels": [
+                    {
+                      "level": 5,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "lightning_bolt",
+                            "ability": "wis",
+                            "uses": "slot"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "level": 7,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "freedom_of_movement",
+                            "ability": "wis",
+                            "uses": "slot"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "level": 9,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "tree_stride",
+                            "ability": "wis",
+                            "uses": "slot"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "level": 10,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "resistance",
+                            "damageType": "lightning"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "tropical",
+                  "name": "Tropical Land",
+                  "grants": [
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_spell",
+                        "spellId": "acid_splash",
+                        "ability": "wis",
+                        "uses": "at_will"
+                      }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_spell",
+                        "spellId": "ray_of_sickness",
+                        "ability": "wis",
+                        "uses": "slot"
+                      }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "grant_spell",
+                        "spellId": "web",
+                        "ability": "wis",
+                        "uses": "slot"
+                      }
+                    }
+                  ],
+                  "levels": [
+                    {
+                      "level": 5,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "stinking_cloud",
+                            "ability": "wis",
+                            "uses": "slot"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "level": 7,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "polymorph",
+                            "ability": "wis",
+                            "uses": "slot"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "level": 9,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "grant_spell",
+                            "spellId": "insect_plague",
+                            "ability": "wis",
+                            "uses": "slot"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "level": 10,
+                      "grants": [
+                        {
+                          "kind": "effect",
+                          "effect": {
+                            "type": "resistance",
+                            "damageType": "poison"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "lands_aid",
+              "name": "Land's Aid",
+              "description": "As a Magic action, you can expend a use of your Wild Shape and choose a point within 60 feet of yourself. Each creature of your choice in a 10-foot-radius Sphere centered on that point must make a Constitution saving throw against your spell save DC, taking 2d6 Necrotic damage on a failed save or half as much on a success. One creature of your choice in that area regains 2d6 Hit Points. The damage and healing increase by 1d6 at Druid levels 10 (3d6) and 14 (4d6)."
+            }
+          }
+        ]
+      },
+      {
+        "level": 6,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "natural_recovery",
+              "name": "Natural Recovery",
+              "description": "You can cast one of the level 1+ spells that you have prepared from your Circle Spells feature without expending a spell slot, once per Long Rest. In addition, when you finish a Short Rest, you can recover expended spell slots with a combined level equal to or less than half your Druid level (round up), none of level 6+; once per Long Rest."
+            }
+          }
+        ]
+      },
+      {
+        "level": 10,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "natures_ward",
+              "name": "Nature's Ward",
+              "description": "You are immune to the Poisoned condition, and you have Resistance to a damage type associated with your current land choice: Arid (Fire), Polar (Cold), Temperate (Lightning), Tropical (Poison).",
+              "effects": [
+                {
+                  "type": "immunity",
+                  "condition": "poisoned"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "level": 14,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "natures_sanctuary",
+              "name": "Nature's Sanctuary",
+              "description": "As a Magic action, you can expend a use of your Wild Shape and cause spectral trees and vines to appear in a 15-foot Cube on the ground within 120 feet of yourself for 1 minute. You and your allies have Half Cover while in that area, and your allies gain the current Resistance of your Nature's Ward while there. As a Bonus Action, you can move the Cube up to 60 feet."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "warrior_of_the_open_hand",
+    "classId": "monk",
+    "name": "Warrior of the Open Hand",
+    "levels": [
+      {
+        "level": 3,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "open_hand_technique",
+              "name": "Open Hand Technique",
+              "description": "Whenever you hit a creature with an attack granted by your Flurry of Blows, you can impose one of the following effects on that target: Addle (it can't make Opportunity Attacks until the start of its next turn), Push (it must succeed on a Strength saving throw or be pushed up to 15 feet away from you), or Topple (it must succeed on a Dexterity saving throw or have the Prone condition)."
+            }
+          }
+        ]
+      },
+      {
+        "level": 6,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "wholeness_of_body",
+              "name": "Wholeness of Body",
+              "description": "As a Bonus Action, you can roll your Martial Arts die. You regain a number of Hit Points equal to the number rolled plus your Wisdom modifier (minimum of 1 Hit Point regained). You can use this feature a number of times equal to your Wisdom modifier (minimum of once), and you regain all expended uses when you finish a Long Rest."
+            }
+          }
+        ]
+      },
+      {
+        "level": 11,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "fleet_step",
+              "name": "Fleet Step",
+              "description": "When you take a Bonus Action other than Step of the Wind, you can also use Step of the Wind immediately after that Bonus Action."
+            }
+          }
+        ]
+      },
+      {
+        "level": 17,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "quivering_palm",
+              "name": "Quivering Palm",
+              "description": "When you hit a creature with an Unarmed Strike, you can expend 4 Focus Points to start imperceptible vibrations, which last for a number of days equal to your Monk level. When you take the Attack action, you can forgo one attack to end them; the target must make a Constitution saving throw, taking 10d12 Force damage on a failed save or half as much on a success. Only one creature can be under this effect at a time."
+            }
+          }
+        ]
+      }
+    ]
   }
 ]
