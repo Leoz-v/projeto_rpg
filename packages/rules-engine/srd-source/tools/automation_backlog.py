@@ -27,8 +27,6 @@ OUT = PKG / "tests" / "srd" / "automation-backlog.json"
 
 # Extensões de catálogo agrupadas (um PR por grupo, contrato em docs/effects-spec.md primeiro).
 MECHANICS = {
-    "extra_damage": "Dano extra em dados nos ataques da ficha ('+1d8 Radiant em ataques corpo a corpo').",
-    "crit_range": "Faixa de crítico ampliada (19-20, 18-20).",
     "d20_rules": "Regras automáticas da rolagem d20/dano: rerrolar 1, mínimo 10, usar o valor do atributo, tratar 1-2 como 3.",
     "death_saves": "Alvo de rolagem para salvaguardas contra a morte (vantagem).",
     "minimum_speed": "Deslocamento mínimo ('your Speed becomes 30 feet unless higher').",
@@ -61,8 +59,6 @@ FEATURE = {
         "class:warlock/pact_magic",
     ],
     "automate": {
-        "class:paladin/radiant_strikes": "extra_damage",
-        "subclass:champion/improved_critical": "crit_range", "subclass:champion/superior_critical": "crit_range",
         "species:halfling/luck": "d20_rules", "class:rogue/reliable_talent": "d20_rules", "class:barbarian/indomitable_might": "d20_rules",
         "feat:great_weapon_fighting/great_weapon_fighting": "d20_rules",
         "subclass:champion/survivor": "death_saves",
@@ -89,7 +85,7 @@ FEATURE_REASONS = {
 # --- Itens mágicos -------------------------------------------------------------------------------------------
 ITEM = {
     "automate": {
-        "boots_of_striding_and_springing": "minimum_speed", "mithral_armor": "base_override", "vicious_weapon": "extra_damage",
+        "boots_of_striding_and_springing": "minimum_speed", "mithral_armor": "base_override",
     },
     "gm": [
         "amulet_of_proof_against_detection_and_location", "bag_of_holding", "handy_haversack", "efficient_quiver", "portable_hole",

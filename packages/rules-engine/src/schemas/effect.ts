@@ -175,6 +175,25 @@ const AbilityIncreaseSchema = z.strictObject({
   ...common,
 });
 
+// --- extra_damage (3.15) / crit_range (3.16) --------------------------------
+
+const ExtraDamageSchema = z.strictObject({
+  type: z.literal('extra_damage'),
+  dice: DiceSchema,
+  /** Ausente: o mesmo tipo do dano da arma. */
+  damageType: DamageTypeSchema.optional(),
+  /** `weapon`: só nos ataques com a arma que carrega o efeito (itens). */
+  scope: z.literal('weapon').optional(),
+  ...common,
+});
+
+const CritRangeSchema = z.strictObject({
+  type: z.literal('crit_range'),
+  /** Crítico com este valor ou mais no d20. */
+  min: z.int().min(2).max(20),
+  ...common,
+});
+
 // --- damage_reduction (3.14) ------------------------------------------------
 
 const DamageReductionSchema = z.strictObject({
@@ -247,6 +266,8 @@ export const EffectSchema = z.discriminatedUnion('type', [
   GrantSpellSchema,
   GrantSenseSchema,
   DamageReductionSchema,
+  ExtraDamageSchema,
+  CritRangeSchema,
   AbilityIncreaseSchema,
   SetMinimumScoreSchema,
   WeaponMasteryEffectSchema,

@@ -281,6 +281,17 @@ describe('SRD compendium', () => {
     });
   });
 
+  it('declares Radiant Strikes and the Champion critical ranges as effects (Phase 1.5, group 5)', () => {
+    const feature = (levels: { level: number; grants: Grant[] }[], level: number, id: string) =>
+      grantsAt(levels, level).flatMap((g) => (g.kind === 'feature' && g.feature.id === id ? [g.feature] : []))[0];
+    expect(feature(byId(srd.classes, 'paladin').levels, 11, 'radiant_strikes')?.effects).toEqual([
+      { type: 'extra_damage', dice: '1d8', damageType: 'radiant', when: { attackKind: 'melee' } },
+    ]);
+    const champion = byId(srd.subclasses, 'champion').levels;
+    expect(feature(champion, 3, 'improved_critical')?.effects).toEqual([{ type: 'crit_range', min: 19 }]);
+    expect(feature(champion, 15, 'superior_critical')?.effects).toEqual([{ type: 'crit_range', min: 18 }]);
+  });
+
   describe('tools and adventuring gear (pp. 93-100)', () => {
     const tools = srd.items.filter((i) => i.kind === 'tool');
     const gear = srd.items.filter((i) => i.kind === 'gear');

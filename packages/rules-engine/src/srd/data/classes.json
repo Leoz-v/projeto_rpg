@@ -4402,7 +4402,17 @@
             "feature": {
               "id": "radiant_strikes",
               "name": "Radiant Strikes",
-              "description": "When you hit a target with an attack roll using a Melee weapon or an Unarmed Strike, the target takes an extra 1d8 Radiant damage."
+              "description": "When you hit a target with an attack roll using a Melee weapon or an Unarmed Strike, the target takes an extra 1d8 Radiant damage.",
+              "effects": [
+                {
+                  "type": "extra_damage",
+                  "dice": "1d8",
+                  "damageType": "radiant",
+                  "when": {
+                    "attackKind": "melee"
+                  }
+                }
+              ]
             }
           }
         ]
