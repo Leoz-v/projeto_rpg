@@ -217,3 +217,16 @@ describe('HostSession: tokens', () => {
     expect(rejection(session.handle(GM.playerId, { kind: 'token.remove', data: { tokenId } }))).toBe('rule_violation');
   });
 });
+
+describe('HostSession: secret rolls by players', () => {
+  it('shows the roll to its author and the GM, and hides it from the other players', () => {
+    const session = setup();
+    const { change } = session.handle(ANA.playerId, { kind: 'dice.roll', data: { formula: '1d20', visibility: 'gm' } });
+    if (!change) throw new Error('esperava um patch');
+    expect(session.viewFor(ANA.playerId).chat[0]).toMatchObject({ kind: 'roll' });
+    expect(session.viewFor(GM.playerId).chat[0]).toMatchObject({ kind: 'roll' });
+    expect(session.viewFor(BRUNO.playerId).chat[0]).toMatchObject({ kind: 'hidden_roll' });
+    expect(session.patchFor(change, ANA.playerId).ops[0]).toMatchObject({ value: { kind: 'roll' } });
+    expect(session.patchFor(change, BRUNO.playerId).ops[0]).toMatchObject({ value: { kind: 'hidden_roll' } });
+  });
+});

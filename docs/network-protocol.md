@@ -207,7 +207,7 @@ O Host envia `Ping` a cada 15 s. Sem `Pong` em 30 s, a conexão é considerada m
 O Host guarda o estado completo e envia a cada cliente só o que ele pode ver, no `StateSnapshot` e no `StatePatch`:
 
 - **Mestre:** vê tudo.
-- **Jogador:** uma rolagem com `visibility: "gm"` chega como `hidden_roll`, sem fórmula, rótulo nem resultado. A entrada continua no log, na mesma posição, para que os índices de `chat` sejam iguais em todos os clientes.
+- **Jogador:** uma rolagem com `visibility: "gm"` de outra pessoa chega como `hidden_roll`, sem fórmula, rótulo nem resultado. A entrada continua no log, na mesma posição, para que os índices de `chat` sejam iguais em todos os clientes. Quem rolou sempre vê a própria rolagem (o jogador que rola em segredo para o mestre vê o resultado).
 
 ## 3. Catálogo de `Intent`
 
