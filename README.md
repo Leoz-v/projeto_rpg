@@ -7,13 +7,14 @@ Mesa virtual (virtual tabletop) desktop para jogar campanhas de D&D 2024 entre a
 ## Requisitos
 
 - **Node.js 22.13+.** O app roda no Node embutido no Electron (hoje o 24), e o CI testa nessa mesma versão; na sua máquina, qualquer versão a partir da 22.13 serve (o SQLite vem do Node).
-- **pnpm** via Corepack (a versão está fixada no `package.json`):
+- **pnpm** (qualquer versão recente). A versão do projeto está fixada em `packageManager` no `package.json`, e o próprio pnpm passa a usá-la sozinho dentro desta pasta:
 
   ```bash
-  corepack enable
+  npm install -g pnpm        # ou: winget install pnpm.pnpm
+  pnpm -v                    # dentro do projeto, mostra a versão fixada
   ```
 
-  No **Node 25 ou mais novo**, o Corepack não vem junto com o Node. Instale antes com `npm install -g corepack` (se houver um Yarn global antigo, remova-o antes com `npm uninstall -g yarn`). No Windows, se sobrar um atalho `pnpm` antigo em `C:\Program Files\nodejs`, apague-o: ele aponta para o Corepack do Node anterior.
+  Quem já usa o Corepack não precisa mudar nada: ele também respeita o `packageManager`.
 
 ## Primeiros passos
 

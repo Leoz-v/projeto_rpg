@@ -5,7 +5,7 @@
   "private": true,
   "description": "Virtual tabletop desktop para campanhas de D&D 2024 (SRD 5.2.1)",
   "main": "./out/main/index.js",
-  "packageManager": "pnpm@10.12.1",
+  "packageManager": "pnpm@10.34.9",
   "engines": {
     "node": ">=22.13"
   },

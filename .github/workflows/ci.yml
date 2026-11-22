@@ -26,15 +26,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # Instala o pnpm da versão fixada em `packageManager` (package.json); sem Corepack (nota 0024).
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v5
         with:
           # A mesma versão do Node embutido no Electron (o SQLite do app vem dele).
           node-version: 24
-          # O cache automático procura o pnpm antes do Corepack ativá-lo; o cache é feito abaixo.
+          # O cache do pnpm é feito abaixo, pelo caminho do store.
           package-manager-cache: false
-
-      - name: Enable Corepack (pnpm pinned in package.json)
-        run: corepack enable
 
       - name: Get pnpm store path
         id: pnpm-store
