@@ -226,6 +226,7 @@ def vs_magic(source):
     return {"type": "advantage", "target": "save.all", "when": {"against": {"source": source}}}
 
 
+NOT_DWARF = {"not": {"species": "dwarf"}}
 EFFECTS = {
     "Amulet of Health": ([{"type": "set_minimum_score", "ability": "con", "value": 19}], "Your Constitution is 19"),
     "Armor of Invulnerability": ([{"type": "resistance", "damageType": t} for t in ("bludgeoning", "piercing", "slashing")],
@@ -307,7 +308,13 @@ EFFECTS = {
     "Staff of Thunder and Lightning": (weapon_plus(2), "grants a +2 bonus to attack rolls and damage rolls"),
     "Stone of Good Luck (Luckstone)": (ALL_CHECKS + [{"type": "flat_bonus", "target": "save.all", "value": 1}],
                                        "+1 bonus to ability checks and saving throws"),
-    "Sun Blade": (weapon_plus(2), "+2 bonus to attack rolls and damage rolls"),
+    # Fase 1.5, último grupo: `base_override` (Finesse, dano Radiant, proficiência por Longsword ou Shortsword).
+    # O dano extra contra Undead é da Fase 4.
+    "Sun Blade": (weapon_plus(2) + [{"type": "base_override", "addProperties": ["finesse"], "damageType": "radiant",
+                                     "proficiencyWith": ["longsword", "shortsword"]}],
+                  ["+2 bonus to attack rolls and damage rolls", "this magic weapon functions as a Longsword with the Finesse property",
+                   "If you are proficient with Longswords or Shortswords, you are proficient with the Sun Blade",
+                   "which deals Radiant damage instead of Slashing damage"]),
     "Thunderous Greatclub": ([{"type": "set_minimum_score", "ability": "str", "value": 20}], "your Strength is 20"),
     # Fase 1.5, grupo 1 (lacunas de curadoria: já cabiam no catálogo).
     "Staff of Fire": ([{"type": "resistance", "damageType": "fire"}], "You have Resistance to Fire damage while you hold this staff"),
@@ -323,13 +330,27 @@ EFFECTS = {
                             {"type": "flat_bonus", "target": "damage.ranged", "value": 2,
                              "when": {"any": [{"weaponId": "longbow"}, {"weaponId": "shortbow"}]}}],
                            "you have proficiency with the Longbow and Shortbow, and you gain a +2 bonus to damage rolls made with such weapons"),
-    # Parcial: CON +2 (teto 20) e os benefícios "se você não é anão" seguem no backlog.
+    # Os benefícios "se você não é anão" usam o predicado `species` (duergar não é espécie do SRD).
     "Belt of Dwarvenkind": ([{"type": "grant_proficiency", "category": "language", "id": "dwarvish"},
                              {"type": "advantage", "target": "skill.persuasion", "note": "Interagir com anões e duergar"},
-                             {"type": "ability_increase", "ability": "con", "value": 2, "max": 20}],
+                             {"type": "ability_increase", "ability": "con", "value": 2, "max": 20},
+                             {"type": "grant_sense", "sense": "darkvision", "range": 60, "when": NOT_DWARF},
+                             {"type": "resistance", "damageType": "poison", "when": NOT_DWARF},
+                             {"type": "advantage", "target": "save.all",
+                              "when": {"all": [NOT_DWARF, {"against": {"condition": "poisoned"}}]}}],
                             ["Dwarvish. You know Dwarvish",
                              "You have Advantage on Charisma (Persuasion) checks made to interact with dwarves and duergar",
-                             "Toughness. Your Constitution increases by 2, to a maximum of 20"]),
+                             "Toughness. Your Constitution increases by 2, to a maximum of 20",
+                             "If you aren't a dwarf or duergar, you gain the following additional benefits while wearing the belt",
+                             "Darkvision. You have Darkvision with a range of 60 feet",
+                             "Resilience. You have Resistance to Poison damage",
+                             "You also have Advantage on saving throws you make to avoid or end the Poisoned condition"]),
+    # Fase 1.5, último grupo: deslocamento mínimo e o item base alterado. Carga não é calculada pela ficha.
+    "Boots of Striding and Springing": ([{"type": "minimum_speed", "value": 30, "ignoreArmorPenalty": True}],
+                                        ["your Speed becomes 30 feet unless your Speed is higher",
+                                         "your Speed isn't reduced by you carrying weight in excess of your carrying capacity or wearing Heavy Armor"]),
+    "Mithral Armor": ([{"type": "base_override", "removeStrength": True, "removeStealthDisadvantage": True}],
+                      "If the armor normally imposes Disadvantage on Dexterity (Stealth) checks or has a Strength requirement, the mithral version of the armor doesn't"),
     # Fase 1.5, grupo 5: dano extra só nesta arma, do mesmo tipo do dano dela.
     "Vicious Weapon": ([{"type": "extra_damage", "dice": "2d6", "scope": "weapon"}],
                        ["This magic weapon deals an extra 2d6 damage to any creature it hits",

@@ -22,12 +22,12 @@ Magias ficam fora: a resolução delas é toda da Fase 4.
 | Categoria | O que é | Quantas |
 |---|---|---|
 | `structural` | A mecânica já existe em outro ponto do modelo: escolha, concessão ou conjuração no mesmo nível (ex.: "Expertise" é a escolha `expertise_1`). | 53 |
-| `automate` | Passivo e automatizável agora, estendendo o catálogo de efeitos. Fila abaixo. | 4 |
-| `phase_4` | Ação, reação, recurso, uso de item, ou efeito no momento da rolagem ou do dano contra um alvo (Sneak Attack, cargas, poções, Multiattack). | 441 |
-| `phase_5` | Depende do estado de combate: iniciativa, turnos, fúria ativa, concentração (Alert, Persistent Rage, Mindless Rage). | 12 |
+| `automate` | Passivo e automatizável agora, estendendo o catálogo de efeitos. Fila abaixo. | 0 |
+| `phase_4` | Ação, reação, recurso, uso de item, ou efeito no momento da rolagem ou do dano contra um alvo (Sneak Attack, cargas, poções, Multiattack). | 442 |
+| `phase_5` | Depende do estado de combate: iniciativa, turnos, fúria ativa, concentração (Alert, Persistent Rage, Mindless Rage). | 13 |
 | `gm` | Exploração, percepção, narrativa ou efeito permanente que é ajuste do mestre (Bag of Holding, Manuals e Tomes, Spider Climb). | 94 |
 
-Total: 604 entradas.
+Total: 602 entradas.
 
 Uma entrada **parcial** (`<chave>#<aspecto>`) marca a parte pendente de um item, característica ou traço de monstro que já tem outros efeitos (ex.: `item:sun_blade#longsword_with_finesse`, `feature:subclass:champion/survivor#heroic_rally`).
 
@@ -35,9 +35,7 @@ Uma entrada **parcial** (`<chave>#<aspecto>`) marca a parte pendente de um item,
 
 Um PR por grupo. Em cada um: primeiro `docs/effects-spec.md`, depois o schema, o motor, a curadoria nos importadores e os testes. Ao terminar, as entradas saem do backlog (o teste de guarda exige isso).
 
-| Ordem | Mecânica | Entradas |
-|---|---|---|
-| 1 | `minimum_speed`, `base_override` e `species_predicate` | Boots of Striding and Springing; Mithral Armor e Sun Blade (Longsword com Finesse, proficiência por Longsword ou Shortsword; parcial); Belt of Dwarvenkind (benefícios "se você não é anão", parcial) |
+**A fila está vazia** desde o grupo 7: tudo o que era passivo e cabia no catálogo foi automatizado. O que sobra no backlog é da Fase 4 (resolução de ações), da Fase 5 (combate) ou do mestre. Conteúdo novo que for passivo entra aqui com a sua mecânica, como `automate`.
 
 ## Feito
 
@@ -74,3 +72,8 @@ Um PR por grupo. Em cada um: primeiro `docs/effects-spec.md`, depois o schema, o
   - Great Weapon Fighting: dados de dano 1 e 2 valem 3 com arma corpo a corpo empunhada com as duas mãos. A ficha mostra o mínimo separado para o uso Versatile.
   - Monstros: Greater Magic Resistance (Rakshasa), sucesso automático contra magia. Os ataques de magia que erram a criatura ficaram como parcial da Fase 4.
   - As regras passam a valer nas rolagens do chat com a rolagem autoritativa da Fase 2.
+- **Grupo 7 — deslocamento mínimo, item base alterado e predicado de espécie** (nota 0018): efeitos `minimum_speed` e `base_override`, predicado `species`.
+  - Boots of Striding and Springing: Deslocamento de pelo menos 30 ft, sem a redução da armadura pesada. A Exaustão continua valendo. O salto ficou como parcial da Fase 5.
+  - Mithral Armor: o item base perde a exigência de FOR e a Desvantagem em Stealth.
+  - Sun Blade: Longsword com Finesse, dano Radiant e proficiência também por Shortsword. O +1d8 contra Undead ficou como parcial da Fase 4.
+  - Belt of Dwarvenkind: Darkvision 60 ft, Resistência a Veneno e vantagem contra Envenenado, só para quem não é anão. Duergar não é espécie do SRD.

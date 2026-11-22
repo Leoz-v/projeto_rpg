@@ -26,11 +26,8 @@ DATA = PKG / "src" / "srd" / "data"
 OUT = PKG / "tests" / "srd" / "automation-backlog.json"
 
 # Extensões de catálogo agrupadas (um PR por grupo, contrato em docs/effects-spec.md primeiro).
-MECHANICS = {
-    "minimum_speed": "Deslocamento mínimo ('your Speed becomes 30 feet unless higher').",
-    "base_override": "Item mágico que altera o item base: remove penalidades da armadura (Mithral) ou muda propriedades e proficiência da arma (Sun Blade).",
-    "species_predicate": "Predicado pela espécie do personagem ('if you aren't a dwarf').",
-}
+# Vazio desde o fim da fila da Fase 1.5; conteúdo novo `automate` volta a declarar a sua mecânica aqui.
+MECHANICS = {}
 
 # --- Características (espécie, antecedente, talento, classe, subclasse) ----------------------------------------
 FEATURE = {
@@ -78,9 +75,7 @@ FEATURE_REASONS = {
 
 # --- Itens mágicos -------------------------------------------------------------------------------------------
 ITEM = {
-    "automate": {
-        "boots_of_striding_and_springing": "minimum_speed", "mithral_armor": "base_override",
-    },
+    "automate": {},
     "gm": [
         "amulet_of_proof_against_detection_and_location", "bag_of_holding", "handy_haversack", "efficient_quiver", "portable_hole",
         "well_of_many_worlds", "pipes_of_the_sewers", "ring_of_mind_shielding", "manual_of_bodily_health", "manual_of_gainful_exercise",
@@ -171,10 +166,9 @@ for it in load("magic-items.json"):
 # Entradas parciais (`<chave>#<aspecto>`): a fonte já tem efeitos, mas parte da mecânica segue pendente.
 # Valor: (categoria, motivo, mecânica só para `automate`).
 PARTIAL = {
-    "item:belt_of_dwarvenkind#non_dwarf": ("automate", "Darkvision 60 ft, Resistência a Veneno e vantagem contra Envenenado só se não for anão.",
-                                           "species_predicate"),
-    "item:sun_blade#longsword_with_finesse": ("automate", "Funciona como Longsword com Finesse; proficiente se tiver Longsword ou Shortsword.",
-                                              "base_override"),
+    "item:sun_blade#undead_damage": ("phase_4", "+1d8 Radiant ao acertar um Undead: dano que depende do alvo (resolução do ataque).", None),
+    "item:boots_of_striding_and_springing#jump": ("phase_5", "Salto de 30 ft gastando 10 ft de movimento, uma vez por turno (movimento no turno).",
+                                                  None),
     "feature:subclass:champion/survivor#heroic_rally": ("phase_5", "Heroic Rally: recupera PV no início de cada turno se estiver Bloodied (turnos de combate).",
                                                         None),
     "monster_trait:greater_magic_resistance#spell_attacks_miss": ("phase_4", "Ataques de magia erram a criatura automaticamente (resolução do ataque).",
