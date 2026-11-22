@@ -222,6 +222,12 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
   // --- Atributos ----------------------------------------------------------
 
   const scoreParts = Object.fromEntries(ABILITIES.map((a) => [a, [...build.scores[a]]])) as Record<Ability, Contribution[]>;
+  // Aumentos de itens com teto ("+2, até o máximo de 20"), na ordem; depois os mínimos.
+  for (const { effect, source } of effectsOf('ability_increase')) {
+    const current = total(scoreParts[effect.ability]);
+    const raise = Math.min(effect.value, effect.max - current);
+    if (raise > 0) scoreParts[effect.ability].push({ label: `+${String(effect.value)} (máximo ${String(effect.max)})`, value: raise, source });
+  }
   for (const { effect, source } of effectsOf('set_minimum_score')) {
     const current = total(scoreParts[effect.ability]);
     if (current < effect.value) scoreParts[effect.ability].push({ label: `Mínimo ${effect.value}`, value: effect.value - current, source });
@@ -233,7 +239,12 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
   ) as Record<Ability, AbilityStat>;
 
   const level = build.level;
-  const pb = proficiencyBonus(level);
+  // Bônus de proficiência pelo nível, mais `flat_bonus` inteiros em `proficiency_bonus` (Ioun Stone of Mastery).
+  const pb =
+    proficiencyBonus(level) +
+    effectsOf('flat_bonus')
+      .filter(({ effect }) => effect.target === 'proficiency_bonus')
+      .reduce((sum, { effect }) => sum + (typeof effect.value === 'number' ? effect.value : 0), 0);
 
   // --- Condições -----------------------------------------------------------
 

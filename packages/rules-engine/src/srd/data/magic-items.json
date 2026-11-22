@@ -514,6 +514,12 @@
         "type": "advantage",
         "target": "skill.persuasion",
         "note": "Interagir com anões e duergar"
+      },
+      {
+        "type": "ability_increase",
+        "ability": "con",
+        "value": 2,
+        "max": 20
       }
     ],
     "description": "While wearing this belt, you gain the following benefits:\nDwarvish. You know Dwarvish.\nFriend of Dwarvenkind. You have Advantage on Charisma (Persuasion) checks made to interact with dwarves and duergar.\nToughness. Your Constitution increases by 2, to a maximum of 20.\nIn addition, while attuned to the belt, you have a 50 percent chance each day at dawn of growing a full beard if you can grow one, or a thicker beard if you already have one.\nIf you aren't a dwarf or duergar, you gain the following additional benefits while wearing the belt:\nDarkvision. You have Darkvision with a range of 60 feet.\nResilience. You have Resistance to Poison damage.\nYou also have Advantage on saving throws you make to avoid or end the Poisoned condition."
@@ -2107,7 +2113,14 @@
         "id": "agility",
         "name": "Ioun Stone (Agility)",
         "rarity": "very_rare",
-        "effects": []
+        "effects": [
+          {
+            "type": "ability_increase",
+            "ability": "dex",
+            "value": 2,
+            "max": 20
+          }
+        ]
       },
       {
         "id": "awareness",
@@ -2128,7 +2141,14 @@
         "id": "fortitude",
         "name": "Ioun Stone (Fortitude)",
         "rarity": "very_rare",
-        "effects": []
+        "effects": [
+          {
+            "type": "ability_increase",
+            "ability": "con",
+            "value": 2,
+            "max": 20
+          }
+        ]
       },
       {
         "id": "greater_absorption",
@@ -2140,25 +2160,52 @@
         "id": "insight",
         "name": "Ioun Stone (Insight)",
         "rarity": "very_rare",
-        "effects": []
+        "effects": [
+          {
+            "type": "ability_increase",
+            "ability": "wis",
+            "value": 2,
+            "max": 20
+          }
+        ]
       },
       {
         "id": "intellect",
         "name": "Ioun Stone (Intellect)",
         "rarity": "very_rare",
-        "effects": []
+        "effects": [
+          {
+            "type": "ability_increase",
+            "ability": "int",
+            "value": 2,
+            "max": 20
+          }
+        ]
       },
       {
         "id": "leadership",
         "name": "Ioun Stone (Leadership)",
         "rarity": "very_rare",
-        "effects": []
+        "effects": [
+          {
+            "type": "ability_increase",
+            "ability": "cha",
+            "value": 2,
+            "max": 20
+          }
+        ]
       },
       {
         "id": "mastery",
         "name": "Ioun Stone (Mastery)",
         "rarity": "legendary",
-        "effects": []
+        "effects": [
+          {
+            "type": "flat_bonus",
+            "target": "proficiency_bonus",
+            "value": 1
+          }
+        ]
       },
       {
         "id": "protection",
@@ -2188,7 +2235,14 @@
         "id": "strength",
         "name": "Ioun Stone (Strength)",
         "rarity": "very_rare",
-        "effects": []
+        "effects": [
+          {
+            "type": "ability_increase",
+            "ability": "str",
+            "value": 2,
+            "max": 20
+          }
+        ]
       },
       {
         "id": "sustenance",

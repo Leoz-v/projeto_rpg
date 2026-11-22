@@ -243,3 +243,42 @@ describe('items granting proficiency and weapon-specific bonuses (Phase 1.5, gro
     expect(sheet(true).skills.persuasion.roll.situational).toContainEqual(expect.objectContaining({ kind: 'advantage', note: 'Interagir com anões e duergar' }));
   });
 });
+
+describe('capped ability increases and proficiency bonus (Phase 1.5, group 4)', () => {
+  const ioun = (variantId: string) => ({ instanceId: `ioun_${variantId}`, itemId: 'ioun_stone', variantId, equipped: true, attuned: true });
+  const fighter = (scores: Record<'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha', number>, items: { instanceId: string; itemId: string }[]) =>
+    derive({ baseScores: { method: 'manual', scores }, inventory: { items } });
+  const base = { str: 15, dex: 13, con: 14, int: 8, wis: 12, cha: 10 };
+
+  it('raises the score by 2 up to the cap published by the item (20)', () => {
+    // Guerreiro anão (Soldado: FOR +2, CON +1): DES 13.
+    expect(fighter(base, [ioun('agility')]).abilities.dex.total).toBe(15);
+    // DES 19 + 2 para em 20; DES 20 não muda.
+    expect(fighter({ ...base, dex: 19 }, [ioun('agility')]).abilities.dex.total).toBe(20);
+    expect(fighter({ ...base, dex: 20 }, [ioun('agility')]).abilities.dex.total).toBe(20);
+  });
+
+  it('applies increases before minimum scores (Ioun Stone of Strength with Gauntlets of Ogre Power)', () => {
+    // FOR 15 + 2 (Soldado) = 17; +2 da Ioun = 19; as Gauntlets fixam o mínimo em 19.
+    const gauntlets = { instanceId: 'g', itemId: 'gauntlets_of_ogre_power', equipped: true, attuned: true };
+    expect(fighter(base, [ioun('strength'), gauntlets]).abilities.str.total).toBe(19);
+    // Belt of Giant Strength (hill) vale mais: 21.
+    const belt = { instanceId: 'b', itemId: 'belt_of_giant_strength', variantId: 'hill', equipped: true, attuned: true };
+    expect(fighter(base, [ioun('strength'), belt]).abilities.str.total).toBe(21);
+  });
+
+  it('adds +2 Constitution (max 20) with the Belt of Dwarvenkind', () => {
+    const belt = { instanceId: 'b', itemId: 'belt_of_dwarvenkind', equipped: true, attuned: true };
+    // CON 14 + 1 (Soldado) = 15 -> 17.
+    expect(fighter(base, [belt]).abilities.con.total).toBe(17);
+  });
+
+  it('raises the Proficiency Bonus with the Ioun Stone of Mastery', () => {
+    const without = fighter(base, []);
+    const sheet = fighter(base, [ioun('mastery')]);
+    expect(sheet.proficiencyBonus).toBe(without.proficiencyBonus + 1);
+    // Proficiente em salvaguarda de FOR (Guerreiro): sobe junto.
+    expect(sheet.saves.str.total).toBe(without.saves.str.total + 1);
+    expect(sheet.saves.int.total).toBe(without.saves.int.total);
+  });
+});

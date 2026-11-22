@@ -325,9 +325,11 @@ EFFECTS = {
                            "you have proficiency with the Longbow and Shortbow, and you gain a +2 bonus to damage rolls made with such weapons"),
     # Parcial: CON +2 (teto 20) e os benefícios "se você não é anão" seguem no backlog.
     "Belt of Dwarvenkind": ([{"type": "grant_proficiency", "category": "language", "id": "dwarvish"},
-                             {"type": "advantage", "target": "skill.persuasion", "note": "Interagir com anões e duergar"}],
+                             {"type": "advantage", "target": "skill.persuasion", "note": "Interagir com anões e duergar"},
+                             {"type": "ability_increase", "ability": "con", "value": 2, "max": 20}],
                             ["Dwarvish. You know Dwarvish",
-                             "You have Advantage on Charisma (Persuasion) checks made to interact with dwarves and duergar"]),
+                             "You have Advantage on Charisma (Persuasion) checks made to interact with dwarves and duergar",
+                             "Toughness. Your Constitution increases by 2, to a maximum of 20"]),
     "Mantle of Spell Resistance": ([vs_magic("spell")], "You have Advantage on saving throws against spells while you wear this cloak"),
     "Ring of Spell Turning": ([vs_magic("spell")], "you have Advantage on saving throws against spells"),
     "Spellguard Shield": ([vs_magic("magic")], "you have Advantage on saving throws against spells and other magical effects"),
@@ -348,7 +350,13 @@ VARIANT_EFFECTS = {
     ("Ioun Stone", "awareness"): ([{"type": "advantage", "target": "initiative"}, {"type": "advantage", "target": "skill.perception"}],
                                   "Advantage on Initiative rolls and Wisdom (Perception) checks"),
     ("Ioun Stone", "protection"): ([{"type": "flat_bonus", "target": "ac", "value": 1}], "+1 bonus to Armor Class"),
+    # Fase 1.5, grupo 4: aumentos com o teto do próprio texto, e o bônus de proficiência.
+    ("Ioun Stone", "mastery"): ([{"type": "flat_bonus", "target": "proficiency_bonus", "value": 1}], "Your Proficiency Bonus increases by 1"),
 }
+for _vid, _ability, _label in [("agility", "dex", "Dexterity"), ("fortitude", "con", "Constitution"), ("insight", "wis", "Wisdom"),
+                               ("intellect", "int", "Intelligence"), ("leadership", "cha", "Charisma"), ("strength", "str", "Strength")]:
+    VARIANT_EFFECTS[("Ioun Stone", _vid)] = ([{"type": "ability_increase", "ability": _ability, "value": 2, "max": 20}],
+                                             f"Your {_label} increases by 2, to a maximum of 20")
 
 # --- Leitura dos itens ---------------------------------------------------------------------------------------
 lines = text(209, 253)

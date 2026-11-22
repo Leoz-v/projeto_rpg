@@ -27,7 +27,6 @@ OUT = PKG / "tests" / "srd" / "automation-backlog.json"
 
 # Extensões de catálogo agrupadas (um PR por grupo, contrato em docs/effects-spec.md primeiro).
 MECHANICS = {
-    "capped_ability_increase": "Aumento de atributo com teto ('+2, até o máximo de 20').",
     "extra_damage": "Dano extra em dados nos ataques da ficha ('+1d8 Radiant em ataques corpo a corpo').",
     "crit_range": "Faixa de crítico ampliada (19-20, 18-20).",
     "d20_rules": "Regras automáticas da rolagem d20/dano: rerrolar 1, mínimo 10, usar o valor do atributo, tratar 1-2 como 3.",
@@ -35,7 +34,6 @@ MECHANICS = {
     "minimum_speed": "Deslocamento mínimo ('your Speed becomes 30 feet unless higher').",
     "base_override": "Item mágico que altera o item base: remove penalidades da armadura (Mithral) ou muda propriedades e proficiência da arma (Sun Blade).",
     "species_predicate": "Predicado pela espécie do personagem ('if you aren't a dwarf').",
-    "proficiency_bonus": "Bônus no próprio bônus de proficiência.",
 }
 
 # --- Características (espécie, antecedente, talento, classe, subclasse) ----------------------------------------
@@ -181,10 +179,8 @@ for it in load("magic-items.json"):
         put(key, "gm", ITEM_REASONS["gm"])
     else:
         put(key, "phase_4", ITEM_REASONS["phase_4"])
-# Variantes sem efeito com mecânica passiva (Ioun Stones).
 # Entradas parciais (`item:<id>#<aspecto>`): o item já tem efeitos, mas parte da mecânica segue pendente.
 PARTIAL = {
-    "item:belt_of_dwarvenkind#toughness": ("Constituição +2, até o máximo de 20.", "capped_ability_increase"),
     "item:belt_of_dwarvenkind#non_dwarf": ("Darkvision 60 ft, Resistência a Veneno e vantagem contra Envenenado só se não for anão.",
                                            "species_predicate"),
     "item:sun_blade#longsword_with_finesse": ("Funciona como Longsword com Finesse; proficiente se tiver Longsword ou Shortsword.",
@@ -192,10 +188,6 @@ PARTIAL = {
 }
 for key, (reason, mechanic) in PARTIAL.items():
     put(key, "automate", reason, mechanic)
-IOUN_CAPPED = ["agility", "fortitude", "insight", "intellect", "leadership", "strength"]
-for vid in IOUN_CAPPED:
-    put(f"item:ioun_stone/{vid}", "automate", "Passivo enquanto orbita (sintonizado).", "capped_ability_increase")
-put("item:ioun_stone/mastery", "automate", "Passivo enquanto orbita (sintonizado).", "proficiency_bonus")
 
 # Traços e ações de monstro (por nome, sem o limite entre parênteses).
 monsters = load("monsters.json")

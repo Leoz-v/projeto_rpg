@@ -64,7 +64,7 @@ Soma um valor a um alvo numérico.
   - `{ "ability": "con" }`: o modificador; com `"min": 1`, nunca menos que isso ("bônus igual ao seu modificador de SAB, mínimo +1");
   - `{ "proficiency": 1 }`: multiplicador do bônus de proficiência;
   - `{ "perLevel": n }`: n × o nível **na escala da fonte**. Para espécie, antecedente, talento, item e ajuste do mestre é o nível de personagem; para classe e subclasse, o nível naquela classe (ex.: Draconic Resilience, +1 PV por nível de Feiticeiro).
-- `target` (lista fechada): `ac`, `initiative`, `hp_max`, `speed.walk`, `speed.fly`, `speed.swim`, `speed.climb`, `speed.burrow`, `attack.<melee|ranged|spell>`, `damage.<melee|ranged|spell>`, `save.<ability>`, `save.all`, `check.<ability>`, `skill.<skill>`, `passive.<skill>`, `spell_save_dc`, `attunement_slots` (soma ao limite de 3 itens sintonizados; ex.: Use Magic Device do Ladrão), `attack.weapon` e `damage.weapon` (só nos ataques com a arma que carrega o efeito; ex.: Weapon, +1, Dwarven Thrower).
+- `target` (lista fechada): `ac`, `initiative`, `hp_max`, `speed.walk`, `speed.fly`, `speed.swim`, `speed.climb`, `speed.burrow`, `attack.<melee|ranged|spell>`, `damage.<melee|ranged|spell>`, `save.<ability>`, `save.all`, `check.<ability>`, `skill.<skill>`, `passive.<skill>`, `spell_save_dc`, `attunement_slots` (soma ao limite de 3 itens sintonizados; ex.: Use Magic Device do Ladrão), `attack.weapon` e `damage.weapon` (só nos ataques com a arma que carrega o efeito; ex.: Weapon, +1, Dwarven Thrower), `proficiency_bonus` (soma ao bônus de proficiência; só valor inteiro; ex.: Ioun Stone of Mastery).
 - `<ability>`: `str`, `dex`, `con`, `int`, `wis`, `cha`. `<skill>`: as 18 perícias do SRD em inglês, em `snake_case` (ex.: `sleight_of_hand`).
 - Bônus de mesmo alvo se **somam**.
 - `attack.weapon` e `damage.weapon` só valem em itens: o bônus entra no ataque da arma daquela entrada do inventário (a arma mágica com o seu item base), e em nenhuma outra.
@@ -159,6 +159,17 @@ Fórmula base de Classe de Armadura.
 
 O valor do atributo passa a ser pelo menos `value` (ex.: Manoplas de Força do Ogro). Não altera o valor base nem os pré-requisitos de construção.
 
+### 3.8.1 `ability_increase`
+
+```json
+{ "type": "ability_increase", "ability": "dex", "value": 2, "max": 20 }
+```
+
+- Aumenta o atributo em `value`, sem passar de `max` (Ioun Stone: "Your Dexterity increases by 2, to a maximum of 20"). Se o atributo já está em `max` ou acima, não tem efeito.
+- O teto vem **do texto de cada fonte**. O SRD não tem teto único para itens: Ioun Stones e Belt of Dwarvenkind dizem 20; Manuals e Tomes, 30 (estes são permanentes e entram como ajuste do mestre).
+- Vale enquanto a fonte está ativa, como os demais efeitos. Aumentos permanentes da construção (antecedente, talentos) continuam nas escolhas, cada um com o seu teto.
+- Vários aumentos se somam, cada um respeitando o seu `max`, na ordem em que aparecem. Depois deles vem `set_minimum_score`.
+
 ### 3.9 `weapon_mastery`
 
 ```json
@@ -221,8 +232,8 @@ O valor do atributo passa a ser pelo menos `value` (ex.: Manoplas de Força do O
 ## 4. Ordem de cálculo da ficha
 
 1. Valores base dos atributos (lista de escolhas: ASIs do antecedente e de talentos e aumentos fixos de classe, como Primal Champion).
-2. `set_minimum_score`.
-3. Modificadores, bônus de proficiência (pelo nível de personagem) e proficiências (`grant_proficiency`).
+2. `ability_increase` (com o teto de cada um), depois `set_minimum_score`.
+3. Modificadores, bônus de proficiência (pelo nível de personagem, mais `flat_bonus` em `proficiency_bonus`) e proficiências (`grant_proficiency`).
 4. `set_base_ac` (maior fórmula) + `flat_bonus` em `ac`.
 5. Demais `flat_bonus`, `half_proficiency`, deslocamentos (`grant_speed`), sentidos, resistências e imunidades.
 6. Condições (incluindo exaustão) por último.

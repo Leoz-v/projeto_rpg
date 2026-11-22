@@ -31,7 +31,7 @@ const AttackKind = AttackKindSchema;
 // --- flat_bonus (3.1) -------------------------------------------------------
 
 export const FlatBonusTargetSchema = z.union([
-  z.enum(['ac', 'initiative', 'hp_max', 'speed.walk', 'speed.fly', 'speed.swim', 'speed.climb', 'speed.burrow', 'save.all', 'spell_save_dc', 'attunement_slots', 'attack.weapon', 'damage.weapon']),
+  z.enum(['ac', 'initiative', 'hp_max', 'speed.walk', 'speed.fly', 'speed.swim', 'speed.climb', 'speed.burrow', 'save.all', 'spell_save_dc', 'attunement_slots', 'attack.weapon', 'damage.weapon', 'proficiency_bonus']),
   z.templateLiteral(['attack.', AttackKind]),
   z.templateLiteral(['damage.', AttackKind]),
   z.templateLiteral(['save.', Ability]),
@@ -164,6 +164,17 @@ const GrantSenseSchema = z.strictObject({
   ...common,
 });
 
+// --- ability_increase (3.8.1) ----------------------------------------------
+
+const AbilityIncreaseSchema = z.strictObject({
+  type: z.literal('ability_increase'),
+  ability: Ability,
+  value: z.int().positive(),
+  /** Teto publicado pela fonte ("to a maximum of 20"). */
+  max: z.int().min(1).max(30),
+  ...common,
+});
+
 // --- damage_reduction (3.14) ------------------------------------------------
 
 const DamageReductionSchema = z.strictObject({
@@ -236,6 +247,7 @@ export const EffectSchema = z.discriminatedUnion('type', [
   GrantSpellSchema,
   GrantSenseSchema,
   DamageReductionSchema,
+  AbilityIncreaseSchema,
   SetMinimumScoreSchema,
   WeaponMasteryEffectSchema,
   ConditionEffectSchema,
