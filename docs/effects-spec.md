@@ -113,7 +113,7 @@ Fórmula base de Classe de Armadura.
 { "type": "grant_proficiency", "category": "skill", "id": "stealth", "level": "expertise" }
 ```
 
-- `category`: `skill`, `save`, `armor` (`light`, `medium`, `heavy`, `shield`), `weapon` (`simple`, `martial` ou id de arma), `tool` (id da ferramenta), `language` (id do idioma).
+- `category`: `skill`, `save`, `armor` (`light`, `medium`, `heavy`, `shield`), `weapon` (`simple`, `martial` ou id de arma), `tool` (id de um item `tool` do compêndio; cada variante de jogo ou instrumento tem o seu), `language` (id do idioma).
 - `properties` (só com `weapon` e id `simple`/`martial`): restringe às armas da categoria com **alguma** das propriedades. Ex.: `{ "type": "grant_proficiency", "category": "weapon", "id": "martial", "properties": ["finesse", "light"] }` ("armas marciais com Finesse ou Leve", Ladino).
 - `level`: `proficient` (padrão) ou `expertise` (só para `skill` e `tool`; dobra o bônus de proficiência).
 - Proficiências repetidas não se acumulam; vale o maior `level`.

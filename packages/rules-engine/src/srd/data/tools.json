@@ -1,0 +1,621 @@
+[
+  {
+    "id": "alchemists_supplies",
+    "name": "Alchemist's Supplies",
+    "kind": "tool",
+    "category": "artisan",
+    "ability": "int",
+    "weight": 8,
+    "cost": {
+      "amount": 50,
+      "coin": "gp"
+    },
+    "utilize": "Identify a substance (DC 15), or start a fire (DC 15)",
+    "craft": [
+      "Acid",
+      "Alchemist's Fire",
+      "Component Pouch",
+      "Oil",
+      "Paper",
+      "Perfume"
+    ]
+  },
+  {
+    "id": "brewers_supplies",
+    "name": "Brewer's Supplies",
+    "kind": "tool",
+    "category": "artisan",
+    "ability": "int",
+    "weight": 9,
+    "cost": {
+      "amount": 20,
+      "coin": "gp"
+    },
+    "utilize": "Detect poisoned drink (DC 15), or identify alcohol (DC 10)",
+    "craft": [
+      "Antitoxin"
+    ]
+  },
+  {
+    "id": "calligraphers_supplies",
+    "name": "Calligrapher's Supplies",
+    "kind": "tool",
+    "category": "artisan",
+    "ability": "dex",
+    "weight": 5,
+    "cost": {
+      "amount": 10,
+      "coin": "gp"
+    },
+    "utilize": "Write text with impressive flourishes that guard against forgery (DC 15)",
+    "craft": [
+      "Ink",
+      "Spell Scroll"
+    ]
+  },
+  {
+    "id": "carpenters_tools",
+    "name": "Carpenter's Tools",
+    "kind": "tool",
+    "category": "artisan",
+    "ability": "str",
+    "weight": 6,
+    "cost": {
+      "amount": 8,
+      "coin": "gp"
+    },
+    "utilize": "Seal or pry open a door or container (DC 20)",
+    "craft": [
+      "Club",
+      "Greatclub",
+      "Quarterstaff",
+      "Barrel",
+      "Chest",
+      "Ladder",
+      "Pole",
+      "Portable Ram",
+      "Torch"
+    ]
+  },
+  {
+    "id": "cartographers_tools",
+    "name": "Cartographer's Tools",
+    "kind": "tool",
+    "category": "artisan",
+    "ability": "wis",
+    "weight": 6,
+    "cost": {
+      "amount": 15,
+      "coin": "gp"
+    },
+    "utilize": "Draft a map of a small area (DC 15)",
+    "craft": [
+      "Map"
+    ]
+  },
+  {
+    "id": "cobblers_tools",
+    "name": "Cobbler's Tools",
+    "kind": "tool",
+    "category": "artisan",
+    "ability": "dex",
+    "weight": 5,
+    "cost": {
+      "amount": 5,
+      "coin": "gp"
+    },
+    "utilize": "Modify footwear to give Advantage on the wearer's next Dexterity (Acrobatics) check (DC 10)",
+    "craft": [
+      "Climber's Kit"
+    ]
+  },
+  {
+    "id": "cooks_utensils",
+    "name": "Cook's Utensils",
+    "kind": "tool",
+    "category": "artisan",
+    "ability": "wis",
+    "weight": 8,
+    "cost": {
+      "amount": 1,
+      "coin": "gp"
+    },
+    "utilize": "Improve food's flavor (DC 10), or detect spoiled or poisoned food (DC 15)",
+    "craft": [
+      "Rations"
+    ]
+  },
+  {
+    "id": "disguise_kit",
+    "name": "Disguise Kit",
+    "kind": "tool",
+    "category": "other",
+    "ability": "cha",
+    "weight": 3,
+    "cost": {
+      "amount": 25,
+      "coin": "gp"
+    },
+    "utilize": "Apply makeup (DC 10)",
+    "craft": [
+      "Costume"
+    ]
+  },
+  {
+    "id": "forgery_kit",
+    "name": "Forgery Kit",
+    "kind": "tool",
+    "category": "other",
+    "ability": "dex",
+    "weight": 5,
+    "cost": {
+      "amount": 15,
+      "coin": "gp"
+    },
+    "utilize": "Mimic 10 or fewer words of someone else's handwriting (DC 15), or duplicate a wax seal (DC 20)"
+  },
+  {
+    "id": "gaming_set_dice",
+    "name": "Gaming Set (Dice)",
+    "kind": "tool",
+    "category": "gaming_set",
+    "ability": "wis",
+    "weight": 0,
+    "cost": {
+      "amount": 1,
+      "coin": "sp"
+    },
+    "utilize": "Discern whether someone is cheating (DC 10), or win the game (DC 20)"
+  },
+  {
+    "id": "gaming_set_dragonchess",
+    "name": "Gaming Set (Dragonchess)",
+    "kind": "tool",
+    "category": "gaming_set",
+    "ability": "wis",
+    "weight": 0,
+    "cost": {
+      "amount": 1,
+      "coin": "gp"
+    },
+    "utilize": "Discern whether someone is cheating (DC 10), or win the game (DC 20)"
+  },
+  {
+    "id": "gaming_set_playing_cards",
+    "name": "Gaming Set (Playing cards)",
+    "kind": "tool",
+    "category": "gaming_set",
+    "ability": "wis",
+    "weight": 0,
+    "cost": {
+      "amount": 5,
+      "coin": "sp"
+    },
+    "utilize": "Discern whether someone is cheating (DC 10), or win the game (DC 20)"
+  },
+  {
+    "id": "gaming_set_three_dragon_ante",
+    "name": "Gaming Set (Three-dragon ante)",
+    "kind": "tool",
+    "category": "gaming_set",
+    "ability": "wis",
+    "weight": 0,
+    "cost": {
+      "amount": 1,
+      "coin": "gp"
+    },
+    "utilize": "Discern whether someone is cheating (DC 10), or win the game (DC 20)"
+  },
+  {
+    "id": "glassblowers_tools",
+    "name": "Glassblower's Tools",
+    "kind": "tool",
+    "category": "artisan",
+    "ability": "int",
+    "weight": 5,
+    "cost": {
+      "amount": 30,
+      "coin": "gp"
+    },
+    "utilize": "Discern what a glass object held in the past 24 hours (DC 15)",
+    "craft": [
+      "Glass Bottle",
+      "Magnifying Glass",
+      "Spyglass",
+      "Vial"
+    ]
+  },
+  {
+    "id": "herbalism_kit",
+    "name": "Herbalism Kit",
+    "kind": "tool",
+    "category": "other",
+    "ability": "int",
+    "weight": 3,
+    "cost": {
+      "amount": 5,
+      "coin": "gp"
+    },
+    "utilize": "Identify a plant (DC 10)",
+    "craft": [
+      "Antitoxin",
+      "Candle",
+      "Healer's Kit",
+      "Potion of Healing"
+    ]
+  },
+  {
+    "id": "jewelers_tools",
+    "name": "Jeweler's Tools",
+    "kind": "tool",
+    "category": "artisan",
+    "ability": "int",
+    "weight": 2,
+    "cost": {
+      "amount": 25,
+      "coin": "gp"
+    },
+    "utilize": "Discern a gem's value (DC 15)",
+    "craft": [
+      "Arcane Focus",
+      "Holy Symbol"
+    ]
+  },
+  {
+    "id": "leatherworkers_tools",
+    "name": "Leatherworker's Tools",
+    "kind": "tool",
+    "category": "artisan",
+    "ability": "dex",
+    "weight": 5,
+    "cost": {
+      "amount": 5,
+      "coin": "gp"
+    },
+    "utilize": "Add a design to a leather item (DC 10)",
+    "craft": [
+      "Sling",
+      "Whip",
+      "Hide Armor",
+      "Leather Armor",
+      "Studded Leather Armor",
+      "Backpack",
+      "Crossbow Bolt Case",
+      "Map or Scroll Case",
+      "Parchment",
+      "Pouch",
+      "Quiver",
+      "Waterskin"
+    ]
+  },
+  {
+    "id": "masons_tools",
+    "name": "Mason's Tools",
+    "kind": "tool",
+    "category": "artisan",
+    "ability": "str",
+    "weight": 8,
+    "cost": {
+      "amount": 10,
+      "coin": "gp"
+    },
+    "utilize": "Chisel a symbol or hole in stone (DC 10)",
+    "craft": [
+      "Block and Tackle"
+    ]
+  },
+  {
+    "id": "musical_instrument_bagpipes",
+    "name": "Musical Instrument (Bagpipes)",
+    "kind": "tool",
+    "category": "musical_instrument",
+    "ability": "cha",
+    "weight": 6,
+    "cost": {
+      "amount": 30,
+      "coin": "gp"
+    },
+    "utilize": "Play a known tune (DC 10), or improvise a song (DC 15)"
+  },
+  {
+    "id": "musical_instrument_drum",
+    "name": "Musical Instrument (Drum)",
+    "kind": "tool",
+    "category": "musical_instrument",
+    "ability": "cha",
+    "weight": 3,
+    "cost": {
+      "amount": 6,
+      "coin": "gp"
+    },
+    "utilize": "Play a known tune (DC 10), or improvise a song (DC 15)"
+  },
+  {
+    "id": "musical_instrument_dulcimer",
+    "name": "Musical Instrument (Dulcimer)",
+    "kind": "tool",
+    "category": "musical_instrument",
+    "ability": "cha",
+    "weight": 10,
+    "cost": {
+      "amount": 25,
+      "coin": "gp"
+    },
+    "utilize": "Play a known tune (DC 10), or improvise a song (DC 15)"
+  },
+  {
+    "id": "musical_instrument_flute",
+    "name": "Musical Instrument (Flute)",
+    "kind": "tool",
+    "category": "musical_instrument",
+    "ability": "cha",
+    "weight": 1,
+    "cost": {
+      "amount": 2,
+      "coin": "gp"
+    },
+    "utilize": "Play a known tune (DC 10), or improvise a song (DC 15)"
+  },
+  {
+    "id": "musical_instrument_horn",
+    "name": "Musical Instrument (Horn)",
+    "kind": "tool",
+    "category": "musical_instrument",
+    "ability": "cha",
+    "weight": 2,
+    "cost": {
+      "amount": 3,
+      "coin": "gp"
+    },
+    "utilize": "Play a known tune (DC 10), or improvise a song (DC 15)"
+  },
+  {
+    "id": "musical_instrument_lute",
+    "name": "Musical Instrument (Lute)",
+    "kind": "tool",
+    "category": "musical_instrument",
+    "ability": "cha",
+    "weight": 2,
+    "cost": {
+      "amount": 35,
+      "coin": "gp"
+    },
+    "utilize": "Play a known tune (DC 10), or improvise a song (DC 15)"
+  },
+  {
+    "id": "musical_instrument_lyre",
+    "name": "Musical Instrument (Lyre)",
+    "kind": "tool",
+    "category": "musical_instrument",
+    "ability": "cha",
+    "weight": 2,
+    "cost": {
+      "amount": 30,
+      "coin": "gp"
+    },
+    "utilize": "Play a known tune (DC 10), or improvise a song (DC 15)"
+  },
+  {
+    "id": "musical_instrument_pan_flute",
+    "name": "Musical Instrument (Pan flute)",
+    "kind": "tool",
+    "category": "musical_instrument",
+    "ability": "cha",
+    "weight": 2,
+    "cost": {
+      "amount": 12,
+      "coin": "gp"
+    },
+    "utilize": "Play a known tune (DC 10), or improvise a song (DC 15)"
+  },
+  {
+    "id": "musical_instrument_shawm",
+    "name": "Musical Instrument (Shawm)",
+    "kind": "tool",
+    "category": "musical_instrument",
+    "ability": "cha",
+    "weight": 1,
+    "cost": {
+      "amount": 2,
+      "coin": "gp"
+    },
+    "utilize": "Play a known tune (DC 10), or improvise a song (DC 15)"
+  },
+  {
+    "id": "musical_instrument_viol",
+    "name": "Musical Instrument (Viol)",
+    "kind": "tool",
+    "category": "musical_instrument",
+    "ability": "cha",
+    "weight": 1,
+    "cost": {
+      "amount": 30,
+      "coin": "gp"
+    },
+    "utilize": "Play a known tune (DC 10), or improvise a song (DC 15)"
+  },
+  {
+    "id": "navigators_tools",
+    "name": "Navigator's Tools",
+    "kind": "tool",
+    "category": "other",
+    "ability": "wis",
+    "weight": 2,
+    "cost": {
+      "amount": 25,
+      "coin": "gp"
+    },
+    "utilize": "Plot a course (DC 10), or determine position by stargazing (DC 15)"
+  },
+  {
+    "id": "painters_supplies",
+    "name": "Painter's Supplies",
+    "kind": "tool",
+    "category": "artisan",
+    "ability": "wis",
+    "weight": 5,
+    "cost": {
+      "amount": 10,
+      "coin": "gp"
+    },
+    "utilize": "Paint a recognizable image of something you've seen (DC 10)",
+    "craft": [
+      "Druidic Focus",
+      "Holy Symbol"
+    ]
+  },
+  {
+    "id": "poisoners_kit",
+    "name": "Poisoner's Kit",
+    "kind": "tool",
+    "category": "other",
+    "ability": "int",
+    "weight": 2,
+    "cost": {
+      "amount": 50,
+      "coin": "gp"
+    },
+    "utilize": "Detect a poisoned object (DC 10)",
+    "craft": [
+      "Basic Poison"
+    ]
+  },
+  {
+    "id": "potters_tools",
+    "name": "Potter's Tools",
+    "kind": "tool",
+    "category": "artisan",
+    "ability": "int",
+    "weight": 3,
+    "cost": {
+      "amount": 10,
+      "coin": "gp"
+    },
+    "utilize": "Discern what a ceramic object held in the past 24 hours (DC 15)",
+    "craft": [
+      "Jug",
+      "Lamp"
+    ]
+  },
+  {
+    "id": "smiths_tools",
+    "name": "Smith's Tools",
+    "kind": "tool",
+    "category": "artisan",
+    "ability": "str",
+    "weight": 8,
+    "cost": {
+      "amount": 20,
+      "coin": "gp"
+    },
+    "utilize": "Pry open a door or container (DC 20)",
+    "craft": [
+      "Any Melee weapon (except Club, Greatclub, Quarterstaff, and Whip)",
+      "Medium armor (except Hide)",
+      "Heavy armor",
+      "Ball Bearings",
+      "Bucket",
+      "Caltrops",
+      "Chain",
+      "Crowbar",
+      "Firearm Bullets",
+      "Grappling Hook",
+      "Iron Pot",
+      "Iron Spikes",
+      "Sling Bullets"
+    ]
+  },
+  {
+    "id": "thieves_tools",
+    "name": "Thieves' Tools",
+    "kind": "tool",
+    "category": "other",
+    "ability": "dex",
+    "weight": 1,
+    "cost": {
+      "amount": 25,
+      "coin": "gp"
+    },
+    "utilize": "Pick a lock (DC 15), or disarm a trap (DC 15)"
+  },
+  {
+    "id": "tinkers_tools",
+    "name": "Tinker's Tools",
+    "kind": "tool",
+    "category": "artisan",
+    "ability": "dex",
+    "weight": 10,
+    "cost": {
+      "amount": 50,
+      "coin": "gp"
+    },
+    "utilize": "Assemble a Tiny item composed of scrap, which falls apart in 1 minute (DC 20)",
+    "craft": [
+      "Musket",
+      "Pistol",
+      "Bell",
+      "Bullseye Lantern",
+      "Flask",
+      "Hooded Lantern",
+      "Hunting Trap",
+      "Lock",
+      "Manacles",
+      "Mirror",
+      "Shovel",
+      "Signal Whistle",
+      "Tinderbox"
+    ]
+  },
+  {
+    "id": "weavers_tools",
+    "name": "Weaver's Tools",
+    "kind": "tool",
+    "category": "artisan",
+    "ability": "dex",
+    "weight": 5,
+    "cost": {
+      "amount": 1,
+      "coin": "gp"
+    },
+    "utilize": "Mend a tear in clothing (DC 10), or sew a Tiny design (DC 10)",
+    "craft": [
+      "Padded Armor",
+      "Basket",
+      "Bedroll",
+      "Blanket",
+      "Fine Clothes",
+      "Net",
+      "Robe",
+      "Rope",
+      "Sack",
+      "String",
+      "Tent",
+      "Traveler's Clothes"
+    ]
+  },
+  {
+    "id": "woodcarvers_tools",
+    "name": "Woodcarver's Tools",
+    "kind": "tool",
+    "category": "artisan",
+    "ability": "dex",
+    "weight": 5,
+    "cost": {
+      "amount": 1,
+      "coin": "gp"
+    },
+    "utilize": "Carve a pattern in wood (DC 10)",
+    "craft": [
+      "Club",
+      "Greatclub",
+      "Quarterstaff",
+      "Ranged weapons (except Pistol, Musket, and Sling)",
+      "Arcane Focus",
+      "Arrows",
+      "Bolts",
+      "Druidic Focus",
+      "Ink Pen",
+      "Needles"
+    ]
+  }
+]

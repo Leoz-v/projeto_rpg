@@ -275,6 +275,7 @@
       "long": 320
     },
     "mastery": "slow",
+    "ammunition": "bolts",
     "weight": 5,
     "cost": {
       "amount": 25,
@@ -301,6 +302,7 @@
       "long": 320
     },
     "mastery": "vex",
+    "ammunition": "arrows",
     "weight": 2,
     "cost": {
       "amount": 25,
@@ -326,6 +328,7 @@
       "long": 120
     },
     "mastery": "slow",
+    "ammunition": "sling_bullets",
     "cost": {
       "amount": 1,
       "coin": "sp"
@@ -730,6 +733,7 @@
       "long": 100
     },
     "mastery": "vex",
+    "ammunition": "needles",
     "weight": 1,
     "cost": {
       "amount": 10,
@@ -757,6 +761,7 @@
       "long": 120
     },
     "mastery": "vex",
+    "ammunition": "bolts",
     "weight": 3,
     "cost": {
       "amount": 75,
@@ -785,6 +790,7 @@
       "long": 400
     },
     "mastery": "push",
+    "ammunition": "bolts",
     "weight": 18,
     "cost": {
       "amount": 50,
@@ -812,6 +818,7 @@
       "long": 600
     },
     "mastery": "slow",
+    "ammunition": "arrows",
     "weight": 2,
     "cost": {
       "amount": 50,
@@ -839,6 +846,7 @@
       "long": 120
     },
     "mastery": "slow",
+    "ammunition": "firearm_bullets",
     "weight": 10,
     "cost": {
       "amount": 500,
@@ -865,6 +873,7 @@
       "long": 90
     },
     "mastery": "vex",
+    "ammunition": "firearm_bullets",
     "weight": 3,
     "cost": {
       "amount": 250,

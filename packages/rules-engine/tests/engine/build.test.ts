@@ -173,6 +173,20 @@ describe('feat prerequisites', () => {
     expect(sheet.proficiencies.tools.map((t) => t.id)).toContain('thieves_tools');
   });
 
+  it('rejects a Skilled pick that is neither a skill nor a compendium tool', () => {
+    const steps = fighterSteps();
+    steps[0] = {
+      kind: 'species',
+      speciesId: 'human',
+      size: 'medium',
+      selections: [LANGUAGES, sel('species', 'human', 'skillful', 'insight'), sel('species', 'human', 'versatile', 'skilled'), sel('feat', 'skilled', 'proficiencies', 'arcana', 'history', 'lockpicks')],
+    };
+    const sheet = derive({ steps });
+    expect(errorsOf(sheet)).toEqual(['invalid_selection']);
+    expect(sheet.issues.find((i) => i.severity === 'error')?.message).toContain('lockpicks');
+    expect(sheet.proficiencies.tools.map((t) => t.id)).not.toContain('lockpicks');
+  });
+
   it('checks ability prerequisites (Grappler: STR or DEX 13)', () => {
     const steps = fighterSteps([
       { kind: 'class_level', classId: 'fighter' },

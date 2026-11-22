@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
 import { CreatureSchema } from '../../src/schemas/creature';
-import { ItemSchema } from '../../src/schemas/item';
+import { type Item, ItemSchema } from '../../src/schemas/item';
 import { BackgroundSchema, ClassSchema, FeatSchema, type Grant, SpeciesSchema, SubclassSchema } from '../../src/schemas/source';
 import { SpellSchema } from '../../src/schemas/spell';
 import { loadSrdCompendium, SRD_ATTRIBUTION, SRD_RAW } from '../../src/srd';
@@ -276,6 +276,81 @@ describe('SRD compendium', () => {
       const choices = [...srd.feats.flatMap((f) => f.grants), ...srd.classes.flatMap((c) => c.levels.flatMap((l) => l.grants)), ...srd.subclasses.flatMap((c) => c.levels.flatMap((l) => l.grants))];
       for (const g of choices) {
         if (g.kind === 'choice' && g.options.pick === 'spell') for (const l of g.options.lists) expect(lists.has(l), l).toBe(true);
+      }
+    });
+  });
+
+  describe('tools and adventuring gear (pp. 93-100)', () => {
+    const tools = srd.items.filter((i) => i.kind === 'tool');
+    const gear = srd.items.filter((i) => i.kind === 'gear');
+    const item = (id: string): Item => byId(srd.items, id);
+
+    it('has every tool (one item per variant) and every gear row', () => {
+      expect(tools).toHaveLength(37);
+      const perCategory = Object.fromEntries(['artisan', 'gaming_set', 'musical_instrument', 'other'].map((c) => [c, tools.filter((t) => t.category === c).length]));
+      expect(perCategory).toEqual({ artisan: 17, gaming_set: 4, musical_instrument: 10, other: 6 });
+      // 78 das 82 linhas da tabela (as 4 genéricas viram munições e formas de foco), 5 munições e 11 formas de foco.
+      expect(gear).toHaveLength(94);
+      expect(gear.filter((g) => g.focus !== undefined)).toHaveLength(11);
+      expect(gear.filter((g) => g.contents.length > 0).map((g) => g.id)).toEqual([
+        'burglars_pack', 'diplomats_pack', 'dungeoneers_pack', 'entertainers_pack', 'explorers_pack', 'priests_pack', 'scholars_pack',
+      ]);
+    });
+
+    it('matches the PDF entries', () => {
+      expect(item('thieves_tools')).toMatchObject({ kind: 'tool', category: 'other', ability: 'dex', weight: 1, cost: { amount: 25, coin: 'gp' } });
+      expect(item('musical_instrument_lute')).toMatchObject({ category: 'musical_instrument', ability: 'cha', weight: 2, cost: { amount: 35, coin: 'gp' } });
+      expect(item('gaming_set_playing_cards')).toMatchObject({ ability: 'wis', weight: 0, cost: { amount: 5, coin: 'sp' } });
+      expect(item('herbalism_kit')).toMatchObject({ craft: ['Antitoxin', 'Candle', "Healer's Kit", 'Potion of Healing'] });
+      expect(item('explorers_pack')).toMatchObject({
+        weight: 55,
+        cost: { amount: 10, coin: 'gp' },
+        contents: [
+          { itemId: 'backpack', quantity: 1 },
+          { itemId: 'bedroll', quantity: 1 },
+          { itemId: 'oil', quantity: 2 },
+          { itemId: 'rations', quantity: 10 },
+          { itemId: 'rope', quantity: 1 },
+          { itemId: 'tinderbox', quantity: 1 },
+          { itemId: 'torch', quantity: 10 },
+          { itemId: 'waterskin', quantity: 1 },
+        ],
+      });
+      expect(item('entertainers_pack').weight).toBe(58.5);
+      expect(item('arrows')).toMatchObject({ weight: 1, cost: { amount: 1, coin: 'gp' }, perPurchase: 20, consumable: true });
+      expect(item('arcane_focus_staff')).toMatchObject({ focus: 'arcane', weight: 4, cost: { amount: 5, coin: 'gp' } });
+      expect(item('glass_bottle')).toMatchObject({ name: 'Glass Bottle', weight: 2, cost: { amount: 2, coin: 'gp' } });
+      expect(item('potion_of_healing')).toMatchObject({ weight: 0.5, consumable: true });
+      expect(item('shortbow')).toMatchObject({ ammunition: 'arrows' });
+      expect(item('pistol')).toMatchObject({ ammunition: 'firearm_bullets' });
+    });
+
+    it('weighs each pack as the sum of its contents', () => {
+      for (const pack of gear.filter((g) => g.contents.length > 0)) {
+        const total = pack.contents.reduce((sum, c) => {
+          const it = item(c.itemId);
+          return sum + ((it.weight ?? 0) * c.quantity) / (it.perPurchase ?? 1);
+        }, 0);
+        expect(total, pack.id).toBeCloseTo(pack.weight ?? -1, 6);
+      }
+    });
+
+    it('resolves every tool and ammunition reference', () => {
+      const toolIds = new Set(tools.map((t) => t.id));
+      const cited = JSON.stringify([srd.species, srd.backgrounds, srd.feats, srd.classes, srd.subclasses]);
+      const fixed = [...cited.matchAll(/"category":"tool","id":"([a-z_]+)"/g)].map((m) => m[1] ?? '');
+      const offered = [...cited.matchAll(/"categories":\["tool"\],"from":\[([^\]]*)\]/g)].flatMap((m) => JSON.parse(`[${m[1] ?? ''}]`) as string[]);
+      expect(fixed.length + offered.length).toBeGreaterThan(30);
+      expect([...fixed, ...offered].filter((id) => !toolIds.has(id))).toEqual([]);
+      for (const w of srd.items) {
+        if (w.kind === 'weapon' && w.ammunition !== undefined) expect(item(w.ammunition), w.id).toMatchObject({ kind: 'gear', consumable: true });
+      }
+    });
+
+    it('has clean text (no page footers, broken characters or embedded tables)', () => {
+      for (const g of [...gear, ...tools]) {
+        const text = `${g.description ?? ''} ${g.kind === 'tool' ? g.utilize : ''}`;
+        expect(text, g.id).not.toMatch(/System Reference Document|�|−|­|\d+ GP \d+ GP/);
       }
     });
   });

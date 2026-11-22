@@ -232,12 +232,12 @@ export function resolveBuild(character: Character, compendium: Compendium): Reso
           const asSkill = options.categories.includes('skill') && isSkill(id);
           if (asSkill) {
             effects.push({ effect: { type: 'grant_proficiency', category: 'skill', id }, source, refKey, classId: classOf(scale) });
-          } else if (options.categories.includes('tool')) {
+          } else if (options.categories.includes('tool') && compendium.items.some((i) => i.kind === 'tool' && i.id === id)) {
             effects.push({ effect: { type: 'grant_proficiency', category: 'tool', id }, source, refKey, classId: classOf(scale) });
           } else if (options.categories.includes('language')) {
             effects.push({ effect: { type: 'grant_proficiency', category: 'language', id }, source, refKey, classId: classOf(scale) });
           } else {
-            fail(`${id} não é uma perícia.`);
+            fail(options.categories.includes('tool') ? `${id} não é uma perícia nem uma ferramenta do compêndio.` : `${id} não é uma perícia.`);
           }
         }
         return;
