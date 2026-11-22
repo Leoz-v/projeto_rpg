@@ -112,11 +112,12 @@ Fórmula base de Classe de Armadura.
 ```json
 { "type": "grant_spell", "spellId": "light", "ability": "int", "uses": "at_will" }
 { "type": "grant_spell", "spellId": "misty_step", "ability": "wis", "uses": { "per": "long_rest", "count": 1 } }
+{ "type": "grant_spell", "spellId": "faerie_fire", "ability": { "choice": "spellcasting_ability" }, "uses": { "per": "long_rest", "count": 1, "slots": true } }
 ```
 
 - Concede magia fora da lista de magias da classe (espécie, talento, item).
-- `ability`: atributo de conjuração usado nas CDs e ataques dessa magia.
-- `uses`: `at_will`, `{ "per": "short_rest" | "long_rest", "count": n }` ou `"slot"` (usa espaços de magia normalmente).
+- `ability`: atributo de conjuração usado nas CDs e ataques dessa magia. Pode ser fixo (`"int"`) ou `{ "choice": "<id>" }`: o atributo que o jogador escolheu numa escolha `ability` **da mesma fonte** (ex.: "INT, SAB ou CAR, escolha ao selecionar a linhagem").
+- `uses`: `at_will`, `{ "per": "short_rest" | "long_rest", "count": n }` ou `"slot"` (usa espaços de magia normalmente). `count` aceita inteiro ou `{ "proficiency": 1 }` ("um número de vezes igual ao seu bônus de proficiência"). Com `"slots": true` no objeto, a magia também pode ser conjurada com espaços de magia além dos usos gratuitos (padrão de 2024: "uma vez sem espaço por descanso longo; também com espaços").
 - Magia preparada ou conhecida por classe **não** é efeito: vem da lista de escolhas.
 
 ### 3.7 `grant_sense`

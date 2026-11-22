@@ -1,0 +1,309 @@
+[
+  {
+    "id": "champion",
+    "classId": "fighter",
+    "name": "Champion",
+    "levels": [
+      {
+        "level": 3,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "improved_critical",
+              "name": "Improved Critical",
+              "description": "Your attack rolls with weapons and Unarmed Strikes can score a Critical Hit on a roll of 19 or 20 on the d20."
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "remarkable_athlete",
+              "name": "Remarkable Athlete",
+              "description": "You have Advantage on Initiative rolls and Strength (Athletics) checks. In addition, immediately after you score a Critical Hit, you can move up to half your Speed without provoking Opportunity Attacks.",
+              "effects": [
+                {
+                  "type": "advantage",
+                  "target": "initiative"
+                },
+                {
+                  "type": "advantage",
+                  "target": "skill.athletics"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "level": 7,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "additional_fighting_style",
+            "count": 1,
+            "options": {
+              "pick": "feat",
+              "categories": [
+                "fighting_style"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "level": 10,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "heroic_warrior",
+              "name": "Heroic Warrior",
+              "description": "During combat, you can give yourself Heroic Inspiration whenever you start your turn without it."
+            }
+          }
+        ]
+      },
+      {
+        "level": 15,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "superior_critical",
+              "name": "Superior Critical",
+              "description": "Your attack rolls with weapons and Unarmed Strikes can now score a Critical Hit on a roll of 18-20 on the d20."
+            }
+          }
+        ]
+      },
+      {
+        "level": 18,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "survivor",
+              "name": "Survivor",
+              "description": "Defy Death. You have Advantage on Death Saving Throws. Moreover, when you roll 18-20 on a Death Saving Throw, you gain the benefit of rolling a 20 on it. Heroic Rally. At the start of each of your turns, you regain Hit Points equal to 5 plus your Constitution modifier if you are Bloodied and have at least 1 Hit Point."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "evoker",
+    "classId": "wizard",
+    "name": "Evoker",
+    "levels": [
+      {
+        "level": 3,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "evocation_savant",
+            "count": 2,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 2,
+              "school": "evocation"
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "evocation_savant_feature",
+              "name": "Evocation Savant",
+              "description": "Choose two Wizard spells from the Evocation school, each of which must be no higher than level 2, and add them to your spellbook for free. In addition, whenever you gain access to a new level of spell slots in this class, you can add one Wizard spell from the Evocation school to your spellbook for free. The chosen spell must be of a level for which you have spell slots."
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "potent_cantrip",
+              "name": "Potent Cantrip",
+              "description": "When you cast a cantrip at a creature and you miss with the attack roll or the target succeeds on a saving throw against the cantrip, the target takes half the cantrip's damage (if any) but suffers no additional effect from the cantrip."
+            }
+          }
+        ]
+      },
+      {
+        "level": 5,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "evocation_savant_5",
+            "count": 1,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 3,
+              "school": "evocation"
+            }
+          }
+        ]
+      },
+      {
+        "level": 6,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "sculpt_spells",
+              "name": "Sculpt Spells",
+              "description": "When you cast an Evocation spell that affects other creatures that you can see, you can choose a number of them equal to 1 plus the spell's level. The chosen creatures automatically succeed on their saving throws against the spell, and they take no damage if they would normally take half damage on a successful save."
+            }
+          }
+        ]
+      },
+      {
+        "level": 7,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "evocation_savant_7",
+            "count": 1,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 4,
+              "school": "evocation"
+            }
+          }
+        ]
+      },
+      {
+        "level": 9,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "evocation_savant_9",
+            "count": 1,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 5,
+              "school": "evocation"
+            }
+          }
+        ]
+      },
+      {
+        "level": 10,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "empowered_evocation",
+              "name": "Empowered Evocation",
+              "description": "Whenever you cast a Wizard spell from the Evocation school, you can add your Intelligence modifier to one damage roll of that spell."
+            }
+          }
+        ]
+      },
+      {
+        "level": 11,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "evocation_savant_11",
+            "count": 1,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 6,
+              "school": "evocation"
+            }
+          }
+        ]
+      },
+      {
+        "level": 13,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "evocation_savant_13",
+            "count": 1,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 7,
+              "school": "evocation"
+            }
+          }
+        ]
+      },
+      {
+        "level": 14,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "overchannel",
+              "name": "Overchannel",
+              "description": "When you cast a Wizard spell with a spell slot of levels 1-5 that deals damage, you can deal maximum damage with that spell on the turn you cast it. The first time you do so, you suffer no adverse effect. If you use this feature again before you finish a Long Rest, you take 2d12 Necrotic damage for each level of the spell slot immediately after you cast it. This damage ignores Resistance and Immunity. Each time you use this feature again before finishing a Long Rest, the Necrotic damage per spell level increases by 1d12."
+            }
+          }
+        ]
+      },
+      {
+        "level": 15,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "evocation_savant_15",
+            "count": 1,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 8,
+              "school": "evocation"
+            }
+          }
+        ]
+      },
+      {
+        "level": 17,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "evocation_savant_17",
+            "count": 1,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 9,
+              "school": "evocation"
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

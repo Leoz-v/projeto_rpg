@@ -1,0 +1,627 @@
+[
+  {
+    "id": "alert",
+    "name": "Alert",
+    "category": "origin",
+    "grants": [
+      {
+        "kind": "effect",
+        "effect": {
+          "type": "flat_bonus",
+          "target": "initiative",
+          "value": {
+            "proficiency": 1
+          }
+        }
+      },
+      {
+        "kind": "feature",
+        "feature": {
+          "id": "initiative_swap",
+          "name": "Initiative Swap",
+          "description": "Immediately after you roll Initiative, you can swap your Initiative with the Initiative of one willing ally in the same combat. You can't make this swap if you or the ally has the Incapacitated condition."
+        }
+      }
+    ]
+  },
+  {
+    "id": "magic_initiate_cleric",
+    "name": "Magic Initiate (Cleric)",
+    "category": "origin",
+    "repeatable": true,
+    "description": "Repeatable: you must choose a different spell list each time. Spell Change: whenever you gain a new level, you can replace one of the spells you chose for this feat with a different spell of the same level from the chosen spell list.",
+    "grants": [
+      {
+        "kind": "choice",
+        "id": "spellcasting_ability",
+        "count": 1,
+        "options": {
+          "pick": "ability",
+          "from": [
+            "int",
+            "wis",
+            "cha"
+          ]
+        }
+      },
+      {
+        "kind": "choice",
+        "id": "cantrips",
+        "count": 2,
+        "options": {
+          "pick": "spell",
+          "lists": [
+            "cleric"
+          ],
+          "maxLevel": 0,
+          "grantAs": {
+            "ability": {
+              "choice": "spellcasting_ability"
+            },
+            "uses": "at_will"
+          }
+        }
+      },
+      {
+        "kind": "choice",
+        "id": "level_1_spell",
+        "count": 1,
+        "options": {
+          "pick": "spell",
+          "lists": [
+            "cleric"
+          ],
+          "minLevel": 1,
+          "maxLevel": 1,
+          "grantAs": {
+            "ability": {
+              "choice": "spellcasting_ability"
+            },
+            "uses": {
+              "per": "long_rest",
+              "count": 1,
+              "slots": true
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "magic_initiate_druid",
+    "name": "Magic Initiate (Druid)",
+    "category": "origin",
+    "repeatable": true,
+    "description": "Repeatable: you must choose a different spell list each time. Spell Change: whenever you gain a new level, you can replace one of the spells you chose for this feat with a different spell of the same level from the chosen spell list.",
+    "grants": [
+      {
+        "kind": "choice",
+        "id": "spellcasting_ability",
+        "count": 1,
+        "options": {
+          "pick": "ability",
+          "from": [
+            "int",
+            "wis",
+            "cha"
+          ]
+        }
+      },
+      {
+        "kind": "choice",
+        "id": "cantrips",
+        "count": 2,
+        "options": {
+          "pick": "spell",
+          "lists": [
+            "druid"
+          ],
+          "maxLevel": 0,
+          "grantAs": {
+            "ability": {
+              "choice": "spellcasting_ability"
+            },
+            "uses": "at_will"
+          }
+        }
+      },
+      {
+        "kind": "choice",
+        "id": "level_1_spell",
+        "count": 1,
+        "options": {
+          "pick": "spell",
+          "lists": [
+            "druid"
+          ],
+          "minLevel": 1,
+          "maxLevel": 1,
+          "grantAs": {
+            "ability": {
+              "choice": "spellcasting_ability"
+            },
+            "uses": {
+              "per": "long_rest",
+              "count": 1,
+              "slots": true
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "magic_initiate_wizard",
+    "name": "Magic Initiate (Wizard)",
+    "category": "origin",
+    "repeatable": true,
+    "description": "Repeatable: you must choose a different spell list each time. Spell Change: whenever you gain a new level, you can replace one of the spells you chose for this feat with a different spell of the same level from the chosen spell list.",
+    "grants": [
+      {
+        "kind": "choice",
+        "id": "spellcasting_ability",
+        "count": 1,
+        "options": {
+          "pick": "ability",
+          "from": [
+            "int",
+            "wis",
+            "cha"
+          ]
+        }
+      },
+      {
+        "kind": "choice",
+        "id": "cantrips",
+        "count": 2,
+        "options": {
+          "pick": "spell",
+          "lists": [
+            "wizard"
+          ],
+          "maxLevel": 0,
+          "grantAs": {
+            "ability": {
+              "choice": "spellcasting_ability"
+            },
+            "uses": "at_will"
+          }
+        }
+      },
+      {
+        "kind": "choice",
+        "id": "level_1_spell",
+        "count": 1,
+        "options": {
+          "pick": "spell",
+          "lists": [
+            "wizard"
+          ],
+          "minLevel": 1,
+          "maxLevel": 1,
+          "grantAs": {
+            "ability": {
+              "choice": "spellcasting_ability"
+            },
+            "uses": {
+              "per": "long_rest",
+              "count": 1,
+              "slots": true
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "savage_attacker",
+    "name": "Savage Attacker",
+    "category": "origin",
+    "grants": [
+      {
+        "kind": "feature",
+        "feature": {
+          "id": "savage_attacker",
+          "name": "Savage Attacker",
+          "description": "Once per turn when you hit a target with a weapon, you can roll the weapon's damage dice twice and use either roll against the target."
+        }
+      }
+    ]
+  },
+  {
+    "id": "skilled",
+    "name": "Skilled",
+    "category": "origin",
+    "repeatable": true,
+    "grants": [
+      {
+        "kind": "choice",
+        "id": "proficiencies",
+        "count": 3,
+        "options": {
+          "pick": "proficiency",
+          "categories": [
+            "skill",
+            "tool"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "ability_score_improvement",
+    "name": "Ability Score Improvement",
+    "category": "general",
+    "prerequisite": {
+      "minLevel": 4
+    },
+    "repeatable": true,
+    "description": "Increase one ability score of your choice by 2, or increase two ability scores of your choice by 1. This feat can't increase an ability score above 20.",
+    "grants": [
+      {
+        "kind": "choice",
+        "id": "increase",
+        "count": 2,
+        "options": {
+          "pick": "ability_score",
+          "max": 20
+        }
+      }
+    ]
+  },
+  {
+    "id": "grappler",
+    "name": "Grappler",
+    "category": "general",
+    "prerequisite": {
+      "minLevel": 4,
+      "anyAbilityAtLeast": {
+        "str": 13,
+        "dex": 13
+      }
+    },
+    "grants": [
+      {
+        "kind": "choice",
+        "id": "ability_score_increase",
+        "count": 1,
+        "options": {
+          "pick": "ability_score",
+          "max": 20,
+          "from": [
+            "str",
+            "dex"
+          ]
+        }
+      },
+      {
+        "kind": "feature",
+        "feature": {
+          "id": "punch_and_grab",
+          "name": "Punch and Grab",
+          "description": "When you hit a creature with an Unarmed Strike as part of the Attack action on your turn, you can use both the Damage and the Grapple option. You can use this benefit only once per turn."
+        }
+      },
+      {
+        "kind": "feature",
+        "feature": {
+          "id": "attack_advantage",
+          "name": "Attack Advantage",
+          "description": "You have Advantage on attack rolls against a creature Grappled by you."
+        }
+      },
+      {
+        "kind": "feature",
+        "feature": {
+          "id": "fast_wrestler",
+          "name": "Fast Wrestler",
+          "description": "You don't have to spend extra movement to move a creature Grappled by you if the creature is your size or smaller."
+        }
+      }
+    ]
+  },
+  {
+    "id": "archery",
+    "name": "Archery",
+    "category": "fighting_style",
+    "prerequisite": {
+      "feature": "fighting_style"
+    },
+    "grants": [
+      {
+        "kind": "feature",
+        "feature": {
+          "id": "archery",
+          "name": "Archery",
+          "description": "You gain a +2 bonus to attack rolls you make with Ranged weapons.",
+          "effects": [
+            {
+              "type": "flat_bonus",
+              "target": "attack.ranged",
+              "value": 2
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "defense",
+    "name": "Defense",
+    "category": "fighting_style",
+    "prerequisite": {
+      "feature": "fighting_style"
+    },
+    "grants": [
+      {
+        "kind": "feature",
+        "feature": {
+          "id": "defense",
+          "name": "Defense",
+          "description": "While you're wearing Light, Medium, or Heavy armor, you gain a +1 bonus to Armor Class.",
+          "effects": [
+            {
+              "type": "flat_bonus",
+              "target": "ac",
+              "value": 1,
+              "when": {
+                "wearingArmor": true
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "great_weapon_fighting",
+    "name": "Great Weapon Fighting",
+    "category": "fighting_style",
+    "prerequisite": {
+      "feature": "fighting_style"
+    },
+    "grants": [
+      {
+        "kind": "feature",
+        "feature": {
+          "id": "great_weapon_fighting",
+          "name": "Great Weapon Fighting",
+          "description": "When you roll damage for an attack you make with a Melee weapon that you are holding with two hands, you can treat any 1 or 2 on a damage die as a 3. The weapon must have the Two-Handed or Versatile property to gain this benefit."
+        }
+      }
+    ]
+  },
+  {
+    "id": "two_weapon_fighting",
+    "name": "Two-Weapon Fighting",
+    "category": "fighting_style",
+    "prerequisite": {
+      "feature": "fighting_style"
+    },
+    "grants": [
+      {
+        "kind": "feature",
+        "feature": {
+          "id": "two_weapon_fighting",
+          "name": "Two-Weapon Fighting",
+          "description": "When you make an extra attack as a result of using a weapon that has the Light property, you can add your ability modifier to the damage of that attack if you aren't already adding it to the damage."
+        }
+      }
+    ]
+  },
+  {
+    "id": "boon_of_combat_prowess",
+    "name": "Boon of Combat Prowess",
+    "category": "epic_boon",
+    "prerequisite": {
+      "minLevel": 19
+    },
+    "grants": [
+      {
+        "kind": "choice",
+        "id": "ability_score_increase",
+        "count": 1,
+        "options": {
+          "pick": "ability_score",
+          "max": 30
+        }
+      },
+      {
+        "kind": "feature",
+        "feature": {
+          "id": "peerless_aim",
+          "name": "Peerless Aim",
+          "description": "When you miss with an attack roll, you can hit instead. Once you use this benefit, you can't use it again until the start of your next turn."
+        }
+      }
+    ]
+  },
+  {
+    "id": "boon_of_dimensional_travel",
+    "name": "Boon of Dimensional Travel",
+    "category": "epic_boon",
+    "prerequisite": {
+      "minLevel": 19
+    },
+    "grants": [
+      {
+        "kind": "choice",
+        "id": "ability_score_increase",
+        "count": 1,
+        "options": {
+          "pick": "ability_score",
+          "max": 30
+        }
+      },
+      {
+        "kind": "feature",
+        "feature": {
+          "id": "blink_steps",
+          "name": "Blink Steps",
+          "description": "Immediately after you take the Attack action or the Magic action, you can teleport up to 30 feet to an unoccupied space you can see."
+        }
+      }
+    ]
+  },
+  {
+    "id": "boon_of_fate",
+    "name": "Boon of Fate",
+    "category": "epic_boon",
+    "prerequisite": {
+      "minLevel": 19
+    },
+    "grants": [
+      {
+        "kind": "choice",
+        "id": "ability_score_increase",
+        "count": 1,
+        "options": {
+          "pick": "ability_score",
+          "max": 30
+        }
+      },
+      {
+        "kind": "feature",
+        "feature": {
+          "id": "improve_fate",
+          "name": "Improve Fate",
+          "description": "When you or another creature within 60 feet of you succeeds on or fails a D20 Test, you can roll 2d4 and apply the total rolled as a bonus or penalty to the d20 roll. Once you use this benefit, you can't use it again until you roll Initiative or finish a Short or Long Rest."
+        }
+      }
+    ]
+  },
+  {
+    "id": "boon_of_irresistible_offense",
+    "name": "Boon of Irresistible Offense",
+    "category": "epic_boon",
+    "prerequisite": {
+      "minLevel": 19
+    },
+    "grants": [
+      {
+        "kind": "choice",
+        "id": "ability_score_increase",
+        "count": 1,
+        "options": {
+          "pick": "ability_score",
+          "max": 30,
+          "from": [
+            "str",
+            "dex"
+          ]
+        }
+      },
+      {
+        "kind": "feature",
+        "feature": {
+          "id": "overcome_defenses",
+          "name": "Overcome Defenses",
+          "description": "The Bludgeoning, Piercing, and Slashing damage you deal always ignores Resistance."
+        }
+      },
+      {
+        "kind": "feature",
+        "feature": {
+          "id": "overwhelming_strike",
+          "name": "Overwhelming Strike",
+          "description": "When you roll a 20 on the d20 for an attack roll, you can deal extra damage to the target equal to the ability score increased by this feat. The extra damage's type is the same as the attack's type."
+        }
+      }
+    ]
+  },
+  {
+    "id": "boon_of_spell_recall",
+    "name": "Boon of Spell Recall",
+    "category": "epic_boon",
+    "prerequisite": {
+      "minLevel": 19,
+      "feature": "spellcasting"
+    },
+    "grants": [
+      {
+        "kind": "choice",
+        "id": "ability_score_increase",
+        "count": 1,
+        "options": {
+          "pick": "ability_score",
+          "max": 30,
+          "from": [
+            "int",
+            "wis",
+            "cha"
+          ]
+        }
+      },
+      {
+        "kind": "feature",
+        "feature": {
+          "id": "free_casting",
+          "name": "Free Casting",
+          "description": "Whenever you cast a spell with a level 1-4 spell slot, roll 1d4. If the number you roll is the same as the slot's level, the slot isn't expended."
+        }
+      }
+    ]
+  },
+  {
+    "id": "boon_of_the_night_spirit",
+    "name": "Boon of the Night Spirit",
+    "category": "epic_boon",
+    "prerequisite": {
+      "minLevel": 19
+    },
+    "grants": [
+      {
+        "kind": "choice",
+        "id": "ability_score_increase",
+        "count": 1,
+        "options": {
+          "pick": "ability_score",
+          "max": 30
+        }
+      },
+      {
+        "kind": "feature",
+        "feature": {
+          "id": "merge_with_shadows",
+          "name": "Merge with Shadows",
+          "description": "While within Dim Light or Darkness, you can give yourself the Invisible condition as a Bonus Action. The condition ends on you immediately after you take an action, a Bonus Action, or a Reaction."
+        }
+      },
+      {
+        "kind": "feature",
+        "feature": {
+          "id": "shadowy_form",
+          "name": "Shadowy Form",
+          "description": "While within Dim Light or Darkness, you have Resistance to all damage except Psychic and Radiant."
+        }
+      }
+    ]
+  },
+  {
+    "id": "boon_of_truesight",
+    "name": "Boon of Truesight",
+    "category": "epic_boon",
+    "prerequisite": {
+      "minLevel": 19
+    },
+    "grants": [
+      {
+        "kind": "choice",
+        "id": "ability_score_increase",
+        "count": 1,
+        "options": {
+          "pick": "ability_score",
+          "max": 30
+        }
+      },
+      {
+        "kind": "effect",
+        "effect": {
+          "type": "grant_sense",
+          "sense": "truesight",
+          "range": 60
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,1119 @@
+[
+  {
+    "id": "fighter",
+    "name": "Fighter",
+    "hitDie": 10,
+    "primaryAbilities": [
+      "str",
+      "dex"
+    ],
+    "startingGrants": [
+      {
+        "kind": "effect",
+        "effect": {
+          "type": "grant_proficiency",
+          "category": "save",
+          "id": "str"
+        }
+      },
+      {
+        "kind": "effect",
+        "effect": {
+          "type": "grant_proficiency",
+          "category": "save",
+          "id": "con"
+        }
+      },
+      {
+        "kind": "choice",
+        "id": "skills",
+        "count": 2,
+        "options": {
+          "pick": "proficiency",
+          "categories": [
+            "skill"
+          ],
+          "from": [
+            "acrobatics",
+            "animal_handling",
+            "athletics",
+            "history",
+            "insight",
+            "intimidation",
+            "persuasion",
+            "perception",
+            "survival"
+          ]
+        }
+      },
+      {
+        "kind": "effect",
+        "effect": {
+          "type": "grant_proficiency",
+          "category": "weapon",
+          "id": "simple"
+        }
+      },
+      {
+        "kind": "effect",
+        "effect": {
+          "type": "grant_proficiency",
+          "category": "weapon",
+          "id": "martial"
+        }
+      },
+      {
+        "kind": "effect",
+        "effect": {
+          "type": "grant_proficiency",
+          "category": "armor",
+          "id": "light"
+        }
+      },
+      {
+        "kind": "effect",
+        "effect": {
+          "type": "grant_proficiency",
+          "category": "armor",
+          "id": "medium"
+        }
+      },
+      {
+        "kind": "effect",
+        "effect": {
+          "type": "grant_proficiency",
+          "category": "armor",
+          "id": "heavy"
+        }
+      },
+      {
+        "kind": "effect",
+        "effect": {
+          "type": "grant_proficiency",
+          "category": "armor",
+          "id": "shield"
+        }
+      }
+    ],
+    "multiclassGrants": [
+      {
+        "kind": "effect",
+        "effect": {
+          "type": "grant_proficiency",
+          "category": "weapon",
+          "id": "martial"
+        }
+      },
+      {
+        "kind": "effect",
+        "effect": {
+          "type": "grant_proficiency",
+          "category": "armor",
+          "id": "light"
+        }
+      },
+      {
+        "kind": "effect",
+        "effect": {
+          "type": "grant_proficiency",
+          "category": "armor",
+          "id": "medium"
+        }
+      },
+      {
+        "kind": "effect",
+        "effect": {
+          "type": "grant_proficiency",
+          "category": "armor",
+          "id": "shield"
+        }
+      }
+    ],
+    "levels": [
+      {
+        "level": 1,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "fighting_style",
+            "count": 1,
+            "options": {
+              "pick": "feat",
+              "categories": [
+                "fighting_style"
+              ]
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "second_wind",
+              "name": "Second Wind",
+              "description": "As a Bonus Action, you can regain Hit Points equal to 1d10 plus your Fighter level. You can use this feature twice. You regain one expended use when you finish a Short Rest, and you regain all expended uses when you finish a Long Rest. Uses: 2 (levels 1-3), 3 (levels 4-9), 4 (levels 10-20)."
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "weapon_mastery_1",
+            "count": 3,
+            "options": {
+              "pick": "weapon_mastery"
+            }
+          }
+        ]
+      },
+      {
+        "level": 2,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "action_surge",
+              "name": "Action Surge",
+              "description": "On your turn, you can take one additional action, except the Magic action. Once you use this feature, you can't do so again until you finish a Short or Long Rest. Starting at level 17, you can use it twice before a rest but only once on a turn."
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "tactical_mind",
+              "name": "Tactical Mind",
+              "description": "When you fail an ability check, you can expend a use of your Second Wind to push yourself toward success. Rather than regaining Hit Points, you roll 1d10 and add the number rolled to the ability check, potentially turning it into a success. If the check still fails, this use of Second Wind isn't expended."
+            }
+          }
+        ]
+      },
+      {
+        "level": 3,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "subclass",
+            "count": 1,
+            "options": {
+              "pick": "subclass"
+            }
+          }
+        ]
+      },
+      {
+        "level": 4,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "feat_4",
+            "count": 1,
+            "options": {
+              "pick": "feat",
+              "categories": [
+                "origin",
+                "general",
+                "fighting_style",
+                "epic_boon"
+              ]
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "weapon_mastery_4",
+            "count": 1,
+            "options": {
+              "pick": "weapon_mastery"
+            }
+          }
+        ]
+      },
+      {
+        "level": 5,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "extra_attack",
+              "name": "Extra Attack",
+              "description": "You can attack twice instead of once whenever you take the Attack action on your turn."
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "tactical_shift",
+              "name": "Tactical Shift",
+              "description": "Whenever you activate your Second Wind with a Bonus Action, you can move up to half your Speed without provoking Opportunity Attacks."
+            }
+          }
+        ]
+      },
+      {
+        "level": 6,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "feat_6",
+            "count": 1,
+            "options": {
+              "pick": "feat",
+              "categories": [
+                "origin",
+                "general",
+                "fighting_style",
+                "epic_boon"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "level": 8,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "feat_8",
+            "count": 1,
+            "options": {
+              "pick": "feat",
+              "categories": [
+                "origin",
+                "general",
+                "fighting_style",
+                "epic_boon"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "level": 9,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "indomitable",
+              "name": "Indomitable",
+              "description": "If you fail a saving throw, you can reroll it with a bonus equal to your Fighter level. You must use the new roll, and you can't use this feature again until you finish a Long Rest. You can use this feature twice before a Long Rest starting at level 13 and three times before a Long Rest starting at level 17."
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "tactical_master",
+              "name": "Tactical Master",
+              "description": "When you attack with a weapon whose mastery property you can use, you can replace that property with the Push, Sap, or Slow property for that attack."
+            }
+          }
+        ]
+      },
+      {
+        "level": 10,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "weapon_mastery_10",
+            "count": 1,
+            "options": {
+              "pick": "weapon_mastery"
+            }
+          }
+        ]
+      },
+      {
+        "level": 11,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "two_extra_attacks",
+              "name": "Two Extra Attacks",
+              "description": "You can attack three times instead of once whenever you take the Attack action on your turn."
+            }
+          }
+        ]
+      },
+      {
+        "level": 12,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "feat_12",
+            "count": 1,
+            "options": {
+              "pick": "feat",
+              "categories": [
+                "origin",
+                "general",
+                "fighting_style",
+                "epic_boon"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "level": 13,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "studied_attacks",
+              "name": "Studied Attacks",
+              "description": "If you make an attack roll against a creature and miss, you have Advantage on your next attack roll against that creature before the end of your next turn."
+            }
+          }
+        ]
+      },
+      {
+        "level": 14,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "feat_14",
+            "count": 1,
+            "options": {
+              "pick": "feat",
+              "categories": [
+                "origin",
+                "general",
+                "fighting_style",
+                "epic_boon"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "level": 16,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "feat_16",
+            "count": 1,
+            "options": {
+              "pick": "feat",
+              "categories": [
+                "origin",
+                "general",
+                "fighting_style",
+                "epic_boon"
+              ]
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "weapon_mastery_16",
+            "count": 1,
+            "options": {
+              "pick": "weapon_mastery"
+            }
+          }
+        ]
+      },
+      {
+        "level": 19,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "epic_boon",
+            "count": 1,
+            "options": {
+              "pick": "feat",
+              "categories": [
+                "origin",
+                "general",
+                "fighting_style",
+                "epic_boon"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "level": 20,
+        "grants": [
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "three_extra_attacks",
+              "name": "Three Extra Attacks",
+              "description": "You can attack four times instead of once whenever you take the Attack action on your turn."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "wizard",
+    "name": "Wizard",
+    "hitDie": 6,
+    "primaryAbilities": [
+      "int"
+    ],
+    "spellcasting": {
+      "ability": "int",
+      "progression": "full",
+      "preparedSpells": [
+        4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        11,
+        12,
+        14,
+        15,
+        16,
+        16,
+        17,
+        18,
+        19,
+        21,
+        22,
+        23,
+        24,
+        25
+      ]
+    },
+    "startingGrants": [
+      {
+        "kind": "effect",
+        "effect": {
+          "type": "grant_proficiency",
+          "category": "save",
+          "id": "int"
+        }
+      },
+      {
+        "kind": "effect",
+        "effect": {
+          "type": "grant_proficiency",
+          "category": "save",
+          "id": "wis"
+        }
+      },
+      {
+        "kind": "choice",
+        "id": "skills",
+        "count": 2,
+        "options": {
+          "pick": "proficiency",
+          "categories": [
+            "skill"
+          ],
+          "from": [
+            "arcana",
+            "history",
+            "insight",
+            "investigation",
+            "medicine",
+            "nature",
+            "religion"
+          ]
+        }
+      },
+      {
+        "kind": "effect",
+        "effect": {
+          "type": "grant_proficiency",
+          "category": "weapon",
+          "id": "simple"
+        }
+      }
+    ],
+    "levels": [
+      {
+        "level": 1,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "cantrips",
+            "count": 3,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "maxLevel": 0
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "spellbook_1",
+            "count": 6,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 1
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "spellcasting",
+              "name": "Spellcasting",
+              "description": "You know Wizard cantrips and keep a spellbook of level 1+ Wizard spells. Each day you prepare spells from your spellbook (see the Prepared Spells column); you can change the list when you finish a Long Rest. Intelligence is your spellcasting ability. Whenever you finish a Long Rest, you can replace one of your cantrips with another Wizard cantrip. You can use an Arcane Focus or your spellbook as a Spellcasting Focus."
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "ritual_adept",
+              "name": "Ritual Adept",
+              "description": "You can cast any spell as a Ritual if that spell has the Ritual tag and the spell is in your spellbook. You needn't have the spell prepared, but you must read from the book to cast a spell in this way."
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "arcane_recovery",
+              "name": "Arcane Recovery",
+              "description": "When you finish a Short Rest, you can choose expended spell slots to recover. The spell slots can have a combined level equal to no more than half your Wizard level (round up), and none of the slots can be level 6 or higher. Once you use this feature, you can't do so again until you finish a Long Rest."
+            }
+          }
+        ]
+      },
+      {
+        "level": 2,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "spellbook_2",
+            "count": 2,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 1
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "scholar",
+            "count": 1,
+            "options": {
+              "pick": "skill_expertise",
+              "from": [
+                "arcana",
+                "history",
+                "investigation",
+                "medicine",
+                "nature",
+                "religion"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "level": 3,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "spellbook_3",
+            "count": 2,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 2
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "subclass",
+            "count": 1,
+            "options": {
+              "pick": "subclass"
+            }
+          }
+        ]
+      },
+      {
+        "level": 4,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "spellbook_4",
+            "count": 2,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 2
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "cantrip_4",
+            "count": 1,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "maxLevel": 0
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "feat_4",
+            "count": 1,
+            "options": {
+              "pick": "feat",
+              "categories": [
+                "origin",
+                "general",
+                "fighting_style",
+                "epic_boon"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "level": 5,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "spellbook_5",
+            "count": 2,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 3
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "memorize_spell",
+              "name": "Memorize Spell",
+              "description": "Whenever you finish a Short Rest, you can study your spellbook and replace one of the level 1+ Wizard spells you have prepared for your Spellcasting feature with another level 1+ spell from the book."
+            }
+          }
+        ]
+      },
+      {
+        "level": 6,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "spellbook_6",
+            "count": 2,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 3
+            }
+          }
+        ]
+      },
+      {
+        "level": 7,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "spellbook_7",
+            "count": 2,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 4
+            }
+          }
+        ]
+      },
+      {
+        "level": 8,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "spellbook_8",
+            "count": 2,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 4
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "feat_8",
+            "count": 1,
+            "options": {
+              "pick": "feat",
+              "categories": [
+                "origin",
+                "general",
+                "fighting_style",
+                "epic_boon"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "level": 9,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "spellbook_9",
+            "count": 2,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 5
+            }
+          }
+        ]
+      },
+      {
+        "level": 10,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "spellbook_10",
+            "count": 2,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 5
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "cantrip_10",
+            "count": 1,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "maxLevel": 0
+            }
+          }
+        ]
+      },
+      {
+        "level": 11,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "spellbook_11",
+            "count": 2,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 6
+            }
+          }
+        ]
+      },
+      {
+        "level": 12,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "spellbook_12",
+            "count": 2,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 6
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "feat_12",
+            "count": 1,
+            "options": {
+              "pick": "feat",
+              "categories": [
+                "origin",
+                "general",
+                "fighting_style",
+                "epic_boon"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "level": 13,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "spellbook_13",
+            "count": 2,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 7
+            }
+          }
+        ]
+      },
+      {
+        "level": 14,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "spellbook_14",
+            "count": 2,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 7
+            }
+          }
+        ]
+      },
+      {
+        "level": 15,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "spellbook_15",
+            "count": 2,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 8
+            }
+          }
+        ]
+      },
+      {
+        "level": 16,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "spellbook_16",
+            "count": 2,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 8
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "feat_16",
+            "count": 1,
+            "options": {
+              "pick": "feat",
+              "categories": [
+                "origin",
+                "general",
+                "fighting_style",
+                "epic_boon"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "level": 17,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "spellbook_17",
+            "count": 2,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 9
+            }
+          }
+        ]
+      },
+      {
+        "level": 18,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "spellbook_18",
+            "count": 2,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 9
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "spell_mastery_1",
+            "count": 1,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 1,
+              "grantAs": {
+                "ability": "int",
+                "uses": "at_will"
+              }
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "spell_mastery_2",
+            "count": 1,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 2,
+              "maxLevel": 2,
+              "grantAs": {
+                "ability": "int",
+                "uses": "at_will"
+              }
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "spell_mastery",
+              "name": "Spell Mastery",
+              "description": "Choose a level 1 and a level 2 spell in your spellbook that have a casting time of an action. You always have those spells prepared, and you can cast them at their lowest level without expending a spell slot. To cast either spell at a higher level, you must expend a spell slot. Whenever you finish a Long Rest, you can replace one of those spells with an eligible spell of the same level from the book."
+            }
+          }
+        ]
+      },
+      {
+        "level": 19,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "spellbook_19",
+            "count": 2,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 9
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "epic_boon",
+            "count": 1,
+            "options": {
+              "pick": "feat",
+              "categories": [
+                "origin",
+                "general",
+                "fighting_style",
+                "epic_boon"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "level": 20,
+        "grants": [
+          {
+            "kind": "choice",
+            "id": "spellbook_20",
+            "count": 2,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 1,
+              "maxLevel": 9
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "signature_spells",
+            "count": 2,
+            "options": {
+              "pick": "spell",
+              "lists": [
+                "wizard"
+              ],
+              "minLevel": 3,
+              "maxLevel": 3,
+              "grantAs": {
+                "ability": "int",
+                "uses": {
+                  "per": "short_rest",
+                  "count": 1,
+                  "slots": true
+                }
+              }
+            }
+          },
+          {
+            "kind": "feature",
+            "feature": {
+              "id": "signature_spells_feature",
+              "name": "Signature Spells",
+              "description": "Choose two level 3 spells in your spellbook as your signature spells. You always have these spells prepared, and you can cast each of them once at level 3 without expending a spell slot. When you do so, you can't cast them in this way again until you finish a Short or Long Rest. To cast either spell at a higher level, you must expend a spell slot."
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

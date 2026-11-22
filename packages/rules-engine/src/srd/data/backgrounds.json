@@ -1,0 +1,187 @@
+[
+  {
+    "id": "acolyte",
+    "name": "Acolyte",
+    "abilityOptions": [
+      "int",
+      "wis",
+      "cha"
+    ],
+    "levels": [
+      {
+        "level": 1,
+        "grants": [
+          {
+            "kind": "feat",
+            "featId": "magic_initiate_cleric"
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_proficiency",
+              "category": "skill",
+              "id": "insight"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_proficiency",
+              "category": "skill",
+              "id": "religion"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_proficiency",
+              "category": "tool",
+              "id": "calligraphers_supplies"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "criminal",
+    "name": "Criminal",
+    "abilityOptions": [
+      "dex",
+      "con",
+      "int"
+    ],
+    "levels": [
+      {
+        "level": 1,
+        "grants": [
+          {
+            "kind": "feat",
+            "featId": "alert"
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_proficiency",
+              "category": "skill",
+              "id": "sleight_of_hand"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_proficiency",
+              "category": "skill",
+              "id": "stealth"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_proficiency",
+              "category": "tool",
+              "id": "thieves_tools"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "sage",
+    "name": "Sage",
+    "abilityOptions": [
+      "con",
+      "int",
+      "wis"
+    ],
+    "levels": [
+      {
+        "level": 1,
+        "grants": [
+          {
+            "kind": "feat",
+            "featId": "magic_initiate_wizard"
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_proficiency",
+              "category": "skill",
+              "id": "arcana"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_proficiency",
+              "category": "skill",
+              "id": "history"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_proficiency",
+              "category": "tool",
+              "id": "calligraphers_supplies"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "soldier",
+    "name": "Soldier",
+    "abilityOptions": [
+      "str",
+      "dex",
+      "con"
+    ],
+    "levels": [
+      {
+        "level": 1,
+        "grants": [
+          {
+            "kind": "feat",
+            "featId": "savage_attacker"
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_proficiency",
+              "category": "skill",
+              "id": "athletics"
+            }
+          },
+          {
+            "kind": "effect",
+            "effect": {
+              "type": "grant_proficiency",
+              "category": "skill",
+              "id": "intimidation"
+            }
+          },
+          {
+            "kind": "choice",
+            "id": "gaming_set",
+            "count": 1,
+            "options": {
+              "pick": "proficiency",
+              "categories": [
+                "tool"
+              ],
+              "from": [
+                "gaming_set_dice",
+                "gaming_set_dragonchess",
+                "gaming_set_playing_cards",
+                "gaming_set_three_dragon_ante"
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

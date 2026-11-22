@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AbilitySchema, AbilityScoresSchema, ABILITIES, IdSchema, TextSchema } from './common';
+import { AbilitySchema, AbilityScoresSchema, ABILITIES, IdSchema, SizeSchema, TextSchema } from './common';
 import { EffectSchema } from './effect';
 
 /**
@@ -82,7 +82,13 @@ export const BackgroundIncreasesSchema = z
  * espécie, do antecedente e dos talentos naquele nível de personagem).
  */
 export const BuildStepSchema = z.discriminatedUnion('kind', [
-  z.strictObject({ kind: z.literal('species'), speciesId: IdSchema, selections }),
+  z.strictObject({
+    kind: z.literal('species'),
+    speciesId: IdSchema,
+    /** Tamanho escolhido, quando a espécie permite mais de um. */
+    size: SizeSchema.optional(),
+    selections,
+  }),
   z.strictObject({
     kind: z.literal('background'),
     backgroundId: IdSchema,
