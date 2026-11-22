@@ -1,4 +1,4 @@
-﻿import { join } from 'node:path';
+import { join } from 'node:path';
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import { RULES_ENGINE_VERSION } from 'rules-engine';
 import { type AppInfo, type IpcResult, IpcChannel } from '../shared/ipc';
