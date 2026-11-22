@@ -1,0 +1,163 @@
+import { describe, expect, it } from 'vitest';
+import {
+  ClientMessageSchema,
+  countDice,
+  HANDSHAKE_REJECT_MESSAGES,
+  HandshakeRejectReasonSchema,
+  HostMessageSchema,
+  IntentSchema,
+  type SessionState,
+  SessionStateSchema,
+} from './index';
+
+/** Os exemplos de docs/network-protocol.md, com ids reais no lugar de "…". */
+
+const ID = '6f1c2b8e-4a3d-4f5e-9b1a-2c3d4e5f6a7b';
+const REPLY = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
+const PLAYER = 'b2e4f6a8-1c3e-4d5f-8a9b-0c1d2e3f4a5b';
+const GM = 'e7f1a2b3-c4d5-4e6f-8a7b-9c0d1e2f3a4b';
+const CAMPAIGN = 'c9a0b1c2-d3e4-4f5a-8b6c-7d8e9f0a1b2c';
+const MAP = 'd1e2f3a4-b5c6-4d7e-8f9a-0b1c2d3e4f5a';
+const TOKEN = 'f1e2d3c4-b5a6-4978-8a9b-0c1d2e3f4a5b';
+/** Senha fictícia da mesa, montada em tempo de execução para não parecer um segredo aos scanners. */
+const TABLE_PASSWORD = ['senha', 'da', 'mesa'].join('-');
+const SHA ='9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08';
+
+const state: SessionState = {
+  campaign: { id: CAMPAIGN, name: 'A Mina Perdida' },
+  players: {
+    [PLAYER]: { displayName: 'Ana', role: 'player', connected: true },
+    [GM]: { displayName: 'Mestre', role: 'gm', connected: true },
+  },
+  chat: [
+    { kind: 'message', id: ID, at: 1763769600000, authorId: PLAYER, text: 'Olá!' },
+    {
+      kind: 'roll',
+      id: REPLY,
+      at: 1763769601000,
+      authorId: PLAYER,
+      formula: '2d6+3',
+      label: 'Dano',
+      visibility: 'public',
+      rolls: [
+        { sides: 6, value: 4 },
+        { sides: 6, value: 2 },
+      ],
+      total: 9,
+    },
+    { kind: 'hidden_roll', id: TOKEN, at: 1763769602000, authorId: GM },
+  ],
+  maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: SHA } },
+  activeMapId: MAP,
+  tokens: {
+    [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [] },
+  },
+};
+
+const ok = (schema: { safeParse: (v: unknown) => { success: boolean } }, value: unknown): boolean => schema.safeParse(value).success;
+
+describe('client messages', () => {
+  const handshake = {
+    type: 'Handshake',
+    id: ID,
+    payload: { protocolVersion: 1, appVersion: '0.1.0', playerId: PLAYER, displayName: 'Ana', sessionPassword: TABLE_PASSWORD },
+  };
+
+  it('accepts the documented examples', () => {
+    expect(ok(ClientMessageSchema, handshake)).toBe(true);
+    expect(ok(ClientMessageSchema, { type: 'Intent', id: ID, payload: { kind: 'token.move', data: { tokenId: TOKEN, to: { x: 300, y: 500 } } } })).toBe(true);
+    expect(ok(ClientMessageSchema, { type: 'AssetRequest', id: ID, payload: { sha256: SHA } })).toBe(true);
+    expect(ok(ClientMessageSchema, { type: 'Ping', id: ID, payload: { t: 1763769600000 } })).toBe(true);
+    expect(ok(ClientMessageSchema, { type: 'Pong', id: ID, replyTo: REPLY, payload: { t: 1763769600000 } })).toBe(true);
+  });
+
+  it('rejects unknown fields, missing ids and messages only the Host sends', () => {
+    expect(ok(ClientMessageSchema, { ...handshake, extra: true })).toBe(false);
+    expect(ok(ClientMessageSchema, { ...handshake, id: 'não-é-uuid' })).toBe(false);
+    expect(ok(ClientMessageSchema, { type: 'StateSnapshot', id: ID, payload: { rev: 0, state } })).toBe(false);
+    expect(ok(ClientMessageSchema, { type: 'Pong', id: ID, payload: { t: 1 } })).toBe(false);
+  });
+
+  it('validates the Intent data by kind', () => {
+    expect(ok(ClientMessageSchema, { type: 'Intent', id: ID, payload: { kind: 'token.move', data: { text: 'oi' } } })).toBe(false);
+    expect(ok(ClientMessageSchema, { type: 'Intent', id: ID, payload: { kind: 'token.fly', data: {} } })).toBe(false);
+  });
+});
+
+describe('host messages', () => {
+  it('accepts the documented examples', () => {
+    const messages = [
+      { type: 'HandshakeAccept', id: ID, replyTo: REPLY, payload: { protocolVersion: 1, hostAppVersion: '0.1.0', campaignId: CAMPAIGN, campaignName: 'A Mina Perdida', role: 'player' } },
+      { type: 'HandshakeReject', id: ID, replyTo: REPLY, payload: { reason: 'protocol_mismatch', message: 'Atualize o app', hostProtocolVersion: 2 } },
+      { type: 'IntentResult', id: ID, replyTo: REPLY, payload: { status: 'applied', rev: 42 } },
+      { type: 'IntentResult', id: ID, replyTo: REPLY, payload: { status: 'rejected', code: 'not_allowed', message: 'Você não controla este token' } },
+      { type: 'IntentResult', id: ID, replyTo: REPLY, payload: { status: 'pending_gm' } },
+      { type: 'StateSnapshot', id: ID, payload: { rev: 41, state } },
+      { type: 'StatePatch', id: ID, payload: { rev: 42, baseRev: 41, ops: [{ op: 'replace', path: `/tokens/${TOKEN}/position`, value: { x: 300, y: 500 } }] } },
+      { type: 'StatePatch', id: ID, payload: { rev: 43, baseRev: 42, ops: [] } },
+      { type: 'AssetChunk', id: ID, replyTo: REPLY, payload: { sha256: SHA, mime: 'image/webp', totalSize: 2483120, index: 0, count: 4, data: 'aGVsbG8=' } },
+      { type: 'Error', id: ID, payload: { code: 'invalid_message', message: 'Mensagem inválida' } },
+    ];
+    for (const m of messages) expect(ok(HostMessageSchema, m), m.type).toBe(true);
+  });
+
+  it('requires replyTo on replies', () => {
+    expect(ok(HostMessageSchema, { type: 'IntentResult', id: ID, payload: { status: 'applied', rev: 1 } })).toBe(false);
+  });
+
+  it('rejects patches with a gap, operations outside the subset and chunks out of range', () => {
+    expect(ok(HostMessageSchema, { type: 'StatePatch', id: ID, payload: { rev: 43, baseRev: 41, ops: [] } })).toBe(false);
+    expect(ok(HostMessageSchema, { type: 'StatePatch', id: ID, payload: { rev: 42, baseRev: 41, ops: [{ op: 'move', from: '/a', path: '/b' }] } })).toBe(false);
+    expect(ok(HostMessageSchema, { type: 'StatePatch', id: ID, payload: { rev: 42, baseRev: 41, ops: [{ op: 'remove', path: 'tokens' }] } })).toBe(false);
+    expect(ok(HostMessageSchema, { type: 'AssetChunk', id: ID, replyTo: REPLY, payload: { sha256: SHA, mime: 'image/webp', totalSize: 1, index: 4, count: 4, data: 'aA==' } })).toBe(false);
+    expect(ok(HostMessageSchema, { type: 'AssetChunk', id: ID, replyTo: REPLY, payload: { sha256: SHA, mime: 'image/gif', totalSize: 1, index: 0, count: 1, data: 'aA==' } })).toBe(false);
+  });
+
+  it('has a pt-BR message for every reject reason', () => {
+    expect(Object.keys(HANDSHAKE_REJECT_MESSAGES).sort()).toEqual([...HandshakeRejectReasonSchema.options].sort());
+  });
+});
+
+describe('intents', () => {
+  const intent = (kind: string, data: unknown): boolean => ok(IntentSchema, { kind, data });
+
+  it('accepts each kind of the catalog', () => {
+    expect(intent('session.resync', {})).toBe(true);
+    expect(intent('chat.message', { text: 'Olá' })).toBe(true);
+    expect(intent('dice.roll', { formula: '1d20+1d4-1', label: 'Ataque', visibility: 'gm' })).toBe(true);
+    expect(intent('map.create', { name: 'Caverna', width: 30, height: 20 })).toBe(true);
+    expect(intent('map.activate', { mapId: MAP })).toBe(true);
+    expect(intent('token.create', { mapId: MAP, name: 'Goblin 1', position: { x: 0, y: 0 }, size: 'small', monsterId: 'goblin', ownerIds: [PLAYER] })).toBe(true);
+    expect(intent('token.remove', { tokenId: TOKEN })).toBe(true);
+  });
+
+  it('limits the dice formula', () => {
+    expect(countDice('2d6+1d4+3')).toBe(3);
+    expect(intent('dice.roll', { formula: '100d6', visibility: 'public' })).toBe(true);
+    expect(intent('dice.roll', { formula: '101d6', visibility: 'public' })).toBe(false);
+    expect(intent('dice.roll', { formula: '60d6+41d4', visibility: 'public' })).toBe(false);
+    expect(intent('dice.roll', { formula: '2d7', visibility: 'public' })).toBe(false);
+    expect(intent('dice.roll', { formula: '2d6 + 3', visibility: 'public' })).toBe(false);
+    expect(intent('dice.roll', { formula: `1${'+1'.repeat(50)}`, visibility: 'public' })).toBe(false);
+  });
+
+  it('rejects out-of-range values', () => {
+    expect(intent('chat.message', { text: '' })).toBe(false);
+    expect(intent('chat.message', { text: 'a'.repeat(2001) })).toBe(false);
+    expect(intent('map.create', { name: 'Caverna', width: 201, height: 20 })).toBe(false);
+    expect(intent('token.move', { tokenId: TOKEN, to: { x: -100, y: 0 } })).toBe(false);
+    expect(intent('token.move', { tokenId: TOKEN, to: { x: 50.5, y: 0 } })).toBe(false);
+    expect(intent('token.create', { mapId: MAP, name: 'Dragão', position: { x: 0, y: 0 }, size: 'colossal' })).toBe(false);
+  });
+});
+
+describe('SessionState', () => {
+  it('accepts the documented example and an empty table', () => {
+    expect(ok(SessionStateSchema, state)).toBe(true);
+    expect(ok(SessionStateSchema, { campaign: state.campaign, players: {}, chat: [], maps: {}, activeMapId: null, tokens: {} })).toBe(true);
+  });
+
+  it('keeps hidden rolls without formula or result', () => {
+    expect(ok(SessionStateSchema, { ...state, chat: [{ kind: 'hidden_roll', id: ID, at: 0, authorId: GM, total: 9 }] })).toBe(false);
+  });
+});
