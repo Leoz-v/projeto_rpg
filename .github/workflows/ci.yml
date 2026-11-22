@@ -29,6 +29,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+          # O cache automático procura o pnpm antes do Corepack ativá-lo; o cache é feito abaixo.
+          package-manager-cache: false
 
       - name: Enable Corepack (pnpm pinned in package.json)
         run: corepack enable
