@@ -70,7 +70,7 @@ const SetBaseAcSchema = z.strictObject({
 // --- advantage / disadvantage (3.3) -----------------------------------------
 
 export const RollTargetSchema = z.union([
-  z.enum(['attack.all', 'save.all', 'initiative']),
+  z.enum(['attack.all', 'save.all', 'initiative', 'death_save']),
   z.templateLiteral(['attack.', AttackKind]),
   z.templateLiteral(['save.', Ability]),
   z.templateLiteral(['check.', Ability]),
@@ -194,6 +194,35 @@ const CritRangeSchema = z.strictObject({
   ...common,
 });
 
+// --- d20_rule (3.17) / damage_die_minimum (3.18) ---------------------------
+
+/** Alvos de `advantage` e mais: todo Teste d20, todo teste de atributo, testes com proficiência. */
+export const D20RuleTargetSchema = z.union([RollTargetSchema, z.enum(['d20_test', 'check.all', 'check.proficient'])]);
+export type D20RuleTarget = z.infer<typeof D20RuleTargetSchema>;
+
+const D20Face = z.int().min(1).max(20);
+const d20Rule = { type: z.literal('d20_rule'), target: D20RuleTargetSchema, ...common };
+
+const D20RuleSchema = z.discriminatedUnion('rule', [
+  /** Rola de novo cada d20 que mostrar `on` (Halfling Luck). */
+  z.strictObject({ ...d20Rule, rule: z.literal('reroll'), on: D20Face }),
+  /** O d20 mantido vale pelo menos `value` (Reliable Talent). */
+  z.strictObject({ ...d20Rule, rule: z.literal('minimum_die'), value: D20Face }),
+  /** O total vale pelo menos `value`: inteiro ou o valor do atributo (Indomitable Might). */
+  z.strictObject({ ...d20Rule, rule: z.literal('minimum_total'), value: z.union([z.int(), z.strictObject({ score: Ability })]) }),
+  /** Sucesso automático (Greater Magic Resistance). */
+  z.strictObject({ ...d20Rule, rule: z.literal('auto_success') }),
+  /** Um d20 de `min` ou mais vale como 20 natural (Survivor). */
+  z.strictObject({ ...d20Rule, rule: z.literal('count_as_20'), min: z.int().min(2).max(20) }),
+]);
+
+const DamageDieMinimumSchema = z.strictObject({
+  type: z.literal('damage_die_minimum'),
+  /** Cada dado de dano abaixo disto vale isto (Great Weapon Fighting: 3). */
+  min: z.int().min(2),
+  ...common,
+});
+
 // --- damage_reduction (3.14) ------------------------------------------------
 
 const DamageReductionSchema = z.strictObject({
@@ -268,6 +297,8 @@ export const EffectSchema = z.discriminatedUnion('type', [
   DamageReductionSchema,
   ExtraDamageSchema,
   CritRangeSchema,
+  D20RuleSchema,
+  DamageDieMinimumSchema,
   AbilityIncreaseSchema,
   SetMinimumScoreSchema,
   WeaponMasteryEffectSchema,

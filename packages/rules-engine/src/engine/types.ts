@@ -27,6 +27,16 @@ export interface Stat {
 
 export type RollMode = 'normal' | 'advantage' | 'disadvantage';
 
+/** Regra de Teste d20 já resolvida (`d20_rule`, docs/effects-spec.md 3.17): `minimum_total` com o valor do atributo calculado. */
+export type D20Rule =
+  | { rule: 'reroll'; on: number }
+  | { rule: 'minimum_die'; value: number }
+  | { rule: 'minimum_total'; value: number }
+  | { rule: 'auto_success' }
+  | { rule: 'count_as_20'; min: number };
+
+export type SourcedD20Rule = D20Rule & { source: SourceLabel };
+
 /** Estado de vantagem/desvantagem de uma rolagem (regra 2024: uma de cada se anulam). */
 export interface RollState {
   mode: RollMode;
@@ -38,6 +48,10 @@ export interface RollState {
    * motor avalia `when` na rolagem concreta.
    */
   situational: { kind: 'advantage' | 'disadvantage'; source: SourceLabel; when?: Predicate | undefined; note?: string | undefined }[];
+  /** Regras `d20_rule` que valem nesta rolagem (Halfling Luck, Reliable Talent), aplicadas por `rollD20`. */
+  rules: SourcedD20Rule[];
+  /** Regras com `when` que depende do contexto da rolagem (Greater Magic Resistance, contra magia): lembrete. */
+  situationalRules: (SourcedD20Rule & { when?: Predicate | undefined; note?: string | undefined })[];
 }
 
 export interface RollStat extends Stat {
@@ -68,13 +82,16 @@ export interface WeaponAttack {
   ability: Ability;
   proficient: boolean;
   attack: RollStat;
-  damage: { dice: string; bonus: Stat; type: DamageType };
+  /** `dieMinimum`: cada dado de dano abaixo disto vale isto (Great Weapon Fighting). */
+  damage: { dice: string; bonus: Stat; type: DamageType; dieMinimum?: { value: number; source: SourceLabel } | undefined };
   /** Dano extra ao acertar (Radiant Strikes, Vicious Weapon), com a fonte. */
   extraDamage: { dice: string; type: DamageType; source: SourceLabel }[];
   /** Menor resultado do d20 que faz Acerto Crítico (20 sem efeitos `crit_range`). */
   critRange: number;
   /** Dano com duas mãos (propriedade Versatile). */
   versatileDice?: string | undefined;
+  /** Mínimo por dado de dano no uso com duas mãos da arma Versatile. */
+  versatileDieMinimum?: { value: number; source: SourceLabel } | undefined;
   range?: { normal: number; long: number } | undefined;
   reach: number;
   mastery: { property: WeaponMastery; available: boolean };
@@ -179,6 +196,8 @@ export interface DerivedSheet {
   hitDice: { die: number; count: number }[];
   ac: Stat;
   initiative: RollStat;
+  /** Salvaguarda contra a Morte: sem atributo; recebe `save.all` e `death_save`. */
+  deathSave: RollStat;
   speed: { walk: Stat; fly: Stat; swim: Stat; climb: Stat; burrow: Stat };
   saves: Record<Ability, SaveStat>;
   skills: Record<Skill, SkillStat>;

@@ -492,6 +492,9 @@ ALL_CHECKS_DIS = [{"type": "disadvantage", "target": f"check.{a}", "note": "Na l
 TRAIT_EFFECTS = {
     "Magic Resistance": ([{"type": "advantage", "target": "save.all", "when": {"against": {"source": "magic"}}}],
                          r"^The [\w -]+ has Advantage on saving throws against spells and other magical effects\.$"),
+    # Sucesso automático (d20_rule); "the attack rolls of spells automatically miss it" fica para a Fase 4.
+    "Greater Magic Resistance": ([{"type": "d20_rule", "rule": "auto_success", "target": "save.all", "when": {"against": {"source": "magic"}}}],
+                                 r"^The [\w -]+ automatically succeeds on saving throws against spells and other magical effects, "),
     "Invisibility": ([{"type": "condition", "condition": "invisible"}], r"has the Invisible condition\.$"),
     "Sunlight Sensitivity": ([{"type": "disadvantage", "target": "attack.all", "note": "Na luz do sol"}] + ALL_CHECKS_DIS,
                              r"^While in sunlight, the [\w -]+ has Disadvantage on ability checks and attack rolls\.$"),

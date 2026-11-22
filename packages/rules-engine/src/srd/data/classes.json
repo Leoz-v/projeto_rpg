@@ -1575,7 +1575,25 @@
             "feature": {
               "id": "indomitable_might",
               "name": "Indomitable Might",
-              "description": "If your total for a Strength check or Strength saving throw is less than your Strength score, you can use that score in place of the total."
+              "description": "If your total for a Strength check or Strength saving throw is less than your Strength score, you can use that score in place of the total.",
+              "effects": [
+                {
+                  "type": "d20_rule",
+                  "rule": "minimum_total",
+                  "value": {
+                    "score": "str"
+                  },
+                  "target": "check.str"
+                },
+                {
+                  "type": "d20_rule",
+                  "rule": "minimum_total",
+                  "value": {
+                    "score": "str"
+                  },
+                  "target": "save.str"
+                }
+              ]
             }
           }
         ]
@@ -5391,7 +5409,15 @@
             "feature": {
               "id": "reliable_talent",
               "name": "Reliable Talent",
-              "description": "Whenever you make an ability check that uses one of your skill or tool proficiencies, you can treat a d20 roll of 9 or lower as a 10."
+              "description": "Whenever you make an ability check that uses one of your skill or tool proficiencies, you can treat a d20 roll of 9 or lower as a 10.",
+              "effects": [
+                {
+                  "type": "d20_rule",
+                  "rule": "minimum_die",
+                  "value": 10,
+                  "target": "check.proficient"
+                }
+              ]
             }
           }
         ]

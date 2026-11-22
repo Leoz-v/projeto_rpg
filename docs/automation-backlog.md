@@ -22,14 +22,14 @@ Magias ficam fora: a resolução delas é toda da Fase 4.
 | Categoria | O que é | Quantas |
 |---|---|---|
 | `structural` | A mecânica já existe em outro ponto do modelo: escolha, concessão ou conjuração no mesmo nível (ex.: "Expertise" é a escolha `expertise_1`). | 53 |
-| `automate` | Passivo e automatizável agora, estendendo o catálogo de efeitos. Fila abaixo. | 10 |
-| `phase_4` | Ação, reação, recurso, uso de item, ou efeito no momento da rolagem ou do dano contra um alvo (Sneak Attack, cargas, poções, Multiattack). | 440 |
-| `phase_5` | Depende do estado de combate: iniciativa, turnos, fúria ativa, concentração (Alert, Persistent Rage, Mindless Rage). | 11 |
+| `automate` | Passivo e automatizável agora, estendendo o catálogo de efeitos. Fila abaixo. | 4 |
+| `phase_4` | Ação, reação, recurso, uso de item, ou efeito no momento da rolagem ou do dano contra um alvo (Sneak Attack, cargas, poções, Multiattack). | 441 |
+| `phase_5` | Depende do estado de combate: iniciativa, turnos, fúria ativa, concentração (Alert, Persistent Rage, Mindless Rage). | 12 |
 | `gm` | Exploração, percepção, narrativa ou efeito permanente que é ajuste do mestre (Bag of Holding, Manuals e Tomes, Spider Climb). | 94 |
 
-Total: 608 entradas.
+Total: 604 entradas.
 
-Uma entrada **parcial** (`item:<id>#<aspecto>`) marca a parte pendente de um item que já tem outros efeitos (ex.: `item:sun_blade#longsword_with_finesse`).
+Uma entrada **parcial** (`<chave>#<aspecto>`) marca a parte pendente de um item, característica ou traço de monstro que já tem outros efeitos (ex.: `item:sun_blade#longsword_with_finesse`, `feature:subclass:champion/survivor#heroic_rally`).
 
 ## Fila `automate`, por extensão de catálogo
 
@@ -37,10 +37,7 @@ Um PR por grupo. Em cada um: primeiro `docs/effects-spec.md`, depois o schema, o
 
 | Ordem | Mecânica | Entradas |
 |---|---|---|
-| 1 | `d20_rules` e `death_saves` | Halfling Luck, Reliable Talent, Indomitable Might, Great Weapon Fighting, Greater Magic Resistance (sucesso automático contra magia); Survivor (vantagem contra a morte) |
-| 2 | `minimum_speed`, `base_override` e `species_predicate` | Boots of Striding and Springing; Mithral Armor e Sun Blade (Longsword com Finesse, proficiência por Longsword ou Shortsword; parcial); Belt of Dwarvenkind (benefícios "se você não é anão", parcial) |
-
-As regras de rolagem (`d20_rules`) são declaradas e testadas no motor agora. Elas passam a valer nas rolagens do chat quando a rolagem autoritativa existir (Fase 2), com o RNG injetável que já existe (`engine/dice.ts`).
+| 1 | `minimum_speed`, `base_override` e `species_predicate` | Boots of Striding and Springing; Mithral Armor e Sun Blade (Longsword com Finesse, proficiência por Longsword ou Shortsword; parcial); Belt of Dwarvenkind (benefícios "se você não é anão", parcial) |
 
 ## Feito
 
@@ -71,3 +68,9 @@ As regras de rolagem (`d20_rules`) são declaradas e testadas no motor agora. El
   - Vicious Weapon: +2d6 do tipo da própria arma, só nela.
   - Improved Critical e Superior Critical (Champion): crítico em 19–20 e 18–20. A ficha de referência `dwarf-fighter-5` (Campeão) passou a conferir o crítico em 19 nos dois ataques.
   - Ficam para a Fase 4: dano extra que depende do alvo ("contra Undead") ou de escolha no turno (Divine Strike, Sneak Attack).
+- **Grupo 6 — regras do Teste d20 e mínimo nos dados de dano** (nota 0017): efeitos `d20_rule` e `damage_die_minimum`, predicado `twoHanded`, alvo `death_save` e a função `rollD20` do motor, que aplica as regras e registra cada passo.
+  - Halfling Luck (`reroll` do 1 em todo Teste d20), Reliable Talent (`minimum_die` 10 nos testes com proficiência), Indomitable Might (`minimum_total` igual ao valor de FOR, em testes e salvaguardas de FOR).
+  - Survivor (Champion 18): vantagem e 18–20 contam como 20 na Salvaguarda contra a Morte, que entrou na ficha. O Heroic Rally ficou como parcial da Fase 5.
+  - Great Weapon Fighting: dados de dano 1 e 2 valem 3 com arma corpo a corpo empunhada com as duas mãos. A ficha mostra o mínimo separado para o uso Versatile.
+  - Monstros: Greater Magic Resistance (Rakshasa), sucesso automático contra magia. Os ataques de magia que erram a criatura ficaram como parcial da Fase 4.
+  - As regras passam a valer nas rolagens do chat com a rolagem autoritativa da Fase 2.

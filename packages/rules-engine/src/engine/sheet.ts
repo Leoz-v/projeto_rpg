@@ -40,6 +40,7 @@ import type {
   RollStat,
   SaveStat,
   SkillStat,
+  SourcedD20Rule,
   SourceLabel,
   Stat,
   WeaponAttack,
@@ -75,7 +76,14 @@ const CRITICAL_HIT = 20;
 /** Uma rolagem concreta: o que é atacado ou evitado. */
 export interface RollContext {
   attack?:
-    | { kind: 'melee' | 'ranged' | 'spell'; properties: readonly string[]; category?: 'simple' | 'martial' | undefined; weaponId?: string | undefined }
+    | {
+        kind: 'melee' | 'ranged' | 'spell';
+        properties: readonly string[];
+        category?: 'simple' | 'martial' | undefined;
+        weaponId?: string | undefined;
+        /** Empunhada com as duas mãos (Two-Handed, ou Versatile com as duas mãos). */
+        twoHanded?: boolean | undefined;
+      }
     | undefined;
   /**
    * O que a rolagem evita: uma condição e/ou a origem (`spell` = magia; `magic` = outro
@@ -113,6 +121,7 @@ export function evaluatePredicate(p: Predicate, ctx: PredicateContext): boolean 
   }
   if ('weaponCategory' in p) return roll ? roll.attack?.category === p.weaponCategory : undefined;
   if ('weaponId' in p) return roll ? roll.attack?.weaponId === p.weaponId : undefined;
+  if ('twoHanded' in p) return roll ? (roll.attack?.twoHanded ?? false) === p.twoHanded : undefined;
   if ('hasCondition' in p) return ctx.conditions.has(p.hasCondition);
   if ('not' in p) {
     const inner = evaluatePredicate(p.not, ctx);
@@ -285,8 +294,42 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       .filter(({ effect }) => targets.includes(effect.target))
       .map((e) => ({ label: e.effect.note ?? labelOf(e), value: bonusValue(e.effect.value, e.classId), source: e.source }));
 
-  const rollState = (targets: readonly string[], roll?: RollContext, extra: { kind: 'advantage' | 'disadvantage'; source: SourceLabel }[] = []): RollState => {
-    const state: RollState = { mode: 'normal', advantage: [], disadvantage: [], situational: [] };
+  /** Regra `d20_rule` resolvida (o valor do atributo em `minimum_total`). */
+  const resolveRule = (effect: Extract<Effect, { type: 'd20_rule' }>, source: SourceLabel): SourcedD20Rule => {
+    switch (effect.rule) {
+      case 'reroll':
+        return { rule: 'reroll', on: effect.on, source };
+      case 'minimum_die':
+        return { rule: 'minimum_die', value: effect.value, source };
+      case 'minimum_total':
+        return { rule: 'minimum_total', value: typeof effect.value === 'number' ? effect.value : scores[effect.value.score], source };
+      case 'auto_success':
+        return { rule: 'auto_success', source };
+      case 'count_as_20':
+        return { rule: 'count_as_20', min: effect.min, source };
+    }
+  };
+
+  /**
+   * Vantagem/desvantagem pelos `targets` e regras d20 por eles, mais `d20_test` e os
+   * `ruleTargets` (`check.all`, `check.proficient`), que só existem para `d20_rule`.
+   */
+  const rollState = (
+    targets: readonly string[],
+    roll?: RollContext,
+    extra: { kind: 'advantage' | 'disadvantage'; source: SourceLabel }[] = [],
+    ruleTargets: readonly string[] = [],
+  ): RollState => {
+    const state: RollState = { mode: 'normal', advantage: [], disadvantage: [], situational: [], rules: [], situationalRules: [] };
+    const allRuleTargets = [...targets, 'd20_test', ...ruleTargets];
+    for (const { effect, source } of ofType('d20_rule')) {
+      if (!allRuleTargets.includes(effect.target)) continue;
+      const result = applies(effect, roll);
+      if (result === false) continue;
+      const rule = resolveRule(effect, source);
+      if (result === undefined || effect.note) state.situationalRules.push({ ...rule, when: effect.when, note: effect.note });
+      else state.rules.push(rule);
+    }
     for (const kind of ['advantage', 'disadvantage'] as const) {
       for (const { effect, source } of ofType(kind)) {
         if (!targets.includes(effect.target)) continue;
@@ -344,7 +387,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
         ...bonuses(targets),
         ...exhaustionPart(),
       ];
-      const roll = rollState(targets);
+      const roll = rollState(targets, undefined, [], ['check.all', ...(multiplier ? ['check.proficient'] : [])]);
       const passiveParts: Contribution[] = [
         { label: 'Base', value: PASSIVE_BASE },
         { label: 'Modificador do teste', value: total(parts) },
@@ -359,8 +402,12 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
   const initiativeTargets = ['initiative', 'check.dex'];
   const initiative: RollStat = {
     ...stat([{ label: 'Modificador de DES', value: mod('dex') }, ...bonuses(initiativeTargets), ...exhaustionPart()]),
-    roll: rollState(initiativeTargets),
+    roll: rollState(initiativeTargets, undefined, [], ['check.all']),
   };
+
+  // Salvaguarda contra a Morte: um d20 sem atributo; como salvaguarda, recebe `save.all`.
+  const deathSaveTargets = ['death_save', 'save.all'];
+  const deathSave: RollStat = { ...stat([...bonuses(deathSaveTargets), ...exhaustionPart()]), roll: rollState(deathSaveTargets) };
 
   // --- CA ---------------------------------------------------------------------
 
@@ -504,7 +551,16 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     // O maior modificador entre os permitidos; empate fica com o primeiro (o atributo normal da arma).
     const ability = allowed.reduce((best, a) => (mod(a) > mod(best) ? a : best));
     const proficient = isWeaponProficient(proficiencyEffects, weapon);
-    const attackCtx: RollContext = { attack: { kind: weapon.attackKind, properties: weapon.properties, category: weapon.category, weaponId: weapon.id } };
+    const attackCtx: RollContext = {
+      attack: { kind: weapon.attackKind, properties: weapon.properties, category: weapon.category, weaponId: weapon.id, twoHanded: weapon.properties.includes('two_handed') },
+    };
+    const versatileCtx: RollContext | undefined = weapon.versatileDice && attackCtx.attack ? { attack: { ...attackCtx.attack, twoHanded: true } } : undefined;
+    /** O maior `damage_die_minimum` que vale no contexto (Great Weapon Fighting). */
+    const dieMinimum = (roll: RollContext): { value: number; source: SourceLabel } | undefined =>
+      effectsOf('damage_die_minimum', roll).reduce<{ value: number; source: SourceLabel } | undefined>(
+        (best, { effect, source }) => (!best || effect.min > best.value ? { value: effect.min, source } : best),
+        undefined,
+      );
     const extra: { kind: 'disadvantage'; source: SourceLabel }[] = [];
     const heavyAbility: Ability = weapon.attackKind === 'melee' ? 'str' : 'dex';
     if (weapon.properties.includes('heavy') && scores[heavyAbility] < HEAVY_WEAPON_MINIMUM) {
@@ -531,12 +587,13 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       ability,
       proficient,
       attack: { ...stat(attackParts), roll: rollState([`attack.${weapon.attackKind}`, 'attack.all'], attackCtx, extra) },
-      damage: { dice: weapon.damage.dice, bonus: stat(damageParts), type: weapon.damage.type },
+      damage: { dice: weapon.damage.dice, bonus: stat(damageParts), type: weapon.damage.type, dieMinimum: dieMinimum(attackCtx) },
       extraDamage: effectsOf('extra_damage', attackCtx)
         .filter(({ effect, refKey }) => effect.scope !== 'weapon' || refKey === `item:${instanceId}`)
         .map(({ effect, source }) => ({ dice: effect.dice, type: effect.damageType ?? weapon.damage.type, source })),
       critRange: Math.min(CRITICAL_HIT, ...effectsOf('crit_range', attackCtx).map(({ effect }) => effect.min)),
       versatileDice: weapon.versatileDice,
+      versatileDieMinimum: versatileCtx ? dieMinimum(versatileCtx) : undefined,
       range: weapon.range,
       reach: weapon.attackKind === 'melee' ? DEFAULT_REACH + (weapon.properties.includes('reach') ? REACH_BONUS : 0) : 0,
       mastery: { property: weapon.mastery, available: weaponMasteries.includes(weapon.id) },
@@ -622,6 +679,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     hitDice: [...hitDice.entries()].map(([die, count]) => ({ die, count })),
     ac,
     initiative,
+    deathSave,
     speed,
     saves,
     skills,

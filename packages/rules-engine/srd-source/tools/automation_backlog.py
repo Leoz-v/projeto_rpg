@@ -27,8 +27,6 @@ OUT = PKG / "tests" / "srd" / "automation-backlog.json"
 
 # Extensões de catálogo agrupadas (um PR por grupo, contrato em docs/effects-spec.md primeiro).
 MECHANICS = {
-    "d20_rules": "Regras automáticas da rolagem d20/dano: rerrolar 1, mínimo 10, usar o valor do atributo, tratar 1-2 como 3.",
-    "death_saves": "Alvo de rolagem para salvaguardas contra a morte (vantagem).",
     "minimum_speed": "Deslocamento mínimo ('your Speed becomes 30 feet unless higher').",
     "base_override": "Item mágico que altera o item base: remove penalidades da armadura (Mithral) ou muda propriedades e proficiência da arma (Sun Blade).",
     "species_predicate": "Predicado pela espécie do personagem ('if you aren't a dwarf').",
@@ -58,11 +56,7 @@ FEATURE = {
         "class:druid/spellcasting", "class:paladin/spellcasting", "class:ranger/spellcasting", "class:sorcerer/spellcasting",
         "class:warlock/pact_magic",
     ],
-    "automate": {
-        "species:halfling/luck": "d20_rules", "class:rogue/reliable_talent": "d20_rules", "class:barbarian/indomitable_might": "d20_rules",
-        "feat:great_weapon_fighting/great_weapon_fighting": "d20_rules",
-        "subclass:champion/survivor": "death_saves",
-    },
+    "automate": {},
     "phase_5": [
         "feat:alert/initiative_swap", "class:barbarian/persistent_rage", "class:bard/superior_inspiration", "class:monk/uncanny_metabolism",
         "class:monk/perfect_focus", "class:druid/archdruid", "class:ranger/relentless_hunter", "subclass:thief/thiefs_reflexes",
@@ -105,8 +99,7 @@ ITEM_REASONS = {
 
 # --- Monstros ------------------------------------------------------------------------------------------------
 MONSTER_TRAIT = {
-    # Greater Magic Resistance é sucesso automático (não vantagem): regra de rolagem.
-    "automate": {"greater_magic_resistance": "d20_rules"},
+    "automate": {},
     "gm": ["amphibious", "limited_amphibiousness", "illumination", "water_breathing", "hold_breath", "spider_climb", "web_walker",
            "ice_walk", "earth_glide", "tunneler", "siege_monster", "beast_of_burden", "mimicry", "ethereal_sight", "treasure_sense",
            "sense_magic", "iron_scent", "divine_awareness", "speak_with_beasts_and_plants", "shark_telepathy", "telepathic_bond",
@@ -175,15 +168,20 @@ for it in load("magic-items.json"):
         put(key, "gm", ITEM_REASONS["gm"])
     else:
         put(key, "phase_4", ITEM_REASONS["phase_4"])
-# Entradas parciais (`item:<id>#<aspecto>`): o item já tem efeitos, mas parte da mecânica segue pendente.
+# Entradas parciais (`<chave>#<aspecto>`): a fonte já tem efeitos, mas parte da mecânica segue pendente.
+# Valor: (categoria, motivo, mecânica só para `automate`).
 PARTIAL = {
-    "item:belt_of_dwarvenkind#non_dwarf": ("Darkvision 60 ft, Resistência a Veneno e vantagem contra Envenenado só se não for anão.",
+    "item:belt_of_dwarvenkind#non_dwarf": ("automate", "Darkvision 60 ft, Resistência a Veneno e vantagem contra Envenenado só se não for anão.",
                                            "species_predicate"),
-    "item:sun_blade#longsword_with_finesse": ("Funciona como Longsword com Finesse; proficiente se tiver Longsword ou Shortsword.",
+    "item:sun_blade#longsword_with_finesse": ("automate", "Funciona como Longsword com Finesse; proficiente se tiver Longsword ou Shortsword.",
                                               "base_override"),
+    "feature:subclass:champion/survivor#heroic_rally": ("phase_5", "Heroic Rally: recupera PV no início de cada turno se estiver Bloodied (turnos de combate).",
+                                                        None),
+    "monster_trait:greater_magic_resistance#spell_attacks_miss": ("phase_4", "Ataques de magia erram a criatura automaticamente (resolução do ataque).",
+                                                                  None),
 }
-for key, (reason, mechanic) in PARTIAL.items():
-    put(key, "automate", reason, mechanic)
+for key, (category, reason, mechanic) in PARTIAL.items():
+    put(key, category, reason, mechanic)
 
 # Traços e ações de monstro (por nome, sem o limite entre parênteses).
 monsters = load("monsters.json")
@@ -204,9 +202,32 @@ problems = []
 listed = ([f"feature:{k}" for c in ("structural", "phase_5", "gm") for k in FEATURE[c]] + [f"feature:{k}" for k in FEATURE["automate"]]
           + [f"item:{k}" for k in ITEM["automate"]] + [f"item:{k}" for k in ITEM["gm"]]
           + [f"monster_trait:{k}" for k in MONSTER_TRAIT["automate"]] + [f"monster_trait:{k}" for k in MONSTER_TRAIT["gm"]])
+feature_keys = set(dict.fromkeys(features))
+all_features = []
+
+
+def walk_all(o, src):
+    if isinstance(o, dict):
+        if o.get("kind") == "feature" and "feature" in o:
+            all_features.append(f"feature:{src}/{o['feature']['id']}")
+        for v in o.values():
+            walk_all(v, src)
+    elif isinstance(o, list):
+        for x in o:
+            walk_all(x, src)
+
+
+for f, k in [("species", "species"), ("backgrounds", "background"), ("feats", "feat"), ("classes", "class"), ("subclasses", "subclass")]:
+    for e in load(f + ".json"):
+        walk_all(e, f"{k}:{e['id']}")
+trait_names = {snake(t["name"].split(" (")[0]) for m in monsters for t in m.get("traits", []) if t.get("effects")}
 for k in PARTIAL:
-    if k.split("#")[0].split(":")[1] not in magic_ids:
-        problems.append(f"entrada parcial de item inexistente: {k}")
+    base = k.split("#")[0]
+    kind, _, ref = base.partition(":")
+    ok = {"item": ref in magic_ids, "feature": base in all_features and ref not in feature_keys,
+          "monster_trait": ref in trait_names}.get(kind, False)
+    if not ok:
+        problems.append(f"entrada parcial sem fonte com efeitos: {k}")
 for k in listed:
     if k not in entries:
         problems.append(f"exceção sem entrada no compêndio (ou já tem efeito): {k}")
