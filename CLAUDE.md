@@ -43,7 +43,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
   - **Processo main (`src/main/`, Node):** infraestrutura e orquestração — servidor/cliente WebSocket, acesso ao SQLite, cache de assets por SHA-256, protocolo customizado `vtt-asset://`, auto-updater e o **executor da sessão do Host** (recebe `Intent`, chama o motor de regras, persiste e transmite o resultado). **Não implementa regras de D&D**, só chama o motor.
   - **Preload (`src/preload/`):** ponte mínima e tipada entre main e renderer via `contextBridge`. Nada além de expor a API de IPC.
   - **Renderer (`src/renderer/`):** interface reativa (`pt-BR`), renderização do mapa PixiJS e despacho de intenções. Sem acesso a Node.
-  - **Motor de regras (`packages/rules-engine/`, nome do pacote: `rules-engine`):** TypeScript puro, sem dependência de UI, Electron ou APIs do Node. Contém schemas Zod, cálculo de ficha derivada, resolução de ações/efeitos e gerador de RNG auditável/injetável.
+  - **Motor de regras (`packages/rules-engine/`, nome do pacote: `rules-engine`):** TypeScript puro, sem dependência de UI, Electron ou APIs do Node. Contém schemas Zod, cálculo de ficha derivada, resolução de ações/efeitos e gerador de RNG auditável/injetável. Exporta `rules-engine` (tudo, incluindo o compêndio) e `rules-engine/schemas` (só os schemas): o que roda no renderer ou em `src/shared/` importa de `rules-engine/schemas`, para o compêndio não entrar no pacote da tela.
   - **Compartilhado (`src/shared/`):** tipos e schemas Zod do protocolo de rede e da API de IPC, usados por main, preload e renderer.
 - **Segurança do Electron (obrigatório):** `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`, Content Security Policy restritiva no renderer, e todo payload de IPC e de rede validado com Zod no processo main.
 - **Topologia multiplayer (sem nuvem):**
@@ -87,6 +87,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 │   ├── main/                # Processo main (Node)
 │   │   ├── net/             # Servidor e cliente WebSocket
 │   │   ├── session/         # Executor da sessão do Host (Intent -> rules-engine -> broadcast)
+│   │   ├── table/           # Mesa deste app: hospedar ou entrar, ponte entre IPC, sessão e rede
 │   │   ├── db/              # Conexões SQLite (app.db e campaign.db) e migrações
 │   │   ├── assets/          # Hash SHA-256, cache local e protocolo vtt-asset://
 │   │   └── updater/         # electron-updater
@@ -157,7 +158,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - ✅ Schemas do protocolo em `src/shared/protocol/`, com o `SessionState` e os `Intent` de mapa e token.
    - ✅ Executor de sessão em `src/main/session/` (lógica pura: permissões, `rev`, visibilidade, rolagem com o RNG do Host). Ver `docs/decisions/0020-executor-de-sessao.md`.
    - ✅ Transporte WebSocket em `src/main/net/` (handshake, Ping/Pong, limites, cliente com ressincronização). Ver `docs/decisions/0021-transporte-websocket.md`.
-   - IPC e tela da mesa com o chat e as rolagens.
+   - ✅ IPC e tela da mesa (`src/main/table/`, telas de hospedar e entrar, chat com `/r` e `/gr`). Ver `docs/decisions/0022-tela-da-mesa-e-ipc.md`.
    - SQLite (`app.db`, `<campanha>.db`, migrações).
    - Assets (SHA-256, `vtt-asset://`, `AssetChunk`).
    - Mapa PixiJS (grid, tokens, câmera, `token.move`).

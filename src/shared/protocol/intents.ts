@@ -1,4 +1,4 @@
-import { DiceSchema, SizeSchema } from 'rules-engine';
+import { DiceSchema, SizeSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { ChatTextSchema, LabelSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 import { MAX_FORMULA_DICE, MAX_FORMULA_LENGTH } from './constants';

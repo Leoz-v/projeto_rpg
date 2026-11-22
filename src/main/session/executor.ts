@@ -107,12 +107,12 @@ export class HostSession {
 
   /** O snapshot para um jogador. */
   viewFor(playerId: string): SessionState {
-    return viewOf(this.current, this.roleOf(playerId) ?? 'player');
+    return viewOf(this.current, { playerId, role: this.roleOf(playerId) ?? 'player' });
   }
 
   /** O patch para um jogador: mesmo `rev`, operações filtradas (podem ficar vazias). */
   patchFor(change: StateChange, playerId: string): StateChange {
-    return { ...change, ops: opsFor(change.ops, this.roleOf(playerId) ?? 'player') };
+    return { ...change, ops: opsFor(change.ops, { playerId, role: this.roleOf(playerId) ?? 'player' }) };
   }
 
   /** Conexão aceita no handshake: registra o jogador ou o marca como conectado. */

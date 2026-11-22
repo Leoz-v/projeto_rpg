@@ -5,7 +5,8 @@
   "description": "Motor de regras de D&D 2024 (SRD 5.2.1): schemas, ficha derivada e resolução de efeitos. TypeScript puro.",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./schemas": "./src/schemas/index.ts"
   },
   "scripts": {
     "test": "vitest run",
