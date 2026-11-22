@@ -1,0 +1,114 @@
+{
+  "description": "Draconato (ancestral vermelho), Soldado, Paladino 6 (Oath of Devotion), Estilo de Luta Defesa. Exercita Aura of Protection (+CAR, mínimo +1, em todas as salvaguardas), meio conjurador (espaços de nível de conjurador 3), Divine Smite e Find Steed gratuitos e maestria só com armas proficientes. Ficha esperada calculada à mão pelas regras do SRD 5.2.1.",
+  "character": {
+    "id": "korrak",
+    "name": "Korrak",
+    "baseScores": { "method": "standard_array", "scores": { "str": 15, "dex": 10, "con": 13, "int": 8, "wis": 12, "cha": 14 } },
+    "steps": [
+      {
+        "kind": "species",
+        "speciesId": "dragonborn",
+        "selections": [
+          { "source": { "kind": "species", "id": "dragonborn" }, "choiceId": "draconic_ancestry", "picks": ["red"] },
+          { "source": { "kind": "creation", "id": "character" }, "choiceId": "languages", "picks": ["draconic", "dwarvish"] }
+        ]
+      },
+      {
+        "kind": "background",
+        "backgroundId": "soldier",
+        "abilityIncreases": { "str": 2, "con": 1 },
+        "selections": [{ "source": { "kind": "background", "id": "soldier" }, "choiceId": "gaming_set", "picks": ["gaming_set_dice"] }]
+      },
+      {
+        "kind": "class_level",
+        "classId": "paladin",
+        "selections": [
+          { "source": { "kind": "class", "id": "paladin" }, "choiceId": "skills", "picks": ["insight", "persuasion"] },
+          { "source": { "kind": "class", "id": "paladin" }, "choiceId": "weapon_mastery_1", "picks": ["longsword", "javelin"] }
+        ]
+      },
+      {
+        "kind": "class_level",
+        "classId": "paladin",
+        "selections": [
+          { "source": { "kind": "class", "id": "paladin" }, "choiceId": "fighting_style", "picks": ["fighting_style_feat"] },
+          { "source": { "kind": "class", "id": "paladin" }, "choiceId": "fighting_style_feat", "picks": ["defense"] }
+        ]
+      },
+      {
+        "kind": "class_level",
+        "classId": "paladin",
+        "selections": [{ "source": { "kind": "class", "id": "paladin" }, "choiceId": "subclass", "picks": ["oath_of_devotion"] }]
+      },
+      {
+        "kind": "class_level",
+        "classId": "paladin",
+        "selections": [
+          { "source": { "kind": "class", "id": "paladin" }, "choiceId": "feat_4", "picks": ["ability_score_improvement"] },
+          { "source": { "kind": "feat", "id": "ability_score_improvement" }, "choiceId": "increase", "picks": ["str", "cha"] }
+        ]
+      },
+      { "kind": "class_level", "classId": "paladin" },
+      { "kind": "class_level", "classId": "paladin" }
+    ]
+  },
+  "inventory": {
+    "items": [
+      { "instanceId": "armor", "itemId": "chain_mail", "equipped": true },
+      { "instanceId": "shield", "itemId": "shield", "equipped": true },
+      { "instanceId": "sword", "itemId": "longsword", "equipped": true },
+      { "instanceId": "javelins", "itemId": "javelin", "quantity": 4, "equipped": true }
+    ]
+  },
+  "adjustments": [],
+  "expected": {
+    "complete": true,
+    "level": 6,
+    "proficiencyBonus": 3,
+    "abilities": { "str": 18, "dex": 10, "con": 14, "int": 8, "wis": 12, "cha": 15 },
+    "modifiers": { "str": 4, "dex": 0, "con": 2, "int": -1, "wis": 1, "cha": 2 },
+    "hpMax": 52,
+    "hitDice": [{ "die": 10, "count": 6 }],
+    "ac": 19,
+    "initiative": { "total": 0, "mode": "normal" },
+    "speed": { "walk": 30 },
+    "saves": { "str": 6, "dex": 2, "con": 4, "int": 1, "wis": 6, "cha": 7 },
+    "saveProficiencies": ["wis", "cha"],
+    "saveModes": {},
+    "skills": {
+      "acrobatics": 0, "animal_handling": 1, "arcana": -1, "athletics": 7, "deception": 2, "history": -1,
+      "insight": 4, "intimidation": 5, "investigation": -1, "medicine": 1, "nature": -1, "perception": 1,
+      "performance": 2, "persuasion": 5, "religion": -1, "sleight_of_hand": 0, "stealth": 0, "survival": 1
+    },
+    "skillModes": { "stealth": "disadvantage" },
+    "passivePerception": 11,
+    "senses": { "darkvision": 60 },
+    "resistances": ["fire"],
+    "proficiencies": {
+      "armor": ["heavy", "light", "medium", "shield"],
+      "weapons": ["martial", "simple"],
+      "tools": ["gaming_set_dice"],
+      "languages": ["common", "draconic", "dwarvish"]
+    },
+    "weaponMasteries": ["javelin", "longsword"],
+    "feats": ["ability_score_improvement", "defense", "savage_attacker"],
+    "attacks": [
+      { "itemId": "longsword", "attack": 7, "damage": "1d8", "damageBonus": 4, "damageType": "slashing", "versatileDice": "1d10", "mastery": "sap", "masteryAvailable": true },
+      { "itemId": "javelin", "attack": 7, "damage": "1d6", "damageBonus": 4, "damageType": "piercing", "mastery": "slow", "masteryAvailable": true }
+    ],
+    "spellcasting": {
+      "classes": [
+        { "classId": "paladin", "ability": "cha", "saveDc": 13, "attack": 5, "preparedSpells": 6, "cantrips": [], "spellCount": 0 }
+      ],
+      "slots": [4, 2, 0, 0, 0, 0, 0, 0, 0],
+      "granted": [
+        { "spellId": "aid", "ability": "cha", "saveDc": 13, "attackBonus": 5 },
+        { "spellId": "divine_smite", "ability": "cha", "saveDc": 13, "attackBonus": 5 },
+        { "spellId": "find_steed", "ability": "cha", "saveDc": 13, "attackBonus": 5 },
+        { "spellId": "protection_from_evil_and_good", "ability": "cha", "saveDc": 13, "attackBonus": 5 },
+        { "spellId": "shield_of_faith", "ability": "cha", "saveDc": 13, "attackBonus": 5 },
+        { "spellId": "zone_of_truth", "ability": "cha", "saveDc": 13, "attackBonus": 5 }
+      ]
+    }
+  }
+}

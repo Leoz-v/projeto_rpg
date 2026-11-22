@@ -302,3 +302,52 @@ describe('pact magic', () => {
     expect(pactMagicSlots(0)).toBeUndefined();
   });
 });
+
+describe('attunement limit', () => {
+  const ring = { id: 'test_ring', name: 'Ring', kind: 'gear' as const, activation: 'attuned' as const };
+  const compendium = compendiumPlus({ items: [ring] });
+  const rings = (n: number) => ({ items: Array.from({ length: n }, (_, i) => ({ instanceId: `r${String(i)}`, itemId: 'test_ring', attuned: true })) });
+
+  it('allows 3 attuned items by default and rejects a 4th', () => {
+    expect(errorsOf(derive({ compendium, inventory: rings(3) }))).toEqual([]);
+    expect(errorsOf(derive({ compendium, inventory: rings(4) }))).toEqual(['too_many_attuned']);
+  });
+
+  it('raises the limit with attunement_slots (Use Magic Device)', () => {
+    const umd = { id: 'umd', name: 'Use Magic Device', effects: [{ type: 'flat_bonus', target: 'attunement_slots', value: 1 }] };
+    expect(errorsOf(derive({ compendium, inventory: rings(4), adjustments: [umd] }))).toEqual([]);
+  });
+});
+
+describe('spell use counts', () => {
+  it('resolves counts by proficiency and by class level table', () => {
+    const table = [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6];
+    const hunter = { id: 'h', name: 'Marca', effects: [
+      { type: 'grant_spell', spellId: 'hunters_mark', ability: 'wis', uses: { per: 'long_rest', count: { byLevel: table }, slots: true } },
+      { type: 'grant_spell', spellId: 'bless', ability: 'wis', uses: { per: 'long_rest', count: { proficiency: 1 } } },
+      { type: 'grant_spell', spellId: 'light', ability: 'wis', uses: 'at_will' },
+    ] };
+    // Ajuste do mestre: escala de personagem (nível 1 → 2 usos; PB 2).
+    const sheet = derive({ adjustments: [hunter] });
+    expect(sheet.spellcasting.granted.map((g) => [g.spellId, g.count])).toEqual([
+      ['hunters_mark', 2],
+      ['bless', 2],
+      ['light', undefined],
+    ]);
+  });
+});
+
+describe('ritual spell choices', () => {
+  const tome = {
+    id: 'tome',
+    name: 'Tome',
+    category: 'origin',
+    grants: [{ kind: 'choice', id: 'rituals', count: 1, options: { pick: 'spell', lists: ['wizard'], minLevel: 1, maxLevel: 1, ritual: true, grantAs: { ability: 'int', uses: 'slot' } } }],
+  };
+  const compendium = compendiumPlus({ feats: [tome] });
+
+  it('accepts only spells with the Ritual tag', () => {
+    expect(errorsOf(derive({ steps: humanWith('tome', [sel('feat', 'tome', 'rituals', 'detect_magic')]), compendium }))).toEqual([]);
+    expect(errorsOf(derive({ steps: humanWith('tome', [sel('feat', 'tome', 'rituals', 'magic_missile')]), compendium }))).toEqual(['invalid_selection']);
+  });
+});

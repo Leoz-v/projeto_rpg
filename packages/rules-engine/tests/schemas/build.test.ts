@@ -354,9 +354,8 @@ describe('InventorySchema', () => {
     expect(InventorySchema.parse({})).toEqual({ currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] });
   });
 
-  it('allows up to 3 attuned items', () => {
-    expect(InventorySchema.safeParse({ items: [entry('a', true), entry('b', true), entry('c', true)] }).success).toBe(true);
-    expect(InventorySchema.safeParse({ items: [entry('a', true), entry('b', true), entry('c', true), entry('d', true)] }).success).toBe(false);
+  it('leaves the attunement limit to the engine (it depends on features like Use Magic Device)', () => {
+    expect(InventorySchema.safeParse({ items: [entry('a', true), entry('b', true), entry('c', true), entry('d', true)] }).success).toBe(true);
   });
 
   it('rejects duplicate instance ids and negative coins', () => {

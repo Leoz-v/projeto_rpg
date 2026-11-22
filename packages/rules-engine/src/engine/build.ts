@@ -329,6 +329,7 @@ export function resolveBuild(character: Character, compendium: Compendium): Reso
             if (spell.level < options.minLevel || spell.level > options.maxLevel) fail(`${spell.name} é de nível ${spell.level}.`);
             if (!spell.classes.some((c) => options.lists.includes(c))) fail(`${spell.name} não está na lista ${options.lists.join('/')}.`);
             if (options.school && spell.school !== options.school) fail(`${spell.name} não é da escola ${options.school}.`);
+            if (options.ritual && !spell.ritual) fail(`${spell.name} não tem a etiqueta Ritual.`);
           }
           if (options.grantAs) {
             effects.push({

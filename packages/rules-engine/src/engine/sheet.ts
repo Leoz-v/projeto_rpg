@@ -10,7 +10,7 @@ import {
 } from '../schemas/common';
 import type { Character, GmAdjustment } from '../schemas/character';
 import type { BonusValue, Effect } from '../schemas/effect';
-import type { Inventory } from '../schemas/inventory';
+import { type Inventory, MAX_ATTUNED_ITEMS } from '../schemas/inventory';
 import type { Armor, Item, Weapon } from '../schemas/item';
 import type { Predicate } from '../schemas/predicate';
 import type { Compendium } from '../srd';
@@ -515,11 +515,25 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       spells: chosen.spells,
     });
   }
-  const granted: GrantedSpell[] = effectsOf('grant_spell').flatMap(({ effect, source, refKey }) => {
+  const usesCount = (uses: GrantedSpell['uses'], classId: string | undefined): number | undefined => {
+    if (typeof uses === 'string') return undefined;
+    const { count } = uses;
+    if (typeof count === 'number') return count;
+    if ('proficiency' in count) return count.proficiency * pb;
+    return count.byLevel[Math.max(1, scaleLevel(classId)) - 1];
+  };
+  const granted: GrantedSpell[] = effectsOf('grant_spell').flatMap(({ effect, source, refKey, classId }) => {
     const ability = typeof effect.ability === 'string' ? effect.ability : build.abilityChoices.get(refKey)?.get(effect.ability.choice);
     if (!ability) return []; // escolha de atributo pendente (já listada em `pending`)
-    return [{ spellId: effect.spellId, ability, uses: effect.uses, saveDc: spellDc(ability).total, attackBonus: spellAttack(ability).total, source }];
+    return [{ spellId: effect.spellId, ability, uses: effect.uses, count: usesCount(effect.uses, classId), saveDc: spellDc(ability).total, attackBonus: spellAttack(ability).total, source }];
   });
+
+  // Sintonização: até 3 itens, mais os efeitos `attunement_slots`.
+  const attunementLimit = MAX_ATTUNED_ITEMS + total(bonuses(['attunement_slots']));
+  const attuned = inventory.items.filter((i) => i.attuned).length;
+  if (attuned > attunementLimit) {
+    issues.push({ severity: 'error', code: 'too_many_attuned', message: `${String(attuned)} itens sintonizados; o limite é ${String(attunementLimit)}.` });
+  }
 
   const errors = issues.filter((i) => i.severity === 'error');
   return {

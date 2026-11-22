@@ -61,7 +61,7 @@ Soma um valor a um alvo numérico.
   - `{ "ability": "con" }`: o modificador; com `"min": 1`, nunca menos que isso ("bônus igual ao seu modificador de SAB, mínimo +1");
   - `{ "proficiency": 1 }`: multiplicador do bônus de proficiência;
   - `{ "perLevel": n }`: n × o nível **na escala da fonte**. Para espécie, antecedente, talento, item e ajuste do mestre é o nível de personagem; para classe e subclasse, o nível naquela classe (ex.: Draconic Resilience, +1 PV por nível de Feiticeiro).
-- `target` (lista fechada): `ac`, `initiative`, `hp_max`, `speed.walk`, `speed.fly`, `speed.swim`, `speed.climb`, `speed.burrow`, `attack.<melee|ranged|spell>`, `damage.<melee|ranged|spell>`, `save.<ability>`, `save.all`, `check.<ability>`, `skill.<skill>`, `passive.<skill>`, `spell_save_dc`.
+- `target` (lista fechada): `ac`, `initiative`, `hp_max`, `speed.walk`, `speed.fly`, `speed.swim`, `speed.climb`, `speed.burrow`, `attack.<melee|ranged|spell>`, `damage.<melee|ranged|spell>`, `save.<ability>`, `save.all`, `check.<ability>`, `skill.<skill>`, `passive.<skill>`, `spell_save_dc`, `attunement_slots` (soma ao limite de 3 itens sintonizados; ex.: Use Magic Device do Ladrão).
 - `<ability>`: `str`, `dex`, `con`, `int`, `wis`, `cha`. `<skill>`: as 18 perícias do SRD em inglês, em `snake_case` (ex.: `sleight_of_hand`).
 - Bônus de mesmo alvo se **somam**.
 
@@ -128,7 +128,7 @@ Fórmula base de Classe de Armadura.
 
 - Concede magia fora da lista de magias da classe (espécie, talento, item).
 - `ability`: atributo de conjuração usado nas CDs e ataques dessa magia. Pode ser fixo (`"int"`) ou `{ "choice": "<id>" }`: o atributo que o jogador escolheu numa escolha `ability` **da mesma fonte** (ex.: "INT, SAB ou CAR, escolha ao selecionar a linhagem").
-- `uses`: `at_will`, `{ "per": "short_rest" | "long_rest", "count": n }` ou `"slot"` (usa espaços de magia normalmente). `count` aceita inteiro ou `{ "proficiency": 1 }` ("um número de vezes igual ao seu bônus de proficiência"). Com `"slots": true` no objeto, a magia também pode ser conjurada com espaços de magia além dos usos gratuitos (padrão de 2024: "uma vez sem espaço por descanso longo; também com espaços").
+- `uses`: `at_will`, `{ "per": "short_rest" | "long_rest", "count": n }` ou `"slot"` (usa espaços de magia normalmente). `count` aceita inteiro, `{ "proficiency": 1 }` ("um número de vezes igual ao seu bônus de proficiência") ou `{ "byLevel": [20 inteiros] }` (tabela pelo nível na escala da fonte, ex.: Favored Enemy do Patrulheiro, 2→6). A ficha mostra o número já resolvido. Com `"slots": true` no objeto, a magia também pode ser conjurada com espaços de magia além dos usos gratuitos (padrão de 2024: "uma vez sem espaço por descanso longo; também com espaços").
 - Magia preparada ou conhecida por classe **não** é efeito: vem da lista de escolhas.
 
 ### 3.7 `grant_sense`
