@@ -5936,7 +5936,14 @@
       {
         "id": "light_sensitivity",
         "name": "Light Sensitivity",
-        "description": "While in Bright Light, the cloaker has Disadvantage on attack rolls."
+        "description": "While in Bright Light, the cloaker has Disadvantage on attack rolls.",
+        "effects": [
+          {
+            "type": "disadvantage",
+            "target": "attack.all",
+            "note": "Na Luz Plena"
+          }
+        ]
       }
     ],
     "actions": [
@@ -8337,7 +8344,44 @@
       {
         "id": "sunlight_sensitivity",
         "name": "Sunlight Sensitivity",
-        "description": "While in sunlight, the drider has Disadvantage on ability checks and attack rolls."
+        "description": "While in sunlight, the drider has Disadvantage on ability checks and attack rolls.",
+        "effects": [
+          {
+            "type": "disadvantage",
+            "target": "attack.all",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.str",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.dex",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.con",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.int",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.wis",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.cha",
+            "note": "Na luz do sol"
+          }
+        ]
       },
       {
         "id": "web_walker",
@@ -15215,7 +15259,13 @@
       {
         "id": "invisibility",
         "name": "Invisibility",
-        "description": "The stalker has the Invisible condition."
+        "description": "The stalker has the Invisible condition.",
+        "effects": [
+          {
+            "type": "condition",
+            "condition": "invisible"
+          }
+        ]
       }
     ],
     "actions": [
@@ -15592,7 +15642,44 @@
       {
         "id": "sunlight_sensitivity",
         "name": "Sunlight Sensitivity",
-        "description": "While in sunlight, the kobold has Disadvantage on ability checks and attack rolls."
+        "description": "While in sunlight, the kobold has Disadvantage on ability checks and attack rolls.",
+        "effects": [
+          {
+            "type": "disadvantage",
+            "target": "attack.all",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.str",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.dex",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.con",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.int",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.wis",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.cha",
+            "note": "Na luz do sol"
+          }
+        ]
       }
     ],
     "actions": [
@@ -23942,7 +24029,44 @@
       {
         "id": "sunlight_sensitivity",
         "name": "Sunlight Sensitivity",
-        "description": "While in sunlight, the specter has Disadvantage on ability checks and attack rolls."
+        "description": "While in sunlight, the specter has Disadvantage on ability checks and attack rolls.",
+        "effects": [
+          {
+            "type": "disadvantage",
+            "target": "attack.all",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.str",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.dex",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.con",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.int",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.wis",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.cha",
+            "note": "Na luz do sol"
+          }
+        ]
       }
     ],
     "actions": [
@@ -28544,7 +28668,44 @@
       {
         "id": "sunlight_sensitivity",
         "name": "Sunlight Sensitivity",
-        "description": "While in sunlight, the wight has Disadvantage on ability checks and attack rolls."
+        "description": "While in sunlight, the wight has Disadvantage on ability checks and attack rolls.",
+        "effects": [
+          {
+            "type": "disadvantage",
+            "target": "attack.all",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.str",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.dex",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.con",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.int",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.wis",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.cha",
+            "note": "Na luz do sol"
+          }
+        ]
       }
     ],
     "actions": [
@@ -29046,7 +29207,44 @@
       {
         "id": "sunlight_sensitivity",
         "name": "Sunlight Sensitivity",
-        "description": "While in sunlight, the wraith has Disadvantage on ability checks and attack rolls."
+        "description": "While in sunlight, the wraith has Disadvantage on ability checks and attack rolls.",
+        "effects": [
+          {
+            "type": "disadvantage",
+            "target": "attack.all",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.str",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.dex",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.con",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.int",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.wis",
+            "note": "Na luz do sol"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.cha",
+            "note": "Na luz do sol"
+          }
+        ]
       }
     ],
     "actions": [

@@ -56,7 +56,9 @@ const itemKeys = new Set(
   magic.filter((i) => i.effects.length === 0 && i.variants.every((v) => v.effects.length === 0)).map((i) => `item:${i.id}`),
 );
 const variantKeys = new Set(magic.flatMap((i) => i.variants.filter((v) => v.effects.length === 0).map((v) => `item:${i.id}/${v.id}`)));
-const traitKeys = new Set(srd.creatures.flatMap((c) => c.traits.map((t) => `monster_trait:${snake(t.name.split(' (')[0] ?? t.name)}`)));
+const traitKeys = new Set(
+  srd.creatures.flatMap((c) => c.traits.filter((t) => t.effects.length === 0).map((t) => `monster_trait:${snake(t.name.split(' (')[0] ?? t.name)}`)),
+);
 const actionKeys = new Set(
   srd.creatures.flatMap((c) => c.actions.filter((a) => a.kind === 'text').map((a) => `monster_action:${snake(a.name.split(' (')[0] ?? a.name)}`)),
 );

@@ -431,6 +431,28 @@ describe('SRD compendium', () => {
       expect(after?.name).toBe('Weapon, +1 (Longsword)');
     });
 
+    it('applies the curation gaps closed in Phase 1.5 (group 1)', () => {
+      const baseline = derive({ inventory: { items: [{ instanceId: 'sword', itemId: 'longsword', equipped: true }] } });
+      const sheet = derive({
+        inventory: {
+          items: [
+            { instanceId: 'sword', itemId: 'vorpal_sword', baseItemId: 'longsword', equipped: true, attuned: true },
+            { instanceId: 'gloves', itemId: 'gloves_of_thievery', equipped: true },
+            { instanceId: 'scarab', itemId: 'scarab_of_protection', equipped: true, attuned: true },
+          ],
+        },
+      });
+      expect(sheet.issues.filter((i) => i.severity === 'error')).toEqual([]);
+      expect(sheet.attacks[0]?.attack.total).toBe((baseline.attacks[0]?.attack.total ?? 0) + 3);
+      expect(sheet.attacks[0]?.damage.bonus.total).toBe((baseline.attacks[0]?.damage.bonus.total ?? 0) + 3);
+      expect(sheet.skills.sleight_of_hand.total).toBe(baseline.skills.sleight_of_hand.total + 5);
+      expect(sheet.ac.total).toBe(baseline.ac.total + 1);
+      // Rod of Lordly Might é uma Mace mágica: o item base vem sozinho.
+      expect(m('rod_of_lordly_might').base).toEqual({ kind: 'weapon', ids: ['mace'], categories: [] });
+      expect(m('necklace_of_adaptation').effects).toEqual([{ type: 'advantage', target: 'save.all', when: { against: { condition: 'poisoned' } } }]);
+      expect(m('staff_of_fire').effects).toEqual([{ type: 'resistance', damageType: 'fire' }]);
+    });
+
     it('has clean text (no page footers or broken characters)', () => {
       for (const i of magic) expect(i.description ?? '', i.id).not.toMatch(/System Reference Document|�|−|­/);
     });
@@ -547,6 +569,15 @@ describe('SRD compendium', () => {
       });
       expect(byId(srd.creatures, 'gelatinous_cube').abilities).toMatchObject({ dex: 3, wis: 6 });
       expect(byId(srd.creatures, 'werewolf').speed).toEqual({ walk: 30, note: '40 ft. (wolf form only)' });
+    });
+
+    it('declares the passive trait effects curated in Phase 1.5 (group 1)', () => {
+      const trait = (creature: string, id: string) => byId(byId(srd.creatures, creature).traits, id);
+      expect(trait('invisible_stalker', 'invisibility').effects).toEqual([{ type: 'condition', condition: 'invisible' }]);
+      const sunlight = trait('kobold_warrior', 'sunlight_sensitivity').effects;
+      expect(sunlight).toContainEqual({ type: 'disadvantage', target: 'attack.all', note: 'Na luz do sol' });
+      expect(sunlight.filter((e) => e.type === 'disadvantage' && e.target.startsWith('check.'))).toHaveLength(6);
+      expect(trait('cloaker', 'light_sensitivity').effects).toEqual([{ type: 'disadvantage', target: 'attack.all', note: 'Na Luz Plena' }]);
     });
 
     it('models defenses and senses as effects', () => {

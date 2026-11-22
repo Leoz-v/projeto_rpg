@@ -1,6 +1,5 @@
 {
   "mechanics": {
-    "existing_catalog": "Já cabe no catálogo atual: falta só declarar o efeito (lacuna de curadoria).",
     "against_spells": "Predicado `against` para magias ('Advantage on saving throws against spells').",
     "weapon_id": "Predicado por arma específica ('+2 de dano com Longbow e Shortbow').",
     "item_proficiency": "Itens concedendo proficiência (hoje o motor ignora proficiências vindas de itens).",
@@ -1189,13 +1188,6 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:eyes_of_minute_seeing": {
-      "category": "automate",
-      "reason": "Passivo enquanto vestido, empunhado ou sintonizado.",
-      "mechanics": [
-        "existing_catalog"
-      ]
-    },
     "item:feather_token": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
@@ -1223,13 +1215,6 @@
     "item:gloves_of_missile_snaring": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:gloves_of_thievery": {
-      "category": "automate",
-      "reason": "Passivo enquanto vestido, empunhado ou sintonizado.",
-      "mechanics": [
-        "existing_catalog"
-      ]
     },
     "item:handy_haversack": {
       "category": "gm",
@@ -1401,13 +1386,6 @@
     "item:mysterious_deck": {
       "category": "gm",
       "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
-    },
-    "item:necklace_of_adaptation": {
-      "category": "automate",
-      "reason": "Passivo enquanto vestido, empunhado ou sintonizado.",
-      "mechanics": [
-        "existing_catalog"
-      ]
     },
     "item:necklace_of_fireballs": {
       "category": "phase_4",
@@ -1628,13 +1606,6 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:rod_of_lordly_might": {
-      "category": "automate",
-      "reason": "Passivo enquanto vestido, empunhado ou sintonizado.",
-      "mechanics": [
-        "existing_catalog"
-      ]
-    },
     "item:rod_of_resurrection": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
@@ -1654,13 +1625,6 @@
     "item:rope_of_entanglement": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:scarab_of_protection": {
-      "category": "automate",
-      "reason": "Passivo enquanto vestido, empunhado ou sintonizado.",
-      "mechanics": [
-        "existing_catalog"
-      ]
     },
     "item:sending_stones": {
       "category": "gm",
@@ -1692,20 +1656,6 @@
     "item:staff_of_charming": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:staff_of_fire": {
-      "category": "automate",
-      "reason": "Passivo enquanto vestido, empunhado ou sintonizado.",
-      "mechanics": [
-        "existing_catalog"
-      ]
-    },
-    "item:staff_of_frost": {
-      "category": "automate",
-      "reason": "Passivo enquanto vestido, empunhado ou sintonizado.",
-      "mechanics": [
-        "existing_catalog"
-      ]
     },
     "item:staff_of_healing": {
       "category": "phase_4",
@@ -1743,13 +1693,6 @@
       "category": "gm",
       "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
     },
-    "item:talisman_of_the_sphere": {
-      "category": "automate",
-      "reason": "Passivo enquanto vestido, empunhado ou sintonizado.",
-      "mechanics": [
-        "existing_catalog"
-      ]
-    },
     "item:talisman_of_ultimate_evil": {
       "category": "gm",
       "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
@@ -1779,13 +1722,6 @@
       "reason": "Passivo enquanto vestido, empunhado ou sintonizado.",
       "mechanics": [
         "extra_damage"
-      ]
-    },
-    "item:vorpal_sword": {
-      "category": "automate",
-      "reason": "Passivo enquanto vestido, empunhado ou sintonizado.",
-      "mechanics": [
-        "existing_catalog"
       ]
     },
     "item:wand_of_binding": {
@@ -1835,13 +1771,6 @@
     "item:wand_of_wonder": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:weapon_of_warning": {
-      "category": "automate",
-      "reason": "Passivo enquanto vestido, empunhado ou sintonizado.",
-      "mechanics": [
-        "existing_catalog"
-      ]
     },
     "item:well_of_many_worlds": {
       "category": "gm",
@@ -2438,13 +2367,6 @@
       "category": "gm",
       "reason": "Exploração ou narrativa: o mestre decide."
     },
-    "monster_trait:invisibility": {
-      "category": "automate",
-      "reason": "Passivo da criatura.",
-      "mechanics": [
-        "existing_catalog"
-      ]
-    },
     "monster_trait:iron_scent": {
       "category": "gm",
       "reason": "Exploração ou narrativa: o mestre decide."
@@ -2456,13 +2378,6 @@
     "monster_trait:legendary_resistance": {
       "category": "phase_4",
       "reason": "Traço ou ação de criatura: resolução assistida no combate (Fase 4)."
-    },
-    "monster_trait:light_sensitivity": {
-      "category": "automate",
-      "reason": "Passivo da criatura.",
-      "mechanics": [
-        "existing_catalog"
-      ]
     },
     "monster_trait:lightning_absorption": {
       "category": "phase_4",
@@ -2594,13 +2509,6 @@
     "monster_trait:sunlight": {
       "category": "phase_4",
       "reason": "Traço ou ação de criatura: resolução assistida no combate (Fase 4)."
-    },
-    "monster_trait:sunlight_sensitivity": {
-      "category": "automate",
-      "reason": "Passivo da criatura.",
-      "mechanics": [
-        "existing_catalog"
-      ]
     },
     "monster_trait:sunlight_weakness": {
       "category": "phase_4",

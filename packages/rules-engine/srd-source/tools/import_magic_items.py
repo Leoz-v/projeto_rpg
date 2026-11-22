@@ -300,6 +300,23 @@ EFFECTS = {
                                        "+1 bonus to ability checks and saving throws"),
     "Sun Blade": (weapon_plus(2), "+2 bonus to attack rolls and damage rolls"),
     "Thunderous Greatclub": ([{"type": "set_minimum_score", "ability": "str", "value": 20}], "your Strength is 20"),
+    # Fase 1.5, grupo 1 (lacunas de curadoria: já cabiam no catálogo).
+    "Staff of Fire": ([{"type": "resistance", "damageType": "fire"}], "You have Resistance to Fire damage while you hold this staff"),
+    "Staff of Frost": ([{"type": "resistance", "damageType": "cold"}], "You have Resistance to Cold damage while you hold this staff"),
+    "Vorpal Sword": (weapon_plus(3), "You gain a +3 bonus to attack rolls and damage rolls made with this magic weapon"),
+    "Rod of Lordly Might": (weapon_plus(3), "it functions as a magic Mace that grants a +3 bonus to attack rolls and damage rolls"),
+    "Scarab of Protection": ([{"type": "flat_bonus", "target": "ac", "value": 1}], "Defense. You gain a +1 bonus to Armor Class"),
+    "Gloves of Thievery": ([{"type": "flat_bonus", "target": "skill.sleight_of_hand", "value": 5}],
+                           "you gain a +5 bonus to Dexterity (Sleight of Hand) checks"),
+    # Só o próprio portador: o benefício aos aliados é da Fase 4 (auras).
+    "Weapon of Warning": ([{"type": "advantage", "target": "initiative"}], "Each subject has Advantage on its Initiative rolls"),
+    "Necklace of Adaptation": ([{"type": "advantage", "target": "save.all", "when": {"against": {"condition": "poisoned"}}}],
+                               "you have Advantage on saving throws made to avoid or end the Poisoned condition"),
+    # A Darkvision de 1 pé não cabe no grid (múltiplos de 5 ft): fica só a vantagem situacional.
+    "Eyes of Minute Seeing": ([{"type": "advantage", "target": "skill.investigation", "note": "Examinar algo a até 1 pé"}],
+                              "Advantage on Intelligence (Investigation) checks made to examine something within that range"),
+    "Talisman of the Sphere": ([{"type": "advantage", "target": "skill.arcana", "note": "Controlar uma Sphere of Annihilation"}],
+                               "Advantage on any Intelligence (Arcana) check you make to control a Sphere of Annihilation"),
 }
 # Variantes lidas dos parágrafos "Nome (Raridade)." que têm efeito passivo: (efeitos, trecho de apoio).
 VARIANT_EFFECTS = {
@@ -392,6 +409,8 @@ for n, h in enumerate(starts):
     elif category == "staff" and re.search(r"\bQuarterstaff\b", description):
         # Cajado que também é arma: "can be wielded as a magic Quarterstaff".
         item["base"] = {"kind": "weapon", "ids": ["quarterstaff"]}
+    elif category == "rod" and "functions as a magic Mace" in description:
+        item["base"] = {"kind": "weapon", "ids": ["mace"]}  # Rod of Lordly Might
     if att is not None:
         item["attunement"] = att
         item["activation"] = "attuned"

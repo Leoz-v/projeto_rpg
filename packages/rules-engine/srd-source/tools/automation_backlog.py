@@ -27,7 +27,6 @@ OUT = PKG / "tests" / "srd" / "automation-backlog.json"
 
 # Extensões de catálogo agrupadas (um PR por grupo, contrato em docs/effects-spec.md primeiro).
 MECHANICS = {
-    "existing_catalog": "Já cabe no catálogo atual: falta só declarar o efeito (lacuna de curadoria).",
     "against_spells": "Predicado `against` para magias ('Advantage on saving throws against spells').",
     "weapon_id": "Predicado por arma específica ('+2 de dano com Longbow e Shortbow').",
     "item_proficiency": "Itens concedendo proficiência (hoje o motor ignora proficiências vindas de itens).",
@@ -94,10 +93,6 @@ FEATURE_REASONS = {
 # --- Itens mágicos -------------------------------------------------------------------------------------------
 ITEM = {
     "automate": {
-        "staff_of_fire": "existing_catalog", "staff_of_frost": "existing_catalog", "vorpal_sword": "existing_catalog",
-        "rod_of_lordly_might": "existing_catalog", "scarab_of_protection": "existing_catalog", "gloves_of_thievery": "existing_catalog",
-        "weapon_of_warning": "existing_catalog", "necklace_of_adaptation": "existing_catalog", "eyes_of_minute_seeing": "existing_catalog",
-        "talisman_of_the_sphere": "existing_catalog",
         "mantle_of_spell_resistance": "against_spells", "ring_of_spell_turning": "against_spells", "spellguard_shield": "against_spells",
         "bracers_of_archery": ["weapon_id", "item_proficiency"],
         "belt_of_dwarvenkind": ["capped_ability_increase", "item_proficiency"],
@@ -121,9 +116,7 @@ ITEM_REASONS = {
 
 # --- Monstros ------------------------------------------------------------------------------------------------
 MONSTER_TRAIT = {
-    # Sensibilidade à luz: Desvantagem com `note` (lembrete situacional); Invisibility: condição permanente.
-    "automate": {"magic_resistance": "against_spells", "greater_magic_resistance": "against_spells",
-                 "sunlight_sensitivity": "existing_catalog", "light_sensitivity": "existing_catalog", "invisibility": "existing_catalog"},
+    "automate": {"magic_resistance": "against_spells", "greater_magic_resistance": "against_spells"},
     "gm": ["amphibious", "limited_amphibiousness", "illumination", "water_breathing", "hold_breath", "spider_climb", "web_walker",
            "ice_walk", "earth_glide", "tunneler", "siege_monster", "beast_of_burden", "mimicry", "ethereal_sight", "treasure_sense",
            "sense_magic", "iron_scent", "divine_awareness", "speak_with_beasts_and_plants", "shark_telepathy", "telepathic_bond",
@@ -200,7 +193,7 @@ put("item:ioun_stone/mastery", "automate", "Passivo enquanto orbita (sintonizado
 
 # Traços e ações de monstro (por nome, sem o limite entre parênteses).
 monsters = load("monsters.json")
-for name in sorted({snake(t["name"].split(" (")[0]) for m in monsters for t in m.get("traits", [])}):
+for name in sorted({snake(t["name"].split(" (")[0]) for m in monsters for t in m.get("traits", []) if not t.get("effects")}):
     key = f"monster_trait:{name}"
     if name in MONSTER_TRAIT["automate"]:
         put(key, "automate", "Passivo da criatura.", MONSTER_TRAIT["automate"][name])

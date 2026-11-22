@@ -1464,6 +1464,13 @@
     "kind": "magic_item",
     "category": "wondrous",
     "rarity": "uncommon",
+    "effects": [
+      {
+        "type": "advantage",
+        "target": "skill.investigation",
+        "note": "Examinar algo a até 1 pé"
+      }
+    ],
     "description": "These crystal lenses fit over the eyes. While wearing them, your vision improves significantly out to a range of 1 foot, granting you Darkvision within that range and Advantage on Intelligence (Investigation) checks made to examine something within that range."
   },
   {
@@ -1770,6 +1777,13 @@
     "kind": "magic_item",
     "category": "wondrous",
     "rarity": "uncommon",
+    "effects": [
+      {
+        "type": "flat_bonus",
+        "target": "skill.sleight_of_hand",
+        "value": 5
+      }
+    ],
     "description": "These gloves are imperceptible while worn. While wearing them, you gain a +5 bonus to Dexterity (Sleight of Hand) checks."
   },
   {
@@ -2381,6 +2395,17 @@
     "rarity": "uncommon",
     "attunement": {},
     "activation": "attuned",
+    "effects": [
+      {
+        "type": "advantage",
+        "target": "save.all",
+        "when": {
+          "against": {
+            "condition": "poisoned"
+          }
+        }
+      }
+    ],
     "description": "While wearing this necklace, you can breathe normally in any environment, and you have Advantage on saving throws made to avoid or end the Poisoned condition."
   },
   {
@@ -3360,6 +3385,24 @@
     "rarity": "legendary",
     "attunement": {},
     "activation": "attuned",
+    "base": {
+      "kind": "weapon",
+      "ids": [
+        "mace"
+      ]
+    },
+    "effects": [
+      {
+        "type": "flat_bonus",
+        "target": "attack.weapon",
+        "value": 3
+      },
+      {
+        "type": "flat_bonus",
+        "target": "damage.weapon",
+        "value": 3
+      }
+    ],
     "description": "This rod has a flanged head, and it functions as a magic Mace that grants a +3 bonus to attack rolls and damage rolls made with it. The rod has properties associated with six different buttons that are set in a row along the haft. It has three other properties as well, detailed below.\nButtons. You can press one of the following buttons as a Bonus Action; a button's effect lasts until you push a different button or until you push the same button again, which causes the rod to revert to its normal form:\nButton 1. A fiery blade sprouts from the end opposite the rod's flanged head. The flames shed Bright Light in a 40-foot radius and Dim Light for an additional 40 feet, and the blade functions as a magic Longsword or Shortsword (your choice) that deals an extra 2d6 Fire damage on a hit.\nButton 2. The rod's flanged head folds down and two crescent-shaped blades spring out, transforming the rod into a magic Battleaxe that grants a +3 bonus to attack rolls and damage rolls made with it.\nButton 3. The rod's flanged head folds down, a spear point springs from the rod's tip, and the rod's handle lengthens into a 6-foot haft, transforming the rod into a magic Spear that grants a +3 bonus to attack rolls and damage rolls made with it.\nButton 4. The rod transforms into a climbing pole up to 50 feet long (you specify the length), though the rod's buttons remain within your reach. In surfaces as hard as granite, a spike at the bottom and three hooks at the top anchor the pole.\nHorizontal bars 3 inches long fold out from the sides, 1 foot apart, forming a ladder. The pole can bear up to 4,000 pounds. More weight or lack of solid anchoring causes the rod to revert to its normal form.\nButton 5. The rod transforms into a handheld battering ram and grants its user a +10 bonus to Strength (Athletics) checks made to break through doors, barricades, and other barriers.\nButton 6. The rod assumes or remains in its normal form and indicates magnetic north. (Nothing happens if this function of the rod is used in a location that has no magnetic north.) The rod also gives you knowledge of your approximate depth beneath the ground or your height above it.\nDrain Life. When you hit a creature with a melee attack using the rod, you can force the target to make a DC 17 Constitution saving throw. On a failed save, the target takes an extra 4d6 Necrotic damage, and you regain a number of Hit Points equal to half that Necrotic damage. Once used, this property can't be used again until the next dawn.\nParalyze. When you hit a creature with a melee attack using the rod, you can force the target to make a DC 17 Constitution saving throw. On a failed save, the target has the Paralyzed condition for 1 minute. The target repeats the save at the end of each of its turns, ending the effect on a success.\nOnce used, this property can't be used again until the next dawn.\nTerrify. While holding the rod, you can take a Magic action to force each creature you can see within 30 feet of yourself to make a DC 17 Wisdom saving throw. On a failed save, a target has the Frightened condition for 1 minute. A Frightened target repeats the save at the end of each of its turns, ending the effect on itself on a success. Once used, this property can't be used again until the next dawn."
   },
   {
@@ -3421,6 +3464,13 @@
     "charges": {
       "max": 12
     },
+    "effects": [
+      {
+        "type": "flat_bonus",
+        "target": "ac",
+        "value": 1
+      }
+    ],
     "description": "This beetle-shaped medallion provides three benefits while it is on your person.\nDefense. You gain a +1 bonus to Armor Class.\nPreservation. The scarab has 12 charges. If you fail a saving throw against a Necromancy spell or a harmful effect originating from an Undead, you can take a Reaction to expend 1 charge and turn the failed save into a successful one. The scarab crumbles into powder and is destroyed when its last charge is expended.\nSpell Resistance. You have Advantage on saving throws against spells."
   },
   {
@@ -3746,6 +3796,12 @@
       "max": 10,
       "regain": "1d6 + 4 daily at dawn"
     },
+    "effects": [
+      {
+        "type": "resistance",
+        "damageType": "fire"
+      }
+    ],
     "description": "You have Resistance to Fire damage while you hold this staff.\nSpells. The staff has 10 charges. While holding the staff, you can cast one of the spells on the following table from it, using your spell save DC. The table indicates how many charges you must expend to cast the spell.\nSpell Charge Cost Spell Charge Cost Burning Hands 1 Wall of Fire 4 Fireball 3 Regaining Charges. The staff regains 1d6 + 4 expended charges daily at dawn. If you expend the last charge, roll 1d20. On a 1, the staff crumbles into cinders and is destroyed."
   },
   {
@@ -3768,6 +3824,12 @@
       "max": 10,
       "regain": "1d6 + 4 daily at dawn"
     },
+    "effects": [
+      {
+        "type": "resistance",
+        "damageType": "cold"
+      }
+    ],
     "description": "You have Resistance to Cold damage while you hold this staff.\nSpells. The staff has 10 charges. While holding the staff, you can cast one of the spells on the following table from it, using your spell save DC. The table indicates how many charges you must expend to cast the spell.\nSpell Charge Cost Spell Charge Cost Cone of Cold 5 Ice Storm 4 Fog Cloud 1 Wall of Ice 4 Regaining Charges. The staff regains 1d6 + 4 expended charges daily at dawn. If you expend the last charge, roll 1d20. On a 1, the staff turns to water and is destroyed."
   },
   {
@@ -4216,6 +4278,13 @@
     "rarity": "legendary",
     "attunement": {},
     "activation": "attuned",
+    "effects": [
+      {
+        "type": "advantage",
+        "target": "skill.arcana",
+        "note": "Controlar uma Sphere of Annihilation"
+      }
+    ],
     "description": "While holding or wearing this talisman, you have Advantage on any Intelligence (Arcana) check you make to control a Sphere of Annihilation. In addition, when you start your turn in control of a Sphere of Annihilation, you can take a Magic action to move it 10 feet plus a number of additional feet equal to 10 times your Intelligence modifier. This movement doesn't have to be in a straight line."
   },
   {
@@ -4339,6 +4408,18 @@
         "scimitar"
       ]
     },
+    "effects": [
+      {
+        "type": "flat_bonus",
+        "target": "attack.weapon",
+        "value": 3
+      },
+      {
+        "type": "flat_bonus",
+        "target": "damage.weapon",
+        "value": 3
+      }
+    ],
     "description": "You gain a +3 bonus to attack rolls and damage rolls made with this magic weapon. In addition, the weapon ignores Resistance to Slashing damage.\nWhen you use this weapon to attack a creature that has at least one head and roll a 20 on the d20 for the attack roll, you cut off one of the creature's heads. The creature dies if it can't survive without the lost head. A creature is immune to this effect if it has Immunity to Slashing damage, if it doesn't have or need a head, or if the GM decides that the creature is too big for its head to be cut off with this weapon. Such a creature instead takes an extra 30 Slashing damage from the hit. If the creature has Legendary Resistance, it can expend one daily use of that trait to avoid losing its head, taking the extra damage instead."
   },
   {
@@ -4650,6 +4731,12 @@
         "martial"
       ]
     },
+    "effects": [
+      {
+        "type": "advantage",
+        "target": "initiative"
+      }
+    ],
     "description": "As long as this weapon is within your reach and you are attuned to it, you and allies within 30 feet of you gain the following benefits.\nAlarm. The weapon magically awakens each subject who is sleeping naturally when combat begins.\nThis benefit doesn't wake a subject from magically induced sleep.\nSupernatural Readiness. Each subject has Advantage on its Initiative rolls."
   },
   {
