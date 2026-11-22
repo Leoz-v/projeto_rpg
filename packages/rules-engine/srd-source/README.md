@@ -24,7 +24,9 @@ O texto é extraído com `pdftotext` (poppler, com `-enc UTF-8` no Windows): `pd
 
 As **magias** seguem um formato regular e foram importadas por parser automático, que lê o cabeçalho de cada entrada e confere as classes contra as listas de magias dos capítulos de classe. Ver `docs/decisions/0007-importacao-das-magias.md`.
 
-Os **monstros** também vêm de parser automático, que confere os números redundantes de cada bloco (XP, PV, modificadores, Percepção passiva, dano médio). Ver `docs/decisions/0012-importacao-dos-monstros.md`. Os scripts ficam em `tools/` (ver `tools/README.md`).
+Os **monstros** também vêm de parser automático, que confere os números redundantes de cada bloco (XP, PV, modificadores, Percepção passiva, dano médio). Ver `docs/decisions/0012-importacao-dos-monstros.md`.
+
+As **ferramentas e o equipamento de aventura** vêm de parser automático, que confere a tabela contra as descrições e o peso de cada pacote contra a soma do conteúdo. Ver `docs/decisions/0013-ferramentas-e-equipamento.md`. Os scripts ficam em `tools/` (ver `tools/README.md`).
 
 ## O que já foi transcrito
 
@@ -44,5 +46,7 @@ Os **monstros** também vêm de parser automático, que confere os números redu
 | Magias (339) | 107–175 (conferidas com as listas das classes) | `spells.json` |
 | Idiomas da criação de personagem | 20 | `creation.json` |
 | Monstros e animais (330) | 258–364 | `monsters.json` |
+| Ferramentas (37, uma por variante) | 93–94 | `tools.json` |
+| Equipamento de aventura, munição e focos (94) | 94–100 | `gear.json` |
 
-**Faltam:** equipamento de aventura e ferramentas, e itens mágicos.
+**Faltam:** itens mágicos; montarias, veículos e serviços (pp. 100–102).

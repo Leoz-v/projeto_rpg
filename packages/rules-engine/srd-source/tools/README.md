@@ -15,16 +15,18 @@ Scripts de desenvolvimento para gerar dados do compêndio a partir de `../SRD_CC
 | Script | Gera | Conferência |
 |---|---|---|
 | `import_spells.py` | `src/srd/data/spells.json` (339 magias) | classes do cabeçalho de cada magia contra as listas de magias dos capítulos de classe |
+| `import_gear.py` | `src/srd/data/tools.json` (37) e `gear.json` (94) | linhas da tabela contra as descrições (preço), peso dos pacotes contra a soma do conteúdo, itens fabricados e conteúdo dos pacotes existem, proficiências em ferramenta citadas existem |
 | `import_monsters.py` | `src/srd/data/monsters.json` (330 criaturas) | números redundantes de cada bloco (XP e PB pelo ND, PV pela fórmula, modificadores, salvaguardas, perícias, Percepção passiva, iniciativa, dano médio) e referências a magias e itens; erros conhecidos do SRD listados no script |
 
 Uso, a partir da raiz do repositório:
 
 ```bash
 python packages/rules-engine/srd-source/tools/import_spells.py
+python packages/rules-engine/srd-source/tools/import_gear.py
 python packages/rules-engine/srd-source/tools/import_monsters.py
 ```
 
-`import_monsters.py` lê `spells.json`, `weapons.json` e `armor.json` para resolver referências: rode depois de reimportar as magias.
+A ordem importa: `import_gear.py` lê armas e armaduras, e `import_monsters.py` lê magias, armas, armaduras, ferramentas e equipamento para resolver referências.
 
 Cada script imprime as contagens, as inconsistências conhecidas do SRD e os problemas encontrados. Sai com código 1 se houver problema. Depois de rodar, confira o `git diff` do JSON e rode `pnpm --filter rules-engine test`.
 

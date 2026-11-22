@@ -16095,7 +16095,8 @@
     "languages": "All",
     "gear": [
       {
-        "name": "Component Pouch"
+        "name": "Component Pouch",
+        "itemId": "component_pouch"
       }
     ],
     "cr": 21,
@@ -16386,7 +16387,8 @@
     "languages": "Common plus three other languages",
     "gear": [
       {
-        "name": "Wand"
+        "name": "Wand",
+        "itemId": "arcane_focus_wand"
       }
     ],
     "cr": 6,
@@ -16545,7 +16547,8 @@
     "languages": "Common plus five other languages",
     "gear": [
       {
-        "name": "Wand"
+        "name": "Wand",
+        "itemId": "arcane_focus_wand"
       }
     ],
     "cr": 12,
@@ -24844,7 +24847,8 @@
         "itemId": "shortsword"
       },
       {
-        "name": "Thieves' Tools"
+        "name": "Thieves' Tools",
+        "itemId": "thieves_tools"
       }
     ],
     "cr": 1,

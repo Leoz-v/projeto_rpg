@@ -204,9 +204,11 @@ def check_damage(who, parsed):
 
 SPELLS = {s["name"].lower(): s["id"] for s in json.load(open(DATA / "spells.json", encoding="utf-8"))}
 ITEMS = {}
-for f in ("weapons.json", "armor.json"):
+for f in ("weapons.json", "armor.json", "tools.json", "gear.json"):
     for it in json.load(open(DATA / f, encoding="utf-8")):
         ITEMS[it["name"].lower()] = it["id"]
+# "Wand" no bloco é a forma de foco arcano. "Holy Symbol" não diz a forma (amuleto, emblema ou relicário): fica sem itemId.
+ITEMS["wand"] = "arcane_focus_wand"
 
 
 def parse_spellcasting(who, entry, body):
