@@ -1,4 +1,5 @@
 import type { Ability, DamageType, Condition, Sense, Size, Skill, WeaponMastery } from '../schemas/common';
+import type { Predicate } from '../schemas/predicate';
 import type { ChoiceOptions, Feature } from '../schemas/source';
 import type { SourceKindSchema } from '../schemas/character';
 import type { SpellUsesSchema } from '../schemas/effect';
@@ -31,8 +32,12 @@ export interface RollState {
   mode: RollMode;
   advantage: SourceLabel[];
   disadvantage: SourceLabel[];
-  /** Circunstâncias que o motor não avalia (efeitos com `note`): a UI lembra e o mestre decide. */
-  situational: { kind: 'advantage' | 'disadvantage'; note: string; source: SourceLabel }[];
+  /**
+   * Vale só em certas rolagens: `when` depende do contexto (ex.: `against` uma
+   * condição) ou o efeito tem `note`. A UI mostra o lembrete; na Fase 4 o
+   * motor avalia `when` na rolagem concreta.
+   */
+  situational: { kind: 'advantage' | 'disadvantage'; source: SourceLabel; when?: Predicate | undefined; note?: string | undefined }[];
 }
 
 export interface RollStat extends Stat {

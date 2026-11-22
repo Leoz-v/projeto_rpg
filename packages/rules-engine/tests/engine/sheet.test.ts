@@ -88,10 +88,40 @@ describe('advantage and disadvantage', () => {
     expect(sheet.skills.stealth.roll.mode).toBe('normal');
   });
 
-  it('keeps situational effects (with note) as reminders without applying them', () => {
+  it('keeps roll-dependent effects as structured reminders without applying them', () => {
     const sheet = derive({});
     expect(sheet.saves.con.roll.mode).toBe('normal');
-    expect(sheet.saves.con.roll.situational.map((s) => s.source.id)).toEqual(['dwarf']);
+    expect(sheet.saves.con.roll.situational).toEqual([
+      { kind: 'advantage', source: { kind: 'species', id: 'dwarf', name: 'Dwarf' }, when: { against: { condition: 'poisoned' } }, note: undefined },
+    ]);
+  });
+
+  it('keeps effects with a free-text note as reminders', () => {
+    const adj = { id: 'x', name: 'Ajuste', effects: [{ type: 'advantage', target: 'save.wis', note: 'Contra ilusões' }] };
+    const roll = derive({ adjustments: [adj] }).saves.wis.roll;
+    expect(roll.mode).toBe('normal');
+    expect(roll.situational.filter((s) => s.source.kind === 'adjustment').map((s) => s.note)).toEqual(['Contra ilusões']);
+  });
+
+  it('drops roll-dependent effects that are certainly false', () => {
+    // all: [sem armadura, contra Envenenado] vestindo armadura é falso, não desconhecido.
+    const adj = { id: 'x', name: 'Ajuste', effects: [{ type: 'advantage', target: 'save.con', when: { all: [{ wearingArmor: false }, { against: { condition: 'poisoned' } }] } }] };
+    const armored = derive({ adjustments: [adj], inventory: { items: [{ instanceId: 'a', itemId: 'chain_mail', equipped: true }] } });
+    expect(armored.saves.con.roll.situational.map((s) => s.source.kind)).toEqual(['species']);
+    expect(derive({ adjustments: [adj] }).saves.con.roll.situational.map((s) => s.source.kind)).toEqual(['species', 'adjustment']);
+  });
+
+  it('does not add roll-dependent flat bonuses to static totals', () => {
+    const adj = { id: 'x', name: 'Ajuste', effects: [{ type: 'flat_bonus', target: 'save.con', value: 2, when: { against: { condition: 'poisoned' } } }] };
+    expect(derive({ adjustments: [adj] }).saves.con.total).toBe(derive({}).saves.con.total);
+  });
+
+  it('models Powerful Build as advantage on checks to end Grappled', () => {
+    const steps = fighterSteps();
+    steps[0] = { kind: 'species', speciesId: 'goliath', selections: [LANGUAGES, sel('species', 'goliath', 'giant_ancestry', 'stones_endurance')] };
+    const athletics = derive({ steps }).skills.athletics.roll;
+    expect(athletics.mode).toBe('normal');
+    expect(athletics.situational.map((s) => s.when)).toEqual([{ against: { condition: 'grappled' } }]);
   });
 
   it('adds +5 / -5 to passive scores', () => {

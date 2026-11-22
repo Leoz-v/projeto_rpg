@@ -12,6 +12,7 @@ const SPEC_EXAMPLES: unknown[] = [
   { type: 'set_base_ac', base: 10, abilities: ['dex', 'con'], when: { wearingArmor: false } },
   { type: 'advantage', target: 'save.all', note: 'contra magias' },
   { type: 'disadvantage', target: 'skill.stealth', when: { armorCategory: 'heavy' } },
+  { type: 'advantage', target: 'save.all', when: { against: { condition: 'frightened' } } },
   { type: 'resistance', damageType: 'poison' },
   { type: 'vulnerability', damageType: 'fire' },
   { type: 'immunity', damageType: 'poison' },
@@ -76,6 +77,8 @@ describe('PredicateSchema', () => {
     ['empty all', { all: [] }],
     ['unknown predicate', { isRaining: true }],
     ['shield is not an armor category', { armorCategory: 'shield' }],
+    ['against an unknown condition', { against: { condition: 'sleepy' } }],
+    ['against without condition', { against: {} }],
   ])('rejects %s', (_, invalid) => {
     expect(PredicateSchema.safeParse(invalid).success).toBe(false);
   });

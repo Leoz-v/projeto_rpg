@@ -256,7 +256,11 @@
                 {
                   "type": "advantage",
                   "target": "save.all",
-                  "note": "Para evitar ou encerrar a condição Envenenado."
+                  "when": {
+                    "against": {
+                      "condition": "poisoned"
+                    }
+                  }
                 }
               ]
             }
@@ -551,7 +555,11 @@
                 {
                   "type": "advantage",
                   "target": "save.all",
-                  "note": "Para evitar ou encerrar a condição Enfeitiçado."
+                  "when": {
+                    "against": {
+                      "condition": "charmed"
+                    }
+                  }
                 }
               ]
             }
@@ -864,7 +872,27 @@
             "feature": {
               "id": "powerful_build",
               "name": "Powerful Build",
-              "description": "You have Advantage on any ability check you make to end the Grappled condition. You also count as one size larger when determining your carrying capacity."
+              "description": "You have Advantage on any ability check you make to end the Grappled condition. You also count as one size larger when determining your carrying capacity.",
+              "effects": [
+                {
+                  "type": "advantage",
+                  "target": "check.str",
+                  "when": {
+                    "against": {
+                      "condition": "grappled"
+                    }
+                  }
+                },
+                {
+                  "type": "advantage",
+                  "target": "check.dex",
+                  "when": {
+                    "against": {
+                      "condition": "grappled"
+                    }
+                  }
+                }
+              ]
             }
           }
         ]
@@ -905,7 +933,11 @@
                 {
                   "type": "advantage",
                   "target": "save.all",
-                  "note": "Para evitar ou encerrar a condição Amedrontado."
+                  "when": {
+                    "against": {
+                      "condition": "frightened"
+                    }
+                  }
                 }
               ]
             }
