@@ -84,9 +84,10 @@ export function MapView({ view, selectedId, onSelect, onStage }: Props) {
       tokens: Object.values(state.tokens),
       canDrag: (token) => info.role === 'gm' || token.ownerIds.includes(info.playerId),
       selectedId,
+      activeId: state.combat?.combatants[state.combat.turn]?.tokenId ?? null,
       health: (token) => tokenHealth(token, state.characters, maxima),
     });
-  }, [stage, map, state.tokens, state.characters, maxima, info.role, info.playerId, selectedId]);
+  }, [stage, map, state.tokens, state.characters, state.combat, maxima, info.role, info.playerId, selectedId]);
 
   return (
     <section className="map" aria-label="Mapa">

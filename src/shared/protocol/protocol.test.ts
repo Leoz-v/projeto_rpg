@@ -27,6 +27,7 @@ const SHA ='9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08';
 
 const state: SessionState = {
   proposals: {},
+  combat: null,
   campaign: { id: CAMPAIGN, name: 'A Mina Perdida' },
   players: {
     [PLAYER]: { displayName: 'Ana', role: 'player', connected: true },
@@ -202,6 +203,13 @@ describe('intents', () => {
     expect(intent('mastery.use', { entryId: HERO, targetTokenId: TOKEN, disadvantage: true })).toBe(true);
     expect(intent('mastery.use', { entryId: 'not-a-uuid' })).toBe(false);
     expect(intent('mastery.use', { entryId: HERO, property: 'cleave' })).toBe(false);
+    expect(intent('combat.start', { tokenIds: [TOKEN, HERO], surprisedTokenIds: [TOKEN] })).toBe(true);
+    expect(intent('combat.start', { tokenIds: [TOKEN], surprisedTokenIds: [HERO] })).toBe(false);
+    expect(intent('combat.start', { tokenIds: [TOKEN, TOKEN] })).toBe(false);
+    expect(intent('combat.start', { tokenIds: [] })).toBe(false);
+    expect(intent('combat.set_initiative', { tokenId: TOKEN, initiative: 61 })).toBe(false);
+    expect(intent('combat.next', {})).toBe(true);
+    expect(intent('combat.end', { force: true })).toBe(false);
     expect(intent('hp.change', { target: { tokenId: TOKEN }, change: { kind: 'max', amount: 22 } })).toBe(true);
     expect(intent('token.create', { mapId: MAP, name: 'Barril', position: { x: 0, y: 0 }, size: 'medium', hpMax: 5 })).toBe(true);
     expect(intent('hp.change', { target: { tokenId: TOKEN }, change: { kind: 'damage', amount: -3 } })).toBe(false);
@@ -259,7 +267,15 @@ describe('intents', () => {
 describe('SessionState', () => {
   it('accepts the documented example and an empty table', () => {
     expect(ok(SessionStateSchema, state)).toBe(true);
-    expect(ok(SessionStateSchema, { campaign: state.campaign, players: {}, chat: [], maps: {}, activeMapId: null, tokens: {}, characters: {}, proposals: {} })).toBe(true);
+    expect(ok(SessionStateSchema, { campaign: state.campaign, players: {}, chat: [], maps: {}, activeMapId: null, tokens: {}, characters: {}, proposals: {}, combat: null })).toBe(true);
+  });
+
+  it('keeps the combat turn inside the order, without repeated tokens', () => {
+    const combatant = { tokenId: TOKEN, initiative: 12, modifier: 2 };
+    expect(ok(SessionStateSchema, { ...state, combat: { round: 1, turn: 0, combatants: [combatant] } })).toBe(true);
+    expect(ok(SessionStateSchema, { ...state, combat: { round: 1, turn: 1, combatants: [combatant] } })).toBe(false);
+    expect(ok(SessionStateSchema, { ...state, combat: { round: 1, turn: 0, combatants: [combatant, combatant] } })).toBe(false);
+    expect(ok(SessionStateSchema, { ...state, combat: { round: 0, turn: 0, combatants: [combatant] } })).toBe(false);
   });
 
   it('limits rolled ability scores to six values from 3 to 18', () => {

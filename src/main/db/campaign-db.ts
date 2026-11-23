@@ -6,7 +6,7 @@ import { type Database, openDatabase, transaction } from './sqlite';
 /**
  * `<campanha>.db`: arquivo portátil com tudo o que é da mesa: jogadores,
  * mapas, tokens, o log do chat e os personagens (só as escolhas de
- * construção). Inventários e combate entram em migrações futuras.
+ * construção), os inventários e o combate em andamento.
  */
 
 const MIGRATIONS = [
@@ -61,6 +61,8 @@ const MIGRATIONS = [
   // PV: dano e temporários do personagem; do token, também o máximo (JSON, validados ao carregar).
   `ALTER TABLE characters ADD COLUMN hp TEXT NOT NULL DEFAULT '{"damage":0,"temp":0}';
    ALTER TABLE tokens ADD COLUMN hp TEXT;`,
+  // Combate em andamento (ordem de turnos, rodada e vez), em JSON validado ao carregar; NULL sem combate.
+  `ALTER TABLE campaign ADD COLUMN combat TEXT;`,
 ] as const;
 
 export const CAMPAIGN_DB_SCHEMA_VERSION = MIGRATIONS.length;
@@ -72,7 +74,7 @@ export class CampaignDbError extends Error {
   }
 }
 
-const CampaignRow = z.object({ id: z.string(), name: z.string(), active_map_id: z.string().nullable() });
+const CampaignRow = z.object({ id: z.string(), name: z.string(), active_map_id: z.string().nullable(), combat: z.string().nullable() });
 const PlayerRow = z.object({ id: z.string(), display_name: z.string(), role: z.string() });
 const MapRow = z.object({ id: z.string(), name: z.string(), width: z.number(), height: z.number(), background: z.string().nullable(), cell_px: z.number().nullable() });
 const TokenRow = z.object({
@@ -133,7 +135,7 @@ export class CampaignDb {
    * num estado carregado: as conexões são da sessão, não da campanha.
    */
   load(): SessionState {
-    const campaignRow = this.db.prepare('SELECT id, name, active_map_id FROM campaign').get();
+    const campaignRow = this.db.prepare('SELECT id, name, active_map_id, combat FROM campaign').get();
     if (!campaignRow) throw new CampaignDbError('Arquivo sem campanha');
     const campaign = CampaignRow.parse(campaignRow);
 
@@ -183,7 +185,7 @@ export class CampaignDb {
       .all()
       .map((row): unknown => JSON.parse(ChatRow.parse(row).entry));
 
-    const parsed = SessionStateSchema.safeParse({ campaign: { id: campaign.id, name: campaign.name }, players, chat, maps, activeMapId: campaign.active_map_id, tokens, characters, proposals: {} });
+    const parsed = SessionStateSchema.safeParse({ campaign: { id: campaign.id, name: campaign.name }, players, chat, maps, activeMapId: campaign.active_map_id, tokens, characters, proposals: {}, combat: campaign.combat === null ? null : (JSON.parse(campaign.combat) as unknown) });
     if (!parsed.success) throw new CampaignDbError(`Arquivo da campanha inválido: ${parsed.error.issues[0]?.message ?? 'erro desconhecido'}`);
     return parsed.data;
   }
@@ -195,7 +197,7 @@ export class CampaignDb {
   save(state: SessionState): void {
     const { db } = this;
     transaction(db, () => {
-      db.prepare('UPDATE campaign SET name = ?, active_map_id = ?').run(state.campaign.name, state.activeMapId);
+      db.prepare('UPDATE campaign SET name = ?, active_map_id = ?, combat = ?').run(state.campaign.name, state.activeMapId, state.combat === null ? null : JSON.stringify(state.combat));
 
       const upsertPlayer = db.prepare(
         'INSERT INTO players (id, display_name, role) VALUES (?, ?, ?) ON CONFLICT (id) DO UPDATE SET display_name = excluded.display_name, role = excluded.role',

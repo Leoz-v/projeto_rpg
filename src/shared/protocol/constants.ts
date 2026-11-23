@@ -31,6 +31,11 @@ export const MAX_ADJUSTMENT_EFFECTS = 20;
 export const MAX_HIT_POINTS = 100_000;
 /** Alvos de uma salvaguarda forçada (`save.force`). */
 export const MAX_SAVE_TARGETS = 20;
+/** Combatentes num combate. */
+export const MAX_COMBATANTS = 50;
+/** Faixa da iniciativa (rolada ou definida pelo mestre). */
+export const MIN_INITIATIVE = -20;
+export const MAX_INITIATIVE = 60;
 /** Moedas de cada tipo. */
 export const MAX_COINS = 1_000_000_000;
 /** Limites da fórmula de `dice.roll`. */

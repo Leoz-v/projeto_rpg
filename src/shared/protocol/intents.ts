@@ -1,8 +1,8 @@
 import { AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, DiceSchema, EffectSchema, IdSchema, SizeSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { ChatTextSchema, InstanceIdSchema, LabelSchema, RollAgainstSchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
-import { MAX_ADJUSTMENT_EFFECTS, MAX_COINS, MAX_FORMULA_DICE, MAX_FORMULA_LENGTH, MAX_HIT_POINTS, MAX_ITEM_QUANTITY, MAX_SAVE_TARGETS } from './constants';
-import { VisibilitySchema } from './state';
+import { MAX_ADJUSTMENT_EFFECTS, MAX_COINS, MAX_COMBATANTS, MAX_FORMULA_DICE, MAX_FORMULA_LENGTH, MAX_HIT_POINTS, MAX_ITEM_QUANTITY, MAX_SAVE_TARGETS } from './constants';
+import { InitiativeSchema, VisibilitySchema } from './state';
 
 /** Catálogo de `Intent` (docs/network-protocol.md, seção 3). */
 
@@ -19,6 +19,18 @@ export const FormulaSchema = DiceSchema.max(MAX_FORMULA_LENGTH).refine((f) => co
 });
 
 const QuantitySchema = z.int().min(1).max(MAX_ITEM_QUANTITY);
+
+/** Tokens que entram no combate, e os surpresos entre eles (Desvantagem na iniciativa). */
+const CombatJoinSchema = z
+  .strictObject({
+    tokenIds: z
+      .array(UuidSchema)
+      .min(1)
+      .max(MAX_COMBATANTS)
+      .refine((ids) => new Set(ids).size === ids.length, { message: 'token repetido' }),
+    surprisedTokenIds: z.array(UuidSchema).max(MAX_COMBATANTS).optional(),
+  })
+  .refine((d) => (d.surprisedTokenIds ?? []).every((id) => d.tokenIds.includes(id)), { message: 'surpreso fora da lista de tokens' });
 const CoinsSchema = z.int().min(0).max(MAX_COINS);
 
 export const IntentSchema = z.discriminatedUnion('kind', [
@@ -181,6 +193,13 @@ export const IntentSchema = z.discriminatedUnion('kind', [
       disadvantage: z.boolean().optional(),
     }),
   }),
+  z.strictObject({ kind: z.literal('combat.start'), data: CombatJoinSchema }),
+  z.strictObject({ kind: z.literal('combat.add'), data: CombatJoinSchema }),
+  z.strictObject({ kind: z.literal('combat.remove'), data: z.strictObject({ tokenId: UuidSchema }) }),
+  z.strictObject({ kind: z.literal('combat.set_initiative'), data: z.strictObject({ tokenId: UuidSchema, initiative: InitiativeSchema }) }),
+  z.strictObject({ kind: z.literal('combat.next'), data: z.strictObject({}) }),
+  z.strictObject({ kind: z.literal('combat.previous'), data: z.strictObject({}) }),
+  z.strictObject({ kind: z.literal('combat.end'), data: z.strictObject({}) }),
   z.strictObject({
     kind: z.literal('damage.apply'),
     data: z.strictObject({ proposalId: UuidSchema, amount: z.int().min(0).max(MAX_HIT_POINTS).optional() }),

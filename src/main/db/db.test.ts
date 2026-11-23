@@ -127,6 +127,7 @@ describe('CampaignDb', () => {
 
   const state = (overrides: Partial<SessionState> = {}): SessionState => ({
     proposals: {},
+    combat: null,
     campaign: { id: randomUUID(), name: 'A Mina Perdida' },
     players: { [GM]: { displayName: 'Mestre', role: 'gm', connected: true }, [ANA]: { displayName: 'Ana', role: 'player', connected: true } },
     chat: [
@@ -184,6 +185,17 @@ describe('CampaignDb', () => {
       ...s,
       players: { [GM]: { displayName: 'Mestre', role: 'gm', connected: false }, [ANA]: { displayName: 'Ana', role: 'player', connected: false } },
     });
+    db.close();
+  });
+
+  it('saves, loads and clears the combat in progress', () => {
+    const combat = { round: 3, turn: 1, combatants: [{ tokenId: HERO_TOKEN, initiative: 18, modifier: 2 }, { tokenId: TOKEN, initiative: 9, modifier: 2 }] };
+    const s = state({ combat });
+    const db = CampaignDb.create(':memory:', s.campaign, 0);
+    db.save(s);
+    expect(db.load().combat).toEqual(combat);
+    db.save({ ...s, combat: null });
+    expect(db.load().combat).toBeNull();
     db.close();
   });
 

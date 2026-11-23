@@ -939,3 +939,146 @@ describe('HostSession: weapon masteries', () => {
   });
 });
 
+describe('HostSession: combat and initiative', () => {
+  const sequence = (values: number[]) => {
+    let i = 0;
+    return { roll: () => values[i++ % values.length] ?? 1 };
+  };
+  const fighter = dwarfFighter as { character: { baseScores: SessionCharacter['baseScores']; steps: SessionCharacter['steps'] } };
+
+  /** Thorin (personagem da Ana, iniciativa +1 com Vantagem do Remarkable Athlete), dois Goblin Warriors (+2) e um barril (sem bônus) no mapa. */
+  function arena(rolls: number[]) {
+    const session = setup({
+      rng: sequence(rolls),
+      monsterExists: (id) => compendium.creatures.some((c) => c.id === id),
+      monsterHpMax: (id) => compendium.creatures.find((c) => c.id === id)?.hp.average,
+    });
+    session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10 } });
+    const mapId = Object.keys(session.state.maps)[0] ?? '';
+    session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Thorin' } });
+    const hero = Object.keys(session.state.characters)[0] ?? '';
+    const steps = CharacterSchema.shape.steps.parse(fighter.character.steps);
+    session.handle(ANA.playerId, { kind: 'character.update', data: { characterId: hero, baseScores: fighter.character.baseScores ?? undefined, steps } });
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Thorin', position: { x: 0, y: 0 }, size: 'medium', characterId: hero } });
+    for (const [name, x] of [['Goblin 1', 100], ['Goblin 2', 200]] as const) {
+      session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name, position: { x, y: 0 }, size: 'small', monsterId: 'goblin_warrior' } });
+    }
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Barril', position: { x: 300, y: 0 }, size: 'medium' } });
+    const id = (name: string) => Object.values(session.state.tokens).find((t) => t.name === name)?.id ?? '';
+    return { session, thorin: id('Thorin'), goblin1: id('Goblin 1'), goblin2: id('Goblin 2'), barrel: id('Barril') };
+  }
+  type Arena = ReturnType<typeof arena>;
+  const order = (a: Arena) => a.session.state.combat?.combatants.map((c) => a.session.state.tokens[c.tokenId]?.name) ?? [];
+  const current = (a: Arena) => {
+    const combat = a.session.state.combat;
+    return combat ? a.session.state.tokens[combat.combatants[combat.turn]?.tokenId ?? '']?.name : undefined;
+  };
+  // Thorin max(10, 4)+1 = 11, Goblin 1 15+2 = 17, Goblin 2 9+2 = 11, Barril 3+0 = 3.
+  const start = (a: Arena, who = GM.playerId, surprised?: string[]) =>
+    a.session.handle(who, { kind: 'combat.start', data: { tokenIds: [a.thorin, a.goblin1, a.goblin2, a.barrel], ...(surprised ? { surprisedTokenIds: surprised } : {}) } });
+  const next = (a: Arena, who = GM.playerId) => a.session.handle(who, { kind: 'combat.next', data: {} });
+
+  it('rolls initiative for every token and orders by initiative, then by the modifier', () => {
+    const a = arena([10, 4, 15, 9, 3]);
+    expect(rejection(start(a, ANA.playerId))).toBe('not_allowed');
+    expect(applied(start(a))).toBe(true);
+    expect(order(a)).toEqual(['Goblin 1', 'Goblin 2', 'Thorin', 'Barril']);
+    expect(a.session.state.combat).toMatchObject({ round: 1, turn: 0 });
+    expect(current(a)).toBe('Goblin 1');
+    const [started, rolled] = a.session.state.chat.slice(-2);
+    expect(started).toMatchObject({ kind: 'combat_event', event: 'started', round: 1 });
+    if (rolled?.kind !== 'initiative_roll') throw new Error('sem iniciativa');
+    expect(rolled.results.map((r) => [r.name, r.total])).toEqual([
+      ['Thorin', 11],
+      ['Goblin 1', 17],
+      ['Goblin 2', 11],
+      ['Barril', 3],
+    ]);
+    expect(rolled.results[3]?.notes).toContain('Sem ficha nem bloco de monstro: iniciativa +0');
+    expect(rejection(start(a))).toBe('rule_violation');
+  });
+
+  it('gives Disadvantage to surprised combatants', () => {
+    // Goblin 1 surpreso: 15 e 4, fica o 4.
+    const a = arena([10, 4, 15, 4, 9, 3]);
+    start(a, GM.playerId, [a.goblin1]);
+    const rolled = a.session.state.chat.at(-1);
+    if (rolled?.kind !== 'initiative_roll') throw new Error('sem iniciativa');
+    expect(rolled.results[1]).toMatchObject({ name: 'Goblin 1', mode: 'disadvantage', dice: [15, 4], total: 6 });
+    expect(rolled.results[1]?.notes).toContain('Desvantagem: Surpresa');
+  });
+
+  it('shows the order to everyone but hides monster initiative values from players', () => {
+    const a = arena([10, 4, 15, 9, 3]);
+    const outcome = start(a);
+    for (const view of [a.session.viewFor(BRUNO.playerId), a.session.viewFor(ANA.playerId)]) {
+      expect(view.combat?.combatants.map((c) => c.initiative)).toEqual([null, null, 11, null]);
+      const rolled = view.chat.at(-1);
+      if (rolled?.kind !== 'initiative_roll') throw new Error('sem iniciativa');
+      expect(rolled.results.map((r) => r.name)).toEqual(['Thorin']);
+    }
+    expect(a.session.viewFor(GM.playerId).combat?.combatants.map((c) => c.initiative)).toEqual([17, 11, 11, 3]);
+    if (!outcome.change) throw new Error('sem mudança');
+    const op = a.session.patchFor(outcome.change, BRUNO.playerId).ops.find((o) => o.path === '/combat');
+    expect(op && 'value' in op ? op.value : undefined).toMatchObject({ combatants: [{ initiative: null }, { initiative: null }, { initiative: 11 }, { initiative: null }] });
+  });
+
+  it('passes the turn, starts a new round after the last one, and lets the player pass only their own turn', () => {
+    const a = arena([10, 4, 15, 9, 3]);
+    start(a);
+    next(a);
+    expect(rejection(next(a, ANA.playerId))).toBe('not_allowed');
+    next(a);
+    expect(current(a)).toBe('Thorin');
+    expect(rejection(next(a, BRUNO.playerId))).toBe('not_allowed');
+    expect(applied(next(a, ANA.playerId))).toBe(true);
+    expect(current(a)).toBe('Barril');
+    next(a);
+    expect(a.session.state.combat).toMatchObject({ round: 2, turn: 0 });
+    expect(a.session.state.chat.at(-1)).toMatchObject({ kind: 'combat_event', event: 'round', round: 2 });
+    a.session.handle(GM.playerId, { kind: 'combat.previous', data: {} });
+    expect(a.session.state.combat).toMatchObject({ round: 1, turn: 3 });
+    expect(rejection(a.session.handle(ANA.playerId, { kind: 'combat.previous', data: {} }))).toBe('not_allowed');
+  });
+
+  it('lets the GM override initiative, reordering without changing whose turn it is', () => {
+    const a = arena([10, 4, 15, 9, 3]);
+    start(a);
+    next(a); // vez do Goblin 2
+    a.session.handle(GM.playerId, { kind: 'combat.set_initiative', data: { tokenId: a.barrel, initiative: 20 } });
+    expect(order(a)).toEqual(['Barril', 'Goblin 1', 'Goblin 2', 'Thorin']);
+    expect(current(a)).toBe('Goblin 2');
+  });
+
+  it('adds and removes combatants; removing a token from the map takes it out of the combat; the last one out ends it', () => {
+    const a = arena([10, 4, 15, 9, 3]);
+    a.session.handle(GM.playerId, { kind: 'combat.start', data: { tokenIds: [a.thorin, a.goblin1, a.goblin2] } });
+    next(a); // vez do Goblin 2
+    expect(rejection(a.session.handle(GM.playerId, { kind: 'combat.add', data: { tokenIds: [a.goblin1] } }))).toBe('rule_violation');
+    a.session.handle(GM.playerId, { kind: 'combat.add', data: { tokenIds: [a.barrel] } }); // 3 + 0
+    expect(order(a)).toEqual(['Goblin 1', 'Goblin 2', 'Thorin', 'Barril']);
+    expect(current(a)).toBe('Goblin 2');
+    // Sai quem está na vez: passa ao seguinte.
+    a.session.handle(GM.playerId, { kind: 'combat.remove', data: { tokenId: a.goblin2 } });
+    expect(current(a)).toBe('Thorin');
+    a.session.handle(GM.playerId, { kind: 'token.remove', data: { tokenId: a.goblin1 } });
+    expect(order(a)).toEqual(['Thorin', 'Barril']);
+    expect(current(a)).toBe('Thorin');
+    a.session.handle(GM.playerId, { kind: 'combat.remove', data: { tokenId: a.thorin } });
+    a.session.handle(GM.playerId, { kind: 'combat.remove', data: { tokenId: a.barrel } });
+    expect(a.session.state.combat).toBeNull();
+    expect(a.session.state.chat.at(-1)).toMatchObject({ kind: 'combat_event', event: 'ended' });
+  });
+
+  it('ends the combat, and refuses turn intents without one', () => {
+    const a = arena([10, 4, 15, 9, 3]);
+    expect(rejection(next(a))).toBe('rule_violation');
+    expect(rejection(a.session.handle(GM.playerId, { kind: 'combat.end', data: {} }))).toBe('rule_violation');
+    start(a);
+    expect(rejection(a.session.handle(ANA.playerId, { kind: 'combat.end', data: {} }))).toBe('not_allowed');
+    expect(applied(a.session.handle(GM.playerId, { kind: 'combat.end', data: {} }))).toBe(true);
+    expect(a.session.state.combat).toBeNull();
+    expect(a.session.state.chat.at(-1)).toMatchObject({ kind: 'combat_event', event: 'ended', round: 1 });
+  });
+});
+

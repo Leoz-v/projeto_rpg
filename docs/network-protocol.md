@@ -2,7 +2,7 @@
 
 > **Contrato fechado.** Só existem as mensagens e os tipos de `Intent` listados aqui. Para criar um novo, primeiro atualize este documento (e `PROTOCOL_VERSION`, se a mudança for incompatível) e só depois o código. Os schemas Zod em `src/shared/protocol/` devem seguir este arquivo exatamente.
 
-- **Versão do protocolo:** `PROTOCOL_VERSION = 10`
+- **Versão do protocolo:** `PROTOCOL_VERSION = 11`
 - **Transporte:** WebSocket puro (`ws://`) sobre rede virtual (Tailscale/ZeroTier). Porta padrão do Host: `47820`.
 - **Formato:** um objeto JSON (UTF-8) por frame de texto. Frames binários não são usados.
 - **Validação:** toda mensagem recebida, nos dois lados, passa pelo schema Zod antes de qualquer processamento. Mensagem inválida gera `Error` com `code: "invalid_message"` e é descartada. A conexão **não** cai por causa disso.
@@ -213,6 +213,7 @@ O Host guarda o estado completo e envia a cada cliente só o que ele pode ver, n
 - **Jogador:** uma rolagem com `visibility: "gm"` de outra pessoa chega como `hidden_roll`, sem fórmula, rótulo nem resultado. A entrada continua no log, na mesma posição, para que os índices de `chat` sejam iguais em todos os clientes. Quem rolou sempre vê a própria rolagem (o jogador que rola em segredo para o mestre vê o resultado). Vale igual para as rolagens da ficha (`d20_roll`, `damage_roll`) , os ataques (`attack_roll`), as salvaguardas forçadas (`save_roll`) e o dano de maestria (`mastery_damage`) com `visibility: "gm"`.
 - **Propostas de dano** (`proposals`) são a fila de trabalho do mestre: para os jogadores, chegam vazias, e as operações em `/proposals/…` não são enviadas.
 - **Personagens** e as rolagens de atributos (`ability_roll`) são vistos por todos, inclusive os PV dos personagens.
+- **Iniciativa** (nota 0039): todos veem a ordem do combate, mas o valor da iniciativa de um token que não é personagem só chega ao mestre e aos donos do token. Para os outros, o combatente chega com `initiative: null` (no `StateSnapshot` e no `replace` de `/combat`), e o resultado desse token some da entrada `initiative_roll`.
 - **PV de tokens** que não são personagens (monstros, objetos): só o mestre e os donos do token (`ownerIds`) veem. Para os outros, o token chega com `hp: null` no `StateSnapshot` e no `add` do token, e as operações em `/tokens/<id>/hp` não são enviadas.
 
 ## 3. Catálogo de `Intent`
@@ -244,6 +245,13 @@ Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do
 | `attack.make`     | 8    | `{ attacker: { characterId: string, instanceId: string } \| { tokenId: string, actionId: string }, targetTokenId: string, advantage?: boolean, disadvantage?: boolean, visibility: "public" \| "gm" }` | personagem: dono e mestre; token: mestre e donos do token |
 | `save.force`      | 9    | `{ source: { tokenId: string, actionId: string } \| { custom: { name: string (1..100), ability: Ability, dc: int (1..40), damage: { dice: string, type: DamageType }[] (0..5), onSuccess: "half" \| "none", conditions?: Condition[] } }, targetTokenIds: string[] (1..20, sem repetir), against?: { condition?: Condition, source?: "spell" \| "magic" }, visibility: "public" \| "gm" }` | ação do monstro: mestre e donos do token; efeito informado: todos |
 | `mastery.use`     | 10   | `{ entryId: string, targetTokenId?: string, advantage?: boolean, disadvantage?: boolean }` | quem fez o ataque e mestre |
+| `combat.start`    | 11   | `{ tokenIds: string[] (1..50, sem repetir), surprisedTokenIds?: string[] (0..50) }` | mestre |
+| `combat.add`      | 11   | `{ tokenIds: string[] (1..50, sem repetir), surprisedTokenIds?: string[] (0..50) }` | mestre |
+| `combat.remove`   | 11   | `{ tokenId: string }` | mestre |
+| `combat.set_initiative` | 11 | `{ tokenId: string, initiative: int (-20..60) }` | mestre |
+| `combat.next`     | 11   | `{}` | mestre; jogador dono do combatente da vez |
+| `combat.previous` | 11   | `{}` | mestre |
+| `combat.end`      | 11   | `{}` | mestre |
 | `damage.apply`    | 8    | `{ proposalId: string, amount?: int (0..100000) }` | mestre |
 | `damage.dismiss`  | 8    | `{ proposalId: string }` | mestre |
 | `hp.change`       | 6    | `{ target: { characterId: string } \| { tokenId: string }, change: { kind: "damage" \| "healing" \| "temp" \| "max", amount: int (0..100000) } }` | mestre; jogador no próprio personagem e nos próprios tokens |
@@ -288,6 +296,15 @@ Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do
     - **Graze:** dano igual ao modificador do atributo do ataque, do tipo de dano da arma, passando pelas defesas do alvo; entrada `mastery_damage` e, com dano maior que 0, proposta para o mestre.
     - **Topple:** salvaguarda de Constituição do alvo, CD 8 + modificador do atributo do ataque + proficiência; entrada `save_roll` sem dano, com "Na falha: Caído" (aplicar a condição é da Fase 5).
     - `targetTokenId`, `advantage` e `disadvantage` só valem no Cleave; em outra maestria, `rule_violation`.
+- **Combate e iniciativa** (nota 0039): SRD 5.2.1, "Combat" e "Initiative". Um combate por vez, guardado em `combat`.
+  - **`combat.start`:** começa o combate com os tokens enviados (todos precisam existir; já havendo combate, `rule_violation`). O Host rola a iniciativa de cada um: a da ficha do personagem ligado (teste de Destreza, com as regras do d20 da ficha), o bônus de iniciativa publicado no bloco do monstro, ou `+0` para um token sem ficha nem monstro (com nota). Os tokens de `surprisedTokenIds` (subconjunto de `tokenIds`) rolam com Desvantagem (Surpresa). Os combatentes ficam em ordem decrescente de iniciativa; no empate, o maior modificador vem antes e, persistindo, a ordem de `tokenIds`. O mestre ajusta a ordem com `combat.set_initiative`. Começa na rodada 1, no primeiro da ordem. Registra `initiative_roll` e `combat_event` (`started`) no chat.
+  - **`combat.add`:** põe tokens num combate em andamento, rolando a iniciativa como no início; token já no combate recusa com `rule_violation`. O combatente da vez continua o mesmo.
+  - **`combat.remove`:** tira o token do combate. Se era a vez dele, a vez passa ao próximo da ordem (sem mudar a rodada, a menos que ele fosse o último). O último combatente a sair encerra o combate. Remover um token do mapa (`token.remove`) também o tira do combate.
+  - **`combat.set_initiative`:** troca a iniciativa de um combatente (override do mestre) e reordena, mantendo o combatente da vez.
+  - **`combat.next`:** passa a vez ao próximo; depois do último, volta ao primeiro e a rodada aumenta (registra `combat_event` `round`). O jogador pode passar só a vez de um combatente que controla (personagem dele, ou token em que está em `ownerIds`).
+  - **`combat.previous`:** volta uma vez (desfazer um `combat.next`); na rodada 1, no primeiro, não volta.
+  - **`combat.end`:** encerra o combate (`combat: null`) e registra `combat_event` (`ended`).
+  - Sem combate, `combat.add`, `combat.remove`, `combat.set_initiative`, `combat.next`, `combat.previous` e `combat.end` recusam com `rule_violation`.
 - **`token.create` com `characterId`:** o token representa esse personagem (o Host confere que ele existe). Remover o personagem não remove o token: o `characterId` volta a `null`.
 - **Recusas** (`IntentResult` com `rejected`): `not_allowed` para permissão (jogador num `Intent` do mestre, token de outro jogador); `rule_violation` para estado inválido (mapa ou token inexistente, posição fora do mapa, monstro fora do compêndio, imagem que o Host não tem). Um `Intent` recusado não muda o estado nem o `rev`.
 
@@ -348,7 +365,8 @@ Estado da mesa (visão do mestre; a dos jogadores é filtrada pela seção 2.12)
 |---------------|-----------|
 | `campaign`    | Id e nome da campanha. |
 | `players`     | Todos os jogadores que já entraram na sessão, por `playerId`, incluindo o mestre (`role: "gm"`). `connected` muda quando a conexão abre ou cai. |
-| `chat`        | Log da sessão, em ordem. Só cresce: entradas novas entram com `add` em `/chat/-`. Tipos: `message`, `roll`, `hidden_roll` (seção 2.12), `d20_roll` (rolagem da ficha: alvo, dados, modificador e a conta, total, modo, crítico, fontes da Vantagem/Desvantagem, notas das regras do d20 e lembretes do que pode valer), `damage_roll` (dano de arma: grupos de dados por tipo, bônus, total, crítico), `attack_roll` (atacante, alvo, o d20, acerto e, no acerto, o dano com o que as defesas fizeram e o id da proposta; com arma da ficha, `weapon` com o personagem e a arma, `mastery` com a maestria, as notas e a ação de seguimento, e `masteryOf` no segundo ataque do Cleave), `save_roll` (efeito, CD, dano rolado uma vez e, por alvo, o d20, o sucesso, o dano depois das defesas, as notas e o id da proposta; `masteryOf` quando vem do Topple), `mastery_damage` (dano do Graze: atacante, alvo, tipo, o modificador, o dano depois das defesas e o id da proposta), `damage_applied` (dano aplicado pelo mestre, com o valor proposto quando outro foi usado e as notas: caiu a 0 PV, dano massivo) e `ability_roll` (atributos rolados pelo Host: seis conjuntos de 4d6 com o índice do dado descartado e o total). |
+| `chat`        | Log da sessão, em ordem. Só cresce: entradas novas entram com `add` em `/chat/-`. Tipos: `message`, `roll`, `hidden_roll` (seção 2.12), `d20_roll` (rolagem da ficha: alvo, dados, modificador e a conta, total, modo, crítico, fontes da Vantagem/Desvantagem, notas das regras do d20 e lembretes do que pode valer), `damage_roll` (dano de arma: grupos de dados por tipo, bônus, total, crítico), `attack_roll` (atacante, alvo, o d20, acerto e, no acerto, o dano com o que as defesas fizeram e o id da proposta; com arma da ficha, `weapon` com o personagem e a arma, `mastery` com a maestria, as notas e a ação de seguimento, e `masteryOf` no segundo ataque do Cleave), `save_roll` (efeito, CD, dano rolado uma vez e, por alvo, o d20, o sucesso, o dano depois das defesas, as notas e o id da proposta; `masteryOf` quando vem do Topple), `mastery_damage` (dano do Graze: atacante, alvo, tipo, o modificador, o dano depois das defesas e o id da proposta), `damage_applied` (dano aplicado pelo mestre, com o valor proposto quando outro foi usado e as notas: caiu a 0 PV, dano massivo) `ability_roll` (atributos rolados pelo Host: seis conjuntos de 4d6 com o índice do dado descartado e o total), `initiative_roll` (iniciativa rolada pelo Host: por token, o nome, o d20, o modificador, o total, o modo e as notas) e `combat_event` (`started`, `round` com o número da rodada nova, ou `ended`). |
+| `combat`      | Combate em andamento, ou `null`. `round` (a partir de 1), `turn` (índice do combatente da vez) e `combatants` em ordem de turno: `tokenId` e `initiative` (`null` para quem não pode ver, seção 2.12). Gravado na campanha. |
 | `maps`        | Mapas por id. `width`/`height` em células; `background` é o SHA-256 da imagem, ou `null`; `cellPx` é o tamanho da célula em pixels da imagem de fundo, ou `null` (mapa sem fundo ou legado esticado). |
 | `activeMapId` | Mapa exibido para todos, ou `null` antes do primeiro `map.create`. |
 | `proposals`   | Danos propostos por ataques, por id, esperando o mestre (`entryId` do `attack_roll`, `save_roll` ou `mastery_damage`, alvo e valor). Estado da sessão: não é gravado na campanha. Só o mestre recebe. |

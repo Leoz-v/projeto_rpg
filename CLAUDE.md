@@ -179,7 +179,12 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - *Antecipado:* aplicação de dano na ordem do SRD (`applyDamage`: imunidade, reduções roladas, Resistência, Vulnerabilidade) e RNG injetável com rolagens registradas (`engine/dice.ts`). Ver `docs/decisions/0014-itens-magicos.md`.
    - *Antecipado:* Teste d20 com as regras declarativas (`rollD20`: Halfling Luck, Reliable Talent, Indomitable Might, sucesso automático, 18–20 contam como 20) e mínimo nos dados de dano (Great Weapon Fighting). Ver `docs/decisions/0017-regras-do-teste-d20.md`.
    - ✅ Vantagens circunstanciais aplicadas automaticamente na rolagem (ex.: Dwarven Resilience contra Envenenado), pelo `against` das salvaguardas forçadas (nota 0037; predicado da nota 0006).
-5. **Fase 5 — Combate:** iniciativa, turnos, condições (incluindo Exaustão 2024) e concentração.
+5. **Fase 5 — Combate:** iniciativa, turnos, condições (incluindo Exaustão 2024) e concentração. Dividida em 5 PRs (ver `docs/decisions/0039-combate-e-iniciativa.md`); condições: o mestre em qualquer token, o jogador nos próprios; a ordem de turnos é de todos, o valor da iniciativa dos monstros só do mestre:
+   - ✅ Combate e iniciativa (`combat.*`, `PROTOCOL_VERSION = 11`, `<campanha>.db` v7): o Host rola a iniciativa (ficha, bloco do monstro, surpresa com Desvantagem), ordem pelo motor (`engine/combat.ts`), rodadas, próximo/anterior, override do mestre, o jogador encerra o próprio turno, tracker na barra lateral e anel no token da vez.
+   - Condições no estado: condições e Exaustão 1–6 em tokens e personagens, aplicadas também pela falha de salvaguarda (inclusive Topple).
+   - Efeitos das condições nas rolagens (tabela do SRD no motor; distância entre tokens para Caído).
+   - Durações ligadas aos turnos, efeitos temporários de Sap, Vex e Slow e lembretes de início e fim de turno.
+   - Concentração e Salvaguardas contra a Morte.
 
 *Extras futuros:* criação de token a partir de imagem com recorte/moldura automáticos, spawn de vários inimigos de uma vez (a numeração Goblin 1, Goblin 2… já existe, um por vez), colar texto de ficha de monstro e converter para o schema.
 
