@@ -54,3 +54,15 @@ export function addSelection(steps: Steps, stepIndex: number, selection: Selecti
 export function removeSelection(steps: Steps, stepIndex: number, index: number): Steps {
   return steps.map((s, i) => (i === stepIndex ? { ...s, selections: s.selections.filter((_, j) => j !== index) } : s));
 }
+
+/** Subir de nível: mais um passo de classe no fim (a mesma classe ou multiclasse). */
+export function addClassLevel(steps: Steps, classId: string): Steps {
+  return [...steps, { kind: 'class_level', classId, selections: [] }];
+}
+
+/** Desfaz o último nível (a classe do nível 1 só muda pela troca de classe inicial). */
+export function removeLastLevel(steps: Steps): Steps {
+  const last = steps.at(-1);
+  if (last?.kind !== 'class_level' || steps.filter((s) => s.kind === 'class_level').length < 2) throw new Error('Não há nível para desfazer');
+  return steps.slice(0, -1);
+}

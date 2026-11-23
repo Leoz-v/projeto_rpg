@@ -166,7 +166,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 3. **Fase 3 — Fichas & Progressão (interface):** telas de criação de personagem e de subida de nível sobre o motor da Fase 1, gerenciamento de inventário e sincronização offline com aprovação do mestre. Dividida em 5 PRs (ver `docs/decisions/0029-personagens-na-sessao.md`):
    - ✅ Personagens no estado da sessão (`character.create`/`update`/`roll_scores`/`remove`, `PROTOCOL_VERSION = 3`, tabela `characters` no `<campanha>.db`), ficha calculada no processo main com a conta de cada número, e definição dos atributos (conjunto padrão, compra de pontos, rolagem pelo Host com o resultado no chat, valores à mão só para o mestre).
    - ✅ Assistente de criação: espécie, antecedente com os aumentos de atributo, classe inicial e as escolhas pendentes, com os candidatos filtrados pelo motor; desfazer uma escolha descarta as que dependiam dela. Ver `docs/decisions/0030-assistente-de-criacao.md`.
-   - Subida de nível, incluindo multiclasse e as trocas permitidas pelas regras.
+   - ✅ Subida de nível com a classe escolhida entre as que o motor libera (multiclasse com os requisitos de atributo), só com a ficha completa, e desfazer o último nível. Trocas permitidas pelas regras: desfazer a escolha e escolher de novo. Ver `docs/decisions/0031-subida-de-nivel.md`.
    - Inventário pelo Host (adicionar, remover, equipar, sintonizar), ajustes do mestre e ligação personagem–token.
    - Cópia offline com aprovação do *diff* pelo mestre.
 4. **Fase 4 — Motor de Ações & Efeitos:** resolução assistida de ataques, dano, resistências, salvaguardas, maestrias e overrides do mestre.

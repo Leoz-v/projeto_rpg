@@ -723,6 +723,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     complete: build.pending.length === 0 && errors.length === 0,
     pending: build.pending,
     issues,
+    levelUp: build.levelUp,
     level,
     classes: build.classes,
     speciesId: build.speciesId,

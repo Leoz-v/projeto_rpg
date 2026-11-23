@@ -131,6 +131,14 @@ export interface Spellcasting {
   canCast: boolean;
 }
 
+/** Classe em que o personagem pode ganhar o próximo nível. `problems` vazio = pode. */
+export interface LevelUpOption {
+  classId: string;
+  /** Primeiro nível nesta classe (multiclasse: confere os atributos mínimos). */
+  multiclass: boolean;
+  problems: string[];
+}
+
 export interface PendingChoice {
   stepIndex: number;
   source: SourceLabel;
@@ -191,6 +199,8 @@ export interface DerivedSheet {
   complete: boolean;
   pending: PendingChoice[];
   issues: Issue[];
+  /** Opções do próximo nível (todas as classes do compêndio); vazio sem classe ou no nível 20. */
+  levelUp: LevelUpOption[];
 
   level: number;
   classes: { classId: string; level: number; subclassId?: string | undefined }[];

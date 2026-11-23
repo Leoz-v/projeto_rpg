@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addSelection, removeSelection, setBackground, setFirstClass, setSpecies } from './build-steps';
+import { addClassLevel, addSelection, removeLastLevel, removeSelection, setBackground, setFirstClass, setSpecies } from './build-steps';
 
 const pick = (choiceId: string, ...picks: string[]) => ({ source: { kind: 'class' as const, id: 'fighter' }, choiceId, picks });
 
@@ -30,5 +30,13 @@ describe('build steps', () => {
     steps = addSelection(steps, 0, pick('skills', 'athletics', 'perception'));
     steps = addSelection(steps, 0, pick('fighting_style', 'defense'));
     expect(removeSelection(steps, 0, 0)[0]?.selections).toEqual([pick('fighting_style', 'defense')]);
+  });
+
+  it('adds levels at the end and undoes only levels after the first', () => {
+    const one = setFirstClass(setSpecies([], 'dwarf', undefined), 'fighter');
+    const three = addClassLevel(addClassLevel(one, 'fighter'), 'wizard');
+    expect(three.map((s) => (s.kind === 'class_level' ? s.classId : s.kind))).toEqual(['species', 'fighter', 'fighter', 'wizard']);
+    expect(removeLastLevel(three)).toEqual(addClassLevel(one, 'fighter'));
+    expect(() => removeLastLevel(one)).toThrow();
   });
 });
