@@ -1,6 +1,6 @@
 import { SizeSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
-import { ChatTextSchema, LabelSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
+import { ChatTextSchema, LabelSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 
 /** `SessionState` (docs/network-protocol.md, seção 5). */
 
@@ -42,6 +42,8 @@ export const MapSchema = z.strictObject({
   width: MapCellsSchema,
   height: MapCellsSchema,
   background: Sha256Schema.nullable(),
+  /** Pixels da imagem de fundo por célula do grid, ou `null` (mapa sem fundo ou legado esticado). */
+  cellPx: MapCellPxSchema.nullable(),
 });
 export type GameMap = z.infer<typeof MapSchema>;
 

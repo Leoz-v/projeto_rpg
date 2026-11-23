@@ -3,7 +3,9 @@ import type { Size } from 'rules-engine/schemas';
 import type { ImportedAsset, MonsterSummary, TableView } from '../../../shared/ipc';
 import type { MapStage } from '../canvas/MapStage';
 import { placeToken, tokenSide } from '../canvas/geometry';
+import { defaultCellPx, gridDimensionsForImage } from '../canvas/map-grid';
 import { sendIntent } from '../store/table';
+import { MapGridModal } from './MapGridModal';
 import { nextTokenName } from './token-name';
 
 /** Painel do mestre: mapas (criar e mostrar) e tokens (colocar e remover). Tudo vira `Intent`. */
@@ -58,24 +60,77 @@ function ImagePicker({ value, onChange, onError }: { value: ImportedAsset | null
   );
 }
 
+/** Carrega a imagem importada para ler as dimensões reais e alimentar o preview do grid. */
+function loadMapImage(sha256: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      resolve(img);
+    };
+    img.onerror = () => {
+      reject(new Error('Não foi possível carregar a imagem do mapa'));
+    };
+    img.src = `vtt-asset://${sha256}`;
+  });
+}
+
+interface BackgroundGrid {
+  asset: ImportedAsset;
+  image: HTMLImageElement;
+  cellPx: number;
+}
+
 function Maps({ view, onError }: { view: TableView; onError: (m: string | null) => void }) {
   const { maps, activeMapId } = view.state;
   const [name, setName] = useState('');
   const [width, setWidth] = useState('30');
   const [height, setHeight] = useState('20');
-  const [background, setBackground] = useState<ImportedAsset | null>(null);
+  const [background, setBackground] = useState<BackgroundGrid | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [open, setOpen] = useState(Object.keys(maps).length === 0);
+
+  const backgroundDims = background
+    ? gridDimensionsForImage({ width: background.image.naturalWidth, height: background.image.naturalHeight }, background.cellPx)
+    : null;
+
+  const handleBackgroundChange = (asset: ImportedAsset | null): void => {
+    if (!asset) {
+      setBackground(null);
+      setPreviewOpen(false);
+      return;
+    }
+    void loadMapImage(asset.sha256).then(
+      (image) => {
+        const cellPx = defaultCellPx({ width: image.naturalWidth, height: image.naturalHeight });
+        setBackground({ asset, image, cellPx });
+        setPreviewOpen(true);
+        onError(null);
+      },
+      (err: unknown) => {
+        onError(err instanceof Error ? err.message : 'Não foi possível carregar a imagem do mapa');
+      },
+    );
+  };
 
   const create = async (event: SyntheticEvent): Promise<void> => {
     event.preventDefault();
+    const mapWidth = backgroundDims ? backgroundDims.width : Number(width);
+    const mapHeight = backgroundDims ? backgroundDims.height : Number(height);
     const refused = await sendIntent({
       kind: 'map.create',
-      data: { name: name.trim(), width: Number(width), height: Number(height), ...(background ? { background: background.sha256 } : {}) },
+      data: {
+        name: name.trim(),
+        width: mapWidth,
+        height: mapHeight,
+        ...(background ? { background: background.asset.sha256, cellPx: background.cellPx } : {}),
+      },
     });
     onError(refused);
     if (refused) return;
     setName('');
     setBackground(null);
+    setPreviewOpen(false);
     setOpen(false);
   };
 
@@ -87,7 +142,8 @@ function Maps({ view, onError }: { view: TableView; onError: (m: string | null) 
           <li key={m.id}>
             {m.name}{' '}
             <span className="hint">
-              ({m.width}×{m.height})
+              ({m.width}×{m.height}
+              {m.cellPx !== null ? `, ${m.cellPx} px` : ''})
             </span>
             {m.id === activeMapId ? (
               <span className="tag">na tela</span>
@@ -112,36 +168,59 @@ function Maps({ view, onError }: { view: TableView; onError: (m: string | null) 
               maxLength={100}
             />
           </label>
-          <div className="row">
-            <label>
-              Largura (células)
-              <input
-                type="number"
-                min={1}
-                max={200}
-                value={width}
-                onChange={(e) => {
-                  setWidth(e.target.value);
+          <span className="hint">Imagem de fundo (opcional) — define o grid por pixels sem distorcer:</span>
+          <ImagePicker value={background?.asset ?? null} onChange={handleBackgroundChange} onError={onError} />
+          {background && backgroundDims ? (
+            <div className="grid-config-card">
+              <div className="grid-config-info">
+                <strong>
+                  {background.cellPx} px / célula → {backgroundDims.width} × {backgroundDims.height} células
+                </strong>
+                <span className="hint">
+                  {background.image.naturalWidth} × {background.image.naturalHeight} px
+                  {backgroundDims.exact ? ' · divisão exata' : ' · borda parcial'}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => {
+                  setPreviewOpen(true);
                 }}
-                required
-              />
-            </label>
-            <label>
-              Altura (células)
-              <input
-                type="number"
-                min={1}
-                max={200}
-                value={height}
-                onChange={(e) => {
-                  setHeight(e.target.value);
-                }}
-                required
-              />
-            </label>
-          </div>
-          <span className="hint">Imagem de fundo (opcional), esticada para o tamanho do mapa:</span>
-          <ImagePicker value={background} onChange={setBackground} onError={onError} />
+              >
+                Ajustar grid…
+              </button>
+            </div>
+          ) : (
+            <div className="row">
+              <label>
+                Largura (células)
+                <input
+                  type="number"
+                  min={1}
+                  max={200}
+                  value={width}
+                  onChange={(e) => {
+                    setWidth(e.target.value);
+                  }}
+                  required
+                />
+              </label>
+              <label>
+                Altura (células)
+                <input
+                  type="number"
+                  min={1}
+                  max={200}
+                  value={height}
+                  onChange={(e) => {
+                    setHeight(e.target.value);
+                  }}
+                  required
+                />
+              </label>
+            </div>
+          )}
           <div className="row">
             <button type="submit">Criar mapa</button>
             {Object.keys(maps).length > 0 && (
@@ -167,6 +246,19 @@ function Maps({ view, onError }: { view: TableView; onError: (m: string | null) 
         >
           Novo mapa
         </button>
+      )}
+      {previewOpen && background && (
+        <MapGridModal
+          image={background.image}
+          initialCellPx={background.cellPx}
+          onApply={(cellPx) => {
+            setBackground((current) => (current ? { ...current, cellPx } : null));
+            setPreviewOpen(false);
+          }}
+          onCancel={() => {
+            setPreviewOpen(false);
+          }}
+        />
       )}
     </section>
   );

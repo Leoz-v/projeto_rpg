@@ -130,7 +130,7 @@ describe('CampaignDb', () => {
       { kind: 'message', id: randomUUID(), at: 1, authorId: ANA, text: 'Olá!' },
       { kind: 'roll', id: randomUUID(), at: 2, authorId: GM, formula: '1d20', visibility: 'gm', rolls: [{ sides: 20, value: 17 }], total: 17 },
     ],
-    maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: null } },
+    maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: null, cellPx: null } },
     activeMapId: MAP,
     tokens: { [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [ANA] } },
     ...overrides,
@@ -184,6 +184,37 @@ describe('CampaignDb', () => {
     const empty = CampaignDb.open(join(tempDir(), 'vazio.db'));
     expect(() => empty.load()).toThrow('Arquivo sem campanha');
     empty.close();
+  });
+
+  it('persists cellPx and migrates v1 campaign databases with cellPx = null', () => {
+    const path = join(tempDir(), 'legacy.db');
+    const legacy = openDatabase(path);
+    legacy.exec(`
+      CREATE TABLE campaign (id TEXT PRIMARY KEY, name TEXT NOT NULL, created_at INTEGER NOT NULL, active_map_id TEXT) STRICT;
+      CREATE TABLE players (id TEXT PRIMARY KEY, display_name TEXT NOT NULL, role TEXT NOT NULL CHECK (role IN ('gm', 'player'))) STRICT;
+      CREATE TABLE maps (id TEXT PRIMARY KEY, name TEXT NOT NULL, width INTEGER NOT NULL, height INTEGER NOT NULL, background TEXT) STRICT;
+      CREATE TABLE tokens (id TEXT PRIMARY KEY, map_id TEXT NOT NULL REFERENCES maps (id) ON DELETE CASCADE, name TEXT NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL, size TEXT NOT NULL, monster_id TEXT, image TEXT, owner_ids TEXT NOT NULL) STRICT;
+      CREATE TABLE chat (seq INTEGER PRIMARY KEY, id TEXT NOT NULL UNIQUE, entry TEXT NOT NULL) STRICT;
+      PRAGMA user_version = 1;
+    `);
+    const campaignId = randomUUID();
+    legacy.prepare('INSERT INTO campaign (id, name, created_at, active_map_id) VALUES (?, ?, ?, ?)').run(campaignId, 'Legada', 0, MAP);
+    legacy.prepare('INSERT INTO maps (id, name, width, height, background) VALUES (?, ?, ?, ?, ?)').run(MAP, 'Antigo', 20, 15, null);
+    legacy.close();
+
+    const migrated = CampaignDb.open(path);
+    expect(migrated.migration).toEqual({ from: 1, to: CAMPAIGN_DB_SCHEMA_VERSION, backup: `${path}.bak` });
+    const loaded = migrated.load();
+    expect(loaded.maps[MAP]).toEqual({ id: MAP, name: 'Antigo', width: 20, height: 15, background: null, cellPx: null });
+
+    const withGrid = randomUUID();
+    const sha = 'a'.repeat(64);
+    migrated.save({
+      ...loaded,
+      maps: { ...loaded.maps, [withGrid]: { id: withGrid, name: 'Calibrado', width: 30, height: 20, background: sha, cellPx: 70 } },
+    });
+    expect(migrated.load().maps[withGrid]).toEqual({ id: withGrid, name: 'Calibrado', width: 30, height: 20, background: sha, cellPx: 70 });
+    migrated.close();
   });
 });
 

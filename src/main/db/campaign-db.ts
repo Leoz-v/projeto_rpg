@@ -45,6 +45,7 @@ const MIGRATIONS = [
      id TEXT NOT NULL UNIQUE,
      entry TEXT NOT NULL
    ) STRICT;`,
+  `ALTER TABLE maps ADD COLUMN cell_px INTEGER;`,
 ] as const;
 
 export const CAMPAIGN_DB_SCHEMA_VERSION = MIGRATIONS.length;
@@ -58,7 +59,7 @@ export class CampaignDbError extends Error {
 
 const CampaignRow = z.object({ id: z.string(), name: z.string(), active_map_id: z.string().nullable() });
 const PlayerRow = z.object({ id: z.string(), display_name: z.string(), role: z.string() });
-const MapRow = z.object({ id: z.string(), name: z.string(), width: z.number(), height: z.number(), background: z.string().nullable() });
+const MapRow = z.object({ id: z.string(), name: z.string(), width: z.number(), height: z.number(), background: z.string().nullable(), cell_px: z.number().nullable() });
 const TokenRow = z.object({
   id: z.string(),
   map_id: z.string(),
@@ -129,11 +130,11 @@ export class CampaignDb {
     );
     const maps = Object.fromEntries(
       this.db
-        .prepare('SELECT id, name, width, height, background FROM maps')
+        .prepare('SELECT id, name, width, height, background, cell_px FROM maps')
         .all()
         .map((row) => {
           const m = MapRow.parse(row);
-          return [m.id, { id: m.id, name: m.name, width: m.width, height: m.height, background: m.background }];
+          return [m.id, { id: m.id, name: m.name, width: m.width, height: m.height, background: m.background, cellPx: m.cell_px }];
         }),
     );
     const tokens = Object.fromEntries(
@@ -174,10 +175,10 @@ export class CampaignDb {
       this.removeMissing('tokens', Object.keys(state.tokens));
       this.removeMissing('maps', Object.keys(state.maps));
       const upsertMap = db.prepare(
-        `INSERT INTO maps (id, name, width, height, background) VALUES (?, ?, ?, ?, ?)
-         ON CONFLICT (id) DO UPDATE SET name = excluded.name, width = excluded.width, height = excluded.height, background = excluded.background`,
+        `INSERT INTO maps (id, name, width, height, background, cell_px) VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT (id) DO UPDATE SET name = excluded.name, width = excluded.width, height = excluded.height, background = excluded.background, cell_px = excluded.cell_px`,
       );
-      for (const m of Object.values(state.maps)) upsertMap.run(m.id, m.name, m.width, m.height, m.background);
+      for (const m of Object.values(state.maps)) upsertMap.run(m.id, m.name, m.width, m.height, m.background, m.cellPx);
       const upsertToken = db.prepare(
         `INSERT INTO tokens (id, map_id, name, x, y, size, monster_id, image, owner_ids) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (id) DO UPDATE SET map_id = excluded.map_id, name = excluded.name, x = excluded.x, y = excluded.y, size = excluded.size,

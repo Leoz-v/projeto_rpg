@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_CELL_PX, MAX_MAP_CELLS } from './constants';
 
 /** Ids de mensagens, jogadores, campanhas e de tudo o que o Host gera. */
 export const UuidSchema = z.uuid();
@@ -14,4 +15,6 @@ export const NameSchema = z.string().min(1).max(100);
 export const LabelSchema = z.string().min(1).max(100);
 export const ChatTextSchema = z.string().min(1).max(2000);
 /** Mapas têm de 1 a 200 células por lado. */
-export const MapCellsSchema = z.int().min(1).max(200);
+export const MapCellsSchema = z.int().min(1).max(MAX_MAP_CELLS);
+/** Pixels da imagem de fundo por célula do grid. */
+export const MapCellPxSchema = z.int().min(1).max(MAX_CELL_PX);

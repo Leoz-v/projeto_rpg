@@ -47,7 +47,7 @@ const state: SessionState = {
     },
     { kind: 'hidden_roll', id: TOKEN, at: 1763769602000, authorId: GM },
   ],
-  maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: SHA } },
+  maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: SHA, cellPx: 70 } },
   activeMapId: MAP,
   tokens: {
     [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [] },
@@ -126,6 +126,7 @@ describe('intents', () => {
     expect(intent('chat.message', { text: 'Olá' })).toBe(true);
     expect(intent('dice.roll', { formula: '1d20+1d4-1', label: 'Ataque', visibility: 'gm' })).toBe(true);
     expect(intent('map.create', { name: 'Caverna', width: 30, height: 20 })).toBe(true);
+    expect(intent('map.create', { name: 'Caverna', width: 30, height: 20, background: SHA, cellPx: 70 })).toBe(true);
     expect(intent('map.activate', { mapId: MAP })).toBe(true);
     expect(intent('token.create', { mapId: MAP, name: 'Goblin 1', position: { x: 0, y: 0 }, size: 'small', monsterId: 'goblin', ownerIds: [PLAYER] })).toBe(true);
     expect(intent('token.remove', { tokenId: TOKEN })).toBe(true);
@@ -145,6 +146,9 @@ describe('intents', () => {
     expect(intent('chat.message', { text: '' })).toBe(false);
     expect(intent('chat.message', { text: 'a'.repeat(2001) })).toBe(false);
     expect(intent('map.create', { name: 'Caverna', width: 201, height: 20 })).toBe(false);
+    expect(intent('map.create', { name: 'Caverna', width: 30, height: 20, background: SHA, cellPx: 0 })).toBe(false);
+    expect(intent('map.create', { name: 'Caverna', width: 30, height: 20, background: SHA, cellPx: 4097 })).toBe(false);
+    expect(intent('map.create', { name: 'Caverna', width: 30, height: 20, background: SHA, cellPx: 70.5 })).toBe(false);
     expect(intent('token.move', { tokenId: TOKEN, to: { x: -100, y: 0 } })).toBe(false);
     expect(intent('token.move', { tokenId: TOKEN, to: { x: 50.5, y: 0 } })).toBe(false);
     expect(intent('token.create', { mapId: MAP, name: 'Dragão', position: { x: 0, y: 0 }, size: 'colossal' })).toBe(false);
