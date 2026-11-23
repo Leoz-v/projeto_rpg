@@ -138,6 +138,8 @@ export function evaluatePredicate(p: Predicate, ctx: PredicateContext): boolean 
 
 /** Rótulo de uma parcela: o traço/opção, se houver, e a fonte ("Dwarven Toughness (Dwarf)"). */
 const labelOf = (e: SourcedEffect): string => (e.detail && e.detail !== e.source.name ? `${e.detail} (${e.source.name})` : e.source.name);
+/** A fonte com o nome do traço ou da característica ("Remarkable Athlete (Champion)"), para os lembretes e listas das rolagens. */
+const namedSource = (e: SourcedEffect): SourceLabel => ({ ...e.source, name: labelOf(e) });
 const total = (parts: readonly Contribution[]): number => parts.reduce((sum, p) => sum + p.value, 0);
 const stat = (parts: Contribution[]): Stat => ({ total: total(parts), parts });
 
@@ -341,7 +343,9 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
   ): RollState => {
     const state: RollState = { mode: 'normal', advantage: [], disadvantage: [], situational: [], rules: [], situationalRules: [] };
     const allRuleTargets = [...targets, 'd20_test', ...ruleTargets];
-    for (const { effect, source } of ofType('d20_rule')) {
+    for (const e of ofType('d20_rule')) {
+      const { effect } = e;
+      const source = namedSource(e);
       if (!allRuleTargets.includes(effect.target)) continue;
       const result = applies(effect, roll);
       if (result === false) continue;
@@ -350,7 +354,9 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       else state.rules.push(rule);
     }
     for (const kind of ['advantage', 'disadvantage'] as const) {
-      for (const { effect, source } of ofType(kind)) {
+      for (const e of ofType(kind)) {
+        const { effect } = e;
+        const source = namedSource(e);
         if (!targets.includes(effect.target)) continue;
         const result = applies(effect, roll);
         if (result === false) continue;
@@ -614,7 +620,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     /** O maior `damage_die_minimum` que vale no contexto (Great Weapon Fighting). */
     const dieMinimum = (roll: RollContext): { value: number; source: SourceLabel } | undefined =>
       effectsOf('damage_die_minimum', roll).reduce<{ value: number; source: SourceLabel } | undefined>(
-        (best, { effect, source }) => (!best || effect.min > best.value ? { value: effect.min, source } : best),
+        (best, e) => (!best || e.effect.min > best.value ? { value: e.effect.min, source: namedSource(e) } : best),
         undefined,
       );
     const extra: { kind: 'disadvantage'; source: SourceLabel }[] = [];
@@ -646,7 +652,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       damage: { dice: weapon.damage.dice, bonus: stat(damageParts), type: weapon.damage.type, dieMinimum: dieMinimum(attackCtx) },
       extraDamage: effectsOf('extra_damage', attackCtx)
         .filter(({ effect, refKey }) => effect.scope !== 'weapon' || refKey === `item:${instanceId}`)
-        .map(({ effect, source }) => ({ dice: effect.dice, type: effect.damageType ?? weapon.damage.type, source })),
+        .map((e) => ({ dice: e.effect.dice, type: e.effect.damageType ?? weapon.damage.type, source: namedSource(e) })),
       critRange: Math.min(CRITICAL_HIT, ...effectsOf('crit_range', attackCtx).map(({ effect }) => effect.min)),
       versatileDice: weapon.versatileDice,
       versatileDieMinimum: versatileCtx ? dieMinimum(versatileCtx) : undefined,

@@ -92,7 +92,7 @@ describe('advantage and disadvantage', () => {
     const sheet = derive({});
     expect(sheet.saves.con.roll.mode).toBe('normal');
     expect(sheet.saves.con.roll.situational).toEqual([
-      { kind: 'advantage', source: { kind: 'species', id: 'dwarf', name: 'Dwarf' }, when: { against: { condition: 'poisoned' } }, note: undefined },
+      { kind: 'advantage', source: { kind: 'species', id: 'dwarf', name: 'Dwarven Resilience (Dwarf)' }, when: { against: { condition: 'poisoned' } }, note: undefined },
     ]);
   });
 
