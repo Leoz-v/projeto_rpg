@@ -262,7 +262,7 @@ describe('HostSession: characters', () => {
   it('creates an empty draft owned by whoever asked', () => {
     const session = setup();
     const id = create(session, ANA.playerId);
-    expect(session.state.characters[id]).toEqual({ id, ownerId: ANA.playerId, name: 'Thorin', baseScores: null, rolledScores: null, steps: [], inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] } });
+    expect(session.state.characters[id]).toEqual({ id, ownerId: ANA.playerId, name: 'Thorin', baseScores: null, rolledScores: null, steps: [], inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] }, adjustments: [] });
     expect(SessionStateSchema.safeParse(session.state).success).toBe(true);
   });
 
@@ -414,5 +414,24 @@ describe('HostSession: inventory', () => {
     expect(session.state.tokens[tokenId]?.characterId).toBe(id);
     session.handle(ANA.playerId, { kind: 'character.remove', data: { characterId: id } });
     expect(session.state.tokens[tokenId]?.characterId).toBeNull();
+  });
+});
+
+describe('HostSession: GM adjustments', () => {
+  it('lets only the GM add and remove adjustments', () => {
+    const session = setup();
+    session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Thorin' } });
+    const id = Object.keys(session.state.characters)[0] ?? '';
+    const blessing: Intent = { kind: 'adjustment.add', data: { characterId: id, name: 'Bênção', effects: [{ type: 'flat_bonus', target: 'ac', value: 1 }] } };
+    expect(rejection(session.handle(ANA.playerId, blessing))).toBe('not_allowed');
+    expect(applied(session.handle(GM.playerId, blessing))).toBe(true);
+    const adjustment = session.state.characters[id]?.adjustments[0];
+    expect(adjustment).toMatchObject({ name: 'Bênção', effects: [{ type: 'flat_bonus', target: 'ac', value: 1 }] });
+    expect(SessionStateSchema.safeParse(session.state).success).toBe(true);
+    const remove: Intent = { kind: 'adjustment.remove', data: { characterId: id, adjustmentId: adjustment?.id ?? '' } };
+    expect(rejection(session.handle(ANA.playerId, remove))).toBe('not_allowed');
+    expect(applied(session.handle(GM.playerId, remove))).toBe(true);
+    expect(session.state.characters[id]?.adjustments).toEqual([]);
+    expect(rejection(session.handle(GM.playerId, remove))).toBe('rule_violation');
   });
 });

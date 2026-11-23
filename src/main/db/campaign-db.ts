@@ -56,6 +56,8 @@ const MIGRATIONS = [
   // Inventário do personagem em JSON (validado ao carregar) e o personagem de cada token.
   `ALTER TABLE characters ADD COLUMN inventory TEXT NOT NULL DEFAULT '{"currency":{"cp":0,"sp":0,"ep":0,"gp":0,"pp":0},"items":[]}';
    ALTER TABLE tokens ADD COLUMN character_id TEXT;`,
+  // Ajustes do mestre de cada personagem, em JSON (validados ao carregar).
+  `ALTER TABLE characters ADD COLUMN adjustments TEXT NOT NULL DEFAULT '[]';`,
 ] as const;
 
 export const CAMPAIGN_DB_SCHEMA_VERSION = MIGRATIONS.length;
@@ -83,7 +85,7 @@ const TokenRow = z.object({
   character_id: z.string().nullable(),
 });
 const ChatRow = z.object({ entry: z.string() });
-const CharacterRow = z.object({ id: z.string(), owner_id: z.string(), name: z.string(), build: z.string(), inventory: z.string() });
+const CharacterRow = z.object({ id: z.string(), owner_id: z.string(), name: z.string(), build: z.string(), inventory: z.string(), adjustments: z.string() });
 const CountRow = z.object({ n: z.number() });
 
 export class CampaignDb {
@@ -161,13 +163,14 @@ export class CampaignDb {
     );
     const characters = Object.fromEntries(
       this.db
-        .prepare('SELECT id, owner_id, name, build, inventory FROM characters')
+        .prepare('SELECT id, owner_id, name, build, inventory, adjustments FROM characters')
         .all()
         .map((row) => {
           const c = CharacterRow.parse(row);
           const build: unknown = JSON.parse(c.build);
           const inventory: unknown = JSON.parse(c.inventory);
-          return [c.id, { id: c.id, ownerId: c.owner_id, name: c.name, ...(typeof build === 'object' ? build : {}), inventory }];
+          const adjustments: unknown = JSON.parse(c.adjustments);
+          return [c.id, { id: c.id, ownerId: c.owner_id, name: c.name, ...(typeof build === 'object' ? build : {}), inventory, adjustments }];
         }),
     );
     const chat = this.db
@@ -213,11 +216,12 @@ export class CampaignDb {
 
       this.removeMissing('characters', Object.keys(state.characters));
       const upsertCharacter = db.prepare(
-        `INSERT INTO characters (id, owner_id, name, build, inventory) VALUES (?, ?, ?, ?, ?)
-         ON CONFLICT (id) DO UPDATE SET owner_id = excluded.owner_id, name = excluded.name, build = excluded.build, inventory = excluded.inventory`,
+        `INSERT INTO characters (id, owner_id, name, build, inventory, adjustments) VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT (id) DO UPDATE SET owner_id = excluded.owner_id, name = excluded.name, build = excluded.build, inventory = excluded.inventory,
+           adjustments = excluded.adjustments`,
       );
       for (const c of Object.values(state.characters)) {
-        upsertCharacter.run(c.id, c.ownerId, c.name, JSON.stringify({ baseScores: c.baseScores, rolledScores: c.rolledScores, steps: c.steps }), JSON.stringify(c.inventory));
+        upsertCharacter.run(c.id, c.ownerId, c.name, JSON.stringify({ baseScores: c.baseScores, rolledScores: c.rolledScores, steps: c.steps }), JSON.stringify(c.inventory), JSON.stringify(c.adjustments));
       }
 
       const saved = CountRow.parse(db.prepare('SELECT COUNT(*) AS n FROM chat').get()).n;

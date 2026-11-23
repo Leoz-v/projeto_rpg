@@ -87,8 +87,9 @@ const DETAIL_KIND = { feat: 'feat', spell: 'spell', subclass: 'subclass' } as co
 export function characterSheet(record: SessionCharacter, compendium: Compendium): CharacterSheetView {
   if (record.baseScores === null) return { sheet: null, names: {}, details: {} };
   const character: Character = { id: ENGINE_CHARACTER_ID, name: record.name, baseScores: record.baseScores, steps: record.steps };
-  // Ajustes do mestre entram no PR seguinte da Fase 3.
-  const sheet = deriveSheet({ character, inventory: record.inventory, adjustments: [], compendium });
+  // O motor usa ids snake_case; a ordem dos ajustes é estável no estado.
+  const adjustments = record.adjustments.map((a, i) => ({ id: `adjustment_${i + 1}`, name: a.name, effects: a.effects }));
+  const sheet = deriveSheet({ character, inventory: record.inventory, adjustments, compendium });
   const index = indexOf(compendium);
   const names: Record<string, string> = {};
   // As seleções já feitas, para a lista de escolhas (com a opção de desfazer).

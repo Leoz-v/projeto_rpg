@@ -82,6 +82,7 @@ const state: SessionState = {
         currency: { cp: 0, sp: 0, ep: 0, gp: 15, pp: 0 },
         items: [{ instanceId: 'b9c0d1e2-f3a4-4b5c-8d6e-7f8a9b0c1d2e', itemId: 'weapon_plus', baseItemId: 'longsword', variantId: 'plus_1', quantity: 1, equipped: true, attuned: false }],
       },
+      adjustments: [{ id: 'c0d1e2f3-a4b5-4c6d-8e7f-8a9b0c1d2e3f', name: 'Maldição da Múmia', effects: [{ type: 'disadvantage', target: 'save.all' }] }],
     },
   },
 };
@@ -175,6 +176,14 @@ describe('intents', () => {
     expect(intent('inventory.remove', { characterId: HERO, instanceId: ROLL, quantity: 1 })).toBe(true);
     expect(intent('inventory.update', { characterId: HERO, instanceId: ROLL, equipped: true })).toBe(true);
     expect(intent('inventory.currency', { characterId: HERO, currency: { cp: 0, sp: 0, ep: 0, gp: 10, pp: 0 } })).toBe(true);
+    expect(intent('adjustment.add', { characterId: HERO, name: 'Bênção', effects: [{ type: 'flat_bonus', target: 'ac', value: 1 }, { type: 'resistance', damageType: 'fire' }] })).toBe(true);
+    expect(intent('adjustment.remove', { characterId: HERO, adjustmentId: ROLL })).toBe(true);
+  });
+
+  it('accepts only catalog effects in adjustments', () => {
+    expect(intent('adjustment.add', { characterId: HERO, name: 'Nada', effects: [] })).toBe(false);
+    expect(intent('adjustment.add', { characterId: HERO, name: 'Inventado', effects: [{ type: 'fly_forever' }] })).toBe(false);
+    expect(intent('adjustment.add', { characterId: HERO, name: 'Alvo errado', effects: [{ type: 'flat_bonus', target: 'luck', value: 1 }] })).toBe(false);
   });
 
   it('limits inventory intents', () => {

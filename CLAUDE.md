@@ -168,7 +168,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - ✅ Assistente de criação: espécie, antecedente com os aumentos de atributo, classe inicial e as escolhas pendentes, com os candidatos filtrados pelo motor; desfazer uma escolha descarta as que dependiam dela. Ver `docs/decisions/0030-assistente-de-criacao.md`.
    - ✅ Subida de nível com a classe escolhida entre as que o motor libera (multiclasse com os requisitos de atributo), só com a ficha completa, e desfazer o último nível. Trocas permitidas pelas regras: desfazer a escolha e escolher de novo. Ver `docs/decisions/0031-subida-de-nivel.md`.
    - ✅ Inventário pelo Host (adicionar do compêndio com variante e item base, remover, equipar, sintonizar, moedas; `PROTOCOL_VERSION = 4`) e ligação personagem–token. Ver `docs/decisions/0032-inventario-na-sessao.md`.
-   - Ajustes do mestre (bênçãos, maldições e itens caseiros como camada de efeitos sobre a ficha).
+   - ✅ Ajustes do mestre (bênçãos, maldições e itens caseiros como camada de efeitos do catálogo sobre a ficha, `PROTOCOL_VERSION = 5`). Ver `docs/decisions/0033-ajustes-do-mestre.md`.
    - Cópia offline com aprovação do *diff* pelo mestre.
 4. **Fase 4 — Motor de Ações & Efeitos:** resolução assistida de ataques, dano, resistências, salvaguardas, maestrias e overrides do mestre.
    - *Antecipado:* aplicação de dano na ordem do SRD (`applyDamage`: imunidade, reduções roladas, Resistência, Vulnerabilidade) e RNG injetável com rolagens registradas (`engine/dice.ts`). Ver `docs/decisions/0014-itens-magicos.md`.

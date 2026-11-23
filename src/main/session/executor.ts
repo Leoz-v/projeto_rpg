@@ -14,6 +14,7 @@ import {
   type SessionCharacter,
   type SessionState,
   type Token,
+  MAX_ADJUSTMENTS,
   MAX_INVENTORY_ITEMS,
   MAX_ITEM_QUANTITY,
   toPointer,
@@ -207,6 +208,16 @@ export class HostSession {
         return this.removeItem(playerId, role, intent.data);
       case 'inventory.update':
         return this.updateItem(playerId, role, intent.data);
+      case 'adjustment.add':
+        this.requireGm(role);
+        return this.addAdjustment(playerId, role, intent.data);
+      case 'adjustment.remove': {
+        this.requireGm(role);
+        const character = this.ownCharacter(playerId, role, intent.data.characterId);
+        const index = character.adjustments.findIndex((a) => a.id === intent.data.adjustmentId);
+        if (index < 0) throw violation('Ajuste não encontrado');
+        return [{ op: 'remove', path: toPointer('characters', character.id, 'adjustments', String(index)) }];
+      }
       case 'inventory.currency':
         this.ownCharacter(playerId, role, intent.data.characterId);
         return [{ op: 'replace', path: toPointer('characters', intent.data.characterId, 'inventory', 'currency'), value: intent.data.currency }];
@@ -318,7 +329,7 @@ export class HostSession {
       this.requireGm(role);
       if (this.current.players[ownerId] === undefined) throw violation('Dono do personagem não está na mesa');
     }
-    const character: SessionCharacter = { id: this.deps.newId(), ownerId, name: data.name, baseScores: null, rolledScores: null, steps: [], inventory: EMPTY_INVENTORY };
+    const character: SessionCharacter = { id: this.deps.newId(), ownerId, name: data.name, baseScores: null, rolledScores: null, steps: [], inventory: EMPTY_INVENTORY, adjustments: [] };
     return [{ op: 'add', path: toPointer('characters', character.id), value: character }];
   }
 
@@ -436,5 +447,13 @@ export class HostSession {
     if (data.attuned !== undefined) ops.push({ op: 'replace', path: `${path}/attuned`, value: data.attuned });
     if (data.quantity !== undefined) ops.push({ op: 'replace', path: `${path}/quantity`, value: data.quantity });
     return ops;
+  }
+
+  /** Ajuste do mestre: os efeitos já vêm validados pelo catálogo (schema do motor). */
+  private addAdjustment(playerId: string, role: Role, data: IntentData<'adjustment.add'>): PatchOp[] {
+    const character = this.ownCharacter(playerId, role, data.characterId);
+    if (character.adjustments.length >= MAX_ADJUSTMENTS) throw violation(`No máximo ${MAX_ADJUSTMENTS} ajustes por personagem`);
+    const adjustment = { id: this.deps.newId(), name: data.name, effects: data.effects };
+    return [{ op: 'add', path: toPointer('characters', character.id, 'adjustments', '-'), value: adjustment }];
   }
 }

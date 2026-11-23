@@ -1,7 +1,7 @@
-import { BaseScoresSchema, CharacterSchema, DiceSchema, IdSchema, SizeSchema } from 'rules-engine/schemas';
+import { BaseScoresSchema, CharacterSchema, DiceSchema, EffectSchema, IdSchema, SizeSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { ChatTextSchema, InstanceIdSchema, LabelSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
-import { MAX_COINS, MAX_FORMULA_DICE, MAX_FORMULA_LENGTH, MAX_ITEM_QUANTITY } from './constants';
+import { MAX_ADJUSTMENT_EFFECTS, MAX_COINS, MAX_FORMULA_DICE, MAX_FORMULA_LENGTH, MAX_ITEM_QUANTITY } from './constants';
 import { VisibilitySchema } from './state';
 
 /** Catálogo de `Intent` (docs/network-protocol.md, seção 3). */
@@ -101,6 +101,11 @@ export const IntentSchema = z.discriminatedUnion('kind', [
       currency: z.strictObject({ cp: CoinsSchema, sp: CoinsSchema, ep: CoinsSchema, gp: CoinsSchema, pp: CoinsSchema }),
     }),
   }),
+  z.strictObject({
+    kind: z.literal('adjustment.add'),
+    data: z.strictObject({ characterId: UuidSchema, name: NameSchema, effects: z.array(EffectSchema).min(1).max(MAX_ADJUSTMENT_EFFECTS) }),
+  }),
+  z.strictObject({ kind: z.literal('adjustment.remove'), data: z.strictObject({ characterId: UuidSchema, adjustmentId: UuidSchema }) }),
 ]);
 export type Intent = z.infer<typeof IntentSchema>;
 export type IntentKind = Intent['kind'];

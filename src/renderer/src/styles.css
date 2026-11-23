@@ -1371,3 +1371,82 @@ button.secondary.danger:focus-visible {
   padding: 0.2rem 0.4rem 0.2rem 0;
   border-bottom: 1px solid var(--border);
 }
+
+/* Ajustes do mestre */
+
+.adjustments {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.adjustment-list,
+.effect-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.adjustment-list li,
+.effect-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.adjustment-list li {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+}
+
+.adjustment-list p {
+  margin: 0.15rem 0 0;
+}
+
+.new-adjustment {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.7rem;
+  background: var(--bg);
+}
+
+.effect-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.effect-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  min-width: 12rem;
+}
+
+.effect-form label.narrow {
+  min-width: 5rem;
+  max-width: 7rem;
+}
+
+.effect-form label.wide {
+  flex: 1 1 100%;
+}
+
+.effect-form label.check {
+  flex-direction: row;
+  align-items: center;
+  min-width: 0;
+}
+
+.effect-form label.check input {
+  width: auto;
+}
