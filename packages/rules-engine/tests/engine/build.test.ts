@@ -214,6 +214,23 @@ describe('multiclass', () => {
     expect(errorsOf(derive({ steps: fighterSteps([wizardLevel]), baseScores: smart }))).toEqual([]);
   });
 
+  it('lists the classes for the next level, with the multiclass requirements', () => {
+    const sheet = derive({ steps: fighterSteps() });
+    const option = (id: string) => sheet.levelUp.find((o) => o.classId === id);
+    expect(sheet.levelUp).toHaveLength(12);
+    expect(option('fighter')).toEqual({ classId: 'fighter', multiclass: false, problems: [] });
+    // INT 8: Mago fica de fora; FOR 17 dá Bárbaro (FOR 13).
+    expect(option('wizard')?.multiclass).toBe(true);
+    expect(option('wizard')?.problems).toEqual(['Multiclasse em Wizard exige INT 13 (Wizard).']);
+    expect(option('barbarian')?.problems).toEqual([]);
+  });
+
+  it('offers no level up without a class or at level 20', () => {
+    expect(derive({ steps: [{ kind: 'species', speciesId: 'dwarf', selections: [LANGUAGES] }] }).levelUp).toEqual([]);
+    const twenty = fighterSteps(Array.from({ length: 19 }, () => ({ kind: 'class_level' as const, classId: 'fighter', selections: [] })));
+    expect(derive({ steps: twenty }).levelUp).toEqual([]);
+  });
+
   it('gives only the multiclass proficiencies and the fixed HP of the new class', () => {
     const smart = { method: 'manual' as const, scores: { str: 15, dex: 13, con: 14, int: 13, wis: 12, cha: 10 } };
     const sheet = derive({ steps: fighterSteps([wizardLevel]), baseScores: smart });

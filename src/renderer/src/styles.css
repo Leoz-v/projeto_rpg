@@ -1239,3 +1239,40 @@ button.secondary.danger:focus-visible {
   align-items: baseline;
   gap: 0.6rem;
 }
+
+.level-up {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.7rem;
+}
+
+.level-up .row {
+  align-items: center;
+}
+
+.level-up .spacer {
+  flex: 1;
+}
+
+.level-up p {
+  margin: 0;
+}
+
+.level-up-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.level-up-picker h4 {
+  margin: 0.3rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.level-up-picker .candidates li {
+  flex-direction: column;
+  align-items: flex-start;
+}

@@ -1,12 +1,12 @@
 import { ABILITIES, type Ability, type AbilityScores, RARE_LANGUAGES, SKILLS, type Size, type Skill, STANDARD_LANGUAGES } from '../schemas/common';
-import type { BuildStep, Character, Selection } from '../schemas/character';
+import { type BuildStep, type Character, MAX_CHARACTER_LEVEL, type Selection } from '../schemas/character';
 import type { Effect } from '../schemas/effect';
 import type { Item, Weapon } from '../schemas/item';
 import type { ChoiceOptions, Class, Feat, Grant, LevelGrants } from '../schemas/source';
 import type { Spell } from '../schemas/spell';
 import type { Compendium } from '../srd';
 import { isWeaponProficient } from './proficiency';
-import type { Contribution, Issue, PendingChoice, SheetFeature, SourceLabel } from './types';
+import type { Contribution, Issue, LevelUpOption, PendingChoice, SheetFeature, SourceLabel } from './types';
 
 /**
  * Resolução da lista de escolhas: percorre os passos em ordem, aplica o que
@@ -47,6 +47,7 @@ export interface ResolvedBuild {
   issues: Issue[];
   /** Seleções que nenhuma escolha usou (ex.: a escolha que as abria foi desfeita), por passo e índice. */
   unusedSelections: { stepIndex: number; index: number }[];
+  levelUp: LevelUpOption[];
 }
 
 const ABILITY_NAME: Record<Ability, string> = { str: 'FOR', dex: 'DES', con: 'CON', int: 'INT', wis: 'SAB', cha: 'CAR' };
@@ -465,19 +466,23 @@ export function resolveBuild(character: Character, compendium: Compendium): Reso
     }
   };
 
-  const checkMulticlass = (cls: Class): void => {
+  /** Multiclasse (SRD 5.2.1): atributos mínimos da classe nova e das que o personagem já tem. */
+  const multiclassProblems = (cls: Class): string[] => {
     const qualifies = (c: Class): boolean => {
       const meets = (a: Ability): boolean => scoreValues[a] >= MULTICLASS_MINIMUM;
       return c.primaryAbilityMode === 'any' ? c.primaryAbilities.some(meets) : c.primaryAbilities.every(meets);
     };
     const current = [...classLevels.keys()].flatMap((id) => find(compendium.classes, id) ?? []);
-    for (const c of [cls, ...current]) {
-      if (!qualifies(c)) {
-        const join = c.primaryAbilityMode === 'any' ? ' ou ' : ' e ';
-        const need = c.primaryAbilities.map((a) => ABILITY_NAME[a]).join(join);
-        error('prerequisite_not_met', `Multiclasse em ${cls.name} exige ${need} ${MULTICLASS_MINIMUM} (${c.name}).`);
-      }
-    }
+    return [cls, ...current]
+      .filter((c) => !qualifies(c))
+      .map((c) => {
+        const need = c.primaryAbilities.map((a) => ABILITY_NAME[a]).join(c.primaryAbilityMode === 'any' ? ' ou ' : ' e ');
+        return `Multiclasse em ${cls.name} exige ${need} ${MULTICLASS_MINIMUM} (${c.name}).`;
+      });
+  };
+
+  const checkMulticlass = (cls: Class): void => {
+    for (const message of multiclassProblems(cls)) error('prerequisite_not_met', message);
   };
 
   character.steps.forEach((step, index) => {
@@ -592,6 +597,15 @@ export function resolveBuild(character: Character, compendium: Compendium): Reso
       });
     }
   }
+  // Próximo nível: mais um nível numa classe que já tem, ou multiclasse com os atributos atuais.
+  const levelUp: LevelUpOption[] =
+    characterLevel === 0 || characterLevel >= MAX_CHARACTER_LEVEL
+      ? []
+      : compendium.classes.map((cls) => {
+          const multiclass = !classLevels.has(cls.id);
+          return { classId: cls.id, multiclass, problems: multiclass ? multiclassProblems(cls) : [] };
+        });
+
   if (!speciesId) issues.push({ severity: 'error', code: 'missing_step', message: 'Escolha uma espécie.' });
   if (!backgroundId) issues.push({ severity: 'error', code: 'missing_step', message: 'Escolha um antecedente.' });
   if (characterLevel === 0) issues.push({ severity: 'error', code: 'missing_step', message: 'Escolha uma classe.' });
@@ -612,6 +626,7 @@ export function resolveBuild(character: Character, compendium: Compendium): Reso
     pending,
     issues,
     unusedSelections,
+    levelUp,
   };
 }
 

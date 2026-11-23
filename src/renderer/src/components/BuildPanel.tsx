@@ -4,7 +4,7 @@ import { type Ability, type Selection, SKILLS } from 'rules-engine/schemas';
 import type { CharacterSheetView, CreationOptions } from '../../../shared/ipc';
 import type { SessionCharacter } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
-import { type AbilityIncreases, addSelection, removeSelection, setBackground, setFirstClass, setSpecies } from './build-steps';
+import { type AbilityIncreases, addClassLevel, addSelection, removeLastLevel, removeSelection, setBackground, setFirstClass, setSpecies } from './build-steps';
 import { ABILITY_LABEL, humanizeId, nameOf, SIZE_LABEL, SKILL_LABEL } from './sheet-labels';
 
 /**
@@ -390,10 +390,112 @@ function Origin({ record, options, apply, busy }: { record: SessionCharacter; op
           ))}
         </select>
       </label>
+      {classLevels.length > 1 && <p className="hint traits">A classe inicial só muda no nível 1. Para trocar, desfaça os níveis seguintes.</p>}
       {classInfo && (
         <p className="hint traits">
           {[`d${classInfo.hitDie} de vida`, `principal: ${classInfo.primaryAbilities.map((a) => ABILITY_LABEL[a].short).join('/')}`, ...classInfo.traits].join(' · ')}
         </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Subir de nível: escolher a classe do próximo nível (a mesma ou multiclasse,
+ * com os requisitos que o motor confere) e depois resolver as escolhas dele.
+ * Só com a ficha completa: um nível não fica para trás com escolhas pendentes.
+ */
+function LevelUp({ record, sheet, options, apply, busy }: { record: SessionCharacter; sheet: DerivedSheet; options: CreationOptions; apply: (steps: Steps) => void; busy: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [classId, setClassId] = useState<string | null>(null);
+  if (sheet.level === 0) return null;
+  const name = (id: string): string => options.classes.find((c) => c.id === id)?.name ?? humanizeId(id);
+  const current = sheet.levelUp.filter((o) => !o.multiclass);
+  const others = sheet.levelUp.filter((o) => o.multiclass);
+  const canUndo = record.steps.at(-1)?.kind === 'class_level' && sheet.level > 1;
+  const blocked = !sheet.complete ? 'Resolva as escolhas pendentes deste nível antes de subir.' : sheet.levelUp.length === 0 ? 'Nível máximo.' : null;
+
+  const option = (o: (typeof sheet.levelUp)[number]) => (
+    <li key={o.classId} className={classId === o.classId ? 'picked' : ''}>
+      <label className="check">
+        <input
+          type="radio"
+          name="level-up-class"
+          checked={classId === o.classId}
+          disabled={o.problems.length > 0}
+          onChange={() => {
+            setClassId(o.classId);
+          }}
+        />
+        {name(o.classId)}
+        {!o.multiclass && <small className="hint">nível {(sheet.classes.find((c) => c.classId === o.classId)?.level ?? 0) + 1}</small>}
+      </label>
+      {o.problems.length > 0 && <small className="hint">{o.problems.join(' ')}</small>}
+    </li>
+  );
+
+  return (
+    <div className="level-up">
+      <div className="row">
+        <strong>Nível {sheet.level}</strong>
+        <span className="hint">{sheet.classes.map((c) => `${name(c.classId)} ${c.level}`).join(' / ')}</span>
+        <span className="spacer" />
+        {canUndo && (
+          <button
+            type="button"
+            className="link danger"
+            disabled={busy}
+            onClick={() => {
+              if (window.confirm(`Desfazer o nível ${sheet.level}? As escolhas feitas nele serão perdidas.`)) apply(removeLastLevel(record.steps));
+            }}
+          >
+            desfazer nível {sheet.level}
+          </button>
+        )}
+        {!open && (
+          <button
+            type="button"
+            disabled={busy || blocked !== null}
+            title={blocked ?? undefined}
+            onClick={() => {
+              setOpen(true);
+              setClassId(current[0]?.classId ?? null);
+            }}
+          >
+            Subir para o nível {sheet.level + 1}
+          </button>
+        )}
+      </div>
+      {blocked && !sheet.complete && <p className="hint">{blocked}</p>}
+      {open && (
+        <div className="level-up-picker">
+          <h4>Classe do nível {sheet.level + 1}</h4>
+          <ul className="candidates">{current.map(option)}</ul>
+          <h4>Multiclasse</h4>
+          <ul className="candidates">{others.map(option)}</ul>
+          <div className="row editor-actions">
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => {
+                setOpen(false);
+              }}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              disabled={busy || classId === null}
+              onClick={() => {
+                if (classId === null) return;
+                setOpen(false);
+                apply(addClassLevel(record.steps, classId));
+              }}
+            >
+              Subir de nível
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -468,6 +570,7 @@ export function BuildPanel({
       {typeof options === 'string' && <p className="error">{options}</p>}
       {options === undefined && <p className="hint">Carregando o compêndio…</p>}
       {typeof options === 'object' && <Origin record={record} options={options} apply={apply} busy={busy} />}
+      {typeof options === 'object' && <LevelUp record={record} sheet={sheet} options={options} apply={apply} busy={busy} />}
       {error && (
         <p className="error" role="alert">
           {error}
