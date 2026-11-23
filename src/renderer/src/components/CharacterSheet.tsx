@@ -4,6 +4,7 @@ import { ABILITIES, SKILLS } from 'rules-engine/schemas';
 import type { CharacterSheetView, TableView } from '../../../shared/ipc';
 import { sendIntent } from '../store/table';
 import { AbilityScoresEditor } from './AbilityScoresEditor';
+import { BuildPanel } from './BuildPanel';
 import { ABILITY_LABEL, CONDITION_LABEL, DAMAGE_LABEL, humanizeId, nameOf, SENSE_LABEL, SIZE_LABEL, signed, SKILL_LABEL } from './sheet-labels';
 
 /**
@@ -91,15 +92,17 @@ function Summary({ sheet, names }: { sheet: DerivedSheet; names: Record<string, 
   );
 }
 
-function Status({ sheet }: { sheet: DerivedSheet }) {
-  if (sheet.complete && sheet.issues.length === 0) return null;
+/** Pendências e problemas. Quem edita vê as escolhas pendentes no painel de construção; aqui só os problemas. */
+function Status({ sheet, showPending }: { sheet: DerivedSheet; showPending: boolean }) {
+  const pending = showPending ? sheet.pending : [];
+  if (pending.length === 0 && sheet.issues.length === 0) return null;
   return (
     <section className="sheet-status" aria-label="Pendências">
-      {sheet.pending.length > 0 && (
+      {pending.length > 0 && (
         <>
           <h3>Escolhas pendentes</h3>
           <ul>
-            {sheet.pending.map((p, i) => (
+            {pending.map((p, i) => (
               <li key={i}>
                 {p.source.name}: {humanizeId(p.choiceId)} ({p.count})
               </li>
@@ -465,7 +468,17 @@ export function CharacterSheet({ view, characterId, onClose }: { view: TableView
                     </button>
                   )}
                 </div>
-                <Status sheet={load.view.sheet} />
+                <Status sheet={load.view.sheet} showPending={!canEdit} />
+                {canEdit && (
+                  <BuildPanel
+                    record={record}
+                    view={load.view}
+                    sheet={load.view.sheet}
+                    onDetail={(title, text) => {
+                      setDetail({ title, text });
+                    }}
+                  />
+                )}
                 <Vitals sheet={load.view.sheet} onSelect={setDetail} />
                 <Abilities sheet={load.view.sheet} onSelect={setDetail} />
                 <div className="sheet-columns">

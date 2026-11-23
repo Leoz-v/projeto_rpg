@@ -38,6 +38,8 @@ export interface SessionDeps {
   monsterExists(id: string): boolean;
   /** O Host tem o asset (imagem de fundo ou de token). */
   assetExists(sha256: string): boolean;
+  /** Tira dos passos as seleções que nenhuma escolha usa mais (`pruneSelections` do motor, com o compêndio). */
+  pruneSteps(steps: SessionCharacter['steps']): SessionCharacter['steps'];
 }
 
 /** Uma revisão do estado, na visão do mestre (o transporte filtra com `patchFor`). */
@@ -323,7 +325,8 @@ export class HostSession {
       }
       set('baseScores', data.baseScores);
     }
-    if (data.steps !== undefined) set('steps', data.steps);
+    // Desfazer uma escolha deixa soltas as seleções de dentro dela: o Host as descarta.
+    if (data.steps !== undefined) set('steps', this.deps.pruneSteps(data.steps));
     return ops;
   }
 

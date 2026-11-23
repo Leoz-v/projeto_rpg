@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { loadSrdCompendium } from 'rules-engine';
 import { describe, expect, it } from 'vitest';
 import type { SessionCharacter } from '../shared/protocol';
-import { characterSheet } from './character-sheet';
+import { characterSheet, creationOptions } from './character-sheet';
 
 const compendium = loadSrdCompendium();
 
@@ -18,7 +18,7 @@ const draft = (overrides: Partial<SessionCharacter> = {}): SessionCharacter => (
 
 describe('characterSheet', () => {
   it('has no sheet until the ability scores are set', () => {
-    expect(characterSheet(draft({ baseScores: null }), compendium)).toEqual({ sheet: null, names: {} });
+    expect(characterSheet(draft({ baseScores: null }), compendium)).toEqual({ sheet: null, names: {}, details: {} });
   });
 
   it('derives a draft and points at what is missing', () => {
@@ -35,5 +35,23 @@ describe('characterSheet', () => {
     );
     expect(sheet?.level).toBe(1);
     expect(names).toMatchObject({ dwarf: 'Dwarf', fighter: 'Fighter' });
+  });
+
+  it('names and describes the candidates of pending choices', () => {
+    const { sheet, names, details } = characterSheet(draft({ steps: [{ kind: 'class_level', classId: 'wizard', selections: [] }] }), compendium);
+    const cantrips = sheet?.pending.find((p) => p.choiceId === 'cantrips');
+    expect(cantrips?.candidates).toContain('fire_bolt');
+    expect(names['fire_bolt']).toBe('Fire Bolt');
+    expect(details['fire_bolt']).toMatch(/^Truque · evocation/);
+  });
+});
+
+describe('creationOptions', () => {
+  it('lists species, backgrounds and classes with what they offer', () => {
+    const options = creationOptions(compendium);
+    expect(options.species.find((s) => s.id === 'human')?.sizes).toEqual(['medium', 'small']);
+    expect(options.backgrounds.find((b) => b.id === 'soldier')).toMatchObject({ abilityOptions: ['str', 'dex', 'con'], traits: ['Talento: Savage Attacker'] });
+    expect(options.classes.find((c) => c.id === 'fighter')).toMatchObject({ hitDie: 10, primaryAbilities: ['str', 'dex'] });
+    expect(options.classes).toHaveLength(12);
   });
 });

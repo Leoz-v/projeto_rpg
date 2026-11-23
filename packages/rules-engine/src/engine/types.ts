@@ -137,6 +137,14 @@ export interface PendingChoice {
   choiceId: string;
   count: number;
   options: ChoiceOptions;
+  /**
+   * Ids que podem ser escolhidos, já filtrados pela categoria, pela lista,
+   * pelos pré-requisitos e pelo que o personagem já tem. O motor valida a
+   * seleção de novo ao aplicá-la.
+   */
+  candidates: string[];
+  /** Um id pode aparecer mais de uma vez nos picks (`ability_score`: repetir = +2). */
+  repeatable: boolean;
 }
 
 export type IssueCode =
