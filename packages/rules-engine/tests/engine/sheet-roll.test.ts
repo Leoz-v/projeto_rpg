@@ -28,7 +28,7 @@ describe('rolls from the sheet', () => {
     expect(roll?.parts).toBe(fighter.skills.athletics.parts);
     // Campeão: Remarkable Athlete dá Vantagem em Atletismo.
     expect(roll?.input.mode).toBe('advantage');
-    expect(roll?.advantage).toEqual(['Champion']);
+    expect(roll?.advantage).toEqual(['Remarkable Athlete (Champion)']);
   });
 
   it('applies armor disadvantage on Stealth, cancelled by a declared advantage', () => {
@@ -44,16 +44,16 @@ describe('rolls from the sheet', () => {
     expect(save?.input.rules?.some((r) => r.rule === 'reroll' && r.on === 1)).toBe(true);
     const result = rollD20(save?.input ?? { modifier: 0, mode: 'normal' }, fixed([1, 15]));
     expect(result.die).toBe(15);
-    expect(d20StepNotes(result.steps)).toEqual(['Rolou 1 de novo: 15 (Halfling)']);
+    expect(d20StepNotes(result.steps)).toEqual(['Rolou 1 de novo: 15 (Luck (Halfling))']);
     const con = sheetD20(fighter, { kind: 'save', ability: 'con' });
-    expect(con?.reminders).toContain('Vantagem possível: Dwarf (contra Envenenado)');
+    expect(con?.reminders).toContain('Vantagem possível: Dwarven Resilience (Dwarf) (contra Envenenado)');
   });
 
   it('applies circumstantial advantage when the roll is against the matching thing', () => {
     // Dwarven Resilience: Vantagem em salvaguardas contra Envenenado.
     const poison = sheetD20(fighter, { kind: 'save', ability: 'con' }, {}, { condition: 'poisoned' });
     expect(poison?.input.mode).toBe('advantage');
-    expect(poison?.advantage).toEqual(['Dwarf']);
+    expect(poison?.advantage).toEqual(['Dwarven Resilience (Dwarf)']);
     expect(poison?.reminders.some((r) => r.includes('Dwarf'))).toBe(false);
     expect(sheetD20(fighter, { kind: 'save', ability: 'con' }, {}, { source: 'spell' })?.input.mode).toBe('normal');
   });

@@ -567,7 +567,7 @@ describe('HostSession: rolls from the sheet', () => {
     const entry = last(session);
     if (entry?.kind !== 'd20_roll') throw new Error('sem rolagem');
     // Remarkable Athlete: Vantagem em Atletismo; fica o 17.
-    expect(entry).toMatchObject({ characterName: 'Thorin', mode: 'advantage', dice: [4, 17], natural: 17, advantage: ['Champion'] });
+    expect(entry).toMatchObject({ characterName: 'Thorin', mode: 'advantage', dice: [4, 17], natural: 17, advantage: ['Remarkable Athlete (Champion)'] });
     expect(entry.total).toBe(17 + entry.modifier);
     expect(entry.parts.reduce((sum, p) => sum + p.value, 0)).toBe(entry.modifier);
   });
@@ -775,7 +775,7 @@ describe('HostSession: forced saving throws', () => {
       data: { source: { custom: { name: 'Gás venenoso', ability: 'con', dc: 13, damage: [], onSuccess: 'none', conditions: ['poisoned'] } }, targetTokenIds: [a.thorin], visibility: 'public' },
     });
     const [result] = saveEntry(a.session).results;
-    expect(result).toMatchObject({ mode: 'advantage', advantage: ['Dwarf'], dice: [4, 17], natural: 17, success: true });
+    expect(result).toMatchObject({ mode: 'advantage', advantage: ['Dwarven Resilience (Dwarf)'], dice: [4, 17], natural: 17, success: true });
     expect(result?.notes).toEqual([]);
   });
 
