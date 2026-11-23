@@ -172,7 +172,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - ⏸️ Cópia offline com aprovação do *diff* pelo mestre: adiada, porque o personagem é criado e editado na mesa (nota 0034). Volta se o grupo quiser editar fora da sessão.
 4. **Fase 4 — Motor de Ações & Efeitos:** resolução assistida de ataques, dano, resistências, salvaguardas, maestrias e overrides do mestre. Dividida em 5 PRs (ver `docs/decisions/0034-pontos-de-vida-e-fase-4.md`); em todos, o Host propõe e o mestre confirma ou faz override:
    - ✅ Pontos de vida na mesa: dano e PV temporários do personagem (máximo da ficha) e PV próprios dos tokens de monstro (média do bloco), `hp.change` com as regras do SRD no motor, barra de PV nos tokens (PV de monstro só para o mestre), `PROTOCOL_VERSION = 6`.
-   - Rolagens da ficha pelo Host: perícias, salvaguardas, testes, iniciativa e ataques, com as regras do d20 do motor e a conta no chat.
+   - ✅ Rolagens da ficha pelo Host (`roll.d20`, `roll.damage`, `PROTOCOL_VERSION = 7`): perícias, salvaguardas, iniciativa, ataques e dano das armas, com as regras do d20 do motor, Vantagem/Desvantagem declarada, rolagem secreta e a conta e os lembretes circunstanciais no chat. Ver `docs/decisions/0035-rolagens-da-ficha.md`.
    - Ataque contra um alvo: rolagem contra a CA, crítico, dano proposto com resistências e imunidades, confirmação do mestre antes de mudar os PV.
    - Ações de salvaguarda: CD contra um ou mais alvos, metade do dano no sucesso, condições propostas na falha, vantagens circunstanciais automáticas.
    - Maestrias de arma sugeridas depois do acerto, com confirmação do mestre.

@@ -8,6 +8,7 @@ import { AbilityScoresEditor } from './AbilityScoresEditor';
 import { Adjustments } from './Adjustments';
 import { BuildPanel } from './BuildPanel';
 import { HitPointsControl, HitPointsSummary } from './HitPoints';
+import { type Roller, RollToolbar, RollButton, useRoller } from './SheetRolls';
 import { Inventory } from './Inventory';
 import { ABILITY_LABEL, CONDITION_LABEL, DAMAGE_LABEL, humanizeId, nameOf, SENSE_LABEL, SIZE_LABEL, signed, SKILL_LABEL } from './sheet-labels';
 
@@ -127,7 +128,7 @@ function Status({ sheet, showPending }: { sheet: DerivedSheet; showPending: bool
   );
 }
 
-function Vitals({ sheet, hp, onSelect }: { sheet: DerivedSheet; hp: { damage: number; temp: number }; onSelect: (d: Detail) => void }) {
+function Vitals({ sheet, hp, roller, onSelect }: { sheet: DerivedSheet; hp: { damage: number; temp: number }; roller: Roller | undefined; onSelect: (d: Detail) => void }) {
   const health = { current: currentHitPoints(sheet.hpMax.total, hp), max: sheet.hpMax.total, temp: hp.temp };
   const speed = sheet.speed;
   const extraSpeeds = (['fly', 'swim', 'climb', 'burrow'] as const).filter((k) => speed[k].total > 0);
@@ -153,6 +154,7 @@ function Vitals({ sheet, hp, onSelect }: { sheet: DerivedSheet; hp: { damage: nu
         <dt>Iniciativa</dt>
         <dd>
           <StatButton title="Iniciativa" stat={sheet.initiative} signedTotal onSelect={onSelect} />
+          {roller && <RollButton label="Rolar iniciativa" onClick={() => { roller.roll({ kind: 'initiative' }); }} />}
         </dd>
       </div>
       <div>
@@ -188,7 +190,7 @@ function Vitals({ sheet, hp, onSelect }: { sheet: DerivedSheet; hp: { damage: nu
   );
 }
 
-function Abilities({ sheet, onSelect }: { sheet: DerivedSheet; onSelect: (d: Detail) => void }) {
+function Abilities({ sheet, roller, onSelect }: { sheet: DerivedSheet; roller: Roller | undefined; onSelect: (d: Detail) => void }) {
   return (
     <div className="abilities">
       {ABILITIES.map((a) => {
@@ -208,6 +210,7 @@ function Abilities({ sheet, onSelect }: { sheet: DerivedSheet; onSelect: (d: Det
                 <span className={`prof-dot${save.proficient ? ' on' : ''}`} aria-label={save.proficient ? 'proficiente' : undefined} /> TR {signed(save.total)}
               </small>
             </StatButton>
+            {roller && <RollButton label={`Rolar salvaguarda de ${ABILITY_LABEL[a].long}`} onClick={() => { roller.roll({ kind: 'save', ability: a }); }} />}
           </div>
         );
       })}
@@ -215,7 +218,7 @@ function Abilities({ sheet, onSelect }: { sheet: DerivedSheet; onSelect: (d: Det
   );
 }
 
-function Skills({ sheet, onSelect }: { sheet: DerivedSheet; onSelect: (d: Detail) => void }) {
+function Skills({ sheet, roller, onSelect }: { sheet: DerivedSheet; roller: Roller | undefined; onSelect: (d: Detail) => void }) {
   const skills = [...SKILLS].sort((a, b) => SKILL_LABEL[a].localeCompare(SKILL_LABEL[b], 'pt-BR'));
   return (
     <section aria-label="Perícias">
@@ -230,6 +233,7 @@ function Skills({ sheet, onSelect }: { sheet: DerivedSheet; onSelect: (d: Detail
                 {SKILL_LABEL[s]} <small className="hint">({ABILITY_LABEL[stat.ability].short})</small>
               </span>
               <StatButton title={SKILL_LABEL[s]} stat={stat} signedTotal onSelect={onSelect} />
+              {roller ? <RollButton label={`Rolar ${SKILL_LABEL[s]}`} onClick={() => { roller.roll({ kind: 'skill', skill: s }); }} /> : <span />}
             </li>
           );
         })}
@@ -293,7 +297,7 @@ function Traits({ sheet, names, onSelect }: { sheet: DerivedSheet; names: Record
   );
 }
 
-function Attacks({ sheet, onSelect }: { sheet: DerivedSheet; onSelect: (d: Detail) => void }) {
+function Attacks({ sheet, roller, onSelect }: { sheet: DerivedSheet; roller: Roller | undefined; onSelect: (d: Detail) => void }) {
   if (sheet.attacks.length === 0) return null;
   return (
     <section aria-label="Ataques" className="attacks">
@@ -323,6 +327,19 @@ function Attacks({ sheet, onSelect }: { sheet: DerivedSheet; onSelect: (d: Detai
                 </td>
                 <td className="hint">{reach}</td>
                 <td className="hint">{a.mastery.available ? humanizeId(a.mastery.property) : ''}</td>
+                {roller && (
+                  <td className="attack-rolls">
+                    <button type="button" className="secondary small" onClick={() => { roller.roll({ kind: 'attack', instanceId: a.instanceId }); }}>
+                      atacar
+                    </button>
+                    <button type="button" className="secondary small" onClick={() => { roller.damage(a.instanceId, false); }}>
+                      dano
+                    </button>
+                    <button type="button" className="secondary small" title="Acerto Crítico: os dados de dano são rolados duas vezes" onClick={() => { roller.damage(a.instanceId, true); }}>
+                      crítico
+                    </button>
+                  </td>
+                )}
               </tr>
             );
           })}
@@ -409,6 +426,8 @@ export function CharacterSheet({ view, characterId, onClose }: { view: TableView
   const [detail, setDetail] = useState<Detail | null>(null);
   const [editingScores, setEditingScores] = useState(false);
   const [renaming, setRenaming] = useState(false);
+  const rolls = useRoller(characterId);
+  const roller = canEdit ? rolls.roller : undefined;
 
   useEffect(() => {
     // O personagem foi removido (por outra pessoa ou nesta tela).
@@ -525,17 +544,18 @@ export function CharacterSheet({ view, characterId, onClose }: { view: TableView
                     }}
                   />
                 )}
-                <Vitals sheet={load.view.sheet} hp={record.hp} onSelect={setDetail} />
+                {canEdit && <RollToolbar state={rolls} hasVersatile={load.view.sheet.attacks.some((a) => a.versatileDice !== undefined)} />}
+                <Vitals sheet={load.view.sheet} hp={record.hp} roller={roller} onSelect={setDetail} />
                 {canEdit && (
                   <HitPointsControl
                     target={{ characterId: record.id }}
                     health={{ current: currentHitPoints(load.view.sheet.hpMax.total, record.hp), max: load.view.sheet.hpMax.total, temp: record.hp.temp }}
                   />
                 )}
-                <Abilities sheet={load.view.sheet} onSelect={setDetail} />
-                <Attacks sheet={load.view.sheet} onSelect={setDetail} />
+                <Abilities sheet={load.view.sheet} roller={roller} onSelect={setDetail} />
+                <Attacks sheet={load.view.sheet} roller={roller} onSelect={setDetail} />
                 <div className="sheet-columns">
-                  <Skills sheet={load.view.sheet} onSelect={setDetail} />
+                  <Skills sheet={load.view.sheet} roller={roller} onSelect={setDetail} />
                   <div>
                     <Spellcasting sheet={load.view.sheet} names={load.view.names} onSelect={setDetail} />
                     <Traits sheet={load.view.sheet} names={load.view.names} onSelect={setDetail} />

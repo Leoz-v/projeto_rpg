@@ -3,6 +3,7 @@ import type { ChatEntry, SessionState } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
 import { CHAT_HELP, parseChatInput } from './chat-command';
 import { type RollPart, rollParts } from './roll-parts';
+import { D20RollBody, DamageRollBody } from './SheetRollEntries';
 
 /** Log da sessão (mensagens e rolagens) e campo de envio. */
 
@@ -64,6 +65,10 @@ function Entry({ entry, author }: { entry: ChatEntry; author: string }) {
           <p>Fez uma rolagem secreta para o mestre.</p>
         </li>
       );
+    case 'd20_roll':
+      return <D20RollBody entry={entry} header={header} />;
+    case 'damage_roll':
+      return <DamageRollBody entry={entry} header={header} />;
     case 'ability_roll':
       return (
         <li className="entry roll">

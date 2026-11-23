@@ -1,6 +1,6 @@
 import { BaseScoresSchema, CharacterSchema, DiceSchema, EffectSchema, IdSchema, SizeSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
-import { ChatTextSchema, InstanceIdSchema, LabelSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
+import { ChatTextSchema, InstanceIdSchema, LabelSchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 import { MAX_ADJUSTMENT_EFFECTS, MAX_COINS, MAX_FORMULA_DICE, MAX_FORMULA_LENGTH, MAX_HIT_POINTS, MAX_ITEM_QUANTITY } from './constants';
 import { VisibilitySchema } from './state';
 
@@ -108,6 +108,27 @@ export const IntentSchema = z.discriminatedUnion('kind', [
     data: z.strictObject({ characterId: UuidSchema, name: NameSchema, effects: z.array(EffectSchema).min(1).max(MAX_ADJUSTMENT_EFFECTS) }),
   }),
   z.strictObject({ kind: z.literal('adjustment.remove'), data: z.strictObject({ characterId: UuidSchema, adjustmentId: UuidSchema }) }),
+  z.strictObject({
+    kind: z.literal('roll.d20'),
+    data: z.strictObject({
+      characterId: UuidSchema,
+      target: SheetRollTargetSchema,
+      /** Vantagem/Desvantagem declarada na hora; anula-se com a oposta, como qualquer outra. */
+      advantage: z.boolean().optional(),
+      disadvantage: z.boolean().optional(),
+      visibility: VisibilitySchema,
+    }),
+  }),
+  z.strictObject({
+    kind: z.literal('roll.damage'),
+    data: z.strictObject({
+      characterId: UuidSchema,
+      instanceId: InstanceIdSchema,
+      critical: z.boolean().optional(),
+      versatile: z.boolean().optional(),
+      visibility: VisibilitySchema,
+    }),
+  }),
   z.strictObject({
     kind: z.literal('hp.change'),
     data: z.strictObject({

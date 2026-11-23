@@ -178,7 +178,7 @@ void app.whenReady().then(() => {
     rng: cryptoRng,
     monsterExists,
     pruneSteps: (steps) => pruneSelections(steps, getCompendium()),
-    characterHpMax: (character) => characterSheet(character, getCompendium()).sheet?.hpMax.total,
+    characterSheet: (character) => characterSheet(character, getCompendium()).sheet ?? undefined,
     monsterHpMax: (id) => getCompendium().creatures.find((c) => c.id === id)?.hp.average,
     itemProblems: (entry) => inventoryEntryProblems(entry, getCompendium()),
     addresses: localAddresses,

@@ -1,4 +1,18 @@
-import { applyHitPointChange, clampHitPoints, rollAbilityScores, rollDice, type Rng, type Size, spaceSquares, usesRolledValues } from 'rules-engine';
+import {
+  applyHitPointChange,
+  clampHitPoints,
+  d20StepNotes,
+  type DerivedSheet,
+  rollAbilityScores,
+  rollD20,
+  rollDice,
+  rollWeaponDamage,
+  type Rng,
+  sheetD20,
+  type Size,
+  spaceSquares,
+  usesRolledValues,
+} from 'rules-engine';
 import type { z } from 'zod';
 import {
   applyPatch,
@@ -45,8 +59,8 @@ export interface SessionDeps {
   pruneSteps(steps: SessionCharacter['steps']): SessionCharacter['steps'];
   /** Problemas de uma entrada nova do inventário (`inventoryEntryProblems` do motor); vazio = pode entrar. */
   itemProblems(entry: { itemId: string; baseItemId?: string | undefined; variantId?: string | undefined }): string[];
-  /** PV máximos da ficha calculada pelo motor; `undefined` sem ficha (atributos não definidos). */
-  characterHpMax(character: SessionCharacter): number | undefined;
+  /** Ficha calculada pelo motor; `undefined` sem ficha (atributos não definidos). */
+  characterSheet(character: SessionCharacter): DerivedSheet | undefined;
   /** PV médios do bloco de estatísticas de um monstro do compêndio. */
   monsterHpMax(monsterId: string): number | undefined;
 }
@@ -222,6 +236,10 @@ export class HostSession {
         if (index < 0) throw violation('Ajuste não encontrado');
         return [{ op: 'remove', path: toPointer('characters', character.id, 'adjustments', String(index)) }];
       }
+      case 'roll.d20':
+        return [this.appendChat(this.rollFromSheet(playerId, role, intent.data))];
+      case 'roll.damage':
+        return [this.appendChat(this.rollDamage(playerId, role, intent.data))];
       case 'hp.change':
         return this.changeHp(playerId, role, intent.data);
       case 'inventory.currency':
@@ -476,7 +494,7 @@ export class HostSession {
     if ('characterId' in data.target) {
       if (change.kind === 'max') throw violation('Os PV máximos de um personagem vêm da ficha');
       const character = this.ownCharacter(playerId, role, data.target.characterId);
-      const max = this.deps.characterHpMax(character);
+      const max = this.deps.characterSheet(character)?.hpMax.total;
       if (max === undefined) throw violation('O personagem ainda não tem ficha (defina os atributos)');
       const result = applyHitPointChange(max, character.hp, { kind: change.kind, amount: change.amount });
       return [{ op: 'replace', path: toPointer('characters', character.id, 'hp'), value: result.state }];
@@ -492,5 +510,66 @@ export class HostSession {
     if (token.hp === null) throw violation(token.characterId ? 'Mude os PV no personagem' : 'Este token não tem PV (defina os PV máximos)');
     const result = applyHitPointChange(token.hp.max, token.hp, { kind: change.kind, amount: change.amount });
     return [{ op: 'replace', path, value: { max: token.hp.max, ...result.state } }];
+  }
+
+  /** A ficha do personagem, se quem pede pode rolar por ele (dono ou mestre). */
+  private sheetOf(playerId: string, role: Role, characterId: string): { character: SessionCharacter; sheet: DerivedSheet } {
+    const character = this.ownCharacter(playerId, role, characterId);
+    const sheet = this.deps.characterSheet(character);
+    if (!sheet) throw violation('O personagem ainda não tem ficha (defina os atributos)');
+    return { character, sheet };
+  }
+
+  /** Teste d20 a partir da ficha: modificador, Vantagem/Desvantagem e regras do d20 vêm do motor; o dado, do RNG do Host. */
+  private rollFromSheet(playerId: string, role: Role, data: IntentData<'roll.d20'>): ChatEntry {
+    const { character, sheet } = this.sheetOf(playerId, role, data.characterId);
+    const roll = sheetD20(sheet, data.target, { advantage: data.advantage, disadvantage: data.disadvantage });
+    if (!roll) throw violation('Este ataque não está na ficha (a arma precisa estar equipada)');
+    const result = rollD20(roll.input, this.deps.rng);
+    const { target } = data;
+    const attack = target.kind === 'attack' ? sheet.attacks.find((a) => a.instanceId === target.instanceId) : undefined;
+    return {
+      kind: 'd20_roll',
+      ...this.entryBase(playerId),
+      characterId: character.id,
+      characterName: character.name,
+      target: data.target,
+      ...(attack ? { label: attack.name.slice(0, 100) } : {}),
+      visibility: data.visibility,
+      mode: roll.input.mode,
+      dice: result.dice,
+      natural: result.natural,
+      modifier: roll.input.modifier,
+      total: result.total,
+      // Crítico e falha crítica só existem na jogada de ataque (o 20 da Salvaguarda contra a Morte é da Fase 5).
+      critical: target.kind === 'attack' && result.critical,
+      fumble: target.kind === 'attack' && result.fumble,
+      parts: roll.parts.map((p) => ({ label: p.label.slice(0, 200), value: p.value })),
+      advantage: roll.advantage,
+      disadvantage: roll.disadvantage,
+      notes: d20StepNotes(result.steps),
+      reminders: roll.reminders,
+    };
+  }
+
+  /** Dano de uma arma equipada (crítico dobra os dados, Versatile com as duas mãos). */
+  private rollDamage(playerId: string, role: Role, data: IntentData<'roll.damage'>): ChatEntry {
+    const { character, sheet } = this.sheetOf(playerId, role, data.characterId);
+    const attack = sheet.attacks.find((a) => a.instanceId === data.instanceId);
+    if (!attack) throw violation('Este ataque não está na ficha (a arma precisa estar equipada)');
+    const result = rollWeaponDamage(attack, { critical: data.critical, versatile: data.versatile }, this.deps.rng);
+    return {
+      kind: 'damage_roll',
+      ...this.entryBase(playerId),
+      characterId: character.id,
+      characterName: character.name,
+      label: attack.name.slice(0, 100),
+      visibility: data.visibility,
+      critical: data.critical === true,
+      groups: result.groups.map((g) => ({ dice: g.dice, type: g.type, ...(g.source ? { source: g.source } : {}), rolls: g.rolls, total: g.total })),
+      bonus: result.bonus,
+      total: result.total,
+      ...(result.dieMinimum ? { dieMinimum: result.dieMinimum } : {}),
+    };
   }
 }
