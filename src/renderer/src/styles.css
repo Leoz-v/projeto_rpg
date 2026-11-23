@@ -320,3 +320,19 @@ button:disabled {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
+
+/* Botão com cara de link, para ações secundárias. */
+button.link {
+  align-self: flex-start;
+  background: none;
+  padding: 0;
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 0.85rem;
+  text-decoration: underline;
+}
+
+button.link.danger:hover,
+button.link.danger:focus-visible {
+  color: var(--error);
+}

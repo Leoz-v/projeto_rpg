@@ -104,6 +104,11 @@ export class AppDb {
     return this.campaigns().find((c) => c.id === id);
   }
 
+  /** Tira a campanha do índice (o arquivo é responsabilidade de quem chama). */
+  removeCampaign(id: string): void {
+    this.db.prepare('DELETE FROM campaigns WHERE id = ?').run(id);
+  }
+
   /** Registra (ou atualiza) uma campanha como aberta agora. */
   touchCampaign(campaign: Omit<CampaignSummary, 'lastOpenedAt'>, now: number): void {
     this.db

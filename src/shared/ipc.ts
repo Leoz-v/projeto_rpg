@@ -9,6 +9,7 @@ export const IpcChannel = {
   getAppInfo: 'app:get-info',
   getPreferences: 'app:get-preferences',
   listCampaigns: 'campaigns:list',
+  deleteCampaign: 'campaigns:delete',
   hostTable: 'table:host',
   joinTable: 'table:join',
   leaveTable: 'table:leave',
@@ -64,6 +65,8 @@ export interface VttApi {
   getPreferences(): Promise<IpcResult<Preferences>>;
   /** Campanhas hospedadas aqui, da mais recente para a mais antiga. */
   listCampaigns(): Promise<IpcResult<CampaignSummary[]>>;
+  /** Exclui uma campanha hospedada aqui (o arquivo vai para a Lixeira). */
+  deleteCampaign(id: string): Promise<IpcResult<null>>;
   hostTable(request: HostTableRequest): Promise<IpcResult<TableView>>;
   joinTable(request: JoinTableRequest): Promise<IpcResult<TableView>>;
   leaveTable(): Promise<IpcResult<null>>;
