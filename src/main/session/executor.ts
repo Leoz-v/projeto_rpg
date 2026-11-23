@@ -1,4 +1,4 @@
-import { rollDice, type Rng } from 'rules-engine';
+import { rollDice, type Rng, type Size, spaceSquares } from 'rules-engine';
 import type { z } from 'zod';
 import {
   applyPatch,
@@ -201,9 +201,10 @@ export class HostSession {
     return token;
   }
 
-  /** A posição precisa estar dentro do mapa: 0 ≤ x < largura e 0 ≤ y < altura, em unidades. */
-  private requireInside(map: GameMap, p: Point): void {
-    if (p.x >= map.width * WORLD_UNITS_PER_CELL || p.y >= map.height * WORLD_UNITS_PER_CELL) throw violation('Posição fora do mapa');
+  /** O token inteiro precisa caber no mapa: canto em `p` mais o espaço do tamanho (SRD: Large ocupa 2×2). */
+  private requireInside(map: GameMap, p: Point, size: Size): void {
+    const side = spaceSquares(size) * WORLD_UNITS_PER_CELL;
+    if (p.x + side > map.width * WORLD_UNITS_PER_CELL || p.y + side > map.height * WORLD_UNITS_PER_CELL) throw violation('Posição fora do mapa');
   }
 
   private entryBase(playerId: string): Pick<ChatEntry, 'id' | 'at' | 'authorId'> {
@@ -230,7 +231,7 @@ export class HostSession {
   private moveToken(playerId: string, role: Role, data: IntentData<'token.move'>): PatchOp[] {
     const token = this.token(data.tokenId);
     if (role !== 'gm' && !token.ownerIds.includes(playerId)) throw notAllowed('Você não controla este token');
-    this.requireInside(this.map(token.mapId), data.to);
+    this.requireInside(this.map(token.mapId), data.to, token.size);
     return [{ op: 'replace', path: toPointer('tokens', token.id, 'position'), value: data.to }];
   }
 
@@ -247,7 +248,7 @@ export class HostSession {
   }
 
   private createToken(data: IntentData<'token.create'>): PatchOp[] {
-    this.requireInside(this.map(data.mapId), data.position);
+    this.requireInside(this.map(data.mapId), data.position, data.size);
     if (data.monsterId !== undefined && !this.deps.monsterExists(data.monsterId)) throw violation('Monstro não encontrado no compêndio');
     this.requireAsset(data.image);
     const ownerIds = [...new Set(data.ownerIds ?? [])];

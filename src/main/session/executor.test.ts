@@ -195,7 +195,12 @@ describe('HostSession: tokens', () => {
     expect(rejection(create({ monsterId: 'tarrasque_rosa' }))).toBe('rule_violation');
     expect(rejection(create({ mapId: randomUUID() }))).toBe('rule_violation');
     expect(rejection(create({ position: { x: 1000, y: 0 } }))).toBe('rule_violation');
-    expect(applied(create({ position: { x: 999, y: 999 } }))).toBe(true);
+    // O token inteiro precisa caber no mapa 10×10 (1000 unidades): Small ocupa 100, Large 200, Tiny 50.
+    expect(applied(create({ position: { x: 900, y: 900 } }))).toBe(true);
+    expect(rejection(create({ position: { x: 901, y: 0 } }))).toBe('rule_violation');
+    expect(applied(create({ position: { x: 800, y: 800 }, size: 'large' }))).toBe(true);
+    expect(rejection(create({ position: { x: 801, y: 0 }, size: 'large' }))).toBe('rule_violation');
+    expect(applied(create({ position: { x: 950, y: 950 }, size: 'tiny' }))).toBe(true);
     expect(rejection(create({ ownerIds: [randomUUID()] }))).toBe('rule_violation');
     expect(applied(create({ image: KNOWN_IMAGE }))).toBe(true);
     expect(rejection(create({ image: UNKNOWN_IMAGE }))).toBe('rule_violation');

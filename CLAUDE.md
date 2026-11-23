@@ -43,7 +43,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
   - **Processo main (`src/main/`, Node):** infraestrutura e orquestração — servidor/cliente WebSocket, acesso ao SQLite, cache de assets por SHA-256, protocolo customizado `vtt-asset://`, auto-updater e o **executor da sessão do Host** (recebe `Intent`, chama o motor de regras, persiste e transmite o resultado). **Não implementa regras de D&D**, só chama o motor.
   - **Preload (`src/preload/`):** ponte mínima e tipada entre main e renderer via `contextBridge`. Nada além de expor a API de IPC.
   - **Renderer (`src/renderer/`):** interface reativa (`pt-BR`), renderização do mapa PixiJS e despacho de intenções. Sem acesso a Node.
-  - **Motor de regras (`packages/rules-engine/`, nome do pacote: `rules-engine`):** TypeScript puro, sem dependência de UI, Electron ou APIs do Node. Contém schemas Zod, cálculo de ficha derivada, resolução de ações/efeitos e gerador de RNG auditável/injetável. Exporta `rules-engine` (tudo, incluindo o compêndio) e `rules-engine/schemas` (só os schemas): o que roda no renderer ou em `src/shared/` importa de `rules-engine/schemas`, para o compêndio não entrar no pacote da tela.
+  - **Motor de regras (`packages/rules-engine/`, nome do pacote: `rules-engine`):** TypeScript puro, sem dependência de UI, Electron ou APIs do Node. Contém schemas Zod, cálculo de ficha derivada, resolução de ações/efeitos e gerador de RNG auditável/injetável. Exporta `rules-engine` (tudo, incluindo o compêndio), `rules-engine/schemas` (só os schemas) e `rules-engine/space` (espaço por tamanho de criatura): o que roda no renderer ou em `src/shared/` importa dos subcaminhos, para o compêndio não entrar no pacote da tela.
   - **Compartilhado (`src/shared/`):** tipos e schemas Zod do protocolo de rede e da API de IPC, usados por main, preload e renderer.
 - **Segurança do Electron (obrigatório):** `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`, Content Security Policy restritiva no renderer, e todo payload de IPC e de rede validado com Zod no processo main.
 - **Topologia multiplayer (sem nuvem):**
@@ -154,14 +154,14 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 1.5. **✅ Fase 1.5 — Automação de efeitos:** tudo o que o compêndio tem só como texto, mas com mecânica, é inventariado e classificado em `docs/automation-backlog.md` (dados em `packages/rules-engine/tests/srd/automation-backlog.json`). O que é passivo e cabe no catálogo estendido é automatizado agora; o que depende de combate ou sessão fica marcado para a fase certa; o que é julgamento do mestre fica como texto, com o motivo registrado. Um teste de guarda impede conteúdo novo sem classificação. Ver `docs/decisions/0015-etapa-de-automacao.md`.
    - ✅ Inventário e classificação, com o teste de guarda.
    - ✅ Automação dos casos passivos, em 7 grupos por tipo de mecânica (contrato em `docs/effects-spec.md` primeiro; notas 0016 a 0018). A fila `automate` está vazia; o resto do backlog é das Fases 4 e 5 ou do mestre.
-2. **Fase 2 — Mesa & Rede:** rede WebSocket (host/cliente) no processo main, executor de sessão do Host, handshake de protocolo, cache de assets SHA-256 (`vtt-asset://`), mapa em tempo real com tokens e rolagem de dados autoritativa no chat. Dividida em 7 PRs (ver `docs/decisions/0019-estado-da-sessao-e-fase-2.md`):
+2. **✅ Fase 2 — Mesa & Rede:** rede WebSocket (host/cliente) no processo main, executor de sessão do Host, handshake de protocolo, cache de assets SHA-256 (`vtt-asset://`), mapa em tempo real com tokens e rolagem de dados autoritativa no chat. Dividida em 7 PRs (ver `docs/decisions/0019-estado-da-sessao-e-fase-2.md`):
    - ✅ Schemas do protocolo em `src/shared/protocol/`, com o `SessionState` e os `Intent` de mapa e token.
    - ✅ Executor de sessão em `src/main/session/` (lógica pura: permissões, `rev`, visibilidade, rolagem com o RNG do Host). Ver `docs/decisions/0020-executor-de-sessao.md`.
    - ✅ Transporte WebSocket em `src/main/net/` (handshake, Ping/Pong, limites, cliente com ressincronização). Ver `docs/decisions/0021-transporte-websocket.md`.
    - ✅ IPC e tela da mesa (`src/main/table/`, telas de hospedar e entrar, chat com `/r` e `/gr`). Ver `docs/decisions/0022-tela-da-mesa-e-ipc.md`.
    - ✅ SQLite em `src/main/db/` (`app.db` com o id do jogador, preferências e índice de campanhas; `<campanha>.db` com a sessão; migrações com `.bak`). Ver `docs/decisions/0023-sqlite-embutido-no-node.md`. Campanhas podem ser excluídas pela tela inicial (o arquivo vai para a Lixeira, nota 0026).
    - ✅ Assets em `src/main/assets/` (armazenamento por SHA-256, `vtt-asset://` com CORS para o PixiJS, `AssetChunk` com conferência do hash, importação de imagens pelo mestre). Ver `docs/decisions/0025-assets-por-hash.md`.
-   - Mapa PixiJS (grid, tokens, câmera, `token.move`).
+   - ✅ Mapa PixiJS em `src/renderer/src/canvas/` (grid, fundo, tokens com o espaço do tamanho, câmera, arrastar com `token.move`) e painel do mestre (mapas, tokens do compêndio numerados, remover). Ver `docs/decisions/0027-mapa-pixijs.md`.
 3. **Fase 3 — Fichas & Progressão (interface):** telas de criação de personagem e de subida de nível sobre o motor da Fase 1, gerenciamento de inventário e sincronização offline com aprovação do mestre.
 4. **Fase 4 — Motor de Ações & Efeitos:** resolução assistida de ataques, dano, resistências, salvaguardas, maestrias e overrides do mestre.
    - *Antecipado:* aplicação de dano na ordem do SRD (`applyDamage`: imunidade, reduções roladas, Resistência, Vulnerabilidade) e RNG injetável com rolagens registradas (`engine/dice.ts`). Ver `docs/decisions/0014-itens-magicos.md`.
@@ -169,7 +169,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - Vantagens circunstanciais aplicadas automaticamente na rolagem (ex.: Dwarven Resilience contra Envenenado): passar `roll.against` ao motor na resolução. Os dados já usam o predicado `against` (ver `docs/decisions/0006-predicado-against.md`).
 5. **Fase 5 — Combate:** iniciativa, turnos, condições (incluindo Exaustão 2024) e concentração.
 
-*Extras futuros:* criação de token a partir de imagem com recorte/moldura automáticos, spawn de vários inimigos numerados (Goblin 1, Goblin 2…), colar texto de ficha de monstro e converter para o schema.
+*Extras futuros:* criação de token a partir de imagem com recorte/moldura automáticos, spawn de vários inimigos de uma vez (a numeração Goblin 1, Goblin 2… já existe, um por vez), colar texto de ficha de monstro e converter para o schema.
 
 ## Comandos
 

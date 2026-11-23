@@ -1,13 +1,14 @@
 import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { app, BrowserWindow, dialog, ipcMain, protocol, shell } from 'electron';
-import { loadSrdCompendium, RULES_ENGINE_VERSION } from 'rules-engine';
-import type { z } from 'zod';
+import { type Compendium, loadSrdCompendium, RULES_ENGINE_VERSION } from 'rules-engine';
+import { z } from 'zod';
 import { type AppInfo, IpcChannel, type IpcResult, type TableEvent } from '../shared/ipc';
 import { HostTableRequestSchema, JoinTableRequestSchema } from '../shared/ipc-schemas';
 import { IntentSchema, MAX_ASSET_BYTES, UuidSchema } from '../shared/protocol';
 import { PROTOCOL_VERSION } from '../shared/versions';
 import { ASSET_SCHEME, AssetError, assetResponse, AssetStore, type StoredAsset } from './assets';
+import { searchMonsters } from './compendium';
 import { AppDb, CampaignLibrary, CampaignNotFoundError } from './db';
 import { cryptoRng } from './session';
 import { localAddresses, TableController, TableError } from './table';
@@ -70,10 +71,12 @@ function handle<T>(channel: string, run: (payload: unknown) => T | Promise<T>): 
   });
 }
 
-/** Ids das criaturas do compêndio, carregado só quando a primeira mesa precisa. */
+/** O compêndio, carregado (e validado) só quando alguém precisa dele. */
+let compendium: Compendium | undefined;
+const getCompendium = (): Compendium => (compendium ??= loadSrdCompendium());
 let monsterIds: Set<string> | undefined;
 const monsterExists = (id: string): boolean => {
-  monsterIds ??= new Set(loadSrdCompendium().creatures.map((c) => c.id));
+  monsterIds ??= new Set(getCompendium().creatures.map((c) => c.id));
   return monsterIds.has(id);
 };
 
@@ -102,6 +105,7 @@ function registerIpc(appDb: AppDb, table: TableController, library: CampaignLibr
   handle(IpcChannel.getAppInfo, (): AppInfo => ({ appVersion: app.getVersion(), protocolVersion: PROTOCOL_VERSION, rulesEngineVersion: RULES_ENGINE_VERSION }));
   handle(IpcChannel.getPreferences, () => appDb.preferences());
   handle(IpcChannel.listCampaigns, () => library.list().map(({ id, name, lastOpenedAt }) => ({ id, name, lastOpenedAt })));
+  handle(IpcChannel.searchMonsters, (payload) => searchMonsters(getCompendium().creatures, parse(z.string().max(100), payload)));
   handle(IpcChannel.deleteCampaign, async (payload) => {
     const id = parse(UuidSchema, payload);
     if (table.isHosting(id)) throw new TableError('Encerre a mesa antes de excluir esta campanha');
