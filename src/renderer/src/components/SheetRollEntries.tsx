@@ -224,3 +224,68 @@ export function DamageAppliedBody({ entry, header }: { entry: AppliedEntry; head
     </li>
   );
 }
+
+type SaveEntry = Extract<ChatEntry, { kind: 'save_roll' }>;
+
+export function SaveRollBody({ entry, header, proposals }: { entry: SaveEntry; header: ReactNode; proposals: Readonly<Record<string, unknown>> }) {
+  return (
+    <li className={`entry roll save${entry.visibility === 'gm' ? ' secret' : ''}`}>
+      {header}
+      <p>
+        <span className="roll-label">{entry.label}</span> · {entry.actorName} · salvaguarda de {ABILITY_LABEL[entry.ability].long} CD {entry.dc}
+      </p>
+      {entry.damage && (
+        <p className="roll-result">
+          {entry.damage.groups.map((g, gi) => (
+            <span key={gi} className="damage-group">
+              <code>{g.dice}</code>
+              {g.rolls.map((r, i) => (
+                <span key={i} className="die">
+                  {r.value}
+                </span>
+              ))}
+              <span className="hint">{DAMAGE_LABEL[g.type].toLowerCase()}</span>
+            </span>
+          ))}
+          <span className="total">= {entry.damage.total}</span>
+          <span className="hint">{entry.onSuccess === 'half' ? 'metade no sucesso' : 'nada no sucesso'}</span>
+        </p>
+      )}
+      <ul className="save-results">
+        {entry.results.map((r) => {
+          const kept = r.dice.indexOf(r.natural);
+          return (
+            <li key={r.targetTokenId}>
+              <p className="roll-result">
+                <strong>{r.targetName}</strong>
+                {r.dice.map((value, i) => (
+                  <span key={i} className={`die${i !== kept ? ' dropped' : ''}`}>
+                    {value}
+                  </span>
+                ))}
+                <span className="modifier">{signed(r.modifier)}</span>
+                <span className="total">= {r.total}</span>
+                <span className={`tag ${r.success ? 'hit-tag' : 'miss-tag'}`}>{r.success ? 'sucesso' : 'falha'}</span>
+                {r.mode !== 'normal' && <span className="tag">{MODE_LABEL[r.mode]}</span>}
+                {r.damage && <span className="hint">{r.damage.total} de dano</span>}
+              </p>
+              {(r.advantage.length > 0 || r.disadvantage.length > 0) && (
+                <p className="hint">
+                  {r.advantage.length > 0 && `Vantagem: ${r.advantage.join(', ')}`}
+                  {r.advantage.length > 0 && r.disadvantage.length > 0 && ' · '}
+                  {r.disadvantage.length > 0 && `Desvantagem: ${r.disadvantage.join(', ')}`}
+                </p>
+              )}
+              {[...r.notes, ...(r.damage?.defenses ?? []), ...r.reminders].map((n, i) => (
+                <p key={i} className="hint">
+                  {n}
+                </p>
+              ))}
+              {r.damage?.proposalId !== undefined && r.damage.proposalId in proposals && <ProposalActions proposalId={r.damage.proposalId} amount={r.damage.total} />}
+            </li>
+          );
+        })}
+      </ul>
+    </li>
+  );
+}

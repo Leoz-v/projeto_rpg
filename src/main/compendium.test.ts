@@ -1,6 +1,6 @@
 import { loadSrdCompendium } from 'rules-engine';
 import { describe, expect, it } from 'vitest';
-import { monsterAttacks, searchItems, searchMonsters } from './compendium';
+import { monsterActions, searchItems, searchMonsters } from './compendium';
 
 describe('searchMonsters (SRD compendium)', () => {
   const { creatures } = loadSrdCompendium();
@@ -40,13 +40,23 @@ describe('searchItems (SRD compendium)', () => {
   });
 });
 
-describe('monsterAttacks', () => {
-  it('lists the attack actions of a stat block', () => {
+describe('monsterActions', () => {
+  it('lists the attack and save actions of a stat block', () => {
     const { creatures } = loadSrdCompendium();
-    expect(monsterAttacks(creatures, 'goblin_warrior')).toEqual([
-      { id: 'scimitar', name: 'Scimitar', toHit: 4, damage: [{ dice: '1d6+2', type: 'slashing' }], reach: 5 },
-      { id: 'shortbow', name: 'Shortbow', toHit: 4, damage: [{ dice: '1d6+2', type: 'piercing' }], range: 80 },
+    expect(monsterActions(creatures, 'goblin_warrior')).toEqual([
+      { kind: 'attack', id: 'scimitar', name: 'Scimitar', toHit: 4, damage: [{ dice: '1d6+2', type: 'slashing' }], reach: 5 },
+      { kind: 'attack', id: 'shortbow', name: 'Shortbow', toHit: 4, damage: [{ dice: '1d6+2', type: 'piercing' }], range: 80 },
     ]);
-    expect(monsterAttacks(creatures, 'nao_existe')).toEqual([]);
+    expect(monsterActions(creatures, 'ankheg').find((a) => a.id === 'acid_spray')).toEqual({
+      kind: 'save',
+      id: 'acid_spray',
+      name: 'Acid Spray',
+      ability: 'dex',
+      dc: 12,
+      damage: [{ dice: '4d6', type: 'acid' }],
+      onSuccess: 'half',
+      conditions: [],
+    });
+    expect(monsterActions(creatures, 'nao_existe')).toEqual([]);
   });
 });

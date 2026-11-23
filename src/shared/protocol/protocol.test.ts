@@ -192,6 +192,12 @@ describe('intents', () => {
     expect(intent('damage.apply', { proposalId: ROLL, amount: 7 })).toBe(true);
     expect(intent('damage.apply', { proposalId: ROLL, amount: -1 })).toBe(false);
     expect(intent('damage.dismiss', { proposalId: ROLL })).toBe(true);
+    expect(intent('save.force', { source: { tokenId: TOKEN, actionId: 'acid_spray' }, targetTokenIds: [TOKEN], visibility: 'public' })).toBe(true);
+    const fireball = { custom: { name: 'Fireball', ability: 'dex', dc: 15, damage: [{ dice: '8d6', type: 'fire' }], onSuccess: 'half' } };
+    expect(intent('save.force', { source: fireball, targetTokenIds: [TOKEN, HERO], against: { source: 'spell' }, visibility: 'public' })).toBe(true);
+    expect(intent('save.force', { source: fireball, targetTokenIds: [TOKEN, TOKEN], visibility: 'public' })).toBe(false);
+    expect(intent('save.force', { source: fireball, targetTokenIds: [], visibility: 'public' })).toBe(false);
+    expect(intent('save.force', { source: fireball, targetTokenIds: [TOKEN], against: {}, visibility: 'public' })).toBe(false);
     expect(intent('hp.change', { target: { tokenId: TOKEN }, change: { kind: 'max', amount: 22 } })).toBe(true);
     expect(intent('token.create', { mapId: MAP, name: 'Barril', position: { x: 0, y: 0 }, size: 'medium', hpMax: 5 })).toBe(true);
     expect(intent('hp.change', { target: { tokenId: TOKEN }, change: { kind: 'damage', amount: -3 } })).toBe(false);

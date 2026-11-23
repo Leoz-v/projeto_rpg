@@ -1,7 +1,8 @@
-import type { Damage, DamageType } from '../schemas/common';
+import type { Ability, Damage, DamageType } from '../schemas/common';
 import type { Creature } from '../schemas/creature';
 import { type D20RollInput, type D20RollResult, rollD20 } from './d20';
-import { applyDamage, type DamageResult } from './damage';
+import { applyDamage, type DamageInstance, type DamageResult } from './damage';
+import { abilityModifier } from './math';
 import { type Rng, rollDice } from './dice';
 import type { DamageGroup } from './sheet-roll';
 import type { Defenses, SourceLabel } from './types';
@@ -74,4 +75,41 @@ export function resolveAttack(input: AttackInput, rng: Rng): AttackResult {
   // O bônus (modificador de atributo, arma mágica) é do dano da arma: entra no primeiro grupo.
   const instances = groups.map((g, i) => ({ amount: Math.max(0, g.total + (i === 0 ? bonus : 0)), type: g.type }));
   return { roll, hit, critical, damage: { groups, bonus, applied: applyDamage(input.defenses, instances, rng) } };
+}
+
+// --- Salvaguardas ------------------------------------------------------------
+
+/** Bônus de salvaguarda de um monstro: o publicado no bloco ou o modificador do atributo. */
+export function creatureSaveBonus(creature: Creature, ability: Ability): number {
+  return creature.saves[ability] ?? abilityModifier(creature.abilities[ability]);
+}
+
+export interface SaveInput {
+  d20: D20RollInput;
+  dc: number;
+  /** Dano já rolado (uma vez para todos os alvos, SRD 5.2.1 "Damage against Multiple Targets"), por tipo. */
+  damage: readonly DamageInstance[];
+  /** No sucesso: metade do dano (arredondada para baixo) ou nenhum. */
+  onSuccess: 'half' | 'none';
+  defenses: Defenses;
+}
+
+export interface SaveResult {
+  roll: D20RollResult;
+  success: boolean;
+  /** Dano depois do sucesso/falha e das defesas do alvo; ausente sem dano. */
+  damage?: DamageResult | undefined;
+}
+
+/**
+ * Uma criatura faz a salvaguarda contra a CD. Na falha, sofre o dano todo; no
+ * sucesso, metade ou nada (cada tipo pela metade, para baixo); depois, as
+ * defesas do alvo. Em salvaguardas, o 20 e o 1 naturais não têm efeito especial.
+ */
+export function resolveSave(input: SaveInput, rng: Rng): SaveResult {
+  const roll = rollD20({ ...input.d20, dc: input.dc }, rng);
+  const success = roll.success === true;
+  if (input.damage.length === 0) return { roll, success };
+  const incoming = input.damage.map((d) => ({ type: d.type, amount: success ? (input.onSuccess === 'half' ? Math.floor(d.amount / 2) : 0) : d.amount }));
+  return { roll, success, damage: applyDamage(input.defenses, incoming, rng) };
 }

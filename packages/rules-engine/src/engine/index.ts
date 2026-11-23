@@ -14,6 +14,9 @@ export {
   type DamageGroup,
   type DamageOptions,
   type DeclaredRoll,
+  d20Mode,
+  matchesAgainst,
+  type RollAgainst,
   rollReminders,
   rollWeaponDamage,
   type SheetD20,
@@ -21,5 +24,16 @@ export {
   type SheetRollTarget,
   type WeaponDamageRoll,
 } from './sheet-roll';
-export { type AttackInput, type AttackResult, creatureDefenses, criticalDice, resolveAttack, rollActionDamage } from './attack';
+export {
+  type AttackInput,
+  type AttackResult,
+  creatureDefenses,
+  creatureSaveBonus,
+  criticalDice,
+  resolveAttack,
+  resolveSave,
+  rollActionDamage,
+  type SaveInput,
+  type SaveResult,
+} from './attack';
 export { CONDITION_NAME, DAMAGE_NAME } from './names';

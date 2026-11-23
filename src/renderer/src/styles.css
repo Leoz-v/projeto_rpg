@@ -1589,9 +1589,16 @@ button.small {
 }
 
 .damage-group {
-  display: inline-flex;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.3rem;
+  max-width: 100%;
+}
+
+.damage-group code,
+.damage-group .hint {
+  white-space: nowrap;
 }
 
 .proposal {
@@ -1627,4 +1634,67 @@ button.small {
 .roll-toolbar > label:first-child select {
   width: auto;
   min-width: 10rem;
+}
+
+/* Salvaguardas */
+
+.save-results {
+  list-style: none;
+  margin: 0.3rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.save-results > li {
+  border-top: 1px solid var(--border);
+  padding-top: 0.3rem;
+}
+
+.save-effect {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.7rem;
+  background: var(--bg);
+}
+
+.save-effect .row label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.save-effect .row label.narrow {
+  max-width: 5rem;
+}
+
+.save-effect label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text);
+}
+
+.save-effect label.check input,
+.target-list label.check input {
+  width: auto;
+}
+
+.target-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+}
+
+.target-list label.check {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.85rem;
 }

@@ -1,5 +1,5 @@
 import { baseItemOptions, type Compendium, type Creature } from 'rules-engine';
-import type { ItemSummary, MonsterAttack, MonsterSummary } from '../shared/ipc';
+import type { ItemSummary, MonsterAction, MonsterSummary } from '../shared/ipc';
 
 /**
  * Consultas ao compêndio para a tela. O compêndio fica no processo main (o
@@ -49,22 +49,28 @@ export function searchItems(compendium: Compendium, query: string, limit = 30): 
     });
 }
 
-/** Ações de ataque de um monstro (as de salvaguarda entram com a Fase 4, PR 4). */
-export function monsterAttacks(creatures: readonly Creature[], monsterId: string): MonsterAttack[] {
+/** Ações de ataque e de salvaguarda de um monstro (as de texto e Spellcasting ficam no bloco, para o mestre). */
+export function monsterActions(creatures: readonly Creature[], monsterId: string): MonsterAction[] {
   const creature = creatures.find((c) => c.id === monsterId);
   if (!creature) return [];
-  return creature.actions.flatMap((a): MonsterAttack[] =>
-    a.kind === 'attack'
-      ? [
-          {
-            id: a.id,
-            name: a.name,
-            toHit: a.toHit,
-            damage: a.damage.map((d) => ({ dice: d.dice, type: d.type })),
-            ...(a.reach !== undefined ? { reach: a.reach } : {}),
-            ...(a.range !== undefined ? { range: a.range } : {}),
-          },
-        ]
-      : [],
-  );
+  return creature.actions.flatMap((a): MonsterAction[] => {
+    const damage = a.kind === 'attack' || a.kind === 'save' ? a.damage.map((d) => ({ dice: d.dice, type: d.type })) : [];
+    if (a.kind === 'attack') {
+      return [
+        {
+          kind: 'attack',
+          id: a.id,
+          name: a.name,
+          toHit: a.toHit,
+          damage,
+          ...(a.reach !== undefined ? { reach: a.reach } : {}),
+          ...(a.range !== undefined ? { range: a.range } : {}),
+        },
+      ];
+    }
+    if (a.kind === 'save') {
+      return [{ kind: 'save', id: a.id, name: a.name, ability: a.ability, dc: a.dc, damage, onSuccess: a.onSuccess, conditions: a.onFailConditions }];
+    }
+    return [];
+  });
 }

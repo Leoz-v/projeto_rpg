@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { creatureDefenses, criticalDice, resolveAttack, rollActionDamage } from '../../src/engine/attack';
+import { creatureDefenses, creatureSaveBonus, criticalDice, resolveAttack, resolveSave, rollActionDamage } from '../../src/engine/attack';
 import { damageNotes } from '../../src/engine/damage';
 import type { Rng } from '../../src/engine/dice';
 import { loadSrdCompendium } from '../../src/srd';
@@ -53,3 +53,33 @@ describe('attack against a target', () => {
     expect(crit.damage?.applied.total).toBe(13);
   });
 });
+
+describe('saving throws against an effect', () => {
+  it('uses the published save bonus or the ability modifier', () => {
+    expect(creatureSaveBonus(creature('adult_red_dragon'), 'dex')).toBe(6);
+    // Goblin Warrior: DES 15, sem bônus publicado.
+    expect(creatureSaveBonus(creature('goblin_warrior'), 'dex')).toBe(2);
+  });
+
+  it('deals full damage on a failure and half (rounded down) on a success, then the defenses', () => {
+    const fire = [{ amount: 15, type: 'fire' as const }];
+    const fail = resolveSave({ d20: { modifier: 2, mode: 'normal' }, dc: 13, damage: fire, onSuccess: 'half', defenses: NONE }, fixed([5]));
+    expect(fail).toMatchObject({ success: false });
+    expect(fail.damage?.total).toBe(15);
+    const success = resolveSave({ d20: { modifier: 2, mode: 'normal' }, dc: 13, damage: fire, onSuccess: 'half', defenses: NONE }, fixed([11]));
+    expect(success).toMatchObject({ success: true });
+    expect(success.damage?.total).toBe(7);
+    const resisted = resolveSave(
+      { d20: { modifier: 2, mode: 'normal' }, dc: 13, damage: fire, onSuccess: 'half', defenses: { ...NONE, resistances: [{ damageType: 'fire', sources: [] }] } },
+      fixed([11]),
+    );
+    expect(resisted.damage?.total).toBe(3);
+    expect(resolveSave({ d20: { modifier: 2, mode: 'normal' }, dc: 13, damage: fire, onSuccess: 'none', defenses: NONE }, fixed([11])).damage?.total).toBe(0);
+  });
+
+  it('has no special natural 20 or 1 on saving throws', () => {
+    expect(resolveSave({ d20: { modifier: -5, mode: 'normal' }, dc: 16, damage: [], onSuccess: 'none', defenses: NONE }, fixed([20])).success).toBe(false);
+    expect(resolveSave({ d20: { modifier: 20, mode: 'normal' }, dc: 16, damage: [], onSuccess: 'none', defenses: NONE }, fixed([1])).success).toBe(true);
+  });
+});
+

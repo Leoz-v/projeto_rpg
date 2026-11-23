@@ -9,7 +9,7 @@ import { IntentSchema, MAX_ASSET_BYTES, UuidSchema } from '../shared/protocol';
 import { PROTOCOL_VERSION } from '../shared/versions';
 import { ASSET_SCHEME, AssetError, assetResponse, AssetStore, type StoredAsset } from './assets';
 import { characterSheet, creationOptions } from './character-sheet';
-import { monsterAttacks, searchItems, searchMonsters } from './compendium';
+import { monsterActions, searchItems, searchMonsters } from './compendium';
 import { AppDb, CampaignLibrary, CampaignNotFoundError } from './db';
 import { cryptoRng } from './session';
 import { localAddresses, TableController, TableError } from './table';
@@ -132,7 +132,7 @@ function registerIpc(appDb: AppDb, table: TableController, library: CampaignLibr
   handle(IpcChannel.getTable, () => table.view());
   handle(IpcChannel.sendIntent, (payload) => table.send(parse(IntentSchema, payload)));
   handle(IpcChannel.creationOptions, () => creationOptions(getCompendium()));
-  handle(IpcChannel.monsterAttacks, (payload) => monsterAttacks(getCompendium().creatures, parse(z.string().max(100), payload)));
+  handle(IpcChannel.monsterActions, (payload) => monsterActions(getCompendium().creatures, parse(z.string().max(100), payload)));
   handle(IpcChannel.characterHpMaxima, () => {
     const characters = Object.values(table.view()?.state.characters ?? {});
     return Object.fromEntries(characters.flatMap((c) => {

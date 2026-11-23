@@ -1,4 +1,4 @@
-import { AbilitySchema, SkillSchema } from 'rules-engine/schemas';
+import { AbilitySchema, ConditionSchema, SkillSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { MAX_CELL_PX, MAX_MAP_CELLS } from './constants';
 
@@ -27,6 +27,11 @@ export const SheetRollTargetSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('attack'), instanceId: z.string().min(1).max(64) }),
 ]);
 export type SheetRollTarget = z.infer<typeof SheetRollTargetSchema>;
+
+/** O que uma salvaguarda evita (`roll.against` do motor): uma condição e/ou a origem mágica. */
+export const RollAgainstSchema = z
+  .strictObject({ condition: ConditionSchema.optional(), source: z.enum(['spell', 'magic']).optional() })
+  .refine((a) => a.condition !== undefined || a.source !== undefined, { message: 'informe a condição ou a origem' });
 
 export const NameSchema = z.string().min(1).max(100);
 export const LabelSchema = z.string().min(1).max(100);

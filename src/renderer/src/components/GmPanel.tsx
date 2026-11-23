@@ -1,6 +1,6 @@
 import { type SyntheticEvent, useEffect, useState } from 'react';
 import type { Size } from 'rules-engine/schemas';
-import type { ImportedAsset, MonsterAttack, MonsterSummary, TableView } from '../../../shared/ipc';
+import type { ImportedAsset, MonsterAction, MonsterSummary, TableView } from '../../../shared/ipc';
 import type { MapStage } from '../canvas/MapStage';
 import { placeToken, tokenSide } from '../canvas/geometry';
 import { defaultCellPx, gridDimensionsForImage } from '../canvas/map-grid';
@@ -8,7 +8,8 @@ import { sendIntent } from '../store/table';
 import { tokenHealth } from '../canvas/health';
 import { HitPointsControl, HitPointsSummary } from './HitPoints';
 import { MapGridModal } from './MapGridModal';
-import { DAMAGE_LABEL, signed } from './sheet-labels';
+import { forceSave, SaveEffectForm, TargetChecklist, type TargetOption } from './SaveEffect';
+import { ABILITY_LABEL, CONDITION_LABEL, DAMAGE_LABEL, signed } from './sheet-labels';
 import { nextTokenName } from './token-name';
 
 /** Painel do mestre: mapas (criar e mostrar) e tokens (colocar e remover). Tudo vira `Intent`. */
@@ -367,8 +368,8 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
               )}
               <HitPointsControl key={selected.id} target={{ tokenId: selected.id }} health={selectedHealth} allowMax />
               {selected.monsterId !== null && (
-                <MonsterAttacks
-                  key={`attacks:${selected.id}`}
+                <MonsterActions
+                  key={`actions:${selected.id}`}
                   tokenId={selected.id}
                   monsterId={selected.monsterId}
                   targets={Object.values(state.tokens).filter((t) => t.mapId === selected.mapId && t.id !== selected.id)}
@@ -494,22 +495,26 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
   );
 }
 
-/** Ataques do monstro do token selecionado, contra um alvo do mapa (o dano vira proposta no chat). */
-function MonsterAttacks({ tokenId, monsterId, targets, onError }: { tokenId: string; monsterId: string; targets: readonly { id: string; name: string }[]; onError: (m: string | null) => void }) {
-  const [attacks, setAttacks] = useState<MonsterAttack[]>([]);
+/** Ações do monstro do token selecionado: ataques contra um alvo e salvaguardas contra vários (o dano vira proposta no chat). */
+function MonsterActions({ tokenId, monsterId, targets, onError }: { tokenId: string; monsterId: string; targets: readonly TargetOption[]; onError: (m: string | null) => void }) {
+  const [actions, setActions] = useState<MonsterAction[]>([]);
   const [targetId, setTargetId] = useState('');
+  const [saveTargets, setSaveTargets] = useState<string[]>([]);
   const [declared, setDeclared] = useState<'normal' | 'advantage' | 'disadvantage'>('normal');
   useEffect(() => {
     let current = true;
-    void window.vtt.monsterAttacks(monsterId).then((r) => {
-      if (current && r.ok) setAttacks(r.value);
+    void window.vtt.monsterActions(monsterId).then((r) => {
+      if (current && r.ok) setActions(r.value);
     });
     return () => {
       current = false;
     };
   }, [monsterId]);
-  if (attacks.length === 0) return null;
+  if (actions.length === 0) return null;
+  const attacks = actions.filter((a) => a.kind === 'attack');
+  const saves = actions.filter((a) => a.kind === 'save');
   const target = targets.find((t) => t.id === targetId) ?? targets[0];
+  const damageText = (damage: MonsterAction['damage']): string => damage.map((d) => `${d.dice} ${DAMAGE_LABEL[d.type].toLowerCase()}`).join(' + ');
 
   const attack = (actionId: string): void => {
     if (!target) return;
@@ -527,44 +532,76 @@ function MonsterAttacks({ tokenId, monsterId, targets, onError }: { tokenId: str
 
   return (
     <div className="monster-attacks stack">
-      <label>
-        Alvo
-        <select
-          value={target?.id ?? ''}
-          onChange={(e) => {
-            setTargetId(e.target.value);
-          }}
-        >
-          {targets.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <select
-        aria-label="Vantagem ou Desvantagem"
-        value={declared}
-        onChange={(e) => {
-          setDeclared(e.target.value === 'advantage' ? 'advantage' : e.target.value === 'disadvantage' ? 'disadvantage' : 'normal');
-        }}
-      >
-        <option value="normal">Rolagem normal</option>
-        <option value="advantage">Com Vantagem</option>
-        <option value="disadvantage">Com Desvantagem</option>
-      </select>
-      <ul>
-        {attacks.map((a) => (
-          <li key={a.id}>
-            <button type="button" className="secondary small" disabled={!target} onClick={() => { attack(a.id); }}>
-              {a.name}
-            </button>
-            <span className="hint">
-              {signed(a.toHit)} · {a.damage.map((d) => `${d.dice} ${DAMAGE_LABEL[d.type].toLowerCase()}`).join(' + ')}
-            </span>
-          </li>
-        ))}
-      </ul>
+      {attacks.length > 0 && (
+        <>
+          <h3>Ataques</h3>
+          <label>
+            Alvo
+            <select
+              value={target?.id ?? ''}
+              onChange={(e) => {
+                setTargetId(e.target.value);
+              }}
+            >
+              {targets.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <select
+            aria-label="Vantagem ou Desvantagem"
+            value={declared}
+            onChange={(e) => {
+              setDeclared(e.target.value === 'advantage' ? 'advantage' : e.target.value === 'disadvantage' ? 'disadvantage' : 'normal');
+            }}
+          >
+            <option value="normal">Rolagem normal</option>
+            <option value="advantage">Com Vantagem</option>
+            <option value="disadvantage">Com Desvantagem</option>
+          </select>
+          <ul>
+            {attacks.map((a) => (
+              <li key={a.id}>
+                <button type="button" className="secondary small" disabled={!target} onClick={() => { attack(a.id); }}>
+                  {a.name}
+                </button>
+                <span className="hint">
+                  {signed(a.toHit)} · {damageText(a.damage)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {saves.length > 0 && (
+        <>
+          <h3>Salvaguardas</h3>
+          <TargetChecklist targets={targets} selected={saveTargets} onChange={setSaveTargets} />
+          <ul>
+            {saves.map((a) => (
+                <li key={a.id}>
+                  <button
+                    type="button"
+                    className="secondary small"
+                    disabled={saveTargets.length === 0}
+                    onClick={() => {
+                      void forceSave({ tokenId, actionId: a.id }, saveTargets, false).then(onError);
+                    }}
+                  >
+                    {a.name}
+                  </button>
+                  <span className="hint">
+                    {ABILITY_LABEL[a.ability].short} CD {a.dc}
+                    {a.damage.length > 0 && ` · ${damageText(a.damage)}${a.onSuccess === 'half' ? ' (metade no sucesso)' : ''}`}
+                    {a.conditions.length > 0 && ` · ${a.conditions.map((c) => CONDITION_LABEL[c]).join(', ')}`}
+                  </span>
+                </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }
@@ -639,6 +676,11 @@ export function GmPanel({ view, stage, selectedId }: { view: TableView; stage: M
       <Maps view={view} onError={setError} />
       <CharacterTokens view={view} stage={stage} onError={setError} />
       <Tokens view={view} stage={stage} selectedId={selectedId} onError={setError} />
+      {view.state.activeMapId !== null && (
+        <section className="panel" aria-label="Efeito com salvaguarda">
+          <SaveEffectForm targets={Object.values(view.state.tokens).filter((t) => t.mapId === view.state.activeMapId)} />
+        </section>
+      )}
     </>
   );
 }
