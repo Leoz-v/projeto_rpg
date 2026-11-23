@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BaseScoresSchema, CharacterSchema, GmAdjustmentSchema } from '../../src/schemas/character';
+import { BaseScoresSchema, CharacterSchema, GmAdjustmentSchema, pointBuySpent } from '../../src/schemas/character';
 import { InventorySchema } from '../../src/schemas/inventory';
 import { BackgroundSchema, ClassSchema, FeatSchema, GrantSchema, SpeciesSchema } from '../../src/schemas/source';
 
@@ -261,6 +261,12 @@ describe('BaseScoresSchema', () => {
     expect(BaseScoresSchema.safeParse({ method: 'point_buy', scores: max }).success).toBe(true);
     expect(BaseScoresSchema.safeParse({ method: 'point_buy', scores: { ...max, int: 9 } }).success).toBe(false);
     expect(BaseScoresSchema.safeParse({ method: 'point_buy', scores: { ...max, str: 16, dex: 8 } }).success).toBe(false);
+  });
+
+  it('counts the points spent (SRD 5.2.1 p. 20 table)', () => {
+    expect(pointBuySpent({ str: 8, dex: 8, con: 8, int: 8, wis: 8, cha: 8 })).toBe(0);
+    expect(pointBuySpent({ str: 15, dex: 14, con: 13, int: 12, wis: 10, cha: 8 })).toBe(27);
+    expect(pointBuySpent({ str: 16, dex: 8, con: 8, int: 8, wis: 8, cha: 8 })).toBeUndefined();
   });
 
   it('limits rolled scores to 3–18', () => {

@@ -1,4 +1,4 @@
-import { rollDice, type Rng, type Size, spaceSquares } from 'rules-engine';
+import { rollAbilityScores, rollDice, type Rng, type Size, spaceSquares, usesRolledValues } from 'rules-engine';
 import type { z } from 'zod';
 import {
   applyPatch,
@@ -11,6 +11,7 @@ import {
   type PatchOp,
   type Point,
   type Role,
+  type SessionCharacter,
   type SessionState,
   type Token,
   toPointer,
@@ -96,6 +97,7 @@ export class HostSession {
       maps: restored?.maps ?? {},
       activeMapId: restored?.activeMapId ?? null,
       tokens: restored?.tokens ?? {},
+      characters: restored?.characters ?? {},
     };
   }
 
@@ -182,6 +184,15 @@ export class HostSession {
         this.requireGm(role);
         this.token(intent.data.tokenId);
         return [{ op: 'remove', path: toPointer('tokens', intent.data.tokenId) }];
+      case 'character.create':
+        return this.createCharacter(playerId, role, intent.data);
+      case 'character.update':
+        return this.updateCharacter(playerId, role, intent.data);
+      case 'character.roll_scores':
+        return this.rollScores(playerId, role, intent.data.characterId);
+      case 'character.remove':
+        this.ownCharacter(playerId, role, intent.data.characterId);
+        return [{ op: 'remove', path: toPointer('characters', intent.data.characterId) }];
     }
   }
 
@@ -272,5 +283,64 @@ export class HostSession {
       ownerIds,
     };
     return [{ op: 'add', path: toPointer('tokens', token.id), value: token }];
+  }
+
+  /** O personagem, se quem pede é o dono ou o mestre. */
+  private ownCharacter(playerId: string, role: Role, characterId: string): SessionCharacter {
+    const character = this.current.characters[characterId];
+    if (!character) throw violation('Personagem não encontrado');
+    if (role !== 'gm' && character.ownerId !== playerId) throw notAllowed('Este personagem não é seu');
+    return character;
+  }
+
+  private createCharacter(playerId: string, role: Role, data: IntentData<'character.create'>): PatchOp[] {
+    const ownerId = data.ownerId ?? playerId;
+    if (ownerId !== playerId) {
+      this.requireGm(role);
+      if (this.current.players[ownerId] === undefined) throw violation('Dono do personagem não está na mesa');
+    }
+    const character: SessionCharacter = { id: this.deps.newId(), ownerId, name: data.name, baseScores: null, rolledScores: null, steps: [] };
+    return [{ op: 'add', path: toPointer('characters', character.id), value: character }];
+  }
+
+  /**
+   * Troca nome, atributos ou passos de construção. O Host confere só a
+   * estrutura e a origem dos atributos: a construção pode estar incompleta
+   * (rascunho), e o motor aponta o que falta na ficha.
+   */
+  private updateCharacter(playerId: string, role: Role, data: IntentData<'character.update'>): PatchOp[] {
+    const character = this.ownCharacter(playerId, role, data.characterId);
+    const ops: PatchOp[] = [];
+    const set = (field: 'name' | 'baseScores' | 'steps', value: unknown): void => {
+      ops.push({ op: 'replace', path: toPointer('characters', character.id, field), value });
+    };
+    if (data.name !== undefined) set('name', data.name);
+    if (data.baseScores !== undefined) {
+      const { method, scores } = data.baseScores;
+      if (method === 'manual' && role !== 'gm') throw notAllowed('Só o mestre pode definir atributos à mão');
+      if (method === 'rolled' && (character.rolledScores === null || !usesRolledValues(scores, character.rolledScores))) {
+        throw violation('Os atributos precisam usar os valores rolados pelo Host');
+      }
+      set('baseScores', data.baseScores);
+    }
+    if (data.steps !== undefined) set('steps', data.steps);
+    return ops;
+  }
+
+  /**
+   * O Host rola os atributos (4d6, descarta o menor, seis vezes) e publica no
+   * chat. O dono rola uma vez; o mestre pode mandar rolar de novo, o que
+   * desfaz uma distribuição feita com os valores antigos.
+   */
+  private rollScores(playerId: string, role: Role, characterId: string): PatchOp[] {
+    const character = this.ownCharacter(playerId, role, characterId);
+    if (character.rolledScores !== null && role !== 'gm') throw notAllowed('Os atributos já foram rolados; peça ao mestre para rolar de novo');
+    const sets = rollAbilityScores(this.deps.rng);
+    const ops: PatchOp[] = [
+      { op: 'replace', path: toPointer('characters', character.id, 'rolledScores'), value: sets.map((s) => s.total) },
+      this.appendChat({ kind: 'ability_roll', ...this.entryBase(playerId), characterId: character.id, characterName: character.name, sets }),
+    ];
+    if (character.baseScores?.method === 'rolled') ops.push({ op: 'replace', path: toPointer('characters', character.id, 'baseScores'), value: null });
+    return ops;
   }
 }

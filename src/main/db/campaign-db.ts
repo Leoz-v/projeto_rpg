@@ -4,9 +4,9 @@ import { migrate, type MigrateResult } from './migrate';
 import { type Database, openDatabase, transaction } from './sqlite';
 
 /**
- * `<campanha>.db`: arquivo portátil com tudo o que é da mesa. Hoje guarda a
- * sessão da Fase 2 (jogadores, mapas, tokens e o log do chat); personagens,
- * inventários e combate entram em migrações futuras.
+ * `<campanha>.db`: arquivo portátil com tudo o que é da mesa: jogadores,
+ * mapas, tokens, o log do chat e os personagens (só as escolhas de
+ * construção). Inventários e combate entram em migrações futuras.
  */
 
 const MIGRATIONS = [
@@ -46,6 +46,13 @@ const MIGRATIONS = [
      entry TEXT NOT NULL
    ) STRICT;`,
   `ALTER TABLE maps ADD COLUMN cell_px INTEGER;`,
+  // Escolhas de construção em JSON (baseScores, rolledScores, steps), validadas pelo schema ao carregar.
+  `CREATE TABLE characters (
+     id TEXT PRIMARY KEY,
+     owner_id TEXT NOT NULL REFERENCES players (id),
+     name TEXT NOT NULL,
+     build TEXT NOT NULL
+   ) STRICT;`,
 ] as const;
 
 export const CAMPAIGN_DB_SCHEMA_VERSION = MIGRATIONS.length;
@@ -72,6 +79,7 @@ const TokenRow = z.object({
   owner_ids: z.string(),
 });
 const ChatRow = z.object({ entry: z.string() });
+const CharacterRow = z.object({ id: z.string(), owner_id: z.string(), name: z.string(), build: z.string() });
 const CountRow = z.object({ n: z.number() });
 
 export class CampaignDb {
@@ -147,12 +155,22 @@ export class CampaignDb {
           return [t.id, { id: t.id, mapId: t.map_id, name: t.name, position: { x: t.x, y: t.y }, size: t.size, monsterId: t.monster_id, image: t.image, ownerIds }];
         }),
     );
+    const characters = Object.fromEntries(
+      this.db
+        .prepare('SELECT id, owner_id, name, build FROM characters')
+        .all()
+        .map((row) => {
+          const c = CharacterRow.parse(row);
+          const build: unknown = JSON.parse(c.build);
+          return [c.id, { id: c.id, ownerId: c.owner_id, name: c.name, ...(typeof build === 'object' ? build : {}) }];
+        }),
+    );
     const chat = this.db
       .prepare('SELECT entry FROM chat ORDER BY seq')
       .all()
       .map((row): unknown => JSON.parse(ChatRow.parse(row).entry));
 
-    const parsed = SessionStateSchema.safeParse({ campaign: { id: campaign.id, name: campaign.name }, players, chat, maps, activeMapId: campaign.active_map_id, tokens });
+    const parsed = SessionStateSchema.safeParse({ campaign: { id: campaign.id, name: campaign.name }, players, chat, maps, activeMapId: campaign.active_map_id, tokens, characters });
     if (!parsed.success) throw new CampaignDbError(`Arquivo da campanha inválido: ${parsed.error.issues[0]?.message ?? 'erro desconhecido'}`);
     return parsed.data;
   }
@@ -188,13 +206,22 @@ export class CampaignDb {
         upsertToken.run(t.id, t.mapId, t.name, t.position.x, t.position.y, t.size, t.monsterId, t.image, JSON.stringify(t.ownerIds));
       }
 
+      this.removeMissing('characters', Object.keys(state.characters));
+      const upsertCharacter = db.prepare(
+        `INSERT INTO characters (id, owner_id, name, build) VALUES (?, ?, ?, ?)
+         ON CONFLICT (id) DO UPDATE SET owner_id = excluded.owner_id, name = excluded.name, build = excluded.build`,
+      );
+      for (const c of Object.values(state.characters)) {
+        upsertCharacter.run(c.id, c.ownerId, c.name, JSON.stringify({ baseScores: c.baseScores, rolledScores: c.rolledScores, steps: c.steps }));
+      }
+
       const saved = CountRow.parse(db.prepare('SELECT COUNT(*) AS n FROM chat').get()).n;
       const insertEntry = db.prepare('INSERT INTO chat (seq, id, entry) VALUES (?, ?, ?)');
       state.chat.slice(saved).forEach((entry: ChatEntry, i) => insertEntry.run(saved + i, entry.id, JSON.stringify(entry)));
     });
   }
 
-  private removeMissing(table: 'maps' | 'tokens', keep: readonly string[]): void {
+  private removeMissing(table: 'maps' | 'tokens' | 'characters', keep: readonly string[]): void {
     const existing = this.db
       .prepare(`SELECT id FROM ${table}`)
       .all()

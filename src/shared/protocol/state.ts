@@ -1,4 +1,4 @@
-import { SizeSchema } from 'rules-engine/schemas';
+import { ABILITY_ROLL_SETS, BaseScoresSchema, CharacterSchema, SizeSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { ChatTextSchema, LabelSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 
@@ -32,6 +32,16 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
   }),
   /** Rolagem do mestre vista por um jogador (seção 2.12): sem fórmula, rótulo nem resultado. */
   z.strictObject({ kind: z.literal('hidden_roll'), ...entryBase }),
+  /** Atributos rolados pelo Host para um personagem (`character.roll_scores`): seis vezes 4d6, descartando o menor. */
+  z.strictObject({
+    kind: z.literal('ability_roll'),
+    ...entryBase,
+    characterId: UuidSchema,
+    characterName: NameSchema,
+    sets: z
+      .array(z.strictObject({ dice: z.array(z.int().min(1).max(6)).length(4), dropped: z.int().min(0).max(3), total: z.int().min(3).max(18) }))
+      .length(ABILITY_ROLL_SETS),
+  }),
 ]);
 export type ChatEntry = z.infer<typeof ChatEntrySchema>;
 
@@ -59,6 +69,24 @@ export const TokenSchema = z.strictObject({
 });
 export type Token = z.infer<typeof TokenSchema>;
 
+/** Valor de atributo rolado (3 a 18). */
+const RolledScoreSchema = z.int().min(3).max(18);
+
+/**
+ * Personagem da campanha: só as escolhas de construção (o motor calcula a
+ * ficha). `baseScores` fica `null` até os atributos serem definidos;
+ * `rolledScores` guarda os valores rolados pelo Host, os únicos aceitos no método `rolled`.
+ */
+export const SessionCharacterSchema = z.strictObject({
+  id: UuidSchema,
+  ownerId: UuidSchema,
+  name: NameSchema,
+  baseScores: BaseScoresSchema.nullable(),
+  rolledScores: z.array(RolledScoreSchema).length(ABILITY_ROLL_SETS).nullable(),
+  steps: CharacterSchema.shape.steps,
+});
+export type SessionCharacter = z.infer<typeof SessionCharacterSchema>;
+
 export const SessionStateSchema = z.strictObject({
   campaign: z.strictObject({ id: UuidSchema, name: NameSchema }),
   players: z.record(UuidSchema, PlayerSchema),
@@ -66,5 +94,6 @@ export const SessionStateSchema = z.strictObject({
   maps: z.record(UuidSchema, MapSchema),
   activeMapId: UuidSchema.nullable(),
   tokens: z.record(UuidSchema, TokenSchema),
+  characters: z.record(UuidSchema, SessionCharacterSchema),
 });
 export type SessionState = z.infer<typeof SessionStateSchema>;

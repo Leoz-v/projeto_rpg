@@ -245,3 +245,102 @@ describe('HostSession: secret rolls by players', () => {
     expect(session.patchFor(change, BRUNO.playerId).ops[0]).toMatchObject({ value: { kind: 'hidden_roll' } });
   });
 });
+
+describe('HostSession: characters', () => {
+  const STANDARD = { method: 'standard_array' as const, scores: { str: 15, dex: 14, con: 13, int: 12, wis: 10, cha: 8 } };
+
+  /** Cria um personagem para quem pede e devolve o id. */
+  function create(session: HostSession, playerId: string, name = 'Thorin', ownerId?: string): string {
+    const before = new Set(Object.keys(session.state.characters));
+    const outcome = session.handle(playerId, { kind: 'character.create', data: { name, ...(ownerId !== undefined ? { ownerId } : {}) } });
+    expect(applied(outcome)).toBe(true);
+    return Object.keys(session.state.characters).find((id) => !before.has(id)) ?? '';
+  }
+
+  it('creates an empty draft owned by whoever asked', () => {
+    const session = setup();
+    const id = create(session, ANA.playerId);
+    expect(session.state.characters[id]).toEqual({ id, ownerId: ANA.playerId, name: 'Thorin', baseScores: null, rolledScores: null, steps: [] });
+    expect(SessionStateSchema.safeParse(session.state).success).toBe(true);
+  });
+
+  it('lets only the GM create a character for someone else', () => {
+    const session = setup();
+    expect(rejection(session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Intruso', ownerId: BRUNO.playerId } }))).toBe('not_allowed');
+    const id = create(session, GM.playerId, 'Lia', ANA.playerId);
+    expect(session.state.characters[id]?.ownerId).toBe(ANA.playerId);
+    expect(rejection(session.handle(GM.playerId, { kind: 'character.create', data: { name: 'Fantasma', ownerId: randomUUID() } }))).toBe('rule_violation');
+  });
+
+  it('lets the owner and the GM edit, but not other players', () => {
+    const session = setup();
+    const id = create(session, ANA.playerId);
+    const steps: Intent = { kind: 'character.update', data: { characterId: id, steps: [{ kind: 'class_level', classId: 'fighter', selections: [] }] } };
+    expect(applied(session.handle(ANA.playerId, steps))).toBe(true);
+    expect(applied(session.handle(GM.playerId, { kind: 'character.update', data: { characterId: id, name: 'Thorin II', baseScores: STANDARD } }))).toBe(true);
+    expect(rejection(session.handle(BRUNO.playerId, { kind: 'character.update', data: { characterId: id, name: 'Roubado' } }))).toBe('not_allowed');
+    expect(session.state.characters[id]).toMatchObject({ name: 'Thorin II', baseScores: STANDARD, steps: [{ kind: 'class_level', classId: 'fighter' }] });
+  });
+
+  it('keeps manual ability scores for the GM', () => {
+    const session = setup();
+    const id = create(session, ANA.playerId);
+    const manual = { method: 'manual' as const, scores: { str: 20, dex: 20, con: 20, int: 20, wis: 20, cha: 20 } };
+    expect(rejection(session.handle(ANA.playerId, { kind: 'character.update', data: { characterId: id, baseScores: manual } }))).toBe('not_allowed');
+    expect(applied(session.handle(GM.playerId, { kind: 'character.update', data: { characterId: id, baseScores: manual } }))).toBe(true);
+  });
+
+  it('rolls ability scores on the Host, once for the owner, and posts them to the chat', () => {
+    const session = setup();
+    const id = create(session, ANA.playerId);
+    expect(applied(session.handle(ANA.playerId, { kind: 'character.roll_scores', data: { characterId: id } }))).toBe(true);
+    const rolled = session.state.characters[id]?.rolledScores ?? [];
+    expect(rolled).toHaveLength(6);
+    const entry = session.state.chat.at(-1);
+    expect(entry).toMatchObject({ kind: 'ability_roll', authorId: ANA.playerId, characterId: id, characterName: 'Thorin' });
+    expect(entry?.kind === 'ability_roll' && entry.sets.map((s) => s.total)).toEqual(rolled);
+    expect(rejection(session.handle(ANA.playerId, { kind: 'character.roll_scores', data: { characterId: id } }))).toBe('not_allowed');
+    expect(rejection(session.handle(BRUNO.playerId, { kind: 'character.roll_scores', data: { characterId: id } }))).toBe('not_allowed');
+  });
+
+  it('accepts rolled scores only with the values the Host rolled', () => {
+    // Dados 6, 5, 4, 3 em sequência: todo conjunto dá 15 (descarta o 3).
+    const values = [6, 5, 4, 3];
+    let i = 0;
+    const session = setup({ rng: { roll: () => values[i++ % values.length] ?? 1 } });
+    const id = create(session, ANA.playerId);
+    const rolled = (str: number) => ({ method: 'rolled' as const, scores: { str, dex: 15, con: 15, int: 15, wis: 15, cha: 15 } });
+    expect(rejection(session.handle(ANA.playerId, { kind: 'character.update', data: { characterId: id, baseScores: rolled(15) } }))).toBe('rule_violation');
+    session.handle(ANA.playerId, { kind: 'character.roll_scores', data: { characterId: id } });
+    expect(session.state.characters[id]?.rolledScores).toEqual([15, 15, 15, 15, 15, 15]);
+    expect(rejection(session.handle(ANA.playerId, { kind: 'character.update', data: { characterId: id, baseScores: rolled(18) } }))).toBe('rule_violation');
+    expect(applied(session.handle(ANA.playerId, { kind: 'character.update', data: { characterId: id, baseScores: rolled(15) } }))).toBe(true);
+  });
+
+  it('clears a rolled assignment when the GM rerolls', () => {
+    const session = setup();
+    const id = create(session, ANA.playerId);
+    session.handle(ANA.playerId, { kind: 'character.roll_scores', data: { characterId: id } });
+    const rolled = session.state.characters[id]?.rolledScores ?? [];
+    const [str = 3, dex = 3, con = 3, int = 3, wis = 3, cha = 3] = rolled;
+    session.handle(ANA.playerId, { kind: 'character.update', data: { characterId: id, baseScores: { method: 'rolled', scores: { str, dex, con, int, wis, cha } } } });
+    expect(applied(session.handle(GM.playerId, { kind: 'character.roll_scores', data: { characterId: id } }))).toBe(true);
+    expect(session.state.characters[id]?.baseScores).toBeNull();
+  });
+
+  it('removes a character for the owner or the GM', () => {
+    const session = setup();
+    const id = create(session, ANA.playerId);
+    expect(rejection(session.handle(BRUNO.playerId, { kind: 'character.remove', data: { characterId: id } }))).toBe('not_allowed');
+    expect(applied(session.handle(ANA.playerId, { kind: 'character.remove', data: { characterId: id } }))).toBe(true);
+    expect(session.state.characters).toEqual({});
+    expect(rejection(session.handle(GM.playerId, { kind: 'character.remove', data: { characterId: id } }))).toBe('rule_violation');
+  });
+
+  it('restores saved characters', () => {
+    const first = setup();
+    const id = create(first, ANA.playerId);
+    const restored = new HostSession(CAMPAIGN, GM, { rng: cryptoRng, now: Date.now, newId: randomUUID, monsterExists: () => false, assetExists: () => false }, first.state);
+    expect(restored.state.characters[id]?.name).toBe('Thorin');
+  });
+});

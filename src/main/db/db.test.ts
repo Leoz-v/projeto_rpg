@@ -122,6 +122,7 @@ describe('CampaignDb', () => {
   const ANA = randomUUID();
   const MAP = randomUUID();
   const TOKEN = randomUUID();
+  const HERO = randomUUID();
 
   const state = (overrides: Partial<SessionState> = {}): SessionState => ({
     campaign: { id: randomUUID(), name: 'A Mina Perdida' },
@@ -129,10 +130,36 @@ describe('CampaignDb', () => {
     chat: [
       { kind: 'message', id: randomUUID(), at: 1, authorId: ANA, text: 'Olá!' },
       { kind: 'roll', id: randomUUID(), at: 2, authorId: GM, formula: '1d20', visibility: 'gm', rolls: [{ sides: 20, value: 17 }], total: 17 },
+      {
+        kind: 'ability_roll',
+        id: randomUUID(),
+        at: 3,
+        authorId: ANA,
+        characterId: HERO,
+        characterName: 'Thorin',
+        sets: [
+          [5, 5, 5],
+          [4, 5, 5],
+          [4, 4, 5],
+          [4, 4, 4],
+          [3, 3, 4],
+          [2, 3, 3],
+        ].map((kept) => ({ dice: [1, ...kept], dropped: 0, total: kept.reduce((a, b) => a + b, 0) })),
+      },
     ],
     maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: null, cellPx: null } },
     activeMapId: MAP,
     tokens: { [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [ANA] } },
+    characters: {
+      [HERO]: {
+        id: HERO,
+        ownerId: ANA,
+        name: 'Thorin',
+        baseScores: { method: 'rolled', scores: { str: 15, dex: 14, con: 13, int: 12, wis: 10, cha: 8 } },
+        rolledScores: [15, 14, 13, 12, 10, 8],
+        steps: [{ kind: 'class_level', classId: 'fighter', selections: [{ source: { kind: 'class', id: 'fighter' }, choiceId: 'skills', picks: ['athletics', 'perception'] }] }],
+      },
+    },
     ...overrides,
   });
 
@@ -146,6 +173,15 @@ describe('CampaignDb', () => {
       ...s,
       players: { [GM]: { displayName: 'Mestre', role: 'gm', connected: false }, [ANA]: { displayName: 'Ana', role: 'player', connected: false } },
     });
+    db.close();
+  });
+
+  it('removes characters that left the state', () => {
+    const s = state();
+    const db = CampaignDb.create(':memory:', s.campaign, 0);
+    db.save(s);
+    db.save({ ...s, characters: {} });
+    expect(db.load().characters).toEqual({});
     db.close();
   });
 

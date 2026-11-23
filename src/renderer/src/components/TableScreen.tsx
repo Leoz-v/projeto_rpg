@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { TableView } from '../../../shared/ipc';
 import { leaveTable } from '../store/table';
 import type { MapStage } from '../canvas/MapStage';
+import { CharacterSheet } from './CharacterSheet';
+import { Characters } from './Characters';
 import { Chat } from './Chat';
 import { GmPanel } from './GmPanel';
 import { MapView } from './MapView';
@@ -59,6 +61,10 @@ export function TableScreen({ view }: { view: TableView }) {
   // Um token removido deixa de estar selecionado.
   const selectedId = selected !== null && selected in view.state.tokens ? selected : null;
   const isHost = view.info.mode === 'host';
+  const [openCharacterId, setOpenCharacterId] = useState<string | null>(null);
+  const closeSheet = useCallback(() => {
+    setOpenCharacterId(null);
+  }, []);
 
   const leave = async (): Promise<void> => {
     if (isHost && !window.confirm('Encerrar a mesa para todos os jogadores?')) return;
@@ -77,11 +83,13 @@ export function TableScreen({ view }: { view: TableView }) {
       </header>
       <aside className="sidebar">
         <Players view={view} />
+        <Characters view={view} onOpen={setOpenCharacterId} />
         {view.info.role === 'gm' && <GmPanel view={view} stage={stage} selectedId={selectedId} />}
         <HostAddresses view={view} />
       </aside>
       <MapView view={view} selectedId={selectedId} onSelect={setSelectedId} onStage={setStage} />
       <Chat state={view.state} />
+      {openCharacterId !== null && <CharacterSheet view={view} characterId={openCharacterId} onClose={closeSheet} />}
     </div>
   );
 }

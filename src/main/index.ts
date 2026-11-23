@@ -8,6 +8,7 @@ import { HostTableRequestSchema, JoinTableRequestSchema } from '../shared/ipc-sc
 import { IntentSchema, MAX_ASSET_BYTES, UuidSchema } from '../shared/protocol';
 import { PROTOCOL_VERSION } from '../shared/versions';
 import { ASSET_SCHEME, AssetError, assetResponse, AssetStore, type StoredAsset } from './assets';
+import { characterSheet } from './character-sheet';
 import { searchMonsters } from './compendium';
 import { AppDb, CampaignLibrary, CampaignNotFoundError } from './db';
 import { cryptoRng } from './session';
@@ -130,6 +131,11 @@ function registerIpc(appDb: AppDb, table: TableController, library: CampaignLibr
   });
   handle(IpcChannel.getTable, () => table.view());
   handle(IpcChannel.sendIntent, (payload) => table.send(parse(IntentSchema, payload)));
+  handle(IpcChannel.characterSheet, (payload) => {
+    const record = table.view()?.state.characters[parse(UuidSchema, payload)];
+    if (!record) throw new TableError('Personagem não encontrado');
+    return characterSheet(record, getCompendium());
+  });
 }
 
 /** Abre o `app.db` na pasta de dados do app. Sem ele, o app não abre: avisa e sai. */
