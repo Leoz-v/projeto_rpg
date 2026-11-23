@@ -157,8 +157,8 @@ button:disabled {
 
 .table {
   display: grid;
-  grid-template-columns: 260px 1fr;
-  grid-template-rows: auto 1fr;
+  grid-template-columns: 280px 1fr 340px;
+  grid-template-rows: auto minmax(0, 1fr);
   height: 100vh;
 }
 
@@ -219,6 +219,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  border-left: 1px solid var(--border);
 }
 
 .log {
@@ -335,4 +336,140 @@ button.link {
 button.link.danger:hover,
 button.link.danger:focus-visible {
   color: var(--error);
+}
+
+/* Mapa */
+
+.map {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.map-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.map-canvas canvas {
+  display: block;
+}
+
+.map-empty,
+.map-error {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  background: var(--panel);
+  pointer-events: none;
+}
+
+.map-empty {
+  top: 45%;
+}
+
+.map-error {
+  bottom: 1rem;
+}
+
+/* Painel do mestre */
+
+.panel ul {
+  margin-bottom: 0.6rem;
+}
+
+.panel li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.stack label,
+.stack fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.stack fieldset {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+}
+
+.stack label.check {
+  flex-direction: row;
+  align-items: center;
+  color: var(--text);
+}
+
+.stack label.check input {
+  width: auto;
+}
+
+.row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-end;
+}
+
+.row > label {
+  flex: 1;
+}
+
+button.secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 400;
+}
+
+.image-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.thumb {
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.results {
+  max-height: 10rem;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem !important;
+}
+
+.chosen,
+.selected {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.selected {
+  padding: 0.4rem 0.6rem;
+  margin-bottom: 0.6rem;
+  border: 1px solid var(--crit);
+  border-radius: 6px;
 }

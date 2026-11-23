@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import type { TableView } from '../../../shared/ipc';
 import { leaveTable } from '../store/table';
+import type { MapStage } from '../canvas/MapStage';
 import { Chat } from './Chat';
+import { GmPanel } from './GmPanel';
+import { MapView } from './MapView';
 
-/** A mesa: cabeçalho, jogadores e chat. O mapa entra no PR do PixiJS. */
+/** A mesa: cabeçalho, barra lateral (jogadores e, para o mestre, mapas e tokens), mapa e chat. */
 
 function Players({ view }: { view: TableView }) {
   const players = Object.entries(view.state.players).sort(([, a], [, b]) => (a.role === b.role ? a.displayName.localeCompare(b.displayName, 'pt-BR') : a.role === 'gm' ? -1 : 1));
@@ -51,6 +54,10 @@ function HostAddresses({ view }: { view: TableView }) {
 
 export function TableScreen({ view }: { view: TableView }) {
   const [leaving, setLeaving] = useState(false);
+  const [stage, setStage] = useState<MapStage | null>(null);
+  const [selected, setSelectedId] = useState<string | null>(null);
+  // Um token removido deixa de estar selecionado.
+  const selectedId = selected !== null && selected in view.state.tokens ? selected : null;
   const isHost = view.info.mode === 'host';
 
   const leave = async (): Promise<void> => {
@@ -70,8 +77,10 @@ export function TableScreen({ view }: { view: TableView }) {
       </header>
       <aside className="sidebar">
         <Players view={view} />
+        {view.info.role === 'gm' && <GmPanel view={view} stage={stage} selectedId={selectedId} />}
         <HostAddresses view={view} />
       </aside>
+      <MapView view={view} selectedId={selectedId} onSelect={setSelectedId} onStage={setStage} />
       <Chat state={view.state} />
     </div>
   );

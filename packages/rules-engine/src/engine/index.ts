@@ -5,3 +5,4 @@ export { deriveSheet, evaluatePredicate, type PredicateContext, type RollContext
 export { applyDamage, type AppliedDamage, type DamageInstance, type DamageResult, type DamageStep } from './damage';
 export { type DiceRoll, type Rng, type RollDiceOptions, rollDice, seededRng } from './dice';
 export { type D20RollInput, type D20RollResult, type D20Step, rollD20 } from './d20';
+export { FEET_PER_SQUARE, SPACE_FEET, spaceSquares } from './space';

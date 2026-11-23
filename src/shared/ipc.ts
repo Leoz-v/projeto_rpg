@@ -1,4 +1,5 @@
 import type { AppInfo, HostTableRequest, IpcError, JoinTableRequest, Preferences } from './ipc-schemas';
+import type { Size } from 'rules-engine/schemas';
 import type { Intent, IntentResultSchema, Role, SessionState } from './protocol';
 import type { z } from 'zod';
 
@@ -10,6 +11,7 @@ export const IpcChannel = {
   getPreferences: 'app:get-preferences',
   listCampaigns: 'campaigns:list',
   deleteCampaign: 'campaigns:delete',
+  searchMonsters: 'compendium:search-monsters',
   hostTable: 'table:host',
   joinTable: 'table:join',
   leaveTable: 'table:leave',
@@ -43,6 +45,15 @@ export interface CampaignSummary {
   lastOpenedAt: number;
 }
 
+/** Um monstro do compêndio, para colocar como token. */
+export interface MonsterSummary {
+  id: string;
+  name: string;
+  size: Size;
+  /** Nível de desafio (0,125 = 1/8). */
+  cr: number;
+}
+
 /** Uma imagem importada: use `vtt-asset://<sha256>` para exibir e o `sha256` nos `Intent`. */
 export interface ImportedAsset {
   sha256: string;
@@ -73,6 +84,8 @@ export interface VttApi {
   /** A mesa atual, ou `null` (ex.: depois de recarregar a janela). */
   getTable(): Promise<IpcResult<TableView | null>>;
   sendIntent(intent: Intent): Promise<IpcResult<IntentResultPayload>>;
+  /** Monstros do compêndio cujo nome contém o texto (até 20). */
+  searchMonsters(query: string): Promise<IpcResult<MonsterSummary[]>>;
   /** Abre o seletor de arquivos e importa uma imagem; `null` se o usuário cancelou. */
   importAsset(): Promise<IpcResult<ImportedAsset | null>>;
   /** Avisa a cada estado novo e quando a mesa fecha. Devolve a função que cancela. */
