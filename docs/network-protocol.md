@@ -2,7 +2,7 @@
 
 > **Contrato fechado.** Só existem as mensagens e os tipos de `Intent` listados aqui. Para criar um novo, primeiro atualize este documento (e `PROTOCOL_VERSION`, se a mudança for incompatível) e só depois o código. Os schemas Zod em `src/shared/protocol/` devem seguir este arquivo exatamente.
 
-- **Versão do protocolo:** `PROTOCOL_VERSION = 5`
+- **Versão do protocolo:** `PROTOCOL_VERSION = 6`
 - **Transporte:** WebSocket puro (`ws://`) sobre rede virtual (Tailscale/ZeroTier). Porta padrão do Host: `47820`.
 - **Formato:** um objeto JSON (UTF-8) por frame de texto. Frames binários não são usados.
 - **Validação:** toda mensagem recebida, nos dois lados, passa pelo schema Zod antes de qualquer processamento. Mensagem inválida gera `Error` com `code: "invalid_message"` e é descartada. A conexão **não** cai por causa disso.
@@ -211,7 +211,8 @@ O Host guarda o estado completo e envia a cada cliente só o que ele pode ver, n
 
 - **Mestre:** vê tudo.
 - **Jogador:** uma rolagem com `visibility: "gm"` de outra pessoa chega como `hidden_roll`, sem fórmula, rótulo nem resultado. A entrada continua no log, na mesma posição, para que os índices de `chat` sejam iguais em todos os clientes. Quem rolou sempre vê a própria rolagem (o jogador que rola em segredo para o mestre vê o resultado).
-- **Personagens** e as rolagens de atributos (`ability_roll`) são vistos por todos.
+- **Personagens** e as rolagens de atributos (`ability_roll`) são vistos por todos, inclusive os PV dos personagens.
+- **PV de tokens** que não são personagens (monstros, objetos): só o mestre e os donos do token (`ownerIds`) veem. Para os outros, o token chega com `hp: null` no `StateSnapshot` e no `add` do token, e as operações em `/tokens/<id>/hp` não são enviadas.
 
 ## 3. Catálogo de `Intent`
 
@@ -225,7 +226,7 @@ Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do
 | `token.move`      | 2    | `{ tokenId: string, to: { x: int, y: int } }` | mestre; jogador só nos próprios tokens |
 | `map.create`      | 2    | `{ name: string (1..100), width: int (1..200), height: int (1..200), background?: sha256, cellPx?: int (1..4096) }` | mestre |
 | `map.activate`    | 2    | `{ mapId: string }` | mestre |
-| `token.create`    | 2    | `{ mapId: string, name: string (1..100), position: { x: int, y: int }, size: Size, monsterId?: string, image?: sha256, ownerIds?: string[], characterId?: string }` | mestre |
+| `token.create`    | 2    | `{ mapId: string, name: string (1..100), position: { x: int, y: int }, size: Size, monsterId?: string, image?: sha256, ownerIds?: string[], characterId?: string, hpMax?: int (1..100000) }` | mestre |
 | `token.remove`    | 2    | `{ tokenId: string }` | mestre |
 | `character.create` | 3   | `{ name: string (1..100), ownerId?: string }` | todos; `ownerId` de outra pessoa só o mestre |
 | `character.update` | 3   | `{ characterId: string, name?: string, baseScores?: BaseScores, steps?: BuildStep[] }` (ao menos um campo além do id) | dono e mestre |
@@ -237,6 +238,7 @@ Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do
 | `inventory.currency` | 4 | `{ characterId: string, currency: { cp, sp, ep, gp, pp: int (0..1000000000) } }` | dono e mestre |
 | `adjustment.add`  | 5    | `{ characterId: string, name: string (1..100), effects: Effect[] (1..20) }` | mestre |
 | `adjustment.remove` | 5  | `{ characterId: string, adjustmentId: string }` | mestre |
+| `hp.change`       | 6    | `{ target: { characterId: string } \| { tokenId: string }, change: { kind: "damage" \| "healing" \| "temp" \| "max", amount: int (0..100000) } }` | mestre; jogador no próprio personagem e nos próprios tokens |
 
 - **Coordenadas** em unidades lógicas de mundo (`1 célula = 5 ft = 100 unidades`), nunca pixels. `position` é o canto superior esquerdo do token, e o token inteiro precisa caber no mapa: `x + lado ≤ largura × 100` e `y + lado ≤ altura × 100`, em que `lado` é o espaço do tamanho da criatura em unidades (SRD 5.2.1 p. 14: Tiny 50, Small e Medium 100, Large 200, Huge 300, Gargantuan 400; `spaceSquares` do motor). Fora disso, o Host recusa com `rule_violation`.
 - **`dice.roll`:** o cliente manda só a fórmula, no formato de dados do motor (ex.: `2d6+3`, `1d20+1d4-1`), com até 100 caracteres e até 100 dados. O Host rola com o RNG do motor e publica o resultado no log via `StatePatch`.
@@ -256,6 +258,9 @@ Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do
   - **`inventory.update`:** muda `equipped`, `attuned` ou `quantity`. Regras que dependem da ficha (uma armadura e um escudo por vez, limite e restrições de sintonização) não bloqueiam: a ficha calculada aponta o problema e o mestre decide.
   - **`inventory.currency`:** troca as moedas pelos valores enviados.
 - **Ajustes do mestre** (nota 0033): bênçãos, maldições e itens caseiros como camada de efeitos por cima da ficha. `effects` são efeitos do catálogo fechado (`docs/effects-spec.md`, `EffectSchema` do motor); fora dele, a mensagem é inválida. O Host gera o `id` do ajuste. No máximo 50 ajustes por personagem. Todos veem os ajustes.
+- **Pontos de vida** (nota 0034): o estado guarda o dano sofrido e os PV temporários; os PV atuais são o máximo menos o dano. O máximo do personagem vem da ficha calculada; o do token fica no próprio token.
+  - **`token.create`:** um token que não é de personagem ganha PV próprios com `hpMax`, ou, sem ele, com a média do bloco de estatísticas do monstro (`monsterId`). Sem nenhum dos dois, o token fica sem PV (`hp: null`).
+  - **`hp.change`:** as regras são do motor (`applyHitPointChange`, SRD 5.2.1 p. 17–18): o dano tira primeiro dos PV temporários e não deixa os PV abaixo de 0; a cura não passa do máximo e não restaura PV temporários; `temp` substitui os PV temporários (eles não se acumulam). `max` só vale em tokens: define os PV máximos (ex.: rolados) e mantém o dano dentro do máximo novo. Personagem sem ficha (sem atributos) ou token sem PV recusam com `rule_violation`.
 - **`token.create` com `characterId`:** o token representa esse personagem (o Host confere que ele existe). Remover o personagem não remove o token: o `characterId` volta a `null`.
 - **Recusas** (`IntentResult` com `rejected`): `not_allowed` para permissão (jogador num `Intent` do mestre, token de outro jogador); `rule_violation` para estado inválido (mapa ou token inexistente, posição fora do mapa, monstro fora do compêndio, imagem que o Host não tem). Um `Intent` recusado não muda o estado nem o `rev`.
 
@@ -297,7 +302,7 @@ Estado da mesa (visão do mestre; a dos jogadores é filtrada pela seção 2.12)
   "activeMapId": "m1…",
   "tokens": {
     "t1…": { "id": "t1…", "mapId": "m1…", "name": "Goblin 1", "position": { "x": 300, "y": 500 }, "size": "small",
-      "monsterId": "goblin", "image": null, "ownerIds": [], "characterId": null }
+      "monsterId": "goblin", "image": null, "ownerIds": [], "characterId": null, "hp": { "max": 7, "damage": 2, "temp": 0 } }
   },
   "characters": {
     "h1…": { "id": "h1…", "ownerId": "b2e4…", "name": "Thorin",
@@ -306,6 +311,7 @@ Estado da mesa (visão do mestre; a dos jogadores é filtrada pela seção 2.12)
       "steps": [ { "kind": "species", "speciesId": "dwarf", "selections": [] } ],
       "inventory": { "currency": { "cp": 0, "sp": 0, "ep": 0, "gp": 15, "pp": 0 },
         "items": [ { "instanceId": "i1…", "itemId": "weapon_plus", "baseItemId": "longsword", "variantId": "plus_1", "quantity": 1, "equipped": true, "attuned": false } ] },
+      "hp": { "damage": 4, "temp": 0 },
       "adjustments": [ { "id": "a1…", "name": "Bênção do Templo", "effects": [ { "type": "flat_bonus", "target": "ac", "value": 1 } ] } ] }
   }
 }
@@ -318,5 +324,5 @@ Estado da mesa (visão do mestre; a dos jogadores é filtrada pela seção 2.12)
 | `chat`        | Log da sessão, em ordem. Só cresce: entradas novas entram com `add` em `/chat/-`. Tipos: `message`, `roll`, `hidden_roll` (seção 2.12) e `ability_roll` (atributos rolados pelo Host: seis conjuntos de 4d6 com o índice do dado descartado e o total). |
 | `maps`        | Mapas por id. `width`/`height` em células; `background` é o SHA-256 da imagem, ou `null`; `cellPx` é o tamanho da célula em pixels da imagem de fundo, ou `null` (mapa sem fundo ou legado esticado). |
 | `activeMapId` | Mapa exibido para todos, ou `null` antes do primeiro `map.create`. |
-| `tokens`      | Tokens por id. `image` é o SHA-256 da imagem, ou `null`. `characterId` é o personagem que o token representa, ou `null`. |
-| `characters`  | Personagens da campanha por id: dono (`ownerId`), nome e escolhas de construção. `baseScores` é `null` até os atributos serem definidos; `rolledScores` é `null` até o Host rolar, depois os seis totais (3 a 18). `steps` segue o `BuildStep` do motor. `inventory` segue o `Inventory` do motor (moedas e entradas com `instanceId`, item, item base, variante, quantidade, equipado e sintonizado). `adjustments` são os ajustes do mestre (id, nome e efeitos do catálogo), na ordem em que foram aplicados. |
+| `tokens`      | Tokens por id. `image` é o SHA-256 da imagem, ou `null`. `characterId` é o personagem que o token representa, ou `null`. `hp` são os PV próprios do token (`max`, `damage`, `temp`), ou `null` (token de personagem, token sem PV, ou monstro escondido deste jogador). |
+| `characters`  | Personagens da campanha por id: dono (`ownerId`), nome e escolhas de construção. `baseScores` é `null` até os atributos serem definidos; `rolledScores` é `null` até o Host rolar, depois os seis totais (3 a 18). `steps` segue o `BuildStep` do motor. `inventory` segue o `Inventory` do motor (moedas e entradas com `instanceId`, item, item base, variante, quantidade, equipado e sintonizado). `hp` guarda o dano sofrido e os PV temporários (o máximo vem da ficha). `adjustments` são os ajustes do mestre (id, nome e efeitos do catálogo), na ordem em que foram aplicados. |

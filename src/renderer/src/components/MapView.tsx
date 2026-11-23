@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { TableView } from '../../../shared/ipc';
+import { tokenHealth } from '../canvas/health';
 import { MapStage } from '../canvas/MapStage';
 import { sendIntent } from '../store/table';
 
@@ -14,6 +15,21 @@ interface Props {
   onSelect: (tokenId: string | null) => void;
   /** O palco pronto (ou `null` ao sair), para o painel do mestre saber o centro da tela. */
   onStage: (stage: MapStage | null) => void;
+}
+
+/** PV máximos das fichas dos personagens (calculados no processo main), atualizados quando algum personagem muda. */
+function useHpMaxima(characters: TableView['state']['characters']): Record<string, number> {
+  const [maxima, setMaxima] = useState<Record<string, number>>({});
+  useEffect(() => {
+    let current = true;
+    void window.vtt.characterHpMaxima().then((r) => {
+      if (current && r.ok) setMaxima(r.value);
+    });
+    return () => {
+      current = false;
+    };
+  }, [characters]);
+  return maxima;
 }
 
 export function MapView({ view, selectedId, onSelect, onStage }: Props) {
@@ -60,6 +76,7 @@ export function MapView({ view, selectedId, onSelect, onStage }: Props) {
 
   const { state, info } = view;
   const map = state.activeMapId !== null ? (state.maps[state.activeMapId] ?? null) : null;
+  const maxima = useHpMaxima(state.characters);
 
   useEffect(() => {
     stage?.setScene({
@@ -67,8 +84,9 @@ export function MapView({ view, selectedId, onSelect, onStage }: Props) {
       tokens: Object.values(state.tokens),
       canDrag: (token) => info.role === 'gm' || token.ownerIds.includes(info.playerId),
       selectedId,
+      health: (token) => tokenHealth(token, state.characters, maxima),
     });
-  }, [stage, map, state.tokens, info.role, info.playerId, selectedId]);
+  }, [stage, map, state.tokens, state.characters, maxima, info.role, info.playerId, selectedId]);
 
   return (
     <section className="map" aria-label="Mapa">

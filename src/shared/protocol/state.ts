@@ -1,7 +1,7 @@
 import { ABILITY_ROLL_SETS, BaseScoresSchema, CharacterSchema, EffectSchema, InventorySchema, SizeSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
-import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS } from './constants';
-import { ChatTextSchema, LabelSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
+import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_HIT_POINTS } from './constants';
+import { ChatTextSchema, HitPointStateSchema, LabelSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 
 /** `SessionState` (docs/network-protocol.md, seção 5). */
 
@@ -69,6 +69,12 @@ export const TokenSchema = z.strictObject({
   ownerIds: z.array(UuidSchema),
   /** Personagem representado pelo token, ou `null` (monstro, objeto). */
   characterId: UuidSchema.nullable(),
+  /**
+   * PV do próprio token (monstros, objetos), com o máximo; `null` se não tem
+   * (token de personagem: os PV são do personagem). Para jogadores que não são
+   * donos do token, chega sempre `null` (seção 2.12).
+   */
+  hp: HitPointStateSchema.extend({ max: z.int().min(1).max(MAX_HIT_POINTS) }).nullable(),
 });
 export type Token = z.infer<typeof TokenSchema>;
 
@@ -100,6 +106,8 @@ export const SessionCharacterSchema = z.strictObject({
   steps: CharacterSchema.shape.steps,
   /** Estado separado das escolhas: muda o tempo todo, só por `Intent` ao Host. */
   inventory: InventorySchema,
+  /** PV sofridos e temporários; o máximo vem da ficha. */
+  hp: HitPointStateSchema,
   /** Ajustes do mestre, na ordem em que foram aplicados. */
   adjustments: z.array(SessionAdjustmentSchema).max(MAX_ADJUSTMENTS),
 });

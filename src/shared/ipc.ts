@@ -21,6 +21,7 @@ export const IpcChannel = {
   characterSheet: 'table:character-sheet',
   creationOptions: 'compendium:creation-options',
   searchItems: 'compendium:search-items',
+  characterHpMaxima: 'table:character-hp-maxima',
   sendIntent: 'table:intent',
   tableEvent: 'table:event',
 } as const;
@@ -126,6 +127,8 @@ export interface VttApi {
   characterSheet(characterId: string): Promise<IpcResult<CharacterSheetView>>;
   /** Itens do compêndio cujo nome contém o texto (até 30). */
   searchItems(query: string): Promise<IpcResult<ItemSummary[]>>;
+  /** PV máximos da ficha de cada personagem da mesa atual (os sem atributos ficam de fora). */
+  characterHpMaxima(): Promise<IpcResult<Record<string, number>>>;
   /** Espécies, antecedentes e classes do compêndio. */
   creationOptions(): Promise<IpcResult<CreationOptions>>;
   /** Abre o seletor de arquivos e importa uma imagem; `null` se o usuário cancelou. */

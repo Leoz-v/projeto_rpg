@@ -58,6 +58,9 @@ const MIGRATIONS = [
    ALTER TABLE tokens ADD COLUMN character_id TEXT;`,
   // Ajustes do mestre de cada personagem, em JSON (validados ao carregar).
   `ALTER TABLE characters ADD COLUMN adjustments TEXT NOT NULL DEFAULT '[]';`,
+  // PV: dano e temporários do personagem; do token, também o máximo (JSON, validados ao carregar).
+  `ALTER TABLE characters ADD COLUMN hp TEXT NOT NULL DEFAULT '{"damage":0,"temp":0}';
+   ALTER TABLE tokens ADD COLUMN hp TEXT;`,
 ] as const;
 
 export const CAMPAIGN_DB_SCHEMA_VERSION = MIGRATIONS.length;
@@ -83,9 +86,10 @@ const TokenRow = z.object({
   image: z.string().nullable(),
   owner_ids: z.string(),
   character_id: z.string().nullable(),
+  hp: z.string().nullable(),
 });
 const ChatRow = z.object({ entry: z.string() });
-const CharacterRow = z.object({ id: z.string(), owner_id: z.string(), name: z.string(), build: z.string(), inventory: z.string(), adjustments: z.string() });
+const CharacterRow = z.object({ id: z.string(), owner_id: z.string(), name: z.string(), build: z.string(), inventory: z.string(), adjustments: z.string(), hp: z.string() });
 const CountRow = z.object({ n: z.number() });
 
 export class CampaignDb {
@@ -153,24 +157,25 @@ export class CampaignDb {
     );
     const tokens = Object.fromEntries(
       this.db
-        .prepare('SELECT id, map_id, name, x, y, size, monster_id, image, owner_ids, character_id FROM tokens')
+        .prepare('SELECT id, map_id, name, x, y, size, monster_id, image, owner_ids, character_id, hp FROM tokens')
         .all()
         .map((row) => {
           const t = TokenRow.parse(row);
           const ownerIds: unknown = JSON.parse(t.owner_ids);
-          return [t.id, { id: t.id, mapId: t.map_id, name: t.name, position: { x: t.x, y: t.y }, size: t.size, monsterId: t.monster_id, image: t.image, ownerIds, characterId: t.character_id }];
+          return [t.id, { id: t.id, mapId: t.map_id, name: t.name, position: { x: t.x, y: t.y }, size: t.size, monsterId: t.monster_id, image: t.image, ownerIds, characterId: t.character_id, hp: t.hp === null ? null : (JSON.parse(t.hp) as unknown) }];
         }),
     );
     const characters = Object.fromEntries(
       this.db
-        .prepare('SELECT id, owner_id, name, build, inventory, adjustments FROM characters')
+        .prepare('SELECT id, owner_id, name, build, inventory, adjustments, hp FROM characters')
         .all()
         .map((row) => {
           const c = CharacterRow.parse(row);
           const build: unknown = JSON.parse(c.build);
           const inventory: unknown = JSON.parse(c.inventory);
           const adjustments: unknown = JSON.parse(c.adjustments);
-          return [c.id, { id: c.id, ownerId: c.owner_id, name: c.name, ...(typeof build === 'object' ? build : {}), inventory, adjustments }];
+          const hp: unknown = JSON.parse(c.hp);
+          return [c.id, { id: c.id, ownerId: c.owner_id, name: c.name, ...(typeof build === 'object' ? build : {}), inventory, hp, adjustments }];
         }),
     );
     const chat = this.db
@@ -206,22 +211,22 @@ export class CampaignDb {
       );
       for (const m of Object.values(state.maps)) upsertMap.run(m.id, m.name, m.width, m.height, m.background, m.cellPx);
       const upsertToken = db.prepare(
-        `INSERT INTO tokens (id, map_id, name, x, y, size, monster_id, image, owner_ids, character_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO tokens (id, map_id, name, x, y, size, monster_id, image, owner_ids, character_id, hp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (id) DO UPDATE SET map_id = excluded.map_id, name = excluded.name, x = excluded.x, y = excluded.y, size = excluded.size,
-           monster_id = excluded.monster_id, image = excluded.image, owner_ids = excluded.owner_ids, character_id = excluded.character_id`,
+           monster_id = excluded.monster_id, image = excluded.image, owner_ids = excluded.owner_ids, character_id = excluded.character_id, hp = excluded.hp`,
       );
       for (const t of Object.values(state.tokens)) {
-        upsertToken.run(t.id, t.mapId, t.name, t.position.x, t.position.y, t.size, t.monsterId, t.image, JSON.stringify(t.ownerIds), t.characterId);
+        upsertToken.run(t.id, t.mapId, t.name, t.position.x, t.position.y, t.size, t.monsterId, t.image, JSON.stringify(t.ownerIds), t.characterId, t.hp === null ? null : JSON.stringify(t.hp));
       }
 
       this.removeMissing('characters', Object.keys(state.characters));
       const upsertCharacter = db.prepare(
-        `INSERT INTO characters (id, owner_id, name, build, inventory, adjustments) VALUES (?, ?, ?, ?, ?, ?)
+        `INSERT INTO characters (id, owner_id, name, build, inventory, adjustments, hp) VALUES (?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (id) DO UPDATE SET owner_id = excluded.owner_id, name = excluded.name, build = excluded.build, inventory = excluded.inventory,
-           adjustments = excluded.adjustments`,
+           adjustments = excluded.adjustments, hp = excluded.hp`,
       );
       for (const c of Object.values(state.characters)) {
-        upsertCharacter.run(c.id, c.ownerId, c.name, JSON.stringify({ baseScores: c.baseScores, rolledScores: c.rolledScores, steps: c.steps }), JSON.stringify(c.inventory), JSON.stringify(c.adjustments));
+        upsertCharacter.run(c.id, c.ownerId, c.name, JSON.stringify({ baseScores: c.baseScores, rolledScores: c.rolledScores, steps: c.steps }), JSON.stringify(c.inventory), JSON.stringify(c.adjustments), JSON.stringify(c.hp));
       }
 
       const saved = CountRow.parse(db.prepare('SELECT COUNT(*) AS n FROM chat').get()).n;

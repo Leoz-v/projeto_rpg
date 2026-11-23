@@ -5,6 +5,8 @@ import type { MapStage } from '../canvas/MapStage';
 import { placeToken, tokenSide } from '../canvas/geometry';
 import { defaultCellPx, gridDimensionsForImage } from '../canvas/map-grid';
 import { sendIntent } from '../store/table';
+import { tokenHealth } from '../canvas/health';
+import { HitPointsControl, HitPointsSummary } from './HitPoints';
 import { MapGridModal } from './MapGridModal';
 import { nextTokenName } from './token-name';
 
@@ -294,9 +296,11 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
   const [size, setSize] = useState<Size>('medium');
   const [owners, setOwners] = useState<string[]>([]);
   const [image, setImage] = useState<ImportedAsset | null>(null);
+  const [hpMax, setHpMax] = useState('');
   const results = useMonsterSearch(monster ? '' : query);
   const players = Object.entries(state.players).filter(([, p]) => p.role === 'player');
   const selected = selectedId !== null ? state.tokens[selectedId] : undefined;
+  const selectedHealth = selected ? tokenHealth(selected, state.characters, {}) : null;
 
   if (!map) return null;
   const namesOnMap = Object.values(state.tokens)
@@ -328,6 +332,7 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
         ...(monster ? { monsterId: monster.id } : {}),
         ...(image ? { image: image.sha256 } : {}),
         ...(owners.length > 0 ? { ownerIds: owners } : {}),
+        ...(hpMax.trim() !== '' && Number.isInteger(Number(hpMax)) && Number(hpMax) >= 1 ? { hpMax: Number(hpMax) } : {}),
       },
     });
     onError(refused);
@@ -343,13 +348,27 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
     <section className="panel" aria-label="Tokens">
       <h2>Tokens</h2>
       {selected && (
-        <div className="selected">
-          <span>
-            Selecionado: <strong>{selected.name}</strong>
-          </span>
-          <button type="button" className="link danger" onClick={() => void sendIntent({ kind: 'token.remove', data: { tokenId: selected.id } }).then(onError)}>
-            Remover token
-          </button>
+        <div className="selected stack">
+          <div className="row">
+            <span>
+              Selecionado: <strong>{selected.name}</strong>
+            </span>
+            <button type="button" className="link danger" onClick={() => void sendIntent({ kind: 'token.remove', data: { tokenId: selected.id } }).then(onError)}>
+              Remover token
+            </button>
+          </div>
+          {selected.characterId === null ? (
+            <>
+              {selectedHealth && (
+                <span>
+                  PV <HitPointsSummary health={selectedHealth} />
+                </span>
+              )}
+              <HitPointsControl key={selected.id} target={{ tokenId: selected.id }} health={selectedHealth} allowMax />
+            </>
+          ) : (
+            <p className="hint">Os PV deste token são os do personagem: mude na ficha.</p>
+          )}
         </div>
       )}
       <form className="stack" onSubmit={(e) => void place(e)}>
@@ -446,6 +465,18 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
             ))}
           </fieldset>
         )}
+        <label>
+          PV máximos (opcional)
+          <input
+            type="number"
+            min={1}
+            value={hpMax}
+            placeholder={monster ? 'média do monstro' : 'sem PV'}
+            onChange={(e) => {
+              setHpMax(e.target.value);
+            }}
+          />
+        </label>
         <ImagePicker value={image} onChange={setImage} onError={onError} />
         <button type="submit">Colocar no mapa</button>
       </form>

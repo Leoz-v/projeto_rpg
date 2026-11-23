@@ -32,6 +32,8 @@ async function host(options: Partial<HostServerOptions> = {}): Promise<{ server:
     monsterExists: () => true,
     pruneSteps: (steps) => steps,
     itemProblems: () => [],
+    characterHpMax: () => 10,
+    monsterHpMax: () => 7,
     assetExists: () => true,
   });
   const server = new HostServer({ session, appVersion: '0.1.0', port: 0, host: '127.0.0.1', ...options });

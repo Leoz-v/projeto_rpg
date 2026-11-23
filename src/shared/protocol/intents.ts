@@ -1,7 +1,7 @@
 import { BaseScoresSchema, CharacterSchema, DiceSchema, EffectSchema, IdSchema, SizeSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { ChatTextSchema, InstanceIdSchema, LabelSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
-import { MAX_ADJUSTMENT_EFFECTS, MAX_COINS, MAX_FORMULA_DICE, MAX_FORMULA_LENGTH, MAX_ITEM_QUANTITY } from './constants';
+import { MAX_ADJUSTMENT_EFFECTS, MAX_COINS, MAX_FORMULA_DICE, MAX_FORMULA_LENGTH, MAX_HIT_POINTS, MAX_ITEM_QUANTITY } from './constants';
 import { VisibilitySchema } from './state';
 
 /** Catálogo de `Intent` (docs/network-protocol.md, seção 3). */
@@ -51,6 +51,8 @@ export const IntentSchema = z.discriminatedUnion('kind', [
       image: Sha256Schema.optional(),
       ownerIds: z.array(UuidSchema).optional(),
       characterId: UuidSchema.optional(),
+      /** PV máximos do token; sem isso, o de um monstro é a média do bloco de estatísticas. */
+      hpMax: z.int().min(1).max(MAX_HIT_POINTS).optional(),
     }),
   }),
   z.strictObject({ kind: z.literal('token.remove'), data: z.strictObject({ tokenId: UuidSchema }) }),
@@ -106,6 +108,17 @@ export const IntentSchema = z.discriminatedUnion('kind', [
     data: z.strictObject({ characterId: UuidSchema, name: NameSchema, effects: z.array(EffectSchema).min(1).max(MAX_ADJUSTMENT_EFFECTS) }),
   }),
   z.strictObject({ kind: z.literal('adjustment.remove'), data: z.strictObject({ characterId: UuidSchema, adjustmentId: UuidSchema }) }),
+  z.strictObject({
+    kind: z.literal('hp.change'),
+    data: z.strictObject({
+      target: z.union([z.strictObject({ characterId: UuidSchema }), z.strictObject({ tokenId: UuidSchema })]),
+      change: z.strictObject({
+        /** `max` só em tokens com PV próprios (ex.: PV rolados de um monstro). */
+        kind: z.enum(['damage', 'healing', 'temp', 'max']),
+        amount: z.int().min(0).max(MAX_HIT_POINTS),
+      }),
+    }),
+  }),
 ]);
 export type Intent = z.infer<typeof IntentSchema>;
 export type IntentKind = Intent['kind'];

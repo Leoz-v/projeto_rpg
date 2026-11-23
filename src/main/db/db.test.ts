@@ -123,6 +123,7 @@ describe('CampaignDb', () => {
   const MAP = randomUUID();
   const TOKEN = randomUUID();
   const HERO = randomUUID();
+  const HERO_TOKEN = randomUUID();
 
   const state = (overrides: Partial<SessionState> = {}): SessionState => ({
     campaign: { id: randomUUID(), name: 'A Mina Perdida' },
@@ -149,7 +150,10 @@ describe('CampaignDb', () => {
     ],
     maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: null, cellPx: null } },
     activeMapId: MAP,
-    tokens: { [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [ANA], characterId: HERO } },
+    tokens: {
+      [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [], characterId: null, hp: { max: 7, damage: 2, temp: 0 } },
+      [HERO_TOKEN]: { id: HERO_TOKEN, mapId: MAP, name: 'Thorin', position: { x: 0, y: 0 }, size: 'medium', monsterId: null, image: null, ownerIds: [ANA], characterId: HERO, hp: null },
+    },
     characters: {
       [HERO]: {
         id: HERO,
@@ -162,6 +166,7 @@ describe('CampaignDb', () => {
           currency: { cp: 0, sp: 5, ep: 0, gp: 12, pp: 0 },
           items: [{ instanceId: randomUUID(), itemId: 'chain_mail', quantity: 1, equipped: true, attuned: false }],
         },
+        hp: { damage: 3, temp: 5 },
         adjustments: [{ id: randomUUID(), name: 'Bênção do Templo', effects: [{ type: 'flat_bonus', target: 'save.all', value: 1 }] }],
       },
     },
@@ -251,6 +256,8 @@ describe('CampaignDb', () => {
     const loaded = migrated.load();
     expect(loaded.characters[HERO]?.inventory).toEqual({ currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] });
     expect(loaded.characters[HERO]?.adjustments).toEqual([]);
+    expect(loaded.characters[HERO]?.hp).toEqual({ damage: 0, temp: 0 });
+    expect(loaded.tokens[TOKEN]?.hp).toBeNull();
     expect(loaded.tokens[TOKEN]?.characterId).toBeNull();
     migrated.close();
   });
