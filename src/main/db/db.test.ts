@@ -149,7 +149,7 @@ describe('CampaignDb', () => {
     ],
     maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: null, cellPx: null } },
     activeMapId: MAP,
-    tokens: { [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [ANA] } },
+    tokens: { [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [ANA], characterId: HERO } },
     characters: {
       [HERO]: {
         id: HERO,
@@ -158,6 +158,10 @@ describe('CampaignDb', () => {
         baseScores: { method: 'rolled', scores: { str: 15, dex: 14, con: 13, int: 12, wis: 10, cha: 8 } },
         rolledScores: [15, 14, 13, 12, 10, 8],
         steps: [{ kind: 'class_level', classId: 'fighter', selections: [{ source: { kind: 'class', id: 'fighter' }, choiceId: 'skills', picks: ['athletics', 'perception'] }] }],
+        inventory: {
+          currency: { cp: 0, sp: 5, ep: 0, gp: 12, pp: 0 },
+          items: [{ instanceId: randomUUID(), itemId: 'chain_mail', quantity: 1, equipped: true, attuned: false }],
+        },
       },
     },
     ...overrides,
@@ -220,6 +224,33 @@ describe('CampaignDb', () => {
     const empty = CampaignDb.open(join(tempDir(), 'vazio.db'));
     expect(() => empty.load()).toThrow('Arquivo sem campanha');
     empty.close();
+  });
+
+  it('migrates v3 characters with an empty inventory and tokens without a character', () => {
+    const path = join(tempDir(), 'v3.db');
+    const legacy = openDatabase(path);
+    legacy.exec(`
+      CREATE TABLE campaign (id TEXT PRIMARY KEY, name TEXT NOT NULL, created_at INTEGER NOT NULL, active_map_id TEXT) STRICT;
+      CREATE TABLE players (id TEXT PRIMARY KEY, display_name TEXT NOT NULL, role TEXT NOT NULL CHECK (role IN ('gm', 'player'))) STRICT;
+      CREATE TABLE maps (id TEXT PRIMARY KEY, name TEXT NOT NULL, width INTEGER NOT NULL, height INTEGER NOT NULL, background TEXT, cell_px INTEGER) STRICT;
+      CREATE TABLE tokens (id TEXT PRIMARY KEY, map_id TEXT NOT NULL REFERENCES maps (id) ON DELETE CASCADE, name TEXT NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL, size TEXT NOT NULL, monster_id TEXT, image TEXT, owner_ids TEXT NOT NULL) STRICT;
+      CREATE TABLE chat (seq INTEGER PRIMARY KEY, id TEXT NOT NULL UNIQUE, entry TEXT NOT NULL) STRICT;
+      CREATE TABLE characters (id TEXT PRIMARY KEY, owner_id TEXT NOT NULL REFERENCES players (id), name TEXT NOT NULL, build TEXT NOT NULL) STRICT;
+      PRAGMA user_version = 3;
+    `);
+    legacy.prepare('INSERT INTO campaign (id, name, created_at, active_map_id) VALUES (?, ?, ?, ?)').run(randomUUID(), 'V3', 0, MAP);
+    legacy.prepare('INSERT INTO players (id, display_name, role) VALUES (?, ?, ?)').run(ANA, 'Ana', 'player');
+    legacy.prepare('INSERT INTO maps (id, name, width, height, background, cell_px) VALUES (?, ?, ?, ?, ?, ?)').run(MAP, 'Caverna', 10, 10, null, null);
+    legacy.prepare('INSERT INTO tokens (id, map_id, name, x, y, size, monster_id, image, owner_ids) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(TOKEN, MAP, 'Goblin', 0, 0, 'small', 'goblin', null, '[]');
+    legacy.prepare('INSERT INTO characters (id, owner_id, name, build) VALUES (?, ?, ?, ?)').run(HERO, ANA, 'Thorin', JSON.stringify({ baseScores: null, rolledScores: null, steps: [] }));
+    legacy.close();
+
+    const migrated = CampaignDb.open(path);
+    expect(migrated.migration).toEqual({ from: 3, to: CAMPAIGN_DB_SCHEMA_VERSION, backup: `${path}.bak` });
+    const loaded = migrated.load();
+    expect(loaded.characters[HERO]?.inventory).toEqual({ currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] });
+    expect(loaded.tokens[TOKEN]?.characterId).toBeNull();
+    migrated.close();
   });
 
   it('persists cellPx and migrates v1 campaign databases with cellPx = null', () => {

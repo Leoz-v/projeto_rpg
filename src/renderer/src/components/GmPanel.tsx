@@ -453,6 +453,64 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
   );
 }
 
+/**
+ * Token de um personagem da mesa: nome, tamanho (da ficha) e dono vêm do
+ * personagem, e o token fica ligado a ele (`characterId`).
+ */
+function CharacterTokens({ view, stage, onError }: { view: TableView; stage: MapStage | null; onError: (m: string | null) => void }) {
+  const { state } = view;
+  const map = state.activeMapId !== null ? state.maps[state.activeMapId] : undefined;
+  const characters = Object.values(state.characters).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  const [characterId, setCharacterId] = useState('');
+  const [busy, setBusy] = useState(false);
+  if (!map || characters.length === 0) return null;
+  const chosen = state.characters[characterId] ?? characters[0];
+  if (!chosen) return null;
+  const onMap = Object.values(state.tokens).some((t) => t.mapId === map.id && t.characterId === chosen.id);
+
+  const place = async (): Promise<void> => {
+    setBusy(true);
+    const sheet = await window.vtt.characterSheet(chosen.id);
+    const size: Size = (sheet.ok ? sheet.value.sheet?.size : undefined) ?? 'medium';
+    const center = stage?.viewCenter() ?? { x: 0, y: 0 };
+    const half = tokenSide(size) / 2;
+    const position = placeToken({ x: center.x - half, y: center.y - half }, size, map);
+    const refused = await sendIntent({
+      kind: 'token.create',
+      data: { mapId: map.id, name: chosen.name, position, size, ownerIds: [chosen.ownerId], characterId: chosen.id },
+    });
+    setBusy(false);
+    onError(refused);
+  };
+
+  return (
+    <section className="panel" aria-label="Tokens de personagens">
+      <h2>Personagem no mapa</h2>
+      <div className="stack">
+        <label>
+          Personagem
+          <select
+            value={chosen.id}
+            onChange={(e) => {
+              setCharacterId(e.target.value);
+            }}
+          >
+            {characters.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} ({state.players[c.ownerId]?.displayName ?? '?'})
+              </option>
+            ))}
+          </select>
+        </label>
+        {onMap && <p className="hint">Já tem um token neste mapa.</p>}
+        <button type="button" disabled={busy} onClick={() => void place()}>
+          Colocar personagem
+        </button>
+      </div>
+    </section>
+  );
+}
+
 export function GmPanel({ view, stage, selectedId }: { view: TableView; stage: MapStage | null; selectedId: string | null }) {
   const [error, setError] = useState<string | null>(null);
   return (
@@ -463,6 +521,7 @@ export function GmPanel({ view, stage, selectedId }: { view: TableView; stage: M
         </p>
       )}
       <Maps view={view} onError={setError} />
+      <CharacterTokens view={view} stage={stage} onError={setError} />
       <Tokens view={view} stage={stage} selectedId={selectedId} onError={setError} />
     </>
   );

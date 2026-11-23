@@ -19,6 +19,7 @@ function setup(overrides: Partial<SessionDeps> = {}): HostSession {
     newId: randomUUID,
     monsterExists: (id) => id === 'goblin',
     pruneSteps: (steps) => steps,
+    itemProblems: (entry) => (entry.itemId === 'rope' || entry.itemId === 'ring_of_protection' ? [] : ['Item desconhecido']),
     assetExists: (sha) => sha === KNOWN_IMAGE,
     ...overrides,
   });
@@ -261,7 +262,7 @@ describe('HostSession: characters', () => {
   it('creates an empty draft owned by whoever asked', () => {
     const session = setup();
     const id = create(session, ANA.playerId);
-    expect(session.state.characters[id]).toEqual({ id, ownerId: ANA.playerId, name: 'Thorin', baseScores: null, rolledScores: null, steps: [] });
+    expect(session.state.characters[id]).toEqual({ id, ownerId: ANA.playerId, name: 'Thorin', baseScores: null, rolledScores: null, steps: [], inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] } });
     expect(SessionStateSchema.safeParse(session.state).success).toBe(true);
   });
 
@@ -350,7 +351,68 @@ describe('HostSession: characters', () => {
   it('restores saved characters', () => {
     const first = setup();
     const id = create(first, ANA.playerId);
-    const restored = new HostSession(CAMPAIGN, GM, { rng: cryptoRng, now: Date.now, newId: randomUUID, monsterExists: () => false, assetExists: () => false, pruneSteps: (s) => s }, first.state);
+    const restored = new HostSession(CAMPAIGN, GM, { rng: cryptoRng, now: Date.now, newId: randomUUID, monsterExists: () => false, assetExists: () => false, pruneSteps: (s) => s, itemProblems: () => [] }, first.state);
     expect(restored.state.characters[id]?.name).toBe('Thorin');
+  });
+});
+
+describe('HostSession: inventory', () => {
+  function withCharacter(): { session: HostSession; id: string } {
+    const session = setup();
+    session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Thorin' } });
+    return { session, id: Object.keys(session.state.characters)[0] ?? '' };
+  }
+  const items = (session: HostSession, id: string) => session.state.characters[id]?.inventory.items ?? [];
+
+  it('adds items the engine accepts, stacking equal unequipped entries', () => {
+    const { session, id } = withCharacter();
+    expect(applied(session.handle(ANA.playerId, { kind: 'inventory.add', data: { characterId: id, itemId: 'rope' } }))).toBe(true);
+    expect(applied(session.handle(GM.playerId, { kind: 'inventory.add', data: { characterId: id, itemId: 'rope', quantity: 2 } }))).toBe(true);
+    expect(items(session, id)).toHaveLength(1);
+    expect(items(session, id)[0]).toMatchObject({ itemId: 'rope', quantity: 3, equipped: false, attuned: false });
+    expect(rejection(session.handle(ANA.playerId, { kind: 'inventory.add', data: { characterId: id, itemId: 'vorpal' } }))).toBe('rule_violation');
+    expect(rejection(session.handle(BRUNO.playerId, { kind: 'inventory.add', data: { characterId: id, itemId: 'rope' } }))).toBe('not_allowed');
+    expect(SessionStateSchema.safeParse(session.state).success).toBe(true);
+  });
+
+  it('equips and attunes, and does not stack onto an attuned entry', () => {
+    const { session, id } = withCharacter();
+    session.handle(ANA.playerId, { kind: 'inventory.add', data: { characterId: id, itemId: 'ring_of_protection' } });
+    const instanceId = items(session, id)[0]?.instanceId ?? '';
+    expect(applied(session.handle(ANA.playerId, { kind: 'inventory.update', data: { characterId: id, instanceId, attuned: true, equipped: true } }))).toBe(true);
+    expect(items(session, id)[0]).toMatchObject({ attuned: true, equipped: true });
+    session.handle(ANA.playerId, { kind: 'inventory.add', data: { characterId: id, itemId: 'ring_of_protection' } });
+    expect(items(session, id)).toHaveLength(2);
+    expect(rejection(session.handle(ANA.playerId, { kind: 'inventory.update', data: { characterId: id, instanceId: 'nao-existe', equipped: true } }))).toBe('rule_violation');
+  });
+
+  it('removes some units or the whole entry', () => {
+    const { session, id } = withCharacter();
+    session.handle(ANA.playerId, { kind: 'inventory.add', data: { characterId: id, itemId: 'rope', quantity: 5 } });
+    const instanceId = items(session, id)[0]?.instanceId ?? '';
+    session.handle(ANA.playerId, { kind: 'inventory.remove', data: { characterId: id, instanceId, quantity: 2 } });
+    expect(items(session, id)[0]?.quantity).toBe(3);
+    session.handle(ANA.playerId, { kind: 'inventory.remove', data: { characterId: id, instanceId } });
+    expect(items(session, id)).toEqual([]);
+  });
+
+  it('sets the coins', () => {
+    const { session, id } = withCharacter();
+    const currency = { cp: 3, sp: 0, ep: 0, gp: 15, pp: 1 };
+    expect(applied(session.handle(ANA.playerId, { kind: 'inventory.currency', data: { characterId: id, currency } }))).toBe(true);
+    expect(session.state.characters[id]?.inventory.currency).toEqual(currency);
+  });
+
+  it('links tokens to characters and unlinks them when the character is removed', () => {
+    const { session, id } = withCharacter();
+    session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10 } });
+    const mapId = Object.keys(session.state.maps)[0] ?? '';
+    const token = { mapId, name: 'Thorin', position: { x: 0, y: 0 }, size: 'medium' as const, ownerIds: [ANA.playerId] };
+    expect(rejection(session.handle(GM.playerId, { kind: 'token.create', data: { ...token, characterId: randomUUID() } }))).toBe('rule_violation');
+    expect(applied(session.handle(GM.playerId, { kind: 'token.create', data: { ...token, characterId: id } }))).toBe(true);
+    const tokenId = Object.keys(session.state.tokens)[0] ?? '';
+    expect(session.state.tokens[tokenId]?.characterId).toBe(id);
+    session.handle(ANA.playerId, { kind: 'character.remove', data: { characterId: id } });
+    expect(session.state.tokens[tokenId]?.characterId).toBeNull();
   });
 });

@@ -1,4 +1,4 @@
-import { ABILITY_ROLL_SETS, BaseScoresSchema, CharacterSchema, SizeSchema } from 'rules-engine/schemas';
+import { ABILITY_ROLL_SETS, BaseScoresSchema, CharacterSchema, InventorySchema, SizeSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { ChatTextSchema, LabelSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 
@@ -66,6 +66,8 @@ export const TokenSchema = z.strictObject({
   monsterId: z.string().min(1).nullable(),
   image: Sha256Schema.nullable(),
   ownerIds: z.array(UuidSchema),
+  /** Personagem representado pelo token, ou `null` (monstro, objeto). */
+  characterId: UuidSchema.nullable(),
 });
 export type Token = z.infer<typeof TokenSchema>;
 
@@ -73,8 +75,8 @@ export type Token = z.infer<typeof TokenSchema>;
 const RolledScoreSchema = z.int().min(3).max(18);
 
 /**
- * Personagem da campanha: só as escolhas de construção (o motor calcula a
- * ficha). `baseScores` fica `null` até os atributos serem definidos;
+ * Personagem da campanha: as escolhas de construção e o inventário (o motor
+ * calcula a ficha). `baseScores` fica `null` até os atributos serem definidos;
  * `rolledScores` guarda os valores rolados pelo Host, os únicos aceitos no método `rolled`.
  */
 export const SessionCharacterSchema = z.strictObject({
@@ -84,6 +86,8 @@ export const SessionCharacterSchema = z.strictObject({
   baseScores: BaseScoresSchema.nullable(),
   rolledScores: z.array(RolledScoreSchema).length(ABILITY_ROLL_SETS).nullable(),
   steps: CharacterSchema.shape.steps,
+  /** Estado separado das escolhas: muda o tempo todo, só por `Intent` ao Host. */
+  inventory: InventorySchema,
 });
 export type SessionCharacter = z.infer<typeof SessionCharacterSchema>;
 

@@ -45,6 +45,22 @@ export function fitsBase(magic: MagicItem, base: Item): boolean {
   return true;
 }
 
+/** Itens base que um item mágico genérico aceita (ex.: as armas de Weapon, +1), em ordem de nome. */
+export function baseItemOptions(magic: MagicItem, compendium: Compendium): Item[] {
+  if (!magic.base) return [];
+  return compendium.items.filter((i) => i.kind !== 'magic_item' && fitsBase(magic, i)).sort((a, b) => a.name.localeCompare(b.name, 'en'));
+}
+
+/**
+ * Problemas de uma entrada nova do inventário (item desconhecido, variante ou
+ * item base faltando ou inválidos), sem olhar o personagem. Vazio = pode entrar.
+ */
+export function inventoryEntryProblems(entry: Pick<InventoryEntry, 'itemId' | 'baseItemId' | 'variantId'>, compendium: Compendium): string[] {
+  const issues: Issue[] = [];
+  resolveInventory({ currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [{ instanceId: 'check', quantity: 1, equipped: false, attuned: false, ...entry }] }, compendium, { classIds: [], spellcaster: false }, issues);
+  return issues.map((i) => i.message);
+}
+
 export function resolveInventory(inventory: Inventory, compendium: Compendium, attunement: AttunementContext, issues: Issue[]): ResolvedEntry[] {
   const find = (id: string): Item | undefined => compendium.items.find((i) => i.id === id);
   const invalid = (message: string): void => {

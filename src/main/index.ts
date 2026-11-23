@@ -1,7 +1,7 @@
 import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { app, BrowserWindow, dialog, ipcMain, protocol, shell } from 'electron';
-import { type Compendium, loadSrdCompendium, pruneSelections, RULES_ENGINE_VERSION } from 'rules-engine';
+import { type Compendium, inventoryEntryProblems, loadSrdCompendium, pruneSelections, RULES_ENGINE_VERSION } from 'rules-engine';
 import { z } from 'zod';
 import { type AppInfo, IpcChannel, type IpcResult, type TableEvent } from '../shared/ipc';
 import { HostTableRequestSchema, JoinTableRequestSchema } from '../shared/ipc-schemas';
@@ -9,7 +9,7 @@ import { IntentSchema, MAX_ASSET_BYTES, UuidSchema } from '../shared/protocol';
 import { PROTOCOL_VERSION } from '../shared/versions';
 import { ASSET_SCHEME, AssetError, assetResponse, AssetStore, type StoredAsset } from './assets';
 import { characterSheet, creationOptions } from './character-sheet';
-import { searchMonsters } from './compendium';
+import { searchItems, searchMonsters } from './compendium';
 import { AppDb, CampaignLibrary, CampaignNotFoundError } from './db';
 import { cryptoRng } from './session';
 import { localAddresses, TableController, TableError } from './table';
@@ -132,6 +132,7 @@ function registerIpc(appDb: AppDb, table: TableController, library: CampaignLibr
   handle(IpcChannel.getTable, () => table.view());
   handle(IpcChannel.sendIntent, (payload) => table.send(parse(IntentSchema, payload)));
   handle(IpcChannel.creationOptions, () => creationOptions(getCompendium()));
+  handle(IpcChannel.searchItems, (payload) => searchItems(getCompendium(), parse(z.string().max(100), payload)));
   handle(IpcChannel.characterSheet, (payload) => {
     const record = table.view()?.state.characters[parse(UuidSchema, payload)];
     if (!record) throw new TableError('Personagem não encontrado');
@@ -170,6 +171,7 @@ void app.whenReady().then(() => {
     rng: cryptoRng,
     monsterExists,
     pruneSteps: (steps) => pruneSelections(steps, getCompendium()),
+    itemProblems: (entry) => inventoryEntryProblems(entry, getCompendium()),
     addresses: localAddresses,
     emit,
     log: (message) => {

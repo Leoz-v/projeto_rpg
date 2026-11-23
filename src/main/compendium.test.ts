@@ -1,6 +1,6 @@
 import { loadSrdCompendium } from 'rules-engine';
 import { describe, expect, it } from 'vitest';
-import { searchMonsters } from './compendium';
+import { searchItems, searchMonsters } from './compendium';
 
 describe('searchMonsters (SRD compendium)', () => {
   const { creatures } = loadSrdCompendium();
@@ -22,5 +22,20 @@ describe('searchMonsters (SRD compendium)', () => {
     expect(searchMonsters(creatures, 'GOBLÍN').length).toBe(searchMonsters(creatures, 'goblin').length);
     expect(searchMonsters(creatures, '   ')).toEqual([]);
     expect(searchMonsters(creatures, 'a', 5)).toHaveLength(5);
+  });
+});
+
+describe('searchItems (SRD compendium)', () => {
+  const compendium = loadSrdCompendium();
+
+  it('finds mundane and magic items with what the inventory needs to choose', () => {
+    const rope = searchItems(compendium, 'rope').find((i) => i.id === 'rope');
+    expect(rope).toEqual({ id: 'rope', name: 'Rope', kind: 'gear', attunement: false, variants: [], bases: [] });
+    const weapon = searchItems(compendium, 'weapon, +').find((i) => i.id === 'weapon_plus');
+    expect(weapon?.variants.map((v) => v.id)).toEqual(['plus_1', 'plus_2', 'plus_3']);
+    expect(weapon?.bases.map((b) => b.id)).toContain('longsword');
+    expect(weapon?.rarity).toEqual(['uncommon', 'rare', 'very_rare']);
+    expect(searchItems(compendium, 'ring of protection')[0]).toMatchObject({ attunement: true });
+    expect(searchItems(compendium, '   ')).toEqual([]);
   });
 });

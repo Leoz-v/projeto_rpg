@@ -1,7 +1,7 @@
-import { BaseScoresSchema, CharacterSchema, DiceSchema, SizeSchema } from 'rules-engine/schemas';
+import { BaseScoresSchema, CharacterSchema, DiceSchema, IdSchema, SizeSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
-import { ChatTextSchema, LabelSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
-import { MAX_FORMULA_DICE, MAX_FORMULA_LENGTH } from './constants';
+import { ChatTextSchema, InstanceIdSchema, LabelSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
+import { MAX_COINS, MAX_FORMULA_DICE, MAX_FORMULA_LENGTH, MAX_ITEM_QUANTITY } from './constants';
 import { VisibilitySchema } from './state';
 
 /** Catálogo de `Intent` (docs/network-protocol.md, seção 3). */
@@ -17,6 +17,9 @@ export function countDice(formula: string): number {
 export const FormulaSchema = DiceSchema.max(MAX_FORMULA_LENGTH).refine((f) => countDice(f) <= MAX_FORMULA_DICE, {
   message: `no máximo ${MAX_FORMULA_DICE} dados`,
 });
+
+const QuantitySchema = z.int().min(1).max(MAX_ITEM_QUANTITY);
+const CoinsSchema = z.int().min(0).max(MAX_COINS);
 
 export const IntentSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('session.resync'), data: z.strictObject({}) }),
@@ -47,6 +50,7 @@ export const IntentSchema = z.discriminatedUnion('kind', [
       monsterId: z.string().min(1).optional(),
       image: Sha256Schema.optional(),
       ownerIds: z.array(UuidSchema).optional(),
+      characterId: UuidSchema.optional(),
     }),
   }),
   z.strictObject({ kind: z.literal('token.remove'), data: z.strictObject({ tokenId: UuidSchema }) }),
@@ -64,6 +68,39 @@ export const IntentSchema = z.discriminatedUnion('kind', [
   }),
   z.strictObject({ kind: z.literal('character.roll_scores'), data: z.strictObject({ characterId: UuidSchema }) }),
   z.strictObject({ kind: z.literal('character.remove'), data: z.strictObject({ characterId: UuidSchema }) }),
+  z.strictObject({
+    kind: z.literal('inventory.add'),
+    data: z.strictObject({
+      characterId: UuidSchema,
+      itemId: IdSchema,
+      baseItemId: IdSchema.optional(),
+      variantId: IdSchema.optional(),
+      quantity: QuantitySchema.optional(),
+    }),
+  }),
+  z.strictObject({
+    kind: z.literal('inventory.remove'),
+    data: z.strictObject({ characterId: UuidSchema, instanceId: InstanceIdSchema, quantity: QuantitySchema.optional() }),
+  }),
+  z.strictObject({
+    kind: z.literal('inventory.update'),
+    data: z
+      .strictObject({
+        characterId: UuidSchema,
+        instanceId: InstanceIdSchema,
+        equipped: z.boolean().optional(),
+        attuned: z.boolean().optional(),
+        quantity: QuantitySchema.optional(),
+      })
+      .refine((d) => d.equipped !== undefined || d.attuned !== undefined || d.quantity !== undefined, { message: 'nada para alterar' }),
+  }),
+  z.strictObject({
+    kind: z.literal('inventory.currency'),
+    data: z.strictObject({
+      characterId: UuidSchema,
+      currency: z.strictObject({ cp: CoinsSchema, sp: CoinsSchema, ep: CoinsSchema, gp: CoinsSchema, pp: CoinsSchema }),
+    }),
+  }),
 ]);
 export type Intent = z.infer<typeof IntentSchema>;
 export type IntentKind = Intent['kind'];

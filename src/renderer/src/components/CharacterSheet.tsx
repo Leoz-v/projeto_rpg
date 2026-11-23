@@ -5,6 +5,7 @@ import type { CharacterSheetView, TableView } from '../../../shared/ipc';
 import { sendIntent } from '../store/table';
 import { AbilityScoresEditor } from './AbilityScoresEditor';
 import { BuildPanel } from './BuildPanel';
+import { Inventory } from './Inventory';
 import { ABILITY_LABEL, CONDITION_LABEL, DAMAGE_LABEL, humanizeId, nameOf, SENSE_LABEL, SIZE_LABEL, signed, SKILL_LABEL } from './sheet-labels';
 
 /**
@@ -286,6 +287,45 @@ function Traits({ sheet, names, onSelect }: { sheet: DerivedSheet; names: Record
   );
 }
 
+function Attacks({ sheet, onSelect }: { sheet: DerivedSheet; onSelect: (d: Detail) => void }) {
+  if (sheet.attacks.length === 0) return null;
+  return (
+    <section aria-label="Ataques" className="attacks">
+      <h3>Ataques</h3>
+      <table>
+        <tbody>
+          {sheet.attacks.map((a) => {
+            const bonus = a.damage.bonus.total;
+            const damage = `${a.damage.dice}${bonus !== 0 ? signed(bonus) : ''} ${DAMAGE_LABEL[a.damage.type].toLowerCase()}`;
+            const extra = a.extraDamage.map((x) => `+${x.dice} ${DAMAGE_LABEL[x.type].toLowerCase()}`);
+            const reach = a.range ? `${a.range.normal}/${a.range.long} ft` : `${a.reach} ft`;
+            return (
+              <tr key={a.instanceId}>
+                <td>
+                  {a.name}
+                  {!a.proficient && <small className="hint"> (sem proficiência)</small>}
+                </td>
+                <td>
+                  <StatButton title={`Ataque: ${a.name}`} stat={a.attack} signedTotal onSelect={onSelect} />
+                </td>
+                <td>
+                  <StatButton title={`Bônus de dano: ${a.name}`} stat={a.damage.bonus} signedTotal onSelect={onSelect}>
+                    {damage}
+                  </StatButton>
+                  {extra.length > 0 && <small className="hint"> {extra.join(' ')}</small>}
+                  {a.versatileDice && <small className="hint"> (duas mãos {a.versatileDice})</small>}
+                </td>
+                <td className="hint">{reach}</td>
+                <td className="hint">{a.mastery.available ? humanizeId(a.mastery.property) : ''}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
 function Spellcasting({ sheet, names, onSelect }: { sheet: DerivedSheet; names: Record<string, string>; onSelect: (d: Detail) => void }) {
   const { classes, slots, pactSlots, granted } = sheet.spellcasting;
   if (classes.length === 0 && granted.length === 0) return null;
@@ -481,6 +521,7 @@ export function CharacterSheet({ view, characterId, onClose }: { view: TableView
                 )}
                 <Vitals sheet={load.view.sheet} onSelect={setDetail} />
                 <Abilities sheet={load.view.sheet} onSelect={setDetail} />
+                <Attacks sheet={load.view.sheet} onSelect={setDetail} />
                 <div className="sheet-columns">
                   <Skills sheet={load.view.sheet} onSelect={setDetail} />
                   <div>
@@ -488,6 +529,7 @@ export function CharacterSheet({ view, characterId, onClose }: { view: TableView
                     <Traits sheet={load.view.sheet} names={load.view.names} onSelect={setDetail} />
                   </div>
                 </div>
+                <Inventory character={record} sheet={load.view.sheet} canEdit={canEdit} />
               </>
             )}
           </div>

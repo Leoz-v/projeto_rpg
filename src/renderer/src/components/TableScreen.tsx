@@ -54,6 +54,29 @@ function HostAddresses({ view }: { view: TableView }) {
   );
 }
 
+/** Token selecionado que representa um personagem: atalho para a ficha. */
+function SelectedCharacter({ view, tokenId, onOpen }: { view: TableView; tokenId: string; onOpen: (id: string) => void }) {
+  const characterId = view.state.tokens[tokenId]?.characterId;
+  const character = characterId ? view.state.characters[characterId] : undefined;
+  if (!character) return null;
+  return (
+    <p className="selected">
+      <span>
+        Token de <strong>{character.name}</strong>
+      </span>
+      <button
+        type="button"
+        className="link"
+        onClick={() => {
+          onOpen(character.id);
+        }}
+      >
+        Abrir ficha
+      </button>
+    </p>
+  );
+}
+
 export function TableScreen({ view }: { view: TableView }) {
   const [leaving, setLeaving] = useState(false);
   const [stage, setStage] = useState<MapStage | null>(null);
@@ -84,6 +107,7 @@ export function TableScreen({ view }: { view: TableView }) {
       <aside className="sidebar">
         <Players view={view} />
         <Characters view={view} onOpen={setOpenCharacterId} />
+        {selectedId !== null && <SelectedCharacter view={view} tokenId={selectedId} onOpen={setOpenCharacterId} />}
         {view.info.role === 'gm' && <GmPanel view={view} stage={stage} selectedId={selectedId} />}
         <HostAddresses view={view} />
       </aside>
