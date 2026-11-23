@@ -18,6 +18,7 @@ function setup(overrides: Partial<SessionDeps> = {}): HostSession {
     now: () => 1763769600000,
     newId: randomUUID,
     monsterExists: (id) => id === 'goblin',
+    pruneSteps: (steps) => steps,
     assetExists: (sha) => sha === KNOWN_IMAGE,
     ...overrides,
   });
@@ -328,6 +329,15 @@ describe('HostSession: characters', () => {
     expect(session.state.characters[id]?.baseScores).toBeNull();
   });
 
+  it('prunes loose selections from the steps it receives', () => {
+    // Stub: o motor diria que nenhuma seleção é usada.
+    const session = setup({ pruneSteps: (steps) => steps.map((s) => ({ ...s, selections: [] })) });
+    const id = create(session, ANA.playerId);
+    const loose = { source: { kind: 'class' as const, id: 'fighter' }, choiceId: 'skills', picks: ['athletics', 'perception'] };
+    session.handle(ANA.playerId, { kind: 'character.update', data: { characterId: id, steps: [{ kind: 'class_level', classId: 'fighter', selections: [loose] }] } });
+    expect(session.state.characters[id]?.steps).toEqual([{ kind: 'class_level', classId: 'fighter', selections: [] }]);
+  });
+
   it('removes a character for the owner or the GM', () => {
     const session = setup();
     const id = create(session, ANA.playerId);
@@ -340,7 +350,7 @@ describe('HostSession: characters', () => {
   it('restores saved characters', () => {
     const first = setup();
     const id = create(first, ANA.playerId);
-    const restored = new HostSession(CAMPAIGN, GM, { rng: cryptoRng, now: Date.now, newId: randomUUID, monsterExists: () => false, assetExists: () => false }, first.state);
+    const restored = new HostSession(CAMPAIGN, GM, { rng: cryptoRng, now: Date.now, newId: randomUUID, monsterExists: () => false, assetExists: () => false, pruneSteps: (s) => s }, first.state);
     expect(restored.state.characters[id]?.name).toBe('Thorin');
   });
 });

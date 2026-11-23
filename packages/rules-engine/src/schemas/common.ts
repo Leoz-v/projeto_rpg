@@ -124,6 +124,10 @@ export const CREATURE_TYPES = [
 export const CreatureTypeSchema = z.enum(CREATURE_TYPES);
 export type CreatureType = z.infer<typeof CreatureTypeSchema>;
 
+/** Idiomas padrão além do Comum e idiomas raros (SRD 5.2.1 p. 20), para escolhas de idioma sem lista própria. */
+export const STANDARD_LANGUAGES = ['common_sign_language', 'draconic', 'dwarvish', 'elvish', 'giant', 'gnomish', 'goblin', 'halfling', 'orc'] as const;
+export const RARE_LANGUAGES = ['abyssal', 'celestial', 'deep_speech', 'druidic', 'infernal', 'primordial', 'sylvan', 'thieves_cant', 'undercommon'] as const;
+
 export const SenseSchema = z.enum(['darkvision', 'blindsight', 'tremorsense', 'truesight']);
 export type Sense = z.infer<typeof SenseSchema>;
 

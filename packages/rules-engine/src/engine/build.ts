@@ -1,4 +1,4 @@
-import { ABILITIES, type Ability, type AbilityScores, SKILLS, type Size, type Skill } from '../schemas/common';
+import { ABILITIES, type Ability, type AbilityScores, RARE_LANGUAGES, SKILLS, type Size, type Skill, STANDARD_LANGUAGES } from '../schemas/common';
 import type { BuildStep, Character, Selection } from '../schemas/character';
 import type { Effect } from '../schemas/effect';
 import type { Item, Weapon } from '../schemas/item';
@@ -45,6 +45,8 @@ export interface ResolvedBuild {
   abilityChoices: Map<string, Map<string, Ability>>;
   pending: PendingChoice[];
   issues: Issue[];
+  /** Seleções que nenhuma escolha usou (ex.: a escolha que as abria foi desfeita), por passo e índice. */
+  unusedSelections: { stepIndex: number; index: number }[];
 }
 
 const ABILITY_NAME: Record<Ability, string> = { str: 'FOR', dex: 'DES', con: 'CON', int: 'INT', wis: 'SAB', cha: 'CAR' };
@@ -72,6 +74,9 @@ export function resolveBuild(character: Character, compendium: Compendium): Reso
 
   const issues: Issue[] = [];
   const pending: PendingChoice[] = [];
+  /** Nível de personagem e escala de cada escolha pendente, para os candidatos. */
+  const pendingContext: { level: number; scale: Scale }[] = [];
+  const unusedSelections: { stepIndex: number; index: number }[] = [];
   const effects: SourcedEffect[] = [];
   const features: SheetFeature[] = [];
   const feats: { featId: string; source: SourceLabel }[] = [];
@@ -159,26 +164,27 @@ export function resolveBuild(character: Character, compendium: Compendium): Reso
     processGrants(feat.grants, source, `feat:${feat.id}@${stepIndex}`, { kind: 'character' });
   };
 
-  const checkFeatPrerequisites = (feat: Feat, choiceId?: string): void => {
+  /** O que falta para o talento, no nível de personagem `level` (vazio = pode). */
+  const featPrerequisiteProblems = (feat: Feat, level: number): string[] => {
     const pre = feat.prerequisite;
-    if (!pre) return;
-    if (pre.minLevel !== undefined && characterLevel < pre.minLevel) {
-      error('prerequisite_not_met', `${feat.name} exige nível ${pre.minLevel}.`, choiceId);
-    }
+    if (!pre) return [];
+    const problems: string[] = [];
+    if (pre.minLevel !== undefined && level < pre.minLevel) problems.push(`${feat.name} exige nível ${pre.minLevel}.`);
     if (pre.anyAbilityAtLeast) {
       const entries = Object.entries(pre.anyAbilityAtLeast) as [Ability, number][];
       if (!entries.some(([a, min]) => scoreValues[a] >= min)) {
-        const text = entries.map(([a, min]) => `${ABILITY_NAME[a]} ${min}`).join(' ou ');
-        error('prerequisite_not_met', `${feat.name} exige ${text}.`, choiceId);
+        problems.push(`${feat.name} exige ${entries.map(([a, min]) => `${ABILITY_NAME[a]} ${min}`).join(' ou ')}.`);
       }
     }
-    if (pre.feature === 'fighting_style' && !offersFightingStyle) {
-      error('prerequisite_not_met', `${feat.name} exige a característica Estilo de Luta.`, choiceId);
+    if (pre.feature === 'fighting_style' && !offersFightingStyle) problems.push(`${feat.name} exige a característica Estilo de Luta.`);
+    if (pre.feature === 'spellcasting' && ![...classLevels.keys()].some((id) => find(compendium.classes, id)?.spellcasting !== undefined)) {
+      problems.push(`${feat.name} exige a característica Conjuração.`);
     }
-    if (pre.feature === 'spellcasting') {
-      const casts = [...classLevels.keys()].some((id) => find(compendium.classes, id)?.spellcasting !== undefined);
-      if (!casts) error('prerequisite_not_met', `${feat.name} exige a característica Conjuração.`, choiceId);
-    }
+    return problems;
+  };
+
+  const checkFeatPrerequisites = (feat: Feat, choiceId?: string): void => {
+    for (const message of featPrerequisiteProblems(feat, characterLevel)) error('prerequisite_not_met', message, choiceId);
   };
 
   const takeSelection = (source: SourceLabel, choiceId: string): Selection | undefined => {
@@ -196,7 +202,8 @@ export function resolveBuild(character: Character, compendium: Compendium): Reso
 
     const selection = takeSelection(source, grant.id);
     if (!selection) {
-      pending.push({ stepIndex, source, choiceId: grant.id, count: grant.count, options });
+      pending.push({ stepIndex, source, choiceId: grant.id, count: grant.count, options, candidates: [], repeatable: options.pick === 'ability_score' });
+      pendingContext.push({ level: Math.max(1, characterLevel), scale });
       return;
     }
     const picks = selection.picks;
@@ -481,6 +488,7 @@ export function resolveBuild(character: Character, compendium: Compendium): Reso
     advanceLeveled();
     selections.forEach((s, i) => {
       if (!used.has(i)) {
+        unusedSelections.push({ stepIndex: index, index: i });
         error('unexpected_selection', `Seleção sem escolha correspondente neste passo: ${s.source.kind}:${s.source.id} / ${s.choiceId}.`, s.choiceId);
       }
     });
@@ -492,6 +500,76 @@ export function resolveBuild(character: Character, compendium: Compendium): Reso
   const proficientSkills = new Set(
     effects.flatMap(({ effect }) => (effect.type === 'grant_proficiency' && effect.category === 'skill' && effect.level !== 'expertise' ? [effect.id] : [])),
   );
+  /** Proficiências já concedidas (com ou sem especialização), por categoria. */
+  const granted = (category: 'skill' | 'tool' | 'language'): Set<string> =>
+    new Set(effects.flatMap(({ effect }) => (effect.type === 'grant_proficiency' && effect.category === category ? [effect.id] : [])));
+  const expertSkills = new Set(
+    effects.flatMap(({ effect }) => (effect.type === 'grant_proficiency' && effect.category === 'skill' && effect.level === 'expertise' ? [effect.id] : [])),
+  );
+  const toolIds = compendium.items.filter((i) => i.kind === 'tool').map((i) => i.id);
+  const languageIds: readonly string[] = [...STANDARD_LANGUAGES, ...RARE_LANGUAGES];
+
+  const candidatesFor = (choice: PendingChoice, level: number, scale: Scale): string[] => {
+    const { options } = choice;
+    switch (options.pick) {
+      case 'proficiency': {
+        const ids = options.categories.flatMap((category) => {
+          const all: readonly string[] = category === 'skill' ? SKILLS : category === 'tool' ? toolIds : languageIds;
+          const known = granted(category);
+          return (options.from ?? all).filter((id) => all.includes(id) && !known.has(id));
+        });
+        return [...new Set(ids)];
+      }
+      case 'skill_expertise':
+        return (options.from ?? SKILLS).filter((skill) => proficientSkills.has(skill) && !expertSkills.has(skill));
+      case 'ability':
+        return [...options.from];
+      case 'ability_score':
+        return (options.from ?? ABILITIES).filter((a) => scoreValues[a] < options.max);
+      case 'feat':
+        return compendium.feats
+          .filter((f) => options.categories.includes(f.category))
+          .filter((f) => f.repeatable || !feats.some((owned) => owned.featId === f.id))
+          .filter((f) => featPrerequisiteProblems(f, level).length === 0)
+          .map((f) => f.id);
+      case 'weapon_mastery':
+        return compendium.items.flatMap((item) => {
+          if (item.kind !== 'weapon' || masteredWeapons.has(item.id)) return [];
+          if (options.melee && item.attackKind !== 'melee') return [];
+          if (options.proficient && !isWeaponProficient(effects, item)) return [];
+          return [item.id];
+        });
+      case 'subclass': {
+        const { source } = choice;
+        if (source.kind !== 'class' || subclasses.has(source.id)) return [];
+        return compendium.subclasses.filter((sub) => sub.classId === source.id).map((sub) => sub.id);
+      }
+      case 'spell': {
+        const classId = scale.kind === 'class' ? scale.classId : undefined;
+        const chosen = classId ? classSpells.get(classId) : undefined;
+        const known = new Set([...(chosen?.cantrips ?? []), ...(chosen?.spells ?? [])]);
+        return compendium.spells
+          .filter((sp) => sp.level >= options.minLevel && sp.level <= options.maxLevel && sp.classes.some((c) => options.lists.includes(c)))
+          .filter((sp) => (options.school === undefined || sp.school === options.school) && (!options.ritual || sp.ritual))
+          .filter((sp) => options.grantAs !== undefined || !known.has(sp.id))
+          .map((sp) => sp.id);
+      }
+      case 'option': {
+        const groupKey = options.group ? `${choice.source.kind}:${choice.source.id}:${options.group}` : undefined;
+        const taken = groupKey ? (optionGroups.get(groupKey) ?? []) : [];
+        return options.options
+          .filter((o) => o.repeatable === true || !taken.includes(o.id))
+          .filter((o) => o.prerequisite?.minLevel === undefined || currentLevel(scale) >= o.prerequisite.minLevel)
+          .filter((o) => (o.prerequisite?.options ?? []).every((needed) => taken.includes(needed)))
+          .map((o) => o.id);
+      }
+    }
+  };
+  pending.forEach((choice, i) => {
+    const context = pendingContext[i];
+    if (context) choice.candidates = candidatesFor(choice, context.level, context.scale);
+  });
+
   for (const check of masteryChecks) {
     if (!isWeaponProficient(effects, check.weapon)) {
       issues.push({
@@ -533,5 +611,23 @@ export function resolveBuild(character: Character, compendium: Compendium): Reso
     abilityChoices,
     pending,
     issues,
+    unusedSelections,
   };
+}
+
+/** Valores neutros para resolver só a estrutura da construção (os atributos não mudam quais seleções são usadas). */
+const NEUTRAL_SCORES: Character['baseScores'] = { method: 'manual', scores: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 } };
+
+/**
+ * Tira dos passos as seleções que nenhuma escolha usa mais (ex.: o jogador
+ * desfez a escolha de uma opção e as escolhas de dentro dela ficaram soltas).
+ * Uma passada basta: uma seleção solta não abre escolha nenhuma.
+ */
+export function pruneSelections(steps: readonly BuildStep[], compendium: Compendium): BuildStep[] {
+  const { unusedSelections } = resolveBuild({ id: 'prune', name: 'prune', baseScores: NEUTRAL_SCORES, steps: [...steps] }, compendium);
+  if (unusedSelections.length === 0) return [...steps];
+  return steps.map((step, stepIndex) => {
+    const drop = new Set(unusedSelections.filter((u) => u.stepIndex === stepIndex).map((u) => u.index));
+    return drop.size === 0 ? step : { ...step, selections: step.selections.filter((_, i) => !drop.has(i)) };
+  });
 }

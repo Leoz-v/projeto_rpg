@@ -1,6 +1,6 @@
 import type { AppInfo, HostTableRequest, IpcError, JoinTableRequest, Preferences } from './ipc-schemas';
 import type { DerivedSheet } from 'rules-engine';
-import type { Size } from 'rules-engine/schemas';
+import type { Ability, Size } from 'rules-engine/schemas';
 import type { Intent, IntentResultSchema, Role, SessionState } from './protocol';
 import type { z } from 'zod';
 
@@ -19,6 +19,7 @@ export const IpcChannel = {
   getTable: 'table:get',
   importAsset: 'assets:import',
   characterSheet: 'table:character-sheet',
+  creationOptions: 'compendium:creation-options',
   sendIntent: 'table:intent',
   tableEvent: 'table:event',
 } as const;
@@ -71,6 +72,15 @@ export interface ImportedAsset {
 export interface CharacterSheetView {
   sheet: DerivedSheet | null;
   names: Record<string, string>;
+  /** Texto de apoio dos candidatos de talento, magia e subclasse nas escolhas pendentes, por id. */
+  details: Record<string, string>;
+}
+
+/** Primeiros passos da criação: o que cada espécie, antecedente e classe oferece, para escolher. */
+export interface CreationOptions {
+  species: { id: string; name: string; sizes: Size[]; speed: number; traits: string[] }[];
+  backgrounds: { id: string; name: string; abilityOptions: [Ability, Ability, Ability]; traits: string[] }[];
+  classes: { id: string; name: string; hitDie: number; primaryAbilities: Ability[]; traits: string[] }[];
 }
 
 /** O que o renderer precisa para desenhar a mesa. */
@@ -100,6 +110,8 @@ export interface VttApi {
   searchMonsters(query: string): Promise<IpcResult<MonsterSummary[]>>;
   /** Ficha calculada de um personagem da mesa atual. */
   characterSheet(characterId: string): Promise<IpcResult<CharacterSheetView>>;
+  /** Espécies, antecedentes e classes do compêndio. */
+  creationOptions(): Promise<IpcResult<CreationOptions>>;
   /** Abre o seletor de arquivos e importa uma imagem; `null` se o usuário cancelou. */
   importAsset(): Promise<IpcResult<ImportedAsset | null>>;
   /** Avisa a cada estado novo e quando a mesa fecha. Devolve a função que cancela. */

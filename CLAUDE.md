@@ -165,7 +165,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - ✅ Mapa PixiJS em `src/renderer/src/canvas/` (grid, fundo, tokens com o espaço do tamanho, câmera, arrastar com `token.move`) e painel do mestre (mapas com grid por pixels e preview ajustável ou em células para mapas sem fundo, tokens do compêndio numerados, remover). Ver `docs/decisions/0027-mapa-pixijs.md` e `docs/decisions/0028-grid-em-pixels.md`.
 3. **Fase 3 — Fichas & Progressão (interface):** telas de criação de personagem e de subida de nível sobre o motor da Fase 1, gerenciamento de inventário e sincronização offline com aprovação do mestre. Dividida em 5 PRs (ver `docs/decisions/0029-personagens-na-sessao.md`):
    - ✅ Personagens no estado da sessão (`character.create`/`update`/`roll_scores`/`remove`, `PROTOCOL_VERSION = 3`, tabela `characters` no `<campanha>.db`), ficha calculada no processo main com a conta de cada número, e definição dos atributos (conjunto padrão, compra de pontos, rolagem pelo Host com o resultado no chat, valores à mão só para o mestre).
-   - Assistente de criação: espécie, antecedente com os aumentos de atributo, classe e as escolhas pendentes do motor.
+   - ✅ Assistente de criação: espécie, antecedente com os aumentos de atributo, classe inicial e as escolhas pendentes, com os candidatos filtrados pelo motor; desfazer uma escolha descarta as que dependiam dela. Ver `docs/decisions/0030-assistente-de-criacao.md`.
    - Subida de nível, incluindo multiclasse e as trocas permitidas pelas regras.
    - Inventário pelo Host (adicionar, remover, equipar, sintonizar), ajustes do mestre e ligação personagem–token.
    - Cópia offline com aprovação do *diff* pelo mestre.

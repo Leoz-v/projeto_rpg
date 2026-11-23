@@ -14,6 +14,7 @@ const api: VttApi = {
   sendIntent: (intent) => ipcRenderer.invoke(IpcChannel.sendIntent, intent),
   importAsset: () => ipcRenderer.invoke(IpcChannel.importAsset),
   characterSheet: (characterId) => ipcRenderer.invoke(IpcChannel.characterSheet, characterId),
+  creationOptions: () => ipcRenderer.invoke(IpcChannel.creationOptions),
   onTableEvent: (listener) => {
     // O evento do Electron não passa para o renderer: só o payload.
     const handler = (_event: IpcRendererEvent, payload: TableEvent): void => {

@@ -6,7 +6,7 @@ import type { CampaignChoice } from '../../shared/ipc-schemas';
 import { AssetError, type AssetStore } from '../assets';
 import { CampaignDbError, CampaignNotFoundError, DatabaseTooNewError, type OpenCampaign } from '../db';
 import { ConnectError, HostClient, HostServer } from '../net';
-import { HostSession } from '../session';
+import { HostSession, type SessionDeps } from '../session';
 
 /**
  * A mesa deste app: hospeda (mestre) ou entra na de outro (jogador). Só
@@ -24,6 +24,7 @@ export interface TableControllerDeps {
   assets: AssetStore;
   rng: Rng;
   monsterExists(id: string): boolean;
+  pruneSteps: SessionDeps['pruneSteps'];
   /** Endereços desta máquina para mostrar aos jogadores. */
   addresses(): string[];
   /** Entrega um evento à tela. */
@@ -73,7 +74,7 @@ export class TableController {
     const session = new HostSession(
       store.campaign,
       { playerId: deps.playerId, displayName: request.displayName },
-      { rng: deps.rng, now: Date.now, newId: randomUUID, monsterExists: (id) => deps.monsterExists(id), assetExists: (sha) => deps.assets.has(sha) },
+      { rng: deps.rng, now: Date.now, newId: randomUUID, monsterExists: (id) => deps.monsterExists(id), assetExists: (sha) => deps.assets.has(sha), pruneSteps: deps.pruneSteps },
       store.restored,
     );
     const server = new HostServer({
