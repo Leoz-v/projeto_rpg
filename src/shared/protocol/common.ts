@@ -11,6 +11,9 @@ export const Sha256Schema = z.string().regex(/^[0-9a-f]{64}$/, 'SHA-256 inválid
 export const PointSchema = z.strictObject({ x: z.int().nonnegative(), y: z.int().nonnegative() });
 export type Point = z.infer<typeof PointSchema>;
 
+/** Id de uma entrada do inventário (gerado pelo Host). */
+export const InstanceIdSchema = z.string().min(1).max(64);
+
 export const NameSchema = z.string().min(1).max(100);
 export const LabelSchema = z.string().min(1).max(100);
 export const ChatTextSchema = z.string().min(1).max(2000);

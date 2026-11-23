@@ -1,4 +1,4 @@
-import { type Character, type Compendium, deriveSheet, type DerivedSheet, type Grant, InventorySchema, type LevelGrants } from 'rules-engine';
+import { type Character, type Compendium, deriveSheet, type DerivedSheet, type Grant, type LevelGrants } from 'rules-engine';
 import type { CharacterSheetView, CreationOptions } from '../shared/ipc';
 import type { SessionCharacter } from '../shared/protocol';
 
@@ -12,8 +12,6 @@ import type { SessionCharacter } from '../shared/protocol';
 
 /** Id usado na entrada do motor: os ids da sessão são UUID e o motor usa snake_case. */
 const ENGINE_CHARACTER_ID = 'character';
-/** Inventário e ajustes do mestre entram na sessão num PR seguinte da Fase 3. */
-const EMPTY_INVENTORY = InventorySchema.parse({});
 
 interface Index {
   names: Map<string, string>;
@@ -89,7 +87,8 @@ const DETAIL_KIND = { feat: 'feat', spell: 'spell', subclass: 'subclass' } as co
 export function characterSheet(record: SessionCharacter, compendium: Compendium): CharacterSheetView {
   if (record.baseScores === null) return { sheet: null, names: {}, details: {} };
   const character: Character = { id: ENGINE_CHARACTER_ID, name: record.name, baseScores: record.baseScores, steps: record.steps };
-  const sheet = deriveSheet({ character, inventory: EMPTY_INVENTORY, adjustments: [], compendium });
+  // Ajustes do mestre entram no PR seguinte da Fase 3.
+  const sheet = deriveSheet({ character, inventory: record.inventory, adjustments: [], compendium });
   const index = indexOf(compendium);
   const names: Record<string, string> = {};
   // As seleções já feitas, para a lista de escolhas (com a opção de desfazer).

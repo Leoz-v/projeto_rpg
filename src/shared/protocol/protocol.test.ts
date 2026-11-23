@@ -68,7 +68,7 @@ const state: SessionState = {
   maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: SHA, cellPx: 70 } },
   activeMapId: MAP,
   tokens: {
-    [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [] },
+    [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [], characterId: null },
   },
   characters: {
     [HERO]: {
@@ -78,6 +78,10 @@ const state: SessionState = {
       baseScores: { method: 'rolled', scores: { str: 16, dex: 13, con: 18, int: 9, wis: 13, cha: 9 } },
       rolledScores: [13, 16, 9, 18, 13, 9],
       steps: [{ kind: 'species', speciesId: 'dwarf', selections: [] }],
+      inventory: {
+        currency: { cp: 0, sp: 0, ep: 0, gp: 15, pp: 0 },
+        items: [{ instanceId: 'b9c0d1e2-f3a4-4b5c-8d6e-7f8a9b0c1d2e', itemId: 'weapon_plus', baseItemId: 'longsword', variantId: 'plus_1', quantity: 1, equipped: true, attuned: false }],
+      },
     },
   },
 };
@@ -165,6 +169,21 @@ describe('intents', () => {
     expect(intent('character.update', { characterId: HERO, steps: [{ kind: 'class_level', classId: 'fighter' }] })).toBe(true);
     expect(intent('character.roll_scores', { characterId: HERO })).toBe(true);
     expect(intent('character.remove', { characterId: HERO })).toBe(true);
+    expect(intent('token.create', { mapId: MAP, name: 'Thorin', position: { x: 0, y: 0 }, size: 'medium', characterId: HERO, ownerIds: [PLAYER] })).toBe(true);
+    expect(intent('inventory.add', { characterId: HERO, itemId: 'weapon_plus', baseItemId: 'longsword', variantId: 'plus_1' })).toBe(true);
+    expect(intent('inventory.add', { characterId: HERO, itemId: 'arrows', quantity: 20 })).toBe(true);
+    expect(intent('inventory.remove', { characterId: HERO, instanceId: ROLL, quantity: 1 })).toBe(true);
+    expect(intent('inventory.update', { characterId: HERO, instanceId: ROLL, equipped: true })).toBe(true);
+    expect(intent('inventory.currency', { characterId: HERO, currency: { cp: 0, sp: 0, ep: 0, gp: 10, pp: 0 } })).toBe(true);
+  });
+
+  it('limits inventory intents', () => {
+    expect(intent('inventory.add', { characterId: HERO, itemId: 'Longsword' })).toBe(false);
+    expect(intent('inventory.add', { characterId: HERO, itemId: 'arrows', quantity: 0 })).toBe(false);
+    expect(intent('inventory.add', { characterId: HERO, itemId: 'arrows', quantity: 10000 })).toBe(false);
+    expect(intent('inventory.update', { characterId: HERO, instanceId: ROLL })).toBe(false);
+    expect(intent('inventory.currency', { characterId: HERO, currency: { gp: 10 } })).toBe(false);
+    expect(intent('inventory.currency', { characterId: HERO, currency: { cp: -1, sp: 0, ep: 0, gp: 0, pp: 0 } })).toBe(false);
   });
 
   it('validates the character build structure', () => {

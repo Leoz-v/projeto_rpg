@@ -14,6 +14,8 @@ import {
   type SessionCharacter,
   type SessionState,
   type Token,
+  MAX_INVENTORY_ITEMS,
+  MAX_ITEM_QUANTITY,
   toPointer,
   WORLD_UNITS_PER_CELL,
 } from '../../shared/protocol';
@@ -40,7 +42,12 @@ export interface SessionDeps {
   assetExists(sha256: string): boolean;
   /** Tira dos passos as seleções que nenhuma escolha usa mais (`pruneSelections` do motor, com o compêndio). */
   pruneSteps(steps: SessionCharacter['steps']): SessionCharacter['steps'];
+  /** Problemas de uma entrada nova do inventário (`inventoryEntryProblems` do motor); vazio = pode entrar. */
+  itemProblems(entry: { itemId: string; baseItemId?: string | undefined; variantId?: string | undefined }): string[];
 }
+
+type InventoryEntry = SessionCharacter['inventory']['items'][number];
+const EMPTY_INVENTORY: SessionCharacter['inventory'] = { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] };
 
 /** Uma revisão do estado, na visão do mestre (o transporte filtra com `patchFor`). */
 export interface StateChange {
@@ -193,8 +200,16 @@ export class HostSession {
       case 'character.roll_scores':
         return this.rollScores(playerId, role, intent.data.characterId);
       case 'character.remove':
+        return this.removeCharacter(playerId, role, intent.data.characterId);
+      case 'inventory.add':
+        return this.addItem(playerId, role, intent.data);
+      case 'inventory.remove':
+        return this.removeItem(playerId, role, intent.data);
+      case 'inventory.update':
+        return this.updateItem(playerId, role, intent.data);
+      case 'inventory.currency':
         this.ownCharacter(playerId, role, intent.data.characterId);
-        return [{ op: 'remove', path: toPointer('characters', intent.data.characterId) }];
+        return [{ op: 'replace', path: toPointer('characters', intent.data.characterId, 'inventory', 'currency'), value: intent.data.currency }];
     }
   }
 
@@ -274,6 +289,7 @@ export class HostSession {
     this.requireAsset(data.image);
     const ownerIds = [...new Set(data.ownerIds ?? [])];
     if (ownerIds.some((id) => this.current.players[id] === undefined)) throw violation('Dono do token não está na mesa');
+    if (data.characterId !== undefined && this.current.characters[data.characterId] === undefined) throw violation('Personagem não encontrado');
     const token: Token = {
       id: this.deps.newId(),
       mapId: data.mapId,
@@ -283,6 +299,7 @@ export class HostSession {
       monsterId: data.monsterId ?? null,
       image: data.image ?? null,
       ownerIds,
+      characterId: data.characterId ?? null,
     };
     return [{ op: 'add', path: toPointer('tokens', token.id), value: token }];
   }
@@ -301,7 +318,7 @@ export class HostSession {
       this.requireGm(role);
       if (this.current.players[ownerId] === undefined) throw violation('Dono do personagem não está na mesa');
     }
-    const character: SessionCharacter = { id: this.deps.newId(), ownerId, name: data.name, baseScores: null, rolledScores: null, steps: [] };
+    const character: SessionCharacter = { id: this.deps.newId(), ownerId, name: data.name, baseScores: null, rolledScores: null, steps: [], inventory: EMPTY_INVENTORY };
     return [{ op: 'add', path: toPointer('characters', character.id), value: character }];
   }
 
@@ -344,6 +361,80 @@ export class HostSession {
       this.appendChat({ kind: 'ability_roll', ...this.entryBase(playerId), characterId: character.id, characterName: character.name, sets }),
     ];
     if (character.baseScores?.method === 'rolled') ops.push({ op: 'replace', path: toPointer('characters', character.id, 'baseScores'), value: null });
+    return ops;
+  }
+
+  /** Remove o personagem; os tokens dele continuam no mapa, sem a ligação. */
+  private removeCharacter(playerId: string, role: Role, characterId: string): PatchOp[] {
+    this.ownCharacter(playerId, role, characterId);
+    const unlink = Object.values(this.current.tokens)
+      .filter((t) => t.characterId === characterId)
+      .map((t): PatchOp => ({ op: 'replace', path: toPointer('tokens', t.id, 'characterId'), value: null }));
+    return [...unlink, { op: 'remove', path: toPointer('characters', characterId) }];
+  }
+
+  private entry(character: SessionCharacter, instanceId: string): { entry: InventoryEntry; index: number } {
+    const index = character.inventory.items.findIndex((e) => e.instanceId === instanceId);
+    const entry = character.inventory.items[index];
+    if (!entry) throw violation('Item não encontrado no inventário');
+    return { entry, index };
+  }
+
+  /**
+   * Item do compêndio para o inventário. O motor confere o item, a variante e
+   * o item base. Uma entrada igual que não está vestida nem sintonizada só
+   * ganha quantidade (20 flechas + 20 flechas = 40 flechas).
+   */
+  private addItem(playerId: string, role: Role, data: IntentData<'inventory.add'>): PatchOp[] {
+    const character = this.ownCharacter(playerId, role, data.characterId);
+    const problems = this.deps.itemProblems(data);
+    if (problems.length > 0) throw violation(problems[0] ?? 'Item inválido');
+    const quantity = data.quantity ?? 1;
+    const items = character.inventory.items;
+    const same = items.findIndex(
+      (e) => e.itemId === data.itemId && e.baseItemId === data.baseItemId && e.variantId === data.variantId && !e.equipped && !e.attuned,
+    );
+    const existing = items[same];
+    if (existing) {
+      const total = existing.quantity + quantity;
+      if (total > MAX_ITEM_QUANTITY) throw violation(`No máximo ${MAX_ITEM_QUANTITY} unidades por item`);
+      return [{ op: 'replace', path: toPointer('characters', character.id, 'inventory', 'items', String(same), 'quantity'), value: total }];
+    }
+    if (items.length >= MAX_INVENTORY_ITEMS) throw violation(`No máximo ${MAX_INVENTORY_ITEMS} itens no inventário`);
+    const entry: InventoryEntry = {
+      instanceId: this.deps.newId(),
+      itemId: data.itemId,
+      ...(data.baseItemId !== undefined ? { baseItemId: data.baseItemId } : {}),
+      ...(data.variantId !== undefined ? { variantId: data.variantId } : {}),
+      quantity,
+      equipped: false,
+      attuned: false,
+    };
+    return [{ op: 'add', path: toPointer('characters', character.id, 'inventory', 'items', '-'), value: entry }];
+  }
+
+  /** Tira `quantity` unidades (padrão: a entrada inteira). */
+  private removeItem(playerId: string, role: Role, data: IntentData<'inventory.remove'>): PatchOp[] {
+    const character = this.ownCharacter(playerId, role, data.characterId);
+    const { entry, index } = this.entry(character, data.instanceId);
+    const path = toPointer('characters', character.id, 'inventory', 'items', String(index));
+    if (data.quantity !== undefined && data.quantity < entry.quantity) return [{ op: 'replace', path: `${path}/quantity`, value: entry.quantity - data.quantity }];
+    return [{ op: 'remove', path }];
+  }
+
+  /**
+   * Vestir, sintonizar ou mudar a quantidade. Regras que dependem da ficha
+   * (uma armadura por vez, limite de sintonização, quem pode sintonizar) o
+   * motor aponta na ficha, sem bloquear: o mestre decide.
+   */
+  private updateItem(playerId: string, role: Role, data: IntentData<'inventory.update'>): PatchOp[] {
+    const character = this.ownCharacter(playerId, role, data.characterId);
+    const { index } = this.entry(character, data.instanceId);
+    const path = toPointer('characters', character.id, 'inventory', 'items', String(index));
+    const ops: PatchOp[] = [];
+    if (data.equipped !== undefined) ops.push({ op: 'replace', path: `${path}/equipped`, value: data.equipped });
+    if (data.attuned !== undefined) ops.push({ op: 'replace', path: `${path}/attuned`, value: data.attuned });
+    if (data.quantity !== undefined) ops.push({ op: 'replace', path: `${path}/quantity`, value: data.quantity });
     return ops;
   }
 }

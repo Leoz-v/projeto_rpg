@@ -20,6 +20,7 @@ export const IpcChannel = {
   importAsset: 'assets:import',
   characterSheet: 'table:character-sheet',
   creationOptions: 'compendium:creation-options',
+  searchItems: 'compendium:search-items',
   sendIntent: 'table:intent',
   tableEvent: 'table:event',
 } as const;
@@ -55,6 +56,19 @@ export interface MonsterSummary {
   size: Size;
   /** Nível de desafio (0,125 = 1/8). */
   cr: number;
+}
+
+/** Um item do compêndio, para o inventário. Item mágico genérico: escolher `variants` e `bases`. */
+export interface ItemSummary {
+  id: string;
+  name: string;
+  kind: 'weapon' | 'armor' | 'tool' | 'gear' | 'magic_item';
+  /** Raridades possíveis (as das variantes, em ordem), só para itens mágicos. */
+  rarity?: string[];
+  attunement: boolean;
+  attunementBy?: string;
+  variants: { id: string; name: string }[];
+  bases: { id: string; name: string }[];
 }
 
 /** Uma imagem importada: use `vtt-asset://<sha256>` para exibir e o `sha256` nos `Intent`. */
@@ -110,6 +124,8 @@ export interface VttApi {
   searchMonsters(query: string): Promise<IpcResult<MonsterSummary[]>>;
   /** Ficha calculada de um personagem da mesa atual. */
   characterSheet(characterId: string): Promise<IpcResult<CharacterSheetView>>;
+  /** Itens do compêndio cujo nome contém o texto (até 30). */
+  searchItems(query: string): Promise<IpcResult<ItemSummary[]>>;
   /** Espécies, antecedentes e classes do compêndio. */
   creationOptions(): Promise<IpcResult<CreationOptions>>;
   /** Abre o seletor de arquivos e importa uma imagem; `null` se o usuário cancelou. */

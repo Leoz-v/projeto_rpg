@@ -139,6 +139,23 @@ export interface LevelUpOption {
   problems: string[];
 }
 
+/** Uma entrada do inventário como a ficha mostra. */
+export interface InventoryLine {
+  instanceId: string;
+  itemId: string;
+  /** Nome exibido: variante e item base ("Weapon, +1 (Longsword)"), ou o nome do item. */
+  name: string;
+  /** Tipo do item físico (o item base, num item mágico genérico); ausente se a entrada é inválida. */
+  kind?: 'weapon' | 'armor' | 'tool' | 'gear' | 'magic_item' | undefined;
+  quantity: number;
+  equipped: boolean;
+  attuned: boolean;
+  /** O item exige sintonização para funcionar. */
+  requiresAttunement: boolean;
+  /** Os efeitos do item valem agora (vestido, sintonizado ou só carregado, conforme o item). */
+  active: boolean;
+}
+
 export interface PendingChoice {
   stepIndex: number;
   source: SourceLabel;
@@ -201,6 +218,9 @@ export interface DerivedSheet {
   issues: Issue[];
   /** Opções do próximo nível (todas as classes do compêndio); vazio sem classe ou no nível 20. */
   levelUp: LevelUpOption[];
+  inventory: InventoryLine[];
+  /** Itens sintonizados e o limite (3 mais efeitos `attunement_slots`). */
+  attunement: { used: number; limit: number };
 
   level: number;
   classes: { classId: string; level: number; subclassId?: string | undefined }[];

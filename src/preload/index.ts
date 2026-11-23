@@ -15,6 +15,7 @@ const api: VttApi = {
   importAsset: () => ipcRenderer.invoke(IpcChannel.importAsset),
   characterSheet: (characterId) => ipcRenderer.invoke(IpcChannel.characterSheet, characterId),
   creationOptions: () => ipcRenderer.invoke(IpcChannel.creationOptions),
+  searchItems: (query) => ipcRenderer.invoke(IpcChannel.searchItems, query),
   onTableEvent: (listener) => {
     // O evento do Electron não passa para o renderer: só o payload.
     const handler = (_event: IpcRendererEvent, payload: TableEvent): void => {

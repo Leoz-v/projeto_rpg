@@ -34,10 +34,11 @@ import type {
   Contribution,
   DerivedSheet,
   GrantedSpell,
+  InventoryLine,
   Issue,
   ProficiencyLevel,
-  RollState,
   RollStat,
+  RollState,
   SaveStat,
   SkillStat,
   SourcedD20Rule,
@@ -718,12 +719,34 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     issues.push({ severity: 'error', code: 'too_many_attuned', message: `${String(attuned)} itens sintonizados; o limite é ${String(attunementLimit)}.` });
   }
 
+  const resolved = new Map(entries.map((e) => [e.entry.instanceId, e]));
+  const inventoryLines: InventoryLine[] = inventory.items.map((entry) => {
+    const r = resolved.get(entry.instanceId);
+    const item = find(compendium.items, entry.itemId);
+    const magicItem = item?.kind === 'magic_item' ? item : undefined;
+    const base = r && r.magic && r.item.id !== r.magic.item.id ? ` (${r.item.name})` : '';
+    const active = r === undefined ? false : r.magic ? magicActive(r.magic, entry) : isItemActive(r.item.activation, entry);
+    return {
+      instanceId: entry.instanceId,
+      itemId: entry.itemId,
+      name: r?.magic ? `${r.magic.name}${base}` : (item?.name ?? entry.itemId),
+      kind: r?.item.kind,
+      quantity: entry.quantity,
+      equipped: entry.equipped,
+      attuned: entry.attuned,
+      requiresAttunement: magicItem?.attunement !== undefined || item?.activation === 'attuned',
+      active,
+    };
+  });
+
   const errors = issues.filter((i) => i.severity === 'error');
   return {
     complete: build.pending.length === 0 && errors.length === 0,
     pending: build.pending,
     issues,
     levelUp: build.levelUp,
+    inventory: inventoryLines,
+    attunement: { used: attuned, limit: attunementLimit },
     level,
     classes: build.classes,
     speciesId: build.speciesId,

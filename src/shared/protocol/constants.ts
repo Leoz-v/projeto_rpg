@@ -21,6 +21,11 @@ export const WORLD_UNITS_PER_CELL = 100;
 /** Limites de dimensões de um mapa (em células) e da célula em pixels da imagem. */
 export const MAX_MAP_CELLS = 200;
 export const MAX_CELL_PX = 4096;
+/** Entradas no inventário de um personagem e quantidade por entrada. */
+export const MAX_INVENTORY_ITEMS = 500;
+export const MAX_ITEM_QUANTITY = 9999;
+/** Moedas de cada tipo. */
+export const MAX_COINS = 1_000_000_000;
 /** Limites da fórmula de `dice.roll`. */
 export const MAX_FORMULA_LENGTH = 100;
 export const MAX_FORMULA_DICE = 100;

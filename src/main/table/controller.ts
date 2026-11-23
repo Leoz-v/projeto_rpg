@@ -25,6 +25,7 @@ export interface TableControllerDeps {
   rng: Rng;
   monsterExists(id: string): boolean;
   pruneSteps: SessionDeps['pruneSteps'];
+  itemProblems: SessionDeps['itemProblems'];
   /** Endereços desta máquina para mostrar aos jogadores. */
   addresses(): string[];
   /** Entrega um evento à tela. */
@@ -74,7 +75,7 @@ export class TableController {
     const session = new HostSession(
       store.campaign,
       { playerId: deps.playerId, displayName: request.displayName },
-      { rng: deps.rng, now: Date.now, newId: randomUUID, monsterExists: (id) => deps.monsterExists(id), assetExists: (sha) => deps.assets.has(sha), pruneSteps: deps.pruneSteps },
+      { rng: deps.rng, now: Date.now, newId: randomUUID, monsterExists: (id) => deps.monsterExists(id), assetExists: (sha) => deps.assets.has(sha), pruneSteps: deps.pruneSteps, itemProblems: deps.itemProblems },
       store.restored,
     );
     const server = new HostServer({

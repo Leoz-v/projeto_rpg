@@ -13,6 +13,7 @@ const draft = (overrides: Partial<SessionCharacter> = {}): SessionCharacter => (
   baseScores: { method: 'standard_array', scores: { str: 15, dex: 13, con: 14, int: 8, wis: 12, cha: 10 } },
   rolledScores: null,
   steps: [],
+  inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] },
   ...overrides,
 });
 
@@ -43,6 +44,17 @@ describe('characterSheet', () => {
     expect(cantrips?.candidates).toContain('fire_bolt');
     expect(names['fire_bolt']).toBe('Fire Bolt');
     expect(details['fire_bolt']).toMatch(/^Truque · evocation/);
+  });
+});
+
+describe('characterSheet inventory', () => {
+  it('uses the character inventory', () => {
+    const { sheet } = characterSheet(
+      draft({ inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [{ instanceId: 'mail', itemId: 'chain_mail', quantity: 1, equipped: true, attuned: false }] } }),
+      compendium,
+    );
+    expect(sheet?.inventory.map((l) => l.name)).toEqual(['Chain Mail']);
+    expect(sheet?.ac.total).toBe(16);
   });
 });
 

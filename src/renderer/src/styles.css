@@ -1276,3 +1276,98 @@ button.secondary.danger:focus-visible {
   flex-direction: column;
   align-items: flex-start;
 }
+
+/* Inventário e ataques */
+
+.inventory {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+}
+
+.inventory-heading {
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.coins {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.coins label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 6rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.items li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.25rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+
+.items li.active {
+  border-color: var(--border);
+  background: var(--bg);
+}
+
+.item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.item-actions label.check {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.item-actions label.check input {
+  width: auto;
+}
+
+.add-item .row label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.add-item .quantity {
+  max-width: 6rem;
+}
+
+.attacks table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.attacks td {
+  padding: 0.2rem 0.4rem 0.2rem 0;
+  border-bottom: 1px solid var(--border);
+}
