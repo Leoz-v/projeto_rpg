@@ -15,7 +15,9 @@ export interface Viewer {
 }
 
 export function redactEntry(entry: ChatEntry, viewer: Viewer): ChatEntry {
-  const secret = entry.kind === 'roll' || entry.kind === 'd20_roll' || entry.kind === 'damage_roll' || entry.kind === 'attack_roll' ? entry.visibility === 'gm' : false;
+  const secret = entry.kind === 'roll' || entry.kind === 'd20_roll' || entry.kind === 'damage_roll' || entry.kind === 'attack_roll' || entry.kind === 'save_roll'
+      ? entry.visibility === 'gm'
+      : false;
   if (viewer.role === 'gm' || !secret || entry.authorId === viewer.playerId) return entry;
   return { kind: 'hidden_roll', id: entry.id, at: entry.at, authorId: entry.authorId };
 }

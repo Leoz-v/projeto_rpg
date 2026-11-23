@@ -1,7 +1,7 @@
-import { BaseScoresSchema, CharacterSchema, DiceSchema, EffectSchema, IdSchema, SizeSchema } from 'rules-engine/schemas';
+import { AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, DiceSchema, EffectSchema, IdSchema, SizeSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
-import { ChatTextSchema, InstanceIdSchema, LabelSchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
-import { MAX_ADJUSTMENT_EFFECTS, MAX_COINS, MAX_FORMULA_DICE, MAX_FORMULA_LENGTH, MAX_HIT_POINTS, MAX_ITEM_QUANTITY } from './constants';
+import { ChatTextSchema, InstanceIdSchema, LabelSchema, RollAgainstSchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
+import { MAX_ADJUSTMENT_EFFECTS, MAX_COINS, MAX_FORMULA_DICE, MAX_FORMULA_LENGTH, MAX_HIT_POINTS, MAX_ITEM_QUANTITY, MAX_SAVE_TARGETS } from './constants';
 import { VisibilitySchema } from './state';
 
 /** Catálogo de `Intent` (docs/network-protocol.md, seção 3). */
@@ -140,6 +140,33 @@ export const IntentSchema = z.discriminatedUnion('kind', [
       targetTokenId: UuidSchema,
       advantage: z.boolean().optional(),
       disadvantage: z.boolean().optional(),
+      visibility: VisibilitySchema,
+    }),
+  }),
+  z.strictObject({
+    kind: z.literal('save.force'),
+    data: z.strictObject({
+      /** Ação de salvaguarda do monstro de um token, ou um efeito informado (magia de personagem, armadilha). */
+      source: z.union([
+        z.strictObject({ tokenId: UuidSchema, actionId: IdSchema }),
+        z.strictObject({
+          custom: z.strictObject({
+            name: LabelSchema,
+            ability: AbilitySchema,
+            dc: z.int().min(1).max(40),
+            damage: z.array(z.strictObject({ dice: FormulaSchema, type: DamageTypeSchema })).max(5),
+            onSuccess: z.enum(['half', 'none']),
+            conditions: z.array(ConditionSchema).max(15).optional(),
+          }),
+        }),
+      ]),
+      targetTokenIds: z
+        .array(UuidSchema)
+        .min(1)
+        .max(MAX_SAVE_TARGETS)
+        .refine((ids) => new Set(ids).size === ids.length, { message: 'alvo repetido' }),
+      /** O que a salvaguarda evita, para as Vantagens circunstanciais (sem isso, a primeira condição da falha). */
+      against: RollAgainstSchema.optional(),
       visibility: VisibilitySchema,
     }),
   }),

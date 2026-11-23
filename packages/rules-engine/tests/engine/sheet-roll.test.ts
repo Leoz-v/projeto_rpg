@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { rollD20 } from '../../src/engine/d20';
 import { type Rng } from '../../src/engine/dice';
 import { deriveSheet } from '../../src/engine/sheet';
-import { d20StepNotes, rollWeaponDamage, sheetD20 } from '../../src/engine/sheet-roll';
+import { d20StepNotes, matchesAgainst, rollWeaponDamage, sheetD20 } from '../../src/engine/sheet-roll';
 import { CharacterSchema } from '../../src/schemas/character';
 import { InventorySchema } from '../../src/schemas/inventory';
 import { loadSrdCompendium } from '../../src/srd';
@@ -47,6 +47,23 @@ describe('rolls from the sheet', () => {
     expect(d20StepNotes(result.steps)).toEqual(['Rolou 1 de novo: 15 (Halfling)']);
     const con = sheetD20(fighter, { kind: 'save', ability: 'con' });
     expect(con?.reminders).toContain('Vantagem possível: Dwarf (contra Envenenado)');
+  });
+
+  it('applies circumstantial advantage when the roll is against the matching thing', () => {
+    // Dwarven Resilience: Vantagem em salvaguardas contra Envenenado.
+    const poison = sheetD20(fighter, { kind: 'save', ability: 'con' }, {}, { condition: 'poisoned' });
+    expect(poison?.input.mode).toBe('advantage');
+    expect(poison?.advantage).toEqual(['Dwarf']);
+    expect(poison?.reminders.some((r) => r.includes('Dwarf'))).toBe(false);
+    expect(sheetD20(fighter, { kind: 'save', ability: 'con' }, {}, { source: 'spell' })?.input.mode).toBe('normal');
+  });
+
+  it('matches against predicates, with spells counting as magic', () => {
+    expect(matchesAgainst({ against: { source: 'magic' } }, { source: 'spell' })).toBe(true);
+    expect(matchesAgainst({ against: { source: 'spell' } }, { source: 'magic' })).toBe(false);
+    expect(matchesAgainst({ any: [{ against: { condition: 'charmed' } }, { against: { condition: 'frightened' } }] }, { condition: 'frightened' })).toBe(true);
+    expect(matchesAgainst({ wearingArmor: false }, { condition: 'poisoned' })).toBe(false);
+    expect(matchesAgainst({ against: { condition: 'poisoned' } }, undefined)).toBe(false);
   });
 
   it('uses the crit range of the Champion attack and refuses unknown attacks', () => {

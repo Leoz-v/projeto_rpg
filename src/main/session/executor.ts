@@ -1,21 +1,29 @@
 import {
+  type Ability,
   applyHitPointChange,
   clampHitPoints,
+  type Condition,
+  CONDITION_NAME,
   type Creature,
   creatureDefenses,
-  damageNotes,
-  type Defenses,
-  resolveAttack,
-  rollActionDamage,
+  creatureSaveBonus,
+  d20Mode,
   d20StepNotes,
+  damageNotes,
+  type DamageType,
+  type Defenses,
   type DerivedSheet,
+  resolveAttack,
+  resolveSave,
+  type Rng,
   rollAbilityScores,
+  rollActionDamage,
+  type RollAgainst,
   rollD20,
   rollDice,
   rollWeaponDamage,
-  type Rng,
-  type SheetD20,
   sheetD20,
+  type SheetD20,
   type Size,
   spaceSquares,
   usesRolledValues,
@@ -252,6 +260,8 @@ export class HostSession {
         return [this.appendChat(this.rollDamage(playerId, role, intent.data))];
       case 'attack.make':
         return this.makeAttack(playerId, role, intent.data);
+      case 'save.force':
+        return this.forceSave(playerId, role, intent.data);
       case 'damage.apply':
         this.requireGm(role);
         return this.applyProposal(playerId, intent.data.proposalId, intent.data.amount);
@@ -740,5 +750,112 @@ export class HostSession {
         notes,
       }),
     ];
+  }
+
+  // --- Salvaguardas forçadas (Fase 4, PR 4) ---------------------------------
+
+  /**
+   * Um efeito com CD contra um ou mais tokens: o dano é rolado uma vez para
+   * todos; cada alvo rola a própria salvaguarda (com as Vantagens
+   * circunstanciais que batem com `against`); o dano de cada um, depois do
+   * sucesso e das defesas, vira uma proposta para o mestre.
+   */
+  private forceSave(playerId: string, role: Role, data: IntentData<'save.force'>): PatchOp[] {
+    let actorName: string;
+    let effect: { name: string; ability: Ability; dc: number; damage: { dice: string; type: DamageType }[]; onSuccess: 'half' | 'none'; conditions: Condition[] };
+    if ('tokenId' in data.source) {
+      const token = this.token(data.source.tokenId);
+      if (role !== 'gm' && !token.ownerIds.includes(playerId)) throw notAllowed('Você não controla este token');
+      const actionId = data.source.actionId;
+      const action = token.monsterId !== null ? this.deps.creature(token.monsterId)?.actions.find((a) => a.id === actionId) : undefined;
+      if (action?.kind !== 'save') throw violation('Ação de salvaguarda não encontrada no bloco do monstro');
+      actorName = token.name;
+      effect = { name: action.name, ability: action.ability, dc: action.dc, damage: action.damage, onSuccess: action.onSuccess, conditions: action.onFailConditions };
+    } else {
+      actorName = this.current.players[playerId]?.displayName ?? 'Alguém';
+      const custom = data.source.custom;
+      effect = { ...custom, conditions: custom.conditions ?? [] };
+    }
+    const targets = data.targetTokenIds.map((id) => this.token(id));
+    const against: RollAgainst | undefined = data.against ?? (effect.conditions[0] ? { condition: effect.conditions[0] } : undefined);
+
+    // Dano rolado uma vez para todos os alvos (SRD 5.2.1, "Damage against Multiple Targets").
+    const groups = rollActionDamage(effect.damage, false, this.deps.rng);
+    const rolled = groups.map((g) => ({ amount: g.total, type: g.type }));
+    const entryId = this.deps.newId();
+    const ops: PatchOp[] = [];
+
+    const results = targets.map((target) => {
+      const save = this.saveOf(target, effect.ability, against);
+      const result = resolveSave({ d20: save.input, dc: effect.dc, damage: rolled, onSuccess: effect.onSuccess, defenses: save.defenses }, this.deps.rng);
+      const immune = new Set(save.defenses.conditionImmunities.map((c) => c.condition));
+      const conditionNotes = result.success
+        ? []
+        : effect.conditions.map((c) => (immune.has(c) ? `Imune a ${CONDITION_NAME[c]}` : `Na falha: ${CONDITION_NAME[c]}`));
+      let damage: { total: number; defenses: string[]; proposalId?: string } | undefined;
+      if (result.damage) {
+        damage = { total: result.damage.total, defenses: damageNotes(result.damage) };
+        if (result.damage.total > 0) {
+          const proposalId = this.deps.newId();
+          damage.proposalId = proposalId;
+          ops.push({ op: 'add', path: toPointer('proposals', proposalId), value: { id: proposalId, entryId, targetTokenId: target.id, targetName: target.name, amount: result.damage.total } });
+        }
+      }
+      return {
+        targetTokenId: target.id,
+        targetName: target.name,
+        mode: save.input.mode,
+        dice: result.roll.dice,
+        natural: result.roll.natural,
+        modifier: save.input.modifier,
+        total: result.roll.total,
+        success: result.success,
+        advantage: save.advantage,
+        disadvantage: save.disadvantage,
+        notes: [...d20StepNotes(result.roll.steps), ...conditionNotes].slice(0, 50),
+        reminders: save.reminders.slice(0, 50),
+        ...(damage ? { damage } : {}),
+      };
+    });
+
+    const entry: ChatEntry = {
+      kind: 'save_roll',
+      id: entryId,
+      at: this.deps.now(),
+      authorId: playerId,
+      actorName,
+      label: effect.name.slice(0, 100),
+      ability: effect.ability,
+      dc: effect.dc,
+      onSuccess: effect.onSuccess,
+      visibility: data.visibility,
+      ...(groups.length > 0 ? { damage: { groups, total: rolled.reduce((sum, d) => sum + d.amount, 0) } } : {}),
+      conditions: effect.conditions,
+      results,
+    };
+    return [this.appendChat(entry), ...ops];
+  }
+
+  /** A salvaguarda de um token: a da ficha do personagem ligado ou a do bloco do monstro, com as defesas dele. */
+  private saveOf(token: Token, ability: Ability, against: RollAgainst | undefined): SheetD20 & { defenses: Defenses } {
+    if (token.characterId !== null) {
+      const character = this.current.characters[token.characterId];
+      const sheet = character ? this.deps.characterSheet(character) : undefined;
+      const roll = sheet ? sheetD20(sheet, { kind: 'save', ability }, {}, against) : undefined;
+      if (!sheet || !roll) throw violation(`${token.name}: o personagem ainda não tem ficha`);
+      return { ...roll, defenses: sheet.defenses };
+    }
+    const creature = token.monsterId !== null ? this.deps.creature(token.monsterId) : undefined;
+    if (!creature) throw violation(`${token.name}: sem salvaguarda conhecida (não é personagem nem monstro do compêndio)`);
+    const { defenses, reminders } = creatureDefenses(creature);
+    const modifier = creatureSaveBonus(creature, ability);
+    return {
+      input: { modifier, mode: d20Mode(false, false) },
+      parts: [{ label: 'Salvaguarda do bloco', value: modifier }],
+      advantage: [],
+      disadvantage: [],
+      reminders,
+      defenses,
+    };
   }
 }

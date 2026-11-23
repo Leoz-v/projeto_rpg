@@ -3,7 +3,7 @@ import type { ChatEntry, SessionState } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
 import { CHAT_HELP, parseChatInput } from './chat-command';
 import { type RollPart, rollParts } from './roll-parts';
-import { AttackRollBody, D20RollBody, DamageAppliedBody, DamageRollBody } from './SheetRollEntries';
+import { AttackRollBody, D20RollBody, DamageAppliedBody, DamageRollBody, SaveRollBody } from './SheetRollEntries';
 
 /** Log da sessão (mensagens e rolagens) e campo de envio. */
 
@@ -72,6 +72,8 @@ function Entry({ entry, author, proposals }: { entry: ChatEntry; author: string;
     case 'attack_roll':
       // Só o mestre recebe as propostas: para os outros, `pending` é sempre falso.
       return <AttackRollBody entry={entry} header={header} pending={entry.damage !== undefined && entry.damage.proposalId in proposals} />;
+    case 'save_roll':
+      return <SaveRollBody entry={entry} header={header} proposals={proposals} />;
     case 'damage_applied':
       return <DamageAppliedBody entry={entry} header={header} />;
     case 'ability_roll':

@@ -718,3 +718,83 @@ describe('HostSession: attacks against a target', () => {
     expect(Object.keys(a.session.viewFor(GM.playerId).proposals)).toHaveLength(1);
   });
 });
+
+describe('HostSession: forced saving throws', () => {
+  const sequence = (values: number[]) => {
+    let i = 0;
+    return { roll: () => values[i++ % values.length] ?? 1 };
+  };
+  const fighter = dwarfFighter as { character: { baseScores: SessionCharacter['baseScores']; steps: SessionCharacter['steps'] } };
+
+  /** Thorin (anão guerreiro 5, sem itens), um Goblin Warrior e um Ankheg no mapa. */
+  function arena(rolls: number[]) {
+    const session = setup({
+      rng: sequence(rolls),
+      monsterExists: (id) => compendium.creatures.some((c) => c.id === id),
+      monsterHpMax: (id) => compendium.creatures.find((c) => c.id === id)?.hp.average,
+    });
+    session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10 } });
+    const mapId = Object.keys(session.state.maps)[0] ?? '';
+    session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Thorin' } });
+    const hero = Object.keys(session.state.characters)[0] ?? '';
+    const steps = CharacterSchema.shape.steps.parse(fighter.character.steps);
+    session.handle(ANA.playerId, { kind: 'character.update', data: { characterId: hero, baseScores: fighter.character.baseScores ?? undefined, steps } });
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Thorin', position: { x: 0, y: 0 }, size: 'medium', characterId: hero, ownerIds: [ANA.playerId] } });
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Goblin 1', position: { x: 100, y: 0 }, size: 'small', monsterId: 'goblin_warrior' } });
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Ankheg', position: { x: 300, y: 300 }, size: 'large', monsterId: 'ankheg' } });
+    const tokenNamed = (name: string) => Object.values(session.state.tokens).find((t) => t.name === name)?.id ?? '';
+    return { session, hero, thorin: tokenNamed('Thorin'), goblin: tokenNamed('Goblin 1'), ankheg: tokenNamed('Ankheg') };
+  }
+  const saveEntry = (session: HostSession) => {
+    const entry = session.state.chat.at(-1);
+    if (entry?.kind !== 'save_roll') throw new Error('sem salvaguarda');
+    return entry;
+  };
+
+  it('rolls the damage once and each target saves on its own, with proposals', () => {
+    // Dano 4d6 = 3+3+3+3 = 12. Thorin (DES +1) rola 15: sucesso, metade 6. Goblin (DES +2) rola 5: falha, 12.
+    const a = arena([3, 3, 3, 3, 15, 5]);
+    const outcome = a.session.handle(GM.playerId, { kind: 'save.force', data: { source: { tokenId: a.ankheg, actionId: 'acid_spray' }, targetTokenIds: [a.thorin, a.goblin], visibility: 'public' } });
+    expect(applied(outcome)).toBe(true);
+    const entry = saveEntry(a.session);
+    expect(entry).toMatchObject({ actorName: 'Ankheg', label: 'Acid Spray', ability: 'dex', dc: 12, onSuccess: 'half', damage: { total: 12 } });
+    expect(entry.results.map((r) => [r.targetName, r.total, r.success, r.damage?.total])).toEqual([
+      ['Thorin', 16, true, 6],
+      ['Goblin 1', 7, false, 12],
+    ]);
+    expect(Object.values(a.session.state.proposals).map((p) => [p.targetName, p.amount])).toEqual([
+      ['Thorin', 6],
+      ['Goblin 1', 12],
+    ]);
+  });
+
+  it('applies circumstantial advantage from what the save is against (Dwarven Resilience vs poison)', () => {
+    const a = arena([4, 17]);
+    a.session.handle(GM.playerId, {
+      kind: 'save.force',
+      data: { source: { custom: { name: 'Gás venenoso', ability: 'con', dc: 13, damage: [], onSuccess: 'none', conditions: ['poisoned'] } }, targetTokenIds: [a.thorin], visibility: 'public' },
+    });
+    const [result] = saveEntry(a.session).results;
+    expect(result).toMatchObject({ mode: 'advantage', advantage: ['Dwarf'], dice: [4, 17], natural: 17, success: true });
+    expect(result?.notes).toEqual([]);
+  });
+
+  it('notes the conditions of a failure and condition immunities', () => {
+    const a = arena([2]);
+    a.session.handle(GM.playerId, {
+      kind: 'save.force',
+      data: { source: { custom: { name: 'Teia', ability: 'dex', dc: 15, damage: [], onSuccess: 'none', conditions: ['restrained'] } }, targetTokenIds: [a.goblin], visibility: 'public' },
+    });
+    expect(saveEntry(a.session).results[0]).toMatchObject({ success: false, notes: ['Na falha: Impedido'] });
+  });
+
+  it('lets players force a save with a custom effect, but not with monster actions', () => {
+    const a = arena([3, 3, 3, 3, 3, 3, 3, 3, 10]);
+    const fireball = { custom: { name: 'Fireball', ability: 'dex' as const, dc: 15, damage: [{ dice: '8d6', type: 'fire' as const }], onSuccess: 'half' as const } };
+    expect(applied(a.session.handle(ANA.playerId, { kind: 'save.force', data: { source: fireball, targetTokenIds: [a.goblin], against: { source: 'spell' }, visibility: 'public' } }))).toBe(true);
+    expect(saveEntry(a.session)).toMatchObject({ actorName: 'Ana', damage: { total: 24 } });
+    expect(rejection(a.session.handle(ANA.playerId, { kind: 'save.force', data: { source: { tokenId: a.ankheg, actionId: 'acid_spray' }, targetTokenIds: [a.thorin], visibility: 'public' } }))).toBe('not_allowed');
+    expect(rejection(a.session.handle(GM.playerId, { kind: 'save.force', data: { source: { tokenId: a.ankheg, actionId: 'bite' }, targetTokenIds: [a.thorin], visibility: 'public' } }))).toBe('rule_violation');
+  });
+});
+

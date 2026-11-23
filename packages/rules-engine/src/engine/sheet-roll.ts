@@ -1,4 +1,4 @@
-import type { Ability, DamageType, Skill } from '../schemas/common';
+import type { Ability, Condition, DamageType, Skill } from '../schemas/common';
 import type { Predicate } from '../schemas/predicate';
 import { criticalDice } from './attack';
 import { CONDITION_NAME } from './names';
@@ -18,6 +18,32 @@ export type SheetRollTarget =
   | { kind: 'initiative' }
   | { kind: 'death_save' }
   | { kind: 'attack'; instanceId: string };
+
+/**
+ * O que a rolagem evita (`roll.against`, nota 0006): uma condição e/ou a
+ * origem. Contra uma magia, use `spell`: vale também para `against.source: magic`.
+ */
+export interface RollAgainst {
+  condition?: Condition | undefined;
+  source?: 'spell' | 'magic' | undefined;
+}
+
+/**
+ * O predicado é só sobre o que a rolagem evita e bate com `against`. Outros
+ * predicados (armadura, condições da criatura) continuam como lembrete: a ficha
+ * não os avalia na hora.
+ */
+export function matchesAgainst(when: Predicate | undefined, against: RollAgainst | undefined): boolean {
+  if (!when || !against) return false;
+  if ('against' in when) {
+    const target = when.against;
+    if ('condition' in target) return against.condition === target.condition;
+    return target.source === 'magic' ? against.source !== undefined : against.source === 'spell';
+  }
+  if ('all' in when) return when.all.every((p) => matchesAgainst(p, against));
+  if ('any' in when) return when.any.some((p) => matchesAgainst(p, against));
+  return false;
+}
 
 /** Vantagem ou Desvantagem declarada na hora (circunstância que a ficha não sabe, ou concedida pelo mestre). */
 export interface DeclaredRoll {
@@ -81,20 +107,39 @@ export function rollReminders(roll: RollState): string[] {
  * qualquer que seja a quantidade de cada (regra 2024). `undefined` se o alvo
  * não existe na ficha (ex.: arma que não está equipada).
  */
-export function sheetD20(sheet: DerivedSheet, target: SheetRollTarget, declared: DeclaredRoll = {}): SheetD20 | undefined {
+export function sheetD20(sheet: DerivedSheet, target: SheetRollTarget, declared: DeclaredRoll = {}, against?: RollAgainst): SheetD20 | undefined {
   const found = statFor(sheet, target);
   if (!found) return undefined;
   const { stat, critMin } = found;
-  const advantage = [...stat.roll.advantage.map((s) => s.name), ...(declared.advantage ? [DECLARED] : [])];
-  const disadvantage = [...stat.roll.disadvantage.map((s) => s.name), ...(declared.disadvantage ? [DECLARED] : [])];
-  const mode = advantage.length > 0 && disadvantage.length === 0 ? 'advantage' : disadvantage.length > 0 && advantage.length === 0 ? 'disadvantage' : 'normal';
+  // Circunstâncias que batem com o que a rolagem evita deixam de ser lembrete e valem (Dwarven Resilience contra Envenenado).
+  const applies = (s: { when?: Predicate | undefined; note?: string | undefined }): boolean => s.note === undefined && matchesAgainst(s.when, against);
+  const situational = stat.roll.situational.filter(applies);
+  const situationalRules = stat.roll.situationalRules.filter(applies);
+  const advantage = [
+    ...stat.roll.advantage.map((s) => s.name),
+    ...situational.filter((s) => s.kind === 'advantage').map((s) => s.source.name),
+    ...(declared.advantage ? [DECLARED] : []),
+  ];
+  const disadvantage = [
+    ...stat.roll.disadvantage.map((s) => s.name),
+    ...situational.filter((s) => s.kind === 'disadvantage').map((s) => s.source.name),
+    ...(declared.disadvantage ? [DECLARED] : []),
+  ];
+  const mode = d20Mode(advantage.length > 0, disadvantage.length > 0);
+  const rules = [...stat.roll.rules, ...situationalRules];
+  const remaining = { ...stat.roll, situational: stat.roll.situational.filter((s) => !applies(s)), situationalRules: stat.roll.situationalRules.filter((r) => !applies(r)) };
   return {
-    input: { modifier: stat.total, mode, rules: stat.roll.rules, ...(critMin !== undefined && critMin < 20 ? { critMin } : {}) },
+    input: { modifier: stat.total, mode, rules, ...(critMin !== undefined && critMin < 20 ? { critMin } : {}) },
     parts: stat.parts,
     advantage,
     disadvantage,
-    reminders: rollReminders(stat.roll),
+    reminders: rollReminders(remaining),
   };
+}
+
+/** Vantagem e Desvantagem se anulam, qualquer que seja a quantidade (regra 2024). */
+export function d20Mode(advantage: boolean, disadvantage: boolean): 'normal' | 'advantage' | 'disadvantage' {
+  return advantage && !disadvantage ? 'advantage' : disadvantage && !advantage ? 'disadvantage' : 'normal';
 }
 
 const sourceName = (source: SourceLabel | undefined): string => (source ? ` (${source.name})` : '');

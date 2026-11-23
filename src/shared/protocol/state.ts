@@ -1,6 +1,6 @@
-import { ABILITY_ROLL_SETS, BaseScoresSchema, CharacterSchema, DamageTypeSchema, EffectSchema, InventorySchema, SizeSchema } from 'rules-engine/schemas';
+import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, EffectSchema, InventorySchema, SizeSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
-import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_HIT_POINTS } from './constants';
+import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_HIT_POINTS, MAX_SAVE_TARGETS } from './constants';
 import { ChatTextSchema, HitPointStateSchema, LabelSchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 
 /** `SessionState` (docs/network-protocol.md, seção 5). */
@@ -124,6 +124,42 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
       })
       .optional(),
   }),
+  /** Salvaguarda forçada (`save.force`): a CD, o dano rolado uma vez e o resultado de cada alvo. */
+  z.strictObject({
+    kind: z.literal('save_roll'),
+    ...entryBase,
+    /** Quem causa o efeito (token do monstro, ou quem pediu, num efeito informado). */
+    actorName: NameSchema,
+    label: LabelSchema,
+    ability: AbilitySchema,
+    dc: z.int().min(1).max(40),
+    onSuccess: z.enum(['half', 'none']),
+    visibility: VisibilitySchema,
+    /** Dano rolado uma vez para todos os alvos (antes de sucesso e defesas). */
+    damage: z.strictObject({ groups: z.array(DamageGroupSchema).min(1).max(20), total: z.int().nonnegative() }).optional(),
+    /** Condições que a falha impõe (aplicar é da Fase 5). */
+    conditions: z.array(ConditionSchema).max(15),
+    results: z
+      .array(
+        z.strictObject({
+          targetTokenId: UuidSchema,
+          targetName: NameSchema,
+          mode: d20Fields.mode,
+          dice: d20Fields.dice,
+          natural: d20Fields.natural,
+          modifier: z.int(),
+          total: z.int(),
+          success: z.boolean(),
+          advantage: LogList,
+          disadvantage: LogList,
+          notes: LogList,
+          reminders: LogList,
+          damage: z.strictObject({ total: z.int().nonnegative(), defenses: LogList, proposalId: UuidSchema.optional() }).optional(),
+        }),
+      )
+      .min(1)
+      .max(MAX_SAVE_TARGETS),
+  }),
   /** Dano aplicado pelo mestre nos PV de um token (`damage.apply`). */
   z.strictObject({
     kind: z.literal('damage_applied'),
@@ -219,7 +255,7 @@ export type SessionCharacter = z.infer<typeof SessionCharacterSchema>;
 /** Dano proposto por um ataque, esperando o mestre aplicar ou descartar. Só o mestre vê. */
 export const DamageProposalSchema = z.strictObject({
   id: UuidSchema,
-  /** Entrada `attack_roll` que gerou a proposta. */
+  /** Entrada `attack_roll` ou `save_roll` que gerou a proposta. */
   entryId: UuidSchema,
   targetTokenId: UuidSchema,
   targetName: NameSchema,

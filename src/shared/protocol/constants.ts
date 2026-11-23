@@ -29,6 +29,8 @@ export const MAX_ADJUSTMENTS = 50;
 export const MAX_ADJUSTMENT_EFFECTS = 20;
 /** Limite de PV máximos de um token e de uma mudança de PV. */
 export const MAX_HIT_POINTS = 100_000;
+/** Alvos de uma salvaguarda forçada (`save.force`). */
+export const MAX_SAVE_TARGETS = 20;
 /** Moedas de cada tipo. */
 export const MAX_COINS = 1_000_000_000;
 /** Limites da fórmula de `dice.roll`. */

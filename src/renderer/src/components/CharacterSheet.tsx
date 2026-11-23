@@ -8,6 +8,7 @@ import { AbilityScoresEditor } from './AbilityScoresEditor';
 import { Adjustments } from './Adjustments';
 import { BuildPanel } from './BuildPanel';
 import { HitPointsControl, HitPointsSummary } from './HitPoints';
+import { SaveEffectForm } from './SaveEffect';
 import { type Roller, RollToolbar, RollButton, useRoller } from './SheetRolls';
 import { Inventory } from './Inventory';
 import { ABILITY_LABEL, CONDITION_LABEL, DAMAGE_LABEL, humanizeId, nameOf, SENSE_LABEL, SIZE_LABEL, signed, SKILL_LABEL } from './sheet-labels';
@@ -569,6 +570,15 @@ export function CharacterSheet({ view, characterId, onClose }: { view: TableView
                     <Traits sheet={load.view.sheet} names={load.view.names} onSelect={setDetail} />
                   </div>
                 </div>
+                {canEdit && view.state.activeMapId !== null && (
+                  <SaveEffectForm
+                    title="Magia ou efeito com salvaguarda"
+                    defaultDc={load.view.sheet.spellcasting.classes[0]?.saveDc.total}
+                    targets={Object.values(view.state.tokens)
+                      .filter((t) => t.mapId === view.state.activeMapId)
+                      .map((t) => ({ id: t.id, name: t.name }))}
+                  />
+                )}
                 <Inventory character={record} sheet={load.view.sheet} canEdit={canEdit} />
                 <Adjustments character={record} isGm={isGm} />
               </>
