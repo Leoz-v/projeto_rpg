@@ -1,6 +1,6 @@
 import { type SyntheticEvent, useEffect, useState } from 'react';
 import type { Size } from 'rules-engine/schemas';
-import type { ImportedAsset, MonsterSummary, TableView } from '../../../shared/ipc';
+import type { ImportedAsset, MonsterAttack, MonsterSummary, TableView } from '../../../shared/ipc';
 import type { MapStage } from '../canvas/MapStage';
 import { placeToken, tokenSide } from '../canvas/geometry';
 import { defaultCellPx, gridDimensionsForImage } from '../canvas/map-grid';
@@ -8,6 +8,7 @@ import { sendIntent } from '../store/table';
 import { tokenHealth } from '../canvas/health';
 import { HitPointsControl, HitPointsSummary } from './HitPoints';
 import { MapGridModal } from './MapGridModal';
+import { DAMAGE_LABEL, signed } from './sheet-labels';
 import { nextTokenName } from './token-name';
 
 /** Painel do mestre: mapas (criar e mostrar) e tokens (colocar e remover). Tudo vira `Intent`. */
@@ -365,6 +366,15 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
                 </span>
               )}
               <HitPointsControl key={selected.id} target={{ tokenId: selected.id }} health={selectedHealth} allowMax />
+              {selected.monsterId !== null && (
+                <MonsterAttacks
+                  key={`attacks:${selected.id}`}
+                  tokenId={selected.id}
+                  monsterId={selected.monsterId}
+                  targets={Object.values(state.tokens).filter((t) => t.mapId === selected.mapId && t.id !== selected.id)}
+                  onError={onError}
+                />
+              )}
             </>
           ) : (
             <p className="hint">Os PV deste token são os do personagem: mude na ficha.</p>
@@ -481,6 +491,81 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
         <button type="submit">Colocar no mapa</button>
       </form>
     </section>
+  );
+}
+
+/** Ataques do monstro do token selecionado, contra um alvo do mapa (o dano vira proposta no chat). */
+function MonsterAttacks({ tokenId, monsterId, targets, onError }: { tokenId: string; monsterId: string; targets: readonly { id: string; name: string }[]; onError: (m: string | null) => void }) {
+  const [attacks, setAttacks] = useState<MonsterAttack[]>([]);
+  const [targetId, setTargetId] = useState('');
+  const [declared, setDeclared] = useState<'normal' | 'advantage' | 'disadvantage'>('normal');
+  useEffect(() => {
+    let current = true;
+    void window.vtt.monsterAttacks(monsterId).then((r) => {
+      if (current && r.ok) setAttacks(r.value);
+    });
+    return () => {
+      current = false;
+    };
+  }, [monsterId]);
+  if (attacks.length === 0) return null;
+  const target = targets.find((t) => t.id === targetId) ?? targets[0];
+
+  const attack = (actionId: string): void => {
+    if (!target) return;
+    void sendIntent({
+      kind: 'attack.make',
+      data: {
+        attacker: { tokenId, actionId },
+        targetTokenId: target.id,
+        ...(declared === 'advantage' ? { advantage: true } : {}),
+        ...(declared === 'disadvantage' ? { disadvantage: true } : {}),
+        visibility: 'public',
+      },
+    }).then(onError);
+  };
+
+  return (
+    <div className="monster-attacks stack">
+      <label>
+        Alvo
+        <select
+          value={target?.id ?? ''}
+          onChange={(e) => {
+            setTargetId(e.target.value);
+          }}
+        >
+          {targets.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <select
+        aria-label="Vantagem ou Desvantagem"
+        value={declared}
+        onChange={(e) => {
+          setDeclared(e.target.value === 'advantage' ? 'advantage' : e.target.value === 'disadvantage' ? 'disadvantage' : 'normal');
+        }}
+      >
+        <option value="normal">Rolagem normal</option>
+        <option value="advantage">Com Vantagem</option>
+        <option value="disadvantage">Com Desvantagem</option>
+      </select>
+      <ul>
+        {attacks.map((a) => (
+          <li key={a.id}>
+            <button type="button" className="secondary small" disabled={!target} onClick={() => { attack(a.id); }}>
+              {a.name}
+            </button>
+            <span className="hint">
+              {signed(a.toHit)} · {a.damage.map((d) => `${d.dice} ${DAMAGE_LABEL[d.type].toLowerCase()}`).join(' + ')}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

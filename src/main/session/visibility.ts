@@ -5,7 +5,8 @@ import { type ChatEntry, ChatEntrySchema, type PatchOp, type Role, type SessionS
  * tudo. Para os outros jogadores:
  * - a rolagem secreta vira `hidden_roll` na mesma posição (quem rolou sempre vê a própria);
  * - os PV de tokens que não são personagens (monstros) chegam como `null`,
- *   a menos que o jogador seja dono do token.
+ *   a menos que o jogador seja dono do token;
+ * - as propostas de dano (fila do mestre) não chegam.
  */
 
 export interface Viewer {
@@ -14,7 +15,7 @@ export interface Viewer {
 }
 
 export function redactEntry(entry: ChatEntry, viewer: Viewer): ChatEntry {
-  const secret = entry.kind === 'roll' || entry.kind === 'd20_roll' || entry.kind === 'damage_roll' ? entry.visibility === 'gm' : false;
+  const secret = entry.kind === 'roll' || entry.kind === 'd20_roll' || entry.kind === 'damage_roll' || entry.kind === 'attack_roll' ? entry.visibility === 'gm' : false;
   if (viewer.role === 'gm' || !secret || entry.authorId === viewer.playerId) return entry;
   return { kind: 'hidden_roll', id: entry.id, at: entry.at, authorId: entry.authorId };
 }
@@ -35,6 +36,7 @@ export function viewOf(state: SessionState, viewer: Viewer): SessionState {
     ...state,
     chat: state.chat.map((e) => redactEntry(e, viewer)),
     tokens: Object.fromEntries(Object.entries(state.tokens).map(([id, t]) => [id, redactToken(t, viewer)])),
+    proposals: {},
   };
 }
 
@@ -57,6 +59,8 @@ export function opsFor(ops: readonly PatchOp[], viewer: Viewer, state: SessionSt
       const token = TokenSchema.safeParse(op.value);
       return [token.success ? { ...op, value: redactToken(token.data, viewer) } : op];
     }
+    // Propostas de dano são a fila de trabalho do mestre.
+    if (op.path.startsWith('/proposals/')) return [];
     const hp = TOKEN_HP_PATH.exec(op.path);
     if (hp?.[1] !== undefined) {
       const token = state.tokens[hp[1]];

@@ -1,5 +1,5 @@
 import { baseItemOptions, type Compendium, type Creature } from 'rules-engine';
-import type { ItemSummary, MonsterSummary } from '../shared/ipc';
+import type { ItemSummary, MonsterAttack, MonsterSummary } from '../shared/ipc';
 
 /**
  * Consultas ao compêndio para a tela. O compêndio fica no processo main (o
@@ -47,4 +47,24 @@ export function searchItems(compendium: Compendium, query: string, limit = 30): 
         bases: baseItemOptions(item, compendium).map((b) => ({ id: b.id, name: b.name })),
       };
     });
+}
+
+/** Ações de ataque de um monstro (as de salvaguarda entram com a Fase 4, PR 4). */
+export function monsterAttacks(creatures: readonly Creature[], monsterId: string): MonsterAttack[] {
+  const creature = creatures.find((c) => c.id === monsterId);
+  if (!creature) return [];
+  return creature.actions.flatMap((a): MonsterAttack[] =>
+    a.kind === 'attack'
+      ? [
+          {
+            id: a.id,
+            name: a.name,
+            toHit: a.toHit,
+            damage: a.damage.map((d) => ({ dice: d.dice, type: d.type })),
+            ...(a.reach !== undefined ? { reach: a.reach } : {}),
+            ...(a.range !== undefined ? { range: a.range } : {}),
+          },
+        ]
+      : [],
+  );
 }

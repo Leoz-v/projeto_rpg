@@ -27,6 +27,7 @@ function setup(overrides: Partial<SessionDeps> = {}): HostSession {
     itemProblems: (entry) => (entry.itemId === 'rope' || entry.itemId === 'ring_of_protection' ? [] : ['Item desconhecido']),
     characterSheet: (c) => characterSheet(c, compendium).sheet ?? undefined,
     monsterHpMax: (id) => (id === 'goblin' ? 7 : undefined),
+    creature: (id) => compendium.creatures.find((c) => c.id === id),
     assetExists: (sha) => sha === KNOWN_IMAGE,
     ...overrides,
   });
@@ -358,7 +359,7 @@ describe('HostSession: characters', () => {
   it('restores saved characters', () => {
     const first = setup();
     const id = create(first, ANA.playerId);
-    const restored = new HostSession(CAMPAIGN, GM, { rng: cryptoRng, now: Date.now, newId: randomUUID, monsterExists: () => false, assetExists: () => false, pruneSteps: (s) => s, itemProblems: () => [], characterSheet: () => undefined, monsterHpMax: () => undefined }, first.state);
+    const restored = new HostSession(CAMPAIGN, GM, { rng: cryptoRng, now: Date.now, newId: randomUUID, monsterExists: () => false, assetExists: () => false, pruneSteps: (s) => s, itemProblems: () => [], characterSheet: () => undefined, monsterHpMax: () => undefined, creature: () => undefined }, first.state);
     expect(restored.state.characters[id]?.name).toBe('Thorin');
   });
 });
@@ -609,5 +610,111 @@ describe('HostSession: rolls from the sheet', () => {
     if (!outcome.change) throw new Error('sem mudança');
     expect(session.patchFor(outcome.change, BRUNO.playerId).ops[0]).toMatchObject({ value: { kind: 'hidden_roll' } });
     expect(session.patchFor(outcome.change, ANA.playerId).ops[0]).toMatchObject({ value: { kind: 'd20_roll' } });
+  });
+});
+
+describe('HostSession: attacks against a target', () => {
+  const sequence = (values: number[]) => {
+    let i = 0;
+    return { roll: () => values[i++ % values.length] ?? 1 };
+  };
+  const fighter = dwarfFighter as { character: { baseScores: SessionCharacter['baseScores']; steps: SessionCharacter['steps'] } };
+
+  /** Thorin (guerreiro anão 5, espada longa +7, CA 19 com cota, escudo e Defense) e um Goblin Warrior (CA 15, 10 PV) no mapa. */
+  function arena(rolls: number[]) {
+    const session = setup({
+      rng: sequence(rolls),
+      itemProblems: () => [],
+      monsterExists: (id) => compendium.creatures.some((c) => c.id === id),
+      monsterHpMax: (id) => compendium.creatures.find((c) => c.id === id)?.hp.average,
+    });
+    session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10 } });
+    const mapId = Object.keys(session.state.maps)[0] ?? '';
+    session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Thorin' } });
+    const hero = Object.keys(session.state.characters)[0] ?? '';
+    const steps = CharacterSchema.shape.steps.parse(fighter.character.steps);
+    session.handle(ANA.playerId, { kind: 'character.update', data: { characterId: hero, baseScores: fighter.character.baseScores ?? undefined, steps } });
+    for (const itemId of ['chain_mail', 'shield', 'longsword']) {
+      session.handle(ANA.playerId, { kind: 'inventory.add', data: { characterId: hero, itemId } });
+      const entry = session.state.characters[hero]?.inventory.items.at(-1);
+      session.handle(ANA.playerId, { kind: 'inventory.update', data: { characterId: hero, instanceId: entry?.instanceId ?? '', equipped: true } });
+    }
+    const sword = session.state.characters[hero]?.inventory.items.find((e) => e.itemId === 'longsword')?.instanceId ?? '';
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Thorin', position: { x: 0, y: 0 }, size: 'medium', characterId: hero, ownerIds: [ANA.playerId] } });
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Goblin 1', position: { x: 100, y: 0 }, size: 'small', monsterId: 'goblin_warrior' } });
+    const tokenNamed = (name: string) => Object.values(session.state.tokens).find((t) => t.name === name)?.id ?? '';
+    return { session, hero, sword, thorin: tokenNamed('Thorin'), goblin: tokenNamed('Goblin 1') };
+  }
+  const swing = (a: ReturnType<typeof arena>, who = ANA.playerId) =>
+    a.session.handle(who, { kind: 'attack.make', data: { attacker: { characterId: a.hero, instanceId: a.sword }, targetTokenId: a.goblin, visibility: 'public' } });
+  const attackEntry = (session: HostSession) => {
+    const entry = session.state.chat.at(-1);
+    if (entry?.kind !== 'attack_roll') throw new Error('sem ataque');
+    return entry;
+  };
+
+  it('hits on AC or more and proposes the damage without touching hit points', () => {
+    // d20 = 8 (+7 = 15 contra CA 15): acerta; 1d8 = 5, +4.
+    const a = arena([8, 5]);
+    expect(applied(swing(a))).toBe(true);
+    const entry = attackEntry(a.session);
+    expect(entry).toMatchObject({ attackerName: 'Thorin', label: 'Longsword', targetName: 'Goblin 1', total: 15, hit: true });
+    expect(entry.damage?.total).toBe(9);
+    const proposal = a.session.state.proposals[entry.damage?.proposalId ?? ''];
+    expect(proposal).toMatchObject({ entryId: entry.id, targetTokenId: a.goblin, amount: 9 });
+    expect(a.session.state.tokens[a.goblin]?.hp?.damage).toBe(0);
+  });
+
+  it('misses below AC without a proposal', () => {
+    const a = arena([7]);
+    swing(a);
+    expect(attackEntry(a.session)).toMatchObject({ total: 14, hit: false });
+    expect(a.session.state.proposals).toEqual({});
+  });
+
+  it('lets only the GM apply the proposal, with the proposed amount or another', () => {
+    const a = arena([8, 5]);
+    swing(a);
+    const proposalId = attackEntry(a.session).damage?.proposalId ?? '';
+    expect(rejection(a.session.handle(ANA.playerId, { kind: 'damage.apply', data: { proposalId } }))).toBe('not_allowed');
+    expect(applied(a.session.handle(GM.playerId, { kind: 'damage.apply', data: { proposalId, amount: 6 } }))).toBe(true);
+    expect(a.session.state.tokens[a.goblin]?.hp?.damage).toBe(6);
+    expect(a.session.state.proposals).toEqual({});
+    expect(a.session.state.chat.at(-1)).toMatchObject({ kind: 'damage_applied', targetName: 'Goblin 1', amount: 6, proposed: 9 });
+    expect(rejection(a.session.handle(GM.playerId, { kind: 'damage.apply', data: { proposalId } }))).toBe('rule_violation');
+  });
+
+  it('notes when the target drops to 0 hit points, and lets the GM dismiss a proposal', () => {
+    const a = arena([8, 8, 8, 8]);
+    swing(a);
+    const first = attackEntry(a.session).damage?.proposalId ?? '';
+    a.session.handle(GM.playerId, { kind: 'damage.apply', data: { proposalId: first } });
+    expect(a.session.state.chat.at(-1)).toMatchObject({ kind: 'damage_applied', amount: 12, notes: ['Goblin 1 caiu a 0 PV'] });
+    swing(a);
+    const second = attackEntry(a.session).damage?.proposalId ?? '';
+    expect(applied(a.session.handle(GM.playerId, { kind: 'damage.dismiss', data: { proposalId: second } }))).toBe(true);
+    expect(a.session.state.proposals).toEqual({});
+  });
+
+  it('lets the GM attack with a monster action against a character AC', () => {
+    // Scimitar +4: d20 15 = 19 contra CA 19 de Thorin, acerta; 1d6+2 = 3+2.
+    const a = arena([15, 3]);
+    const outcome = a.session.handle(GM.playerId, { kind: 'attack.make', data: { attacker: { tokenId: a.goblin, actionId: 'scimitar' }, targetTokenId: a.thorin, visibility: 'public' } });
+    expect(applied(outcome)).toBe(true);
+    const entry = attackEntry(a.session);
+    expect(entry).toMatchObject({ attackerName: 'Goblin 1', label: 'Scimitar', modifier: 4, total: 19, hit: true });
+    expect(entry.damage?.total).toBe(5);
+    a.session.handle(GM.playerId, { kind: 'damage.apply', data: { proposalId: entry.damage?.proposalId ?? '' } });
+    expect(a.session.state.characters[a.hero]?.hp.damage).toBe(5);
+    expect(rejection(a.session.handle(ANA.playerId, { kind: 'attack.make', data: { attacker: { tokenId: a.goblin, actionId: 'scimitar' }, targetTokenId: a.thorin, visibility: 'public' } }))).toBe('not_allowed');
+  });
+
+  it('keeps proposals away from players', () => {
+    const a = arena([8, 5]);
+    const outcome = swing(a);
+    if (!outcome.change) throw new Error('sem mudança');
+    expect(a.session.patchFor(outcome.change, ANA.playerId).ops.map((o) => o.path)).toEqual(['/chat/-']);
+    expect(a.session.viewFor(ANA.playerId).proposals).toEqual({});
+    expect(Object.keys(a.session.viewFor(GM.playerId).proposals)).toHaveLength(1);
   });
 });

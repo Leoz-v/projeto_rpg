@@ -1,5 +1,6 @@
 import type { DamageType } from '../schemas/common';
 import { type DiceRoll, type Rng, rollDice } from './dice';
+import { DAMAGE_NAME } from './names';
 import type { Defenses, SourceLabel } from './types';
 
 /**
@@ -61,4 +62,25 @@ export function applyDamage(defenses: Defenses, damage: readonly DamageInstance[
     return { type, incoming: amount, final: value, steps };
   });
   return { total: instances.reduce((sum, i) => sum + i.final, 0), instances };
+}
+
+const names = (sources: readonly SourceLabel[]): string => sources.map((s) => s.name).join(', ');
+
+/** O que as defesas fizeram com o dano, em pt-BR, para o log ("Vulnerabilidade a Concussão: 8 → 16 (Skeleton)"). */
+export function damageNotes(result: DamageResult): string[] {
+  return result.instances.flatMap((instance) =>
+    instance.steps.map((step) => {
+      const type = DAMAGE_NAME[instance.type];
+      switch (step.kind) {
+        case 'immunity':
+          return `Imunidade a ${type}: ${step.before} → 0 (${names(step.sources)})`;
+        case 'reduction':
+          return `Redução de ${type}: ${step.before} → ${step.after} (${step.source.name}, rolou ${step.roll.total})`;
+        case 'resistance':
+          return `Resistência a ${type}: ${step.before} → ${step.after} (${names(step.sources)})`;
+        case 'vulnerability':
+          return `Vulnerabilidade a ${type}: ${step.before} → ${step.after} (${names(step.sources)})`;
+      }
+    }),
+  );
 }

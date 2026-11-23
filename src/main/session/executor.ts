@@ -1,6 +1,12 @@
 import {
   applyHitPointChange,
   clampHitPoints,
+  type Creature,
+  creatureDefenses,
+  damageNotes,
+  type Defenses,
+  resolveAttack,
+  rollActionDamage,
   d20StepNotes,
   type DerivedSheet,
   rollAbilityScores,
@@ -8,6 +14,7 @@ import {
   rollDice,
   rollWeaponDamage,
   type Rng,
+  type SheetD20,
   sheetD20,
   type Size,
   spaceSquares,
@@ -63,6 +70,8 @@ export interface SessionDeps {
   characterSheet(character: SessionCharacter): DerivedSheet | undefined;
   /** PV médios do bloco de estatísticas de um monstro do compêndio. */
   monsterHpMax(monsterId: string): number | undefined;
+  /** Bloco de estatísticas de um monstro do compêndio. */
+  creature(monsterId: string): Creature | undefined;
 }
 
 type InventoryEntry = SessionCharacter['inventory']['items'][number];
@@ -126,6 +135,7 @@ export class HostSession {
       activeMapId: restored?.activeMapId ?? null,
       tokens: restored?.tokens ?? {},
       characters: restored?.characters ?? {},
+      proposals: {},
     };
   }
 
@@ -240,6 +250,15 @@ export class HostSession {
         return [this.appendChat(this.rollFromSheet(playerId, role, intent.data))];
       case 'roll.damage':
         return [this.appendChat(this.rollDamage(playerId, role, intent.data))];
+      case 'attack.make':
+        return this.makeAttack(playerId, role, intent.data);
+      case 'damage.apply':
+        this.requireGm(role);
+        return this.applyProposal(playerId, intent.data.proposalId, intent.data.amount);
+      case 'damage.dismiss':
+        this.requireGm(role);
+        this.proposal(intent.data.proposalId);
+        return [{ op: 'remove', path: toPointer('proposals', intent.data.proposalId) }];
       case 'hp.change':
         return this.changeHp(playerId, role, intent.data);
       case 'inventory.currency':
@@ -571,5 +590,155 @@ export class HostSession {
       total: result.total,
       ...(result.dieMinimum ? { dieMinimum: result.dieMinimum } : {}),
     };
+  }
+
+  // --- Ataques contra um alvo (Fase 4, PR 3) --------------------------------
+
+  private proposal(proposalId: string): SessionState['proposals'][string] {
+    const proposal = this.current.proposals[proposalId];
+    if (!proposal) throw violation('Proposta de dano não encontrada (já aplicada ou descartada)');
+    return proposal;
+  }
+
+  /** CA e defesas de um token alvo: as da ficha do personagem ligado, ou as do bloco do monstro. */
+  private targetOf(token: Token): { ac: number; defenses: Defenses; reminders: string[] } {
+    if (token.characterId !== null) {
+      const character = this.current.characters[token.characterId];
+      const sheet = character ? this.deps.characterSheet(character) : undefined;
+      if (!sheet) throw violation('O personagem do alvo ainda não tem ficha');
+      return { ac: sheet.ac.total, defenses: sheet.defenses, reminders: [] };
+    }
+    const creature = token.monsterId !== null ? this.deps.creature(token.monsterId) : undefined;
+    if (!creature) throw violation('O alvo não tem CA conhecida (não é personagem nem monstro do compêndio)');
+    const { defenses, reminders } = creatureDefenses(creature);
+    return { ac: creature.ac, defenses, reminders };
+  }
+
+  /**
+   * Ataque contra um token: o Host rola contra a CA do alvo e, no acerto,
+   * rola o dano e aplica as defesas do alvo com o motor. O dano vira uma
+   * proposta: só muda os PV quando o mestre aplica (override manual).
+   */
+  private makeAttack(playerId: string, role: Role, data: IntentData<'attack.make'>): PatchOp[] {
+    const target = this.token(data.targetTokenId);
+    const declared = { advantage: data.advantage, disadvantage: data.disadvantage };
+    let attackerName: string;
+    let label: string;
+    let d20: SheetD20;
+    let rollDamage: (critical: boolean) => { groups: ReturnType<typeof rollActionDamage>; bonus: number };
+
+    if ('characterId' in data.attacker) {
+      const { character, sheet } = this.sheetOf(playerId, role, data.attacker.characterId);
+      const instanceId = data.attacker.instanceId;
+      const attack = sheet.attacks.find((a) => a.instanceId === instanceId);
+      const roll = sheetD20(sheet, { kind: 'attack', instanceId }, declared);
+      if (!attack || !roll) throw violation('Este ataque não está na ficha (a arma precisa estar equipada)');
+      d20 = roll;
+      attackerName = character.name;
+      label = attack.name;
+      rollDamage = (critical) => {
+        const rolled = rollWeaponDamage(attack, { critical }, this.deps.rng);
+        return { groups: rolled.groups, bonus: rolled.bonus };
+      };
+    } else {
+      const token = this.token(data.attacker.tokenId);
+      if (role !== 'gm' && !token.ownerIds.includes(playerId)) throw notAllowed('Você não controla este token');
+      const creature = token.monsterId !== null ? this.deps.creature(token.monsterId) : undefined;
+      const actionId = data.attacker.actionId;
+      const action = creature?.actions.find((a) => a.id === actionId);
+      if (!creature || action?.kind !== 'attack') throw violation('Ação de ataque não encontrada no bloco do monstro');
+      const advantage = declared.advantage ? ['Declarada na rolagem'] : [];
+      const disadvantage = declared.disadvantage ? ['Declarada na rolagem'] : [];
+      const mode = advantage.length > 0 && disadvantage.length === 0 ? 'advantage' : disadvantage.length > 0 && advantage.length === 0 ? 'disadvantage' : 'normal';
+      d20 = { input: { modifier: action.toHit, mode }, parts: [{ label: 'Bônus de ataque', value: action.toHit }], advantage, disadvantage, reminders: [] };
+      attackerName = token.name;
+      label = action.name;
+      rollDamage = (critical) => ({ groups: rollActionDamage(action.damage, critical, this.deps.rng), bonus: 0 });
+    }
+    const defender = this.targetOf(target);
+    const result = resolveAttack({ d20: d20.input, targetAc: defender.ac, rollDamage, defenses: defender.defenses }, this.deps.rng);
+    const entryId = this.deps.newId();
+    const ops: PatchOp[] = [];
+    let damage: Extract<ChatEntry, { kind: 'attack_roll' }>['damage'];
+    if (result.damage && result.damage.groups.length > 0) {
+      const proposalId = this.deps.newId();
+      damage = {
+        groups: result.damage.groups,
+        bonus: result.damage.bonus,
+        total: result.damage.applied.total,
+        defenses: damageNotes(result.damage.applied),
+        proposalId,
+      };
+      ops.push({
+        op: 'add',
+        path: toPointer('proposals', proposalId),
+        value: { id: proposalId, entryId, targetTokenId: target.id, targetName: target.name, amount: result.damage.applied.total },
+      });
+    }
+    const entry: ChatEntry = {
+      kind: 'attack_roll',
+      id: entryId,
+      at: this.deps.now(),
+      authorId: playerId,
+      attackerName,
+      label: label.slice(0, 100),
+      targetTokenId: target.id,
+      targetName: target.name,
+      visibility: data.visibility,
+      mode: d20.input.mode,
+      dice: result.roll.dice,
+      natural: result.roll.natural,
+      modifier: d20.input.modifier,
+      total: result.roll.total,
+      critical: result.critical,
+      fumble: result.roll.fumble,
+      advantage: d20.advantage,
+      disadvantage: d20.disadvantage,
+      notes: d20StepNotes(result.roll.steps),
+      reminders: [...d20.reminders, ...defender.reminders].slice(0, 50),
+      hit: result.hit,
+      ...(damage ? { damage } : {}),
+    };
+    return [this.appendChat(entry), ...ops];
+  }
+
+  /** Aplica o dano proposto (ou o valor do mestre) nos PV do alvo e registra no chat. */
+  private applyProposal(playerId: string, proposalId: string, override: number | undefined): PatchOp[] {
+    const proposal = this.proposal(proposalId);
+    const token = this.current.tokens[proposal.targetTokenId];
+    if (!token) throw violation('O alvo não está mais no mapa');
+    const amount = override ?? proposal.amount;
+    let result: ReturnType<typeof applyHitPointChange>;
+    let ops: PatchOp[];
+    if (token.characterId !== null) {
+      const character = this.current.characters[token.characterId];
+      const max = character ? this.deps.characterSheet(character)?.hpMax.total : undefined;
+      if (!character || max === undefined) throw violation('O personagem do alvo ainda não tem ficha');
+      result = applyHitPointChange(max, character.hp, { kind: 'damage', amount });
+      ops = [{ op: 'replace', path: toPointer('characters', character.id, 'hp'), value: result.state }];
+    } else {
+      if (!token.hp) throw violation('O alvo não tem PV (defina os PV máximos no painel)');
+      result = applyHitPointChange(token.hp.max, token.hp, { kind: 'damage', amount });
+      ops = [{ op: 'replace', path: toPointer('tokens', token.id, 'hp'), value: { max: token.hp.max, ...result.state } }];
+    }
+    const notes = [
+      ...(result.absorbed > 0 ? [`${result.absorbed} absorvido(s) pelos PV temporários`] : []),
+      ...(result.droppedToZero ? [`${token.name} caiu a 0 PV`] : []),
+      ...(result.massiveDamage && token.characterId !== null ? ['Dano massivo: morte instantânea (SRD)'] : []),
+      ...(result.damagedAtZero ? ['Dano com 0 PV: falha na Salvaguarda contra a Morte (Fase 5)'] : []),
+    ];
+    return [
+      ...ops,
+      { op: 'remove', path: toPointer('proposals', proposalId) },
+      this.appendChat({
+        kind: 'damage_applied',
+        ...this.entryBase(playerId),
+        targetTokenId: token.id,
+        targetName: token.name,
+        amount,
+        ...(override !== undefined && override !== proposal.amount ? { proposed: proposal.amount } : {}),
+        notes,
+      }),
+    ];
   }
 }

@@ -126,6 +126,7 @@ describe('CampaignDb', () => {
   const HERO_TOKEN = randomUUID();
 
   const state = (overrides: Partial<SessionState> = {}): SessionState => ({
+    proposals: {},
     campaign: { id: randomUUID(), name: 'A Mina Perdida' },
     players: { [GM]: { displayName: 'Mestre', role: 'gm', connected: true }, [ANA]: { displayName: 'Ana', role: 'player', connected: true } },
     chat: [

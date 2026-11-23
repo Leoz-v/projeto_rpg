@@ -130,6 +130,25 @@ export const IntentSchema = z.discriminatedUnion('kind', [
     }),
   }),
   z.strictObject({
+    kind: z.literal('attack.make'),
+    data: z.strictObject({
+      /** Arma equipada de um personagem, ou ação de ataque do monstro de um token. */
+      attacker: z.union([
+        z.strictObject({ characterId: UuidSchema, instanceId: InstanceIdSchema }),
+        z.strictObject({ tokenId: UuidSchema, actionId: IdSchema }),
+      ]),
+      targetTokenId: UuidSchema,
+      advantage: z.boolean().optional(),
+      disadvantage: z.boolean().optional(),
+      visibility: VisibilitySchema,
+    }),
+  }),
+  z.strictObject({
+    kind: z.literal('damage.apply'),
+    data: z.strictObject({ proposalId: UuidSchema, amount: z.int().min(0).max(MAX_HIT_POINTS).optional() }),
+  }),
+  z.strictObject({ kind: z.literal('damage.dismiss'), data: z.strictObject({ proposalId: UuidSchema }) }),
+  z.strictObject({
     kind: z.literal('hp.change'),
     data: z.strictObject({
       target: z.union([z.strictObject({ characterId: UuidSchema }), z.strictObject({ tokenId: UuidSchema })]),

@@ -26,6 +26,7 @@ const TABLE_PASSWORD = ['senha', 'da', 'mesa'].join('-');
 const SHA ='9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08';
 
 const state: SessionState = {
+  proposals: {},
   campaign: { id: CAMPAIGN, name: 'A Mina Perdida' },
   players: {
     [PLAYER]: { displayName: 'Ana', role: 'player', connected: true },
@@ -185,6 +186,12 @@ describe('intents', () => {
     expect(intent('roll.d20', { characterId: HERO, target: { kind: 'skill', skill: 'luck' }, visibility: 'public' })).toBe(false);
     expect(intent('roll.damage', { characterId: HERO, instanceId: 'sword', critical: true, visibility: 'public' })).toBe(true);
     expect(intent('roll.damage', { characterId: HERO, instanceId: 'sword' })).toBe(false);
+    expect(intent('attack.make', { attacker: { characterId: HERO, instanceId: 'sword' }, targetTokenId: TOKEN, visibility: 'public' })).toBe(true);
+    expect(intent('attack.make', { attacker: { tokenId: TOKEN, actionId: 'scimitar' }, targetTokenId: TOKEN, advantage: true, visibility: 'gm' })).toBe(true);
+    expect(intent('attack.make', { attacker: { tokenId: TOKEN }, targetTokenId: TOKEN, visibility: 'public' })).toBe(false);
+    expect(intent('damage.apply', { proposalId: ROLL, amount: 7 })).toBe(true);
+    expect(intent('damage.apply', { proposalId: ROLL, amount: -1 })).toBe(false);
+    expect(intent('damage.dismiss', { proposalId: ROLL })).toBe(true);
     expect(intent('hp.change', { target: { tokenId: TOKEN }, change: { kind: 'max', amount: 22 } })).toBe(true);
     expect(intent('token.create', { mapId: MAP, name: 'Barril', position: { x: 0, y: 0 }, size: 'medium', hpMax: 5 })).toBe(true);
     expect(intent('hp.change', { target: { tokenId: TOKEN }, change: { kind: 'damage', amount: -3 } })).toBe(false);
@@ -242,7 +249,7 @@ describe('intents', () => {
 describe('SessionState', () => {
   it('accepts the documented example and an empty table', () => {
     expect(ok(SessionStateSchema, state)).toBe(true);
-    expect(ok(SessionStateSchema, { campaign: state.campaign, players: {}, chat: [], maps: {}, activeMapId: null, tokens: {}, characters: {} })).toBe(true);
+    expect(ok(SessionStateSchema, { campaign: state.campaign, players: {}, chat: [], maps: {}, activeMapId: null, tokens: {}, characters: {}, proposals: {} })).toBe(true);
   });
 
   it('limits rolled ability scores to six values from 3 to 18', () => {

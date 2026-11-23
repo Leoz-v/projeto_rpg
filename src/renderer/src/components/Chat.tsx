@@ -3,7 +3,7 @@ import type { ChatEntry, SessionState } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
 import { CHAT_HELP, parseChatInput } from './chat-command';
 import { type RollPart, rollParts } from './roll-parts';
-import { D20RollBody, DamageRollBody } from './SheetRollEntries';
+import { AttackRollBody, D20RollBody, DamageAppliedBody, DamageRollBody } from './SheetRollEntries';
 
 /** Log da sessão (mensagens e rolagens) e campo de envio. */
 
@@ -32,7 +32,7 @@ function RollResult({ formula, rolls, total }: { formula: string; rolls: { sides
   );
 }
 
-function Entry({ entry, author }: { entry: ChatEntry; author: string }) {
+function Entry({ entry, author, proposals }: { entry: ChatEntry; author: string; proposals: SessionState['proposals'] }) {
   const header = (
     <header>
       <strong>{author}</strong> <time>{time(entry.at)}</time>
@@ -69,6 +69,11 @@ function Entry({ entry, author }: { entry: ChatEntry; author: string }) {
       return <D20RollBody entry={entry} header={header} />;
     case 'damage_roll':
       return <DamageRollBody entry={entry} header={header} />;
+    case 'attack_roll':
+      // Só o mestre recebe as propostas: para os outros, `pending` é sempre falso.
+      return <AttackRollBody entry={entry} header={header} pending={entry.damage !== undefined && entry.damage.proposalId in proposals} />;
+    case 'damage_applied':
+      return <DamageAppliedBody entry={entry} header={header} />;
     case 'ability_roll':
       return (
         <li className="entry roll">
@@ -129,7 +134,7 @@ export function Chat({ state }: { state: SessionState }) {
       <ol className="log">
         {state.chat.length === 0 && <li className="hint">{CHAT_HELP}</li>}
         {state.chat.map((entry) => (
-          <Entry key={entry.id} entry={entry} author={state.players[entry.authorId]?.displayName ?? 'Desconhecido'} />
+          <Entry key={entry.id} entry={entry} author={state.players[entry.authorId]?.displayName ?? 'Desconhecido'} proposals={state.proposals} />
         ))}
         <li ref={end} aria-hidden />
       </ol>
