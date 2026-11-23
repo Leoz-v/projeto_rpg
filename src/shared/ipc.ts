@@ -1,4 +1,5 @@
 import type { AppInfo, HostTableRequest, IpcError, JoinTableRequest, Preferences } from './ipc-schemas';
+import type { DerivedSheet } from 'rules-engine';
 import type { Size } from 'rules-engine/schemas';
 import type { Intent, IntentResultSchema, Role, SessionState } from './protocol';
 import type { z } from 'zod';
@@ -17,6 +18,7 @@ export const IpcChannel = {
   leaveTable: 'table:leave',
   getTable: 'table:get',
   importAsset: 'assets:import',
+  characterSheet: 'table:character-sheet',
   sendIntent: 'table:intent',
   tableEvent: 'table:event',
 } as const;
@@ -61,6 +63,16 @@ export interface ImportedAsset {
   size: number;
 }
 
+/**
+ * Ficha calculada de um personagem da mesa. `sheet` é `null` enquanto os
+ * atributos não foram definidos. `names`: nome no compêndio dos ids que a
+ * ficha cita (espécie, classes, magias, ferramentas).
+ */
+export interface CharacterSheetView {
+  sheet: DerivedSheet | null;
+  names: Record<string, string>;
+}
+
 /** O que o renderer precisa para desenhar a mesa. */
 export interface TableView {
   info: TableInfo;
@@ -86,6 +98,8 @@ export interface VttApi {
   sendIntent(intent: Intent): Promise<IpcResult<IntentResultPayload>>;
   /** Monstros do compêndio cujo nome contém o texto (até 20). */
   searchMonsters(query: string): Promise<IpcResult<MonsterSummary[]>>;
+  /** Ficha calculada de um personagem da mesa atual. */
+  characterSheet(characterId: string): Promise<IpcResult<CharacterSheetView>>;
   /** Abre o seletor de arquivos e importa uma imagem; `null` se o usuário cancelou. */
   importAsset(): Promise<IpcResult<ImportedAsset | null>>;
   /** Avisa a cada estado novo e quando a mesa fecha. Devolve a função que cancela. */

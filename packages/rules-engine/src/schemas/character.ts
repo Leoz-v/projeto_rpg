@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AbilitySchema, AbilityScoresSchema, ABILITIES, IdSchema, SizeSchema, TextSchema } from './common';
+import { type AbilityScores, AbilitySchema, AbilityScoresSchema, ABILITIES, IdSchema, SizeSchema, TextSchema } from './common';
 import { EffectSchema } from './effect';
 
 /**
@@ -18,6 +18,21 @@ export const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8] as const;
 /** Custo de cada valor na compra de pontos (SRD 5.2.1). Orçamento: 27. */
 export const POINT_BUY_COST: Readonly<Record<number, number>> = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
 export const POINT_BUY_BUDGET = 27;
+export const POINT_BUY_MIN = 8;
+export const POINT_BUY_MAX = 15;
+
+/** Pontos gastos na compra de pontos, ou `undefined` se algum valor está fora de 8 a 15. */
+export function pointBuySpent(scores: AbilityScores): number | undefined {
+  let spent = 0;
+  for (const a of ABILITIES) {
+    const cost = POINT_BUY_COST[scores[a]];
+    if (cost === undefined) return undefined;
+    spent += cost;
+  }
+  return spent;
+}
+/** Geração aleatória: seis valores, cada um 4d6 descartando o menor (SRD 5.2.1 p. 20). */
+export const ABILITY_ROLL_SETS = 6;
 
 export const AbilityScoreMethodSchema = z.enum(['standard_array', 'point_buy', 'rolled', 'manual']);
 
@@ -31,10 +46,10 @@ export const BaseScoresSchema = z
         ctx.addIssue({ code: 'custom', path: ['scores'], message: 'valores não correspondem ao conjunto padrão' });
       }
     } else if (method === 'point_buy') {
-      const costs = values.map((v) => POINT_BUY_COST[v]);
-      if (costs.some((c) => c === undefined)) {
+      const spent = pointBuySpent(scores);
+      if (spent === undefined) {
         ctx.addIssue({ code: 'custom', path: ['scores'], message: 'compra de pontos aceita só valores de 8 a 15' });
-      } else if (costs.reduce<number>((sum, c) => sum + (c ?? 0), 0) > POINT_BUY_BUDGET) {
+      } else if (spent > POINT_BUY_BUDGET) {
         ctx.addIssue({ code: 'custom', path: ['scores'], message: `compra de pontos acima de ${POINT_BUY_BUDGET}` });
       }
     } else if (method === 'rolled' && values.some((v) => v < 3 || v > 18)) {

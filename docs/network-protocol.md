@@ -2,7 +2,7 @@
 
 > **Contrato fechado.** Só existem as mensagens e os tipos de `Intent` listados aqui. Para criar um novo, primeiro atualize este documento (e `PROTOCOL_VERSION`, se a mudança for incompatível) e só depois o código. Os schemas Zod em `src/shared/protocol/` devem seguir este arquivo exatamente.
 
-- **Versão do protocolo:** `PROTOCOL_VERSION = 2`
+- **Versão do protocolo:** `PROTOCOL_VERSION = 3`
 - **Transporte:** WebSocket puro (`ws://`) sobre rede virtual (Tailscale/ZeroTier). Porta padrão do Host: `47820`.
 - **Formato:** um objeto JSON (UTF-8) por frame de texto. Frames binários não são usados.
 - **Validação:** toda mensagem recebida, nos dois lados, passa pelo schema Zod antes de qualquer processamento. Mensagem inválida gera `Error` com `code: "invalid_message"` e é descartada. A conexão **não** cai por causa disso.
@@ -211,6 +211,7 @@ O Host guarda o estado completo e envia a cada cliente só o que ele pode ver, n
 
 - **Mestre:** vê tudo.
 - **Jogador:** uma rolagem com `visibility: "gm"` de outra pessoa chega como `hidden_roll`, sem fórmula, rótulo nem resultado. A entrada continua no log, na mesma posição, para que os índices de `chat` sejam iguais em todos os clientes. Quem rolou sempre vê a própria rolagem (o jogador que rola em segredo para o mestre vê o resultado).
+- **Personagens** e as rolagens de atributos (`ability_roll`) são vistos por todos.
 
 ## 3. Catálogo de `Intent`
 
@@ -226,6 +227,10 @@ Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do
 | `map.activate`    | 2    | `{ mapId: string }` | mestre |
 | `token.create`    | 2    | `{ mapId: string, name: string (1..100), position: { x: int, y: int }, size: Size, monsterId?: string, image?: sha256, ownerIds?: string[] }` | mestre |
 | `token.remove`    | 2    | `{ tokenId: string }` | mestre |
+| `character.create` | 3   | `{ name: string (1..100), ownerId?: string }` | todos; `ownerId` de outra pessoa só o mestre |
+| `character.update` | 3   | `{ characterId: string, name?: string, baseScores?: BaseScores, steps?: BuildStep[] }` (ao menos um campo além do id) | dono e mestre |
+| `character.roll_scores` | 3 | `{ characterId: string }` | dono (uma vez) e mestre (sempre) |
+| `character.remove` | 3   | `{ characterId: string }` | dono e mestre |
 
 - **Coordenadas** em unidades lógicas de mundo (`1 célula = 5 ft = 100 unidades`), nunca pixels. `position` é o canto superior esquerdo do token, e o token inteiro precisa caber no mapa: `x + lado ≤ largura × 100` e `y + lado ≤ altura × 100`, em que `lado` é o espaço do tamanho da criatura em unidades (SRD 5.2.1 p. 14: Tiny 50, Small e Medium 100, Large 200, Huge 300, Gargantuan 400; `spaceSquares` do motor). Fora disso, o Host recusa com `rule_violation`.
 - **`dice.roll`:** o cliente manda só a fórmula, no formato de dados do motor (ex.: `2d6+3`, `1d20+1d4-1`), com até 100 caracteres e até 100 dados. O Host rola com o RNG do motor e publica o resultado no log via `StatePatch`.
@@ -235,6 +240,10 @@ Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do
 - **`token.move`:** o mestre move qualquer token; o jogador, só os tokens em que está em `ownerIds`.
 - **`token.create`:** os `ownerIds` precisam ser jogadores que já entraram na sessão (estão em `players`).
 - **`session.resync`:** responde `applied` com o `rev` atual, seguido de um `StateSnapshot` só para quem pediu.
+- **Personagens** (nota 0029): o personagem guarda só as escolhas de construção; a ficha é calculada pelo motor em cada app (o cálculo é determinístico). `BaseScores` e `BuildStep` são os schemas do motor (`rules-engine/schemas`), e o Host confere só a estrutura: a construção pode ficar incompleta enquanto o jogador monta o personagem.
+  - **`character.create`:** cria um rascunho sem atributos (`baseScores: null`) nem passos. O dono é quem pediu; o mestre pode passar `ownerId` de um jogador que já está em `players` (senão, `rule_violation`). O Host gera o `id`.
+  - **`character.update`:** troca os campos enviados. `baseScores` com `method: "manual"` só o mestre (senão, `not_allowed`). Com `method: "rolled"`, os seis valores precisam ser exatamente os de `rolledScores`, em qualquer ordem (senão, `rule_violation`).
+  - **`character.roll_scores`:** o Host rola 4d6 seis vezes, descartando o menor dado de cada (SRD 5.2.1 p. 20), grava os seis totais em `rolledScores` e publica uma entrada `ability_roll` no chat. O dono rola só se `rolledScores` for `null` (senão, `not_allowed`); o mestre pode mandar rolar de novo, e então uma distribuição `rolled` salva volta a `null`.
 - **Recusas** (`IntentResult` com `rejected`): `not_allowed` para permissão (jogador num `Intent` do mestre, token de outro jogador); `rule_violation` para estado inválido (mapa ou token inexistente, posição fora do mapa, monstro fora do compêndio, imagem que o Host não tem). Um `Intent` recusado não muda o estado nem o `rev`.
 
 ## 4. Sequência típica
@@ -265,7 +274,9 @@ Estado da mesa (visão do mestre; a dos jogadores é filtrada pela seção 2.12)
     { "kind": "message", "id": "…", "at": 1763769600000, "authorId": "b2e4…", "text": "Olá!" },
     { "kind": "roll", "id": "…", "at": 1763769601000, "authorId": "b2e4…", "formula": "2d6+3", "label": "Dano", "visibility": "public",
       "rolls": [ { "sides": 6, "value": 4 }, { "sides": 6, "value": 2 } ], "total": 9 },
-    { "kind": "hidden_roll", "id": "…", "at": 1763769602000, "authorId": "e7f1…" }
+    { "kind": "hidden_roll", "id": "…", "at": 1763769602000, "authorId": "e7f1…" },
+    { "kind": "ability_roll", "id": "…", "at": 1763769603000, "authorId": "b2e4…", "characterId": "h1…", "characterName": "Thorin",
+      "sets": [ { "dice": [6, 1, 4, 3], "dropped": 1, "total": 13 }, "… seis conjuntos …" ] }
   ],
   "maps": {
     "m1…": { "id": "m1…", "name": "Caverna", "width": 30, "height": 20, "background": "9f86d081…", "cellPx": 70 }
@@ -274,6 +285,12 @@ Estado da mesa (visão do mestre; a dos jogadores é filtrada pela seção 2.12)
   "tokens": {
     "t1…": { "id": "t1…", "mapId": "m1…", "name": "Goblin 1", "position": { "x": 300, "y": 500 }, "size": "small",
       "monsterId": "goblin", "image": null, "ownerIds": [] }
+  },
+  "characters": {
+    "h1…": { "id": "h1…", "ownerId": "b2e4…", "name": "Thorin",
+      "baseScores": { "method": "rolled", "scores": { "str": 16, "dex": 13, "con": 18, "int": 9, "wis": 13, "cha": 9 } },
+      "rolledScores": [13, 16, 9, 18, 13, 9],
+      "steps": [ { "kind": "species", "speciesId": "dwarf", "selections": [] } ] }
   }
 }
 ```
@@ -282,7 +299,8 @@ Estado da mesa (visão do mestre; a dos jogadores é filtrada pela seção 2.12)
 |---------------|-----------|
 | `campaign`    | Id e nome da campanha. |
 | `players`     | Todos os jogadores que já entraram na sessão, por `playerId`, incluindo o mestre (`role: "gm"`). `connected` muda quando a conexão abre ou cai. |
-| `chat`        | Log da sessão, em ordem. Só cresce: entradas novas entram com `add` em `/chat/-`. |
+| `chat`        | Log da sessão, em ordem. Só cresce: entradas novas entram com `add` em `/chat/-`. Tipos: `message`, `roll`, `hidden_roll` (seção 2.12) e `ability_roll` (atributos rolados pelo Host: seis conjuntos de 4d6 com o índice do dado descartado e o total). |
 | `maps`        | Mapas por id. `width`/`height` em células; `background` é o SHA-256 da imagem, ou `null`; `cellPx` é o tamanho da célula em pixels da imagem de fundo, ou `null` (mapa sem fundo ou legado esticado). |
 | `activeMapId` | Mapa exibido para todos, ou `null` antes do primeiro `map.create`. |
 | `tokens`      | Tokens por id. `image` é o SHA-256 da imagem, ou `null`. |
+| `characters`  | Personagens da campanha por id: dono (`ownerId`), nome e escolhas de construção. `baseScores` é `null` até os atributos serem definidos; `rolledScores` é `null` até o Host rolar, depois os seis totais (3 a 18). `steps` segue o `BuildStep` do motor. |

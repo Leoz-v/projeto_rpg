@@ -19,6 +19,8 @@ const GM = 'e7f1a2b3-c4d5-4e6f-8a7b-9c0d1e2f3a4b';
 const CAMPAIGN = 'c9a0b1c2-d3e4-4f5a-8b6c-7d8e9f0a1b2c';
 const MAP = 'd1e2f3a4-b5c6-4d7e-8f9a-0b1c2d3e4f5a';
 const TOKEN = 'f1e2d3c4-b5a6-4978-8a9b-0c1d2e3f4a5b';
+const HERO = 'a7b8c9d0-e1f2-4a3b-8c4d-5e6f7a8b9c0d';
+const ROLL = 'b8c9d0e1-f2a3-4b4c-9d5e-6f7a8b9c0d1e';
 /** Senha fictícia da mesa, montada em tempo de execução para não parecer um segredo aos scanners. */
 const TABLE_PASSWORD = ['senha', 'da', 'mesa'].join('-');
 const SHA ='9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08';
@@ -46,11 +48,37 @@ const state: SessionState = {
       total: 9,
     },
     { kind: 'hidden_roll', id: TOKEN, at: 1763769602000, authorId: GM },
+    {
+      kind: 'ability_roll',
+      id: ROLL,
+      at: 1763769603000,
+      authorId: PLAYER,
+      characterId: HERO,
+      characterName: 'Thorin',
+      sets: [
+        { dice: [6, 1, 4, 3], dropped: 1, total: 13 },
+        { dice: [5, 5, 2, 6], dropped: 2, total: 16 },
+        { dice: [3, 3, 3, 3], dropped: 0, total: 9 },
+        { dice: [6, 6, 6, 1], dropped: 3, total: 18 },
+        { dice: [2, 4, 4, 5], dropped: 0, total: 13 },
+        { dice: [1, 2, 3, 4], dropped: 0, total: 9 },
+      ],
+    },
   ],
   maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: SHA, cellPx: 70 } },
   activeMapId: MAP,
   tokens: {
     [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [] },
+  },
+  characters: {
+    [HERO]: {
+      id: HERO,
+      ownerId: PLAYER,
+      name: 'Thorin',
+      baseScores: { method: 'rolled', scores: { str: 16, dex: 13, con: 18, int: 9, wis: 13, cha: 9 } },
+      rolledScores: [13, 16, 9, 18, 13, 9],
+      steps: [{ kind: 'species', speciesId: 'dwarf', selections: [] }],
+    },
   },
 };
 
@@ -130,6 +158,22 @@ describe('intents', () => {
     expect(intent('map.activate', { mapId: MAP })).toBe(true);
     expect(intent('token.create', { mapId: MAP, name: 'Goblin 1', position: { x: 0, y: 0 }, size: 'small', monsterId: 'goblin', ownerIds: [PLAYER] })).toBe(true);
     expect(intent('token.remove', { tokenId: TOKEN })).toBe(true);
+    expect(intent('character.create', { name: 'Thorin' })).toBe(true);
+    expect(intent('character.create', { name: 'Thorin', ownerId: PLAYER })).toBe(true);
+    expect(intent('character.update', { characterId: HERO, name: 'Thorin II' })).toBe(true);
+    expect(intent('character.update', { characterId: HERO, baseScores: { method: 'standard_array', scores: { str: 15, dex: 14, con: 13, int: 12, wis: 10, cha: 8 } } })).toBe(true);
+    expect(intent('character.update', { characterId: HERO, steps: [{ kind: 'class_level', classId: 'fighter' }] })).toBe(true);
+    expect(intent('character.roll_scores', { characterId: HERO })).toBe(true);
+    expect(intent('character.remove', { characterId: HERO })).toBe(true);
+  });
+
+  it('validates the character build structure', () => {
+    expect(intent('character.update', { characterId: HERO })).toBe(false);
+    expect(intent('character.update', { characterId: HERO, baseScores: { method: 'standard_array', scores: { str: 15, dex: 15, con: 13, int: 12, wis: 10, cha: 8 } } })).toBe(false);
+    expect(intent('character.update', { characterId: HERO, baseScores: { method: 'point_buy', scores: { str: 15, dex: 15, con: 15, int: 15, wis: 8, cha: 8 } } })).toBe(false);
+    const dwarf = { kind: 'species', speciesId: 'dwarf' };
+    expect(intent('character.update', { characterId: HERO, steps: [dwarf, dwarf] })).toBe(false);
+    expect(intent('character.update', { characterId: HERO, steps: Array.from({ length: 21 }, () => ({ kind: 'class_level', classId: 'fighter' })) })).toBe(false);
   });
 
   it('limits the dice formula', () => {
@@ -158,7 +202,13 @@ describe('intents', () => {
 describe('SessionState', () => {
   it('accepts the documented example and an empty table', () => {
     expect(ok(SessionStateSchema, state)).toBe(true);
-    expect(ok(SessionStateSchema, { campaign: state.campaign, players: {}, chat: [], maps: {}, activeMapId: null, tokens: {} })).toBe(true);
+    expect(ok(SessionStateSchema, { campaign: state.campaign, players: {}, chat: [], maps: {}, activeMapId: null, tokens: {}, characters: {} })).toBe(true);
+  });
+
+  it('limits rolled ability scores to six values from 3 to 18', () => {
+    const hero = state.characters[HERO];
+    expect(ok(SessionStateSchema, { ...state, characters: { [HERO]: { ...hero, rolledScores: [13, 16, 9, 18, 13] } } })).toBe(false);
+    expect(ok(SessionStateSchema, { ...state, characters: { [HERO]: { ...hero, rolledScores: [13, 16, 9, 19, 13, 9] } } })).toBe(false);
   });
 
   it('keeps hidden rolls without formula or result', () => {

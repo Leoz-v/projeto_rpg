@@ -55,7 +55,6 @@ function Entry({ entry, author }: { entry: ChatEntry; author: string }) {
             {entry.visibility === 'gm' && <span className="tag">secreta</span>}
           </p>
           <RollResult formula={entry.formula} rolls={entry.rolls} total={entry.total} />
-
         </li>
       );
     case 'hidden_roll':
@@ -63,6 +62,27 @@ function Entry({ entry, author }: { entry: ChatEntry; author: string }) {
         <li className="entry hidden">
           {header}
           <p>Fez uma rolagem secreta para o mestre.</p>
+        </li>
+      );
+    case 'ability_roll':
+      return (
+        <li className="entry roll">
+          {header}
+          <p>
+            <span className="roll-label">Atributos de {entry.characterName}:</span> <code>4d6</code> × 6, descartando o menor
+          </p>
+          <ol className="ability-sets">
+            {entry.sets.map((set, i) => (
+              <li key={i} className="roll-result">
+                {set.dice.map((value, d) => (
+                  <span key={d} className={`die${d === set.dropped ? ' dropped' : ''}`} title={d === set.dropped ? 'descartado' : 'd6'}>
+                    {value}
+                  </span>
+                ))}
+                <span className="total">= {set.total}</span>
+              </li>
+            ))}
+          </ol>
         </li>
       );
   }

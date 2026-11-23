@@ -62,8 +62,9 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
   - Migrações sequenciais controladas por `PRAGMA user_version`, gerando backup automático (`.bak`) antes de alterar o schema.
   - Sem módulo nativo: o `node:sqlite` vem com o Node (o do Electron no app, o do sistema nos testes). Todo o acesso fica em `src/main/db/`, para uma troca de biblioteca, se precisar, ficar restrita a essa pasta.
 - **Assets endereçados por hash do conteúdo (SHA-256 via `node:crypto`):** cacheados localmente e transferidos uma única vez sob demanda. Servidos ao PixiJS via protocolo customizado `vtt-asset://` registrado com `protocol.handle` (evitando tráfego Base64 pelo IPC).
-- **Fichas offline:** cada jogador mantém cópia local do personagem (lista de escolhas + inventário).
-  - **Lista de escolhas** (construção do personagem): fora da sessão o jogador pode editar; ao reconectar, o Host compara o hash e exibe o *diff* das escolhas para o mestre aprovar ou rejeitar antes de aplicar.
+- **Personagens e fichas:** o personagem pertence à campanha (`<campanha>.db` do Host) e é criado **dentro da sessão**, por `Intent` ao Host; o mestre acompanha ao vivo e pode editar as escolhas de qualquer personagem. O estado guarda só as escolhas; cada app calcula a ficha no processo main com o motor (ver `docs/decisions/0029-personagens-na-sessao.md`).
+- **Cópia offline (complemento, Fase 3):** cada jogador mantém cópia local do personagem (lista de escolhas + inventário).
+  - **Lista de escolhas** (construção do personagem): fora da sessão o jogador pode editar (ex.: subir de nível entre sessões); ao reconectar, o Host compara o hash e exibe o *diff* das escolhas para o mestre aprovar ou rejeitar antes de aplicar.
   - **Inventário:** durante a sessão é alterado só via `Intent` ao Host. Fora da sessão é somente leitura no cliente (o Host é a fonte da verdade e reenvia o inventário ao reconectar).
 - **Distribuição e atualização automática:** GitHub Actions gera os builds (Windows, Linux AppImage e Mac) com electron-builder a cada tag e publica no GitHub Releases; o app atualiza via **`electron-updater`**.
   - Integridade garantida pelo hash `sha512` dos artefatos (`latest.yml`) e pelo controle do repositório. O binário **não** usa certificado pago de code signing, então:
@@ -162,7 +163,12 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - ✅ SQLite em `src/main/db/` (`app.db` com o id do jogador, preferências e índice de campanhas; `<campanha>.db` com a sessão; migrações com `.bak`). Ver `docs/decisions/0023-sqlite-embutido-no-node.md`. Campanhas podem ser excluídas pela tela inicial (o arquivo vai para a Lixeira, nota 0026).
    - ✅ Assets em `src/main/assets/` (armazenamento por SHA-256, `vtt-asset://` com CORS para o PixiJS, `AssetChunk` com conferência do hash, importação de imagens pelo mestre). Ver `docs/decisions/0025-assets-por-hash.md`.
    - ✅ Mapa PixiJS em `src/renderer/src/canvas/` (grid, fundo, tokens com o espaço do tamanho, câmera, arrastar com `token.move`) e painel do mestre (mapas com grid por pixels e preview ajustável ou em células para mapas sem fundo, tokens do compêndio numerados, remover). Ver `docs/decisions/0027-mapa-pixijs.md` e `docs/decisions/0028-grid-em-pixels.md`.
-3. **Fase 3 — Fichas & Progressão (interface):** telas de criação de personagem e de subida de nível sobre o motor da Fase 1, gerenciamento de inventário e sincronização offline com aprovação do mestre.
+3. **Fase 3 — Fichas & Progressão (interface):** telas de criação de personagem e de subida de nível sobre o motor da Fase 1, gerenciamento de inventário e sincronização offline com aprovação do mestre. Dividida em 5 PRs (ver `docs/decisions/0029-personagens-na-sessao.md`):
+   - ✅ Personagens no estado da sessão (`character.create`/`update`/`roll_scores`/`remove`, `PROTOCOL_VERSION = 3`, tabela `characters` no `<campanha>.db`), ficha calculada no processo main com a conta de cada número, e definição dos atributos (conjunto padrão, compra de pontos, rolagem pelo Host com o resultado no chat, valores à mão só para o mestre).
+   - Assistente de criação: espécie, antecedente com os aumentos de atributo, classe e as escolhas pendentes do motor.
+   - Subida de nível, incluindo multiclasse e as trocas permitidas pelas regras.
+   - Inventário pelo Host (adicionar, remover, equipar, sintonizar), ajustes do mestre e ligação personagem–token.
+   - Cópia offline com aprovação do *diff* pelo mestre.
 4. **Fase 4 — Motor de Ações & Efeitos:** resolução assistida de ataques, dano, resistências, salvaguardas, maestrias e overrides do mestre.
    - *Antecipado:* aplicação de dano na ordem do SRD (`applyDamage`: imunidade, reduções roladas, Resistência, Vulnerabilidade) e RNG injetável com rolagens registradas (`engine/dice.ts`). Ver `docs/decisions/0014-itens-magicos.md`.
    - *Antecipado:* Teste d20 com as regras declarativas (`rollD20`: Halfling Luck, Reliable Talent, Indomitable Might, sucesso automático, 18–20 contam como 20) e mínimo nos dados de dano (Great Weapon Fighting). Ver `docs/decisions/0017-regras-do-teste-d20.md`.

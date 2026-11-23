@@ -1,4 +1,4 @@
-import { DiceSchema, SizeSchema } from 'rules-engine/schemas';
+import { BaseScoresSchema, CharacterSchema, DiceSchema, SizeSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { ChatTextSchema, LabelSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 import { MAX_FORMULA_DICE, MAX_FORMULA_LENGTH } from './constants';
@@ -50,6 +50,20 @@ export const IntentSchema = z.discriminatedUnion('kind', [
     }),
   }),
   z.strictObject({ kind: z.literal('token.remove'), data: z.strictObject({ tokenId: UuidSchema }) }),
+  z.strictObject({ kind: z.literal('character.create'), data: z.strictObject({ name: NameSchema, ownerId: UuidSchema.optional() }) }),
+  z.strictObject({
+    kind: z.literal('character.update'),
+    data: z
+      .strictObject({
+        characterId: UuidSchema,
+        name: NameSchema.optional(),
+        baseScores: BaseScoresSchema.optional(),
+        steps: CharacterSchema.shape.steps.optional(),
+      })
+      .refine((d) => d.name !== undefined || d.baseScores !== undefined || d.steps !== undefined, { message: 'nada para alterar' }),
+  }),
+  z.strictObject({ kind: z.literal('character.roll_scores'), data: z.strictObject({ characterId: UuidSchema }) }),
+  z.strictObject({ kind: z.literal('character.remove'), data: z.strictObject({ characterId: UuidSchema }) }),
 ]);
 export type Intent = z.infer<typeof IntentSchema>;
 export type IntentKind = Intent['kind'];
