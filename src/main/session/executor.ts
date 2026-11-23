@@ -44,6 +44,9 @@ import {
   applyPatch,
   type ChatEntry,
   type Combat,
+  type ConditionState,
+  NO_CONDITIONS,
+  type TableCondition,
   type GameMap,
   type Intent,
   type IntentData,
@@ -57,6 +60,7 @@ import {
   type Token,
   MAX_ADJUSTMENTS,
   MAX_COMBATANTS,
+  MAX_EXHAUSTION_LEVEL,
   MAX_INITIATIVE,
   MAX_INVENTORY_ITEMS,
   MAX_ITEM_QUANTITY,
@@ -315,6 +319,10 @@ export class HostSession {
         return [{ op: 'remove', path: toPointer('proposals', intent.data.proposalId) }];
       case 'hp.change':
         return this.changeHp(playerId, role, intent.data);
+      case 'condition.add':
+      case 'condition.remove':
+      case 'exhaustion.set':
+        return this.changeConditions(playerId, role, intent);
       case 'inventory.currency':
         this.ownCharacter(playerId, role, intent.data.characterId);
         return [{ op: 'replace', path: toPointer('characters', intent.data.characterId, 'inventory', 'currency'), value: intent.data.currency }];
@@ -411,6 +419,7 @@ export class HostSession {
       ownerIds,
       characterId: data.characterId ?? null,
       hp: hpMax !== undefined ? { max: hpMax, damage: 0, temp: 0 } : null,
+      conditions: NO_CONDITIONS,
     };
     return [{ op: 'add', path: toPointer('tokens', token.id), value: token }];
   }
@@ -429,7 +438,7 @@ export class HostSession {
       this.requireGm(role);
       if (this.current.players[ownerId] === undefined) throw violation('Dono do personagem não está na mesa');
     }
-    const character: SessionCharacter = { id: this.deps.newId(), ownerId, name: data.name, baseScores: null, rolledScores: null, steps: [], inventory: EMPTY_INVENTORY, hp: { damage: 0, temp: 0 }, adjustments: [] };
+    const character: SessionCharacter = { id: this.deps.newId(), ownerId, name: data.name, baseScores: null, rolledScores: null, steps: [], inventory: EMPTY_INVENTORY, hp: { damage: 0, temp: 0 }, adjustments: [], conditions: NO_CONDITIONS };
     return [{ op: 'add', path: toPointer('characters', character.id), value: character }];
   }
 
@@ -583,6 +592,79 @@ export class HostSession {
     if (token.hp === null) throw violation(token.characterId ? 'Mude os PV no personagem' : 'Este token não tem PV (defina os PV máximos)');
     const result = applyHitPointChange(token.hp.max, token.hp, { kind: change.kind, amount: change.amount });
     return [{ op: 'replace', path, value: { max: token.hp.max, ...result.state } }];
+  }
+
+  // --- Condições (Fase 5, PR 2) ---------------------------------------------
+
+  /**
+   * Onde ficam as condições do alvo: no personagem (também quando o alvo é o
+   * token dele) ou no próprio token. Quem pode: o mestre, o dono do personagem
+   * e os donos do token, como nos PV.
+   */
+  private conditionHolder(
+    playerId: string,
+    role: Role,
+    target: IntentData<'condition.add'>['target'],
+  ): { path: string; state: ConditionState; name: string; immune: ReadonlySet<string>; logTarget: { characterId: string } | { tokenId: string } } {
+    let character: SessionCharacter | undefined;
+    if ('characterId' in target) {
+      character = this.ownCharacter(playerId, role, target.characterId);
+    } else {
+      const token = this.token(target.tokenId);
+      if (token.characterId !== null) {
+        const linked = this.current.characters[token.characterId];
+        if (!linked) throw violation('Personagem do token não encontrado');
+        if (role !== 'gm' && !this.controls(playerId, token)) throw notAllowed('Você não controla este token');
+        character = linked;
+      } else {
+        if (role !== 'gm' && !token.ownerIds.includes(playerId)) throw notAllowed('Você não controla este token');
+        const creature = token.monsterId !== null ? this.deps.creature(token.monsterId) : undefined;
+        const immune = new Set<string>(creature ? creatureDefenses(creature).defenses.conditionImmunities.map((c) => c.condition) : []);
+        return { path: toPointer('tokens', token.id, 'conditions'), state: token.conditions, name: token.name, immune, logTarget: { tokenId: token.id } };
+      }
+    }
+    const sheet = this.deps.characterSheet(character);
+    const immune = new Set<string>(sheet ? sheet.defenses.conditionImmunities.map((c) => c.condition) : []);
+    return { path: toPointer('characters', character.id, 'conditions'), state: character.conditions, name: character.name, immune, logTarget: { characterId: character.id } };
+  }
+
+  private changeConditions(playerId: string, role: Role, intent: Extract<Intent, { kind: 'condition.add' | 'condition.remove' | 'exhaustion.set' }>): PatchOp[] {
+    const holder = this.conditionHolder(playerId, role, intent.data.target);
+    const notes: string[] = [];
+    /** Imune: o jogador é recusado; o mestre aplica mesmo assim (override), e o log registra. */
+    const checkImmunity = (condition: TableCondition | 'exhaustion'): void => {
+      if (!holder.immune.has(condition)) return;
+      const message = `${holder.name} é imune a ${CONDITION_NAME[condition]}`;
+      if (role !== 'gm') throw violation(message);
+      notes.push(`${message} (aplicada pelo mestre)`);
+    };
+    let state: ConditionState;
+    let change: Extract<ChatEntry, { kind: 'condition_changed' }>['change'];
+    if (intent.kind === 'exhaustion.set') {
+      const { level } = intent.data;
+      if (level === holder.state.exhaustion) throw violation(`${holder.name} já está com Exaustão ${level}`);
+      if (level > holder.state.exhaustion) checkImmunity('exhaustion');
+      if (level >= MAX_EXHAUSTION_LEVEL) notes.push(`Exaustão ${MAX_EXHAUSTION_LEVEL}: ${holder.name} morre (SRD)`);
+      state = { ...holder.state, exhaustion: level };
+      change = { kind: 'exhaustion', from: holder.state.exhaustion, to: level };
+    } else {
+      const { condition } = intent.data;
+      const has = holder.state.active.some((c) => c.condition === condition);
+      if (intent.kind === 'condition.add') {
+        if (has) throw violation(`${holder.name} já está ${CONDITION_NAME[condition]}`);
+        checkImmunity(condition);
+        state = { ...holder.state, active: [...holder.state.active, { condition }] };
+        change = { kind: 'added', condition };
+      } else {
+        if (!has) throw violation(`${holder.name} não está ${CONDITION_NAME[condition]}`);
+        state = { ...holder.state, active: holder.state.active.filter((c) => c.condition !== condition) };
+        change = { kind: 'removed', condition };
+      }
+    }
+    return [
+      { op: 'replace', path: holder.path, value: state },
+      this.appendChat({ kind: 'condition_changed', ...this.entryBase(playerId), target: holder.logTarget, targetName: holder.name, change, notes }),
+    ];
   }
 
   /** A ficha do personagem, se quem pede pode rolar por ele (dono ou mestre). */

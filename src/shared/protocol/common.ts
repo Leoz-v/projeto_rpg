@@ -18,6 +18,30 @@ export const InstanceIdSchema = z.string().min(1).max(64);
 /** PV sofridos e temporários (os PV atuais são o máximo menos o dano; o máximo é derivado). */
 export const HitPointStateSchema = z.strictObject({ damage: z.int().nonnegative(), temp: z.int().nonnegative() });
 
+/** Condição que se põe e tira na mesa (a Exaustão tem nível, à parte). */
+export const TableConditionSchema = ConditionSchema.exclude(['exhaustion']);
+export type TableCondition = z.infer<typeof TableConditionSchema>;
+
+/** Nível máximo de Exaustão (SRD 5.2.1: no 6, a criatura morre). */
+export const MAX_EXHAUSTION_LEVEL = 6;
+
+/** Condições ativas de uma criatura na mesa e o nível de Exaustão. */
+export const ConditionStateSchema = z.strictObject({
+  active: z
+    .array(z.strictObject({ condition: TableConditionSchema }))
+    .max(TableConditionSchema.options.length)
+    .refine((list) => new Set(list.map((c) => c.condition)).size === list.length, { message: 'condição repetida' }),
+  exhaustion: z.int().min(0).max(MAX_EXHAUSTION_LEVEL),
+});
+export type ConditionState = z.infer<typeof ConditionStateSchema>;
+
+/** Sem condições. */
+export const NO_CONDITIONS: ConditionState = { active: [], exhaustion: 0 };
+
+/** Alvo de PV e condições: um personagem, ou um token. */
+export const CreatureTargetSchema = z.union([z.strictObject({ characterId: UuidSchema }), z.strictObject({ tokenId: UuidSchema })]);
+export type CreatureTarget = z.infer<typeof CreatureTargetSchema>;
+
 /** O que se rola a partir da ficha (`roll.d20`). */
 export const SheetRollTargetSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('skill'), skill: SkillSchema }),

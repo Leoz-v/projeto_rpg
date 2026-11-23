@@ -1,7 +1,8 @@
 import { type ReactNode, useState } from 'react';
-import type { ChatEntry, SessionState, SheetRollTarget } from '../../../shared/protocol';
+import type { ChatEntry, Role, SessionState, SheetRollTarget } from '../../../shared/protocol';
+import { tokenConditions } from '../canvas/conditions';
 import { sendIntent } from '../store/table';
-import { ABILITY_LABEL, DAMAGE_LABEL, signed, SKILL_LABEL } from './sheet-labels';
+import { ABILITY_LABEL, CONDITION_LABEL, DAMAGE_LABEL, signed, SKILL_LABEL } from './sheet-labels';
 
 /** Entradas do chat das rolagens da ficha (`d20_roll`, `damage_roll`). */
 
@@ -327,7 +328,59 @@ export function DamageAppliedBody({ entry, header }: { entry: AppliedEntry; head
 
 type SaveEntry = Extract<ChatEntry, { kind: 'save_roll' }>;
 
-export function SaveRollBody({ entry, header, proposals }: { entry: SaveEntry; header: ReactNode; proposals: Readonly<Record<string, unknown>> }) {
+/**
+ * Botões para aplicar as condições da falha ao alvo (mestre, ou quem controla
+ * o token). Somem as que o alvo já tem e as de que é imune (nota do resultado).
+ */
+function ApplyConditions({ entry, result, viewer, state }: { entry: SaveEntry; result: SaveEntry['results'][number]; viewer: { playerId: string; role: Role }; state: SessionState }) {
+  const [error, setError] = useState<string | null>(null);
+  const token = state.tokens[result.targetTokenId];
+  if (result.success || !token || entry.conditions.length === 0) return null;
+  const owner = token.characterId !== null ? state.characters[token.characterId]?.ownerId : undefined;
+  if (viewer.role !== 'gm' && !token.ownerIds.includes(viewer.playerId) && owner !== viewer.playerId) return null;
+  const current = tokenConditions(token, state.characters);
+  const target = { tokenId: token.id };
+  const pending = entry.conditions.filter(
+    (c) => !result.notes.includes(`Imune a ${CONDITION_LABEL[c]}`) && (c === 'exhaustion' || !current.active.some((a) => a.condition === c)),
+  );
+  if (pending.length === 0) return null;
+  return (
+    <div className="proposal">
+      {pending.map((c) => (
+        <button
+          key={c}
+          type="button"
+          className="secondary small"
+          disabled={c === 'exhaustion' && current.exhaustion >= 6}
+          onClick={() => {
+            const intent =
+              c === 'exhaustion'
+                ? ({ kind: 'exhaustion.set', data: { target, level: current.exhaustion + 1 } } as const)
+                : ({ kind: 'condition.add', data: { target, condition: c } } as const);
+            void sendIntent(intent).then(setError);
+          }}
+        >
+          {c === 'exhaustion' ? 'Exaustão +1' : `Aplicar ${CONDITION_LABEL[c]}`}
+        </button>
+      ))}
+      {error && <p className="error">{error}</p>}
+    </div>
+  );
+}
+
+export function SaveRollBody({
+  entry,
+  header,
+  proposals,
+  viewer,
+  state,
+}: {
+  entry: SaveEntry;
+  header: ReactNode;
+  proposals: Readonly<Record<string, unknown>>;
+  viewer: { playerId: string; role: Role };
+  state: SessionState;
+}) {
   return (
     <li className={`entry roll save${entry.visibility === 'gm' ? ' secret' : ''}`}>
       {header}
@@ -382,6 +435,7 @@ export function SaveRollBody({ entry, header, proposals }: { entry: SaveEntry; h
                 </p>
               ))}
               {r.damage?.proposalId !== undefined && r.damage.proposalId in proposals && <ProposalActions proposalId={r.damage.proposalId} amount={r.damage.total} />}
+              <ApplyConditions entry={entry} result={r} viewer={viewer} state={state} />
             </li>
           );
         })}

@@ -70,7 +70,7 @@ const state: SessionState = {
   maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: SHA, cellPx: 70 } },
   activeMapId: MAP,
   tokens: {
-    [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [], characterId: null, hp: { max: 7, damage: 2, temp: 0 } },
+    [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [], characterId: null, hp: { max: 7, damage: 2, temp: 0 }, conditions: { active: [], exhaustion: 0 } },
   },
   characters: {
     [HERO]: {
@@ -86,6 +86,7 @@ const state: SessionState = {
       },
       hp: { damage: 4, temp: 0 },
       adjustments: [{ id: 'c0d1e2f3-a4b5-4c6d-8e7f-8a9b0c1d2e3f', name: 'Maldição da Múmia', effects: [{ type: 'disadvantage', target: 'save.all' }] }],
+      conditions: { active: [], exhaustion: 0 },
     },
   },
 };
@@ -209,6 +210,11 @@ describe('intents', () => {
     expect(intent('combat.start', { tokenIds: [] })).toBe(false);
     expect(intent('combat.set_initiative', { tokenId: TOKEN, initiative: 61 })).toBe(false);
     expect(intent('combat.next', {})).toBe(true);
+    expect(intent('condition.add', { target: { tokenId: TOKEN }, condition: 'prone' })).toBe(true);
+    expect(intent('condition.add', { target: { tokenId: TOKEN }, condition: 'exhaustion' })).toBe(false);
+    expect(intent('condition.remove', { target: { characterId: HERO }, condition: 'poisoned' })).toBe(true);
+    expect(intent('exhaustion.set', { target: { characterId: HERO }, level: 6 })).toBe(true);
+    expect(intent('exhaustion.set', { target: { characterId: HERO }, level: 7 })).toBe(false);
     expect(intent('combat.end', { force: true })).toBe(false);
     expect(intent('hp.change', { target: { tokenId: TOKEN }, change: { kind: 'max', amount: 22 } })).toBe(true);
     expect(intent('token.create', { mapId: MAP, name: 'Barril', position: { x: 0, y: 0 }, size: 'medium', hpMax: 5 })).toBe(true);
@@ -268,6 +274,15 @@ describe('SessionState', () => {
   it('accepts the documented example and an empty table', () => {
     expect(ok(SessionStateSchema, state)).toBe(true);
     expect(ok(SessionStateSchema, { campaign: state.campaign, players: {}, chat: [], maps: {}, activeMapId: null, tokens: {}, characters: {}, proposals: {}, combat: null })).toBe(true);
+  });
+
+  it('keeps conditions unique and exhaustion within 0..6', () => {
+    const hero = state.characters[HERO];
+    const withConditions = (conditions: unknown) => ({ ...state, characters: { [HERO]: { ...hero, conditions } } });
+    expect(ok(SessionStateSchema, withConditions({ active: [{ condition: 'prone' }, { condition: 'poisoned' }], exhaustion: 3 }))).toBe(true);
+    expect(ok(SessionStateSchema, withConditions({ active: [{ condition: 'prone' }, { condition: 'prone' }], exhaustion: 0 }))).toBe(false);
+    expect(ok(SessionStateSchema, withConditions({ active: [{ condition: 'exhaustion' }], exhaustion: 0 }))).toBe(false);
+    expect(ok(SessionStateSchema, withConditions({ active: [], exhaustion: 7 }))).toBe(false);
   });
 
   it('keeps the combat turn inside the order, without repeated tokens', () => {

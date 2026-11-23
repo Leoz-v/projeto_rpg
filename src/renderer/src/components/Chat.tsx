@@ -4,6 +4,7 @@ import { sendIntent } from '../store/table';
 import { CHAT_HELP, parseChatInput } from './chat-command';
 import { type RollPart, rollParts } from './roll-parts';
 import { AttackRollBody, D20RollBody, DamageAppliedBody, DamageRollBody, MasteryDamageBody, SaveRollBody } from './SheetRollEntries';
+import { CONDITION_LABEL } from './sheet-labels';
 
 /** Log da sessão (mensagens e rolagens) e campo de envio. */
 
@@ -101,7 +102,27 @@ function Entry({ entry, author, context }: { entry: ChatEntry; author: string; c
     case 'mastery_damage':
       return <MasteryDamageBody entry={entry} header={header} pending={entry.proposalId !== undefined && entry.proposalId in proposals} />;
     case 'save_roll':
-      return <SaveRollBody entry={entry} header={header} proposals={proposals} />;
+      return <SaveRollBody entry={entry} header={header} proposals={proposals} viewer={context.viewer} state={context.state} />;
+    case 'condition_changed': {
+      const { change } = entry;
+      const text =
+        change.kind === 'added'
+          ? `${entry.targetName} está ${CONDITION_LABEL[change.condition]}`
+          : change.kind === 'removed'
+            ? `${entry.targetName} não está mais ${CONDITION_LABEL[change.condition]}`
+            : `${entry.targetName}: Exaustão ${change.from} → ${change.to}`;
+      return (
+        <li className="entry condition-event">
+          {header}
+          <p>{text}</p>
+          {entry.notes.map((n, i) => (
+            <p key={i} className="hint">
+              {n}
+            </p>
+          ))}
+        </li>
+      );
+    }
     case 'damage_applied':
       return <DamageAppliedBody entry={entry} header={header} />;
     case 'initiative_roll':

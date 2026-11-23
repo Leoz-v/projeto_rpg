@@ -1,7 +1,7 @@
 import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, EffectSchema, InventorySchema, SizeSchema, WeaponMasterySchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_COMBATANTS, MAX_HIT_POINTS, MAX_INITIATIVE, MAX_SAVE_TARGETS, MIN_INITIATIVE } from './constants';
-import { ChatTextSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
+import { ChatTextSchema, ConditionStateSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 
 /** `SessionState` (docs/network-protocol.md, seção 5). */
 
@@ -211,6 +211,21 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
       )
       .max(MAX_COMBATANTS),
   }),
+  /** Condição posta ou tirada, ou nível de Exaustão novo (`condition.*`, `exhaustion.set`). */
+  z.strictObject({
+    kind: z.literal('condition_changed'),
+    ...entryBase,
+    /** O token ou o personagem que mudou (token de personagem grava no personagem). */
+    target: z.union([z.strictObject({ characterId: UuidSchema }), z.strictObject({ tokenId: UuidSchema })]),
+    targetName: NameSchema,
+    change: z.discriminatedUnion('kind', [
+      z.strictObject({ kind: z.literal('added'), condition: TableConditionSchema }),
+      z.strictObject({ kind: z.literal('removed'), condition: TableConditionSchema }),
+      z.strictObject({ kind: z.literal('exhaustion'), from: z.int().min(0).max(6), to: z.int().min(0).max(6) }),
+    ]),
+    /** Imunidade ignorada pelo mestre, morte no nível 6 de Exaustão. */
+    notes: LogList,
+  }),
   /** Marco do combate: começou, rodada nova, terminou. */
   z.strictObject({
     kind: z.literal('combat_event'),
@@ -272,6 +287,8 @@ export const TokenSchema = z.strictObject({
    * donos do token, chega sempre `null` (seção 2.12).
    */
   hp: HitPointStateSchema.extend({ max: z.int().min(1).max(MAX_HIT_POINTS) }).nullable(),
+  /** Condições do token; vazias num token de personagem (valem as do personagem). */
+  conditions: ConditionStateSchema,
 });
 export type Token = z.infer<typeof TokenSchema>;
 
@@ -307,6 +324,8 @@ export const SessionCharacterSchema = z.strictObject({
   hp: HitPointStateSchema,
   /** Ajustes do mestre, na ordem em que foram aplicados. */
   adjustments: z.array(SessionAdjustmentSchema).max(MAX_ADJUSTMENTS),
+  /** Condições postas na mesa e o nível de Exaustão (entram na ficha). */
+  conditions: ConditionStateSchema,
 });
 export type SessionCharacter = z.infer<typeof SessionCharacterSchema>;
 

@@ -145,6 +145,20 @@ describe('exhaustion', () => {
     expect(derive({ adjustments: [one, many] }).exhaustion).toBe(6);
   });
 
+  it('takes the conditions and the exhaustion level set at the table', () => {
+    const sheet = derive({ conditions: { active: [{ condition: 'poisoned' }, { condition: 'prone' }], exhaustion: 2 } });
+    expect(sheet.conditions.map((c) => [c.condition, c.source.name])).toEqual([
+      ['poisoned', 'Condição na mesa'],
+      ['prone', 'Condição na mesa'],
+    ]);
+    expect(sheet.exhaustion).toBe(2);
+    expect(sheet.saves.dex.total).toBe(derive({}).saves.dex.total - 4);
+    expect(sheet.speed.walk.total).toBe(20);
+    // Somada às de outras fontes, com teto em 6.
+    const curse = { id: 'a', name: 'Maldição', effects: [{ type: 'condition', condition: 'exhaustion', level: 5 }] };
+    expect(derive({ adjustments: [curse], conditions: { active: [], exhaustion: 3 } }).exhaustion).toBe(6);
+  });
+
   it('warns that other conditions are not applied yet', () => {
     const sheet = derive({ adjustments: [{ id: 'p', name: 'Veneno', effects: [{ type: 'condition', condition: 'poisoned' }] }] });
     expect(sheet.conditions.map((c) => c.condition)).toEqual(['poisoned']);
