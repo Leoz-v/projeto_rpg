@@ -14,6 +14,7 @@ const draft = (overrides: Partial<SessionCharacter> = {}): SessionCharacter => (
   rolledScores: null,
   steps: [],
   inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] },
+  adjustments: [],
   ...overrides,
 });
 
@@ -55,6 +56,14 @@ describe('characterSheet inventory', () => {
     );
     expect(sheet?.inventory.map((l) => l.name)).toEqual(['Chain Mail']);
     expect(sheet?.ac.total).toBe(16);
+  });
+});
+
+describe('characterSheet adjustments', () => {
+  it('applies the GM adjustments on top of the sheet, named in the breakdown', () => {
+    const { sheet } = characterSheet(draft({ adjustments: [{ id: randomUUID(), name: 'Bênção do Templo', effects: [{ type: 'flat_bonus', target: 'ac', value: 2 }] }] }), compendium);
+    expect(sheet?.ac.total).toBe(13);
+    expect(sheet?.ac.parts.some((p) => p.label.includes('Bênção do Templo') || p.source?.name === 'Bênção do Templo')).toBe(true);
   });
 });
 

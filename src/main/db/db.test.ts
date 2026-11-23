@@ -162,6 +162,7 @@ describe('CampaignDb', () => {
           currency: { cp: 0, sp: 5, ep: 0, gp: 12, pp: 0 },
           items: [{ instanceId: randomUUID(), itemId: 'chain_mail', quantity: 1, equipped: true, attuned: false }],
         },
+        adjustments: [{ id: randomUUID(), name: 'Bênção do Templo', effects: [{ type: 'flat_bonus', target: 'save.all', value: 1 }] }],
       },
     },
     ...overrides,
@@ -249,6 +250,7 @@ describe('CampaignDb', () => {
     expect(migrated.migration).toEqual({ from: 3, to: CAMPAIGN_DB_SCHEMA_VERSION, backup: `${path}.bak` });
     const loaded = migrated.load();
     expect(loaded.characters[HERO]?.inventory).toEqual({ currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] });
+    expect(loaded.characters[HERO]?.adjustments).toEqual([]);
     expect(loaded.tokens[TOKEN]?.characterId).toBeNull();
     migrated.close();
   });

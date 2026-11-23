@@ -4,6 +4,7 @@ import { ABILITIES, SKILLS } from 'rules-engine/schemas';
 import type { CharacterSheetView, TableView } from '../../../shared/ipc';
 import { sendIntent } from '../store/table';
 import { AbilityScoresEditor } from './AbilityScoresEditor';
+import { Adjustments } from './Adjustments';
 import { BuildPanel } from './BuildPanel';
 import { Inventory } from './Inventory';
 import { ABILITY_LABEL, CONDITION_LABEL, DAMAGE_LABEL, humanizeId, nameOf, SENSE_LABEL, SIZE_LABEL, signed, SKILL_LABEL } from './sheet-labels';
@@ -530,6 +531,7 @@ export function CharacterSheet({ view, characterId, onClose }: { view: TableView
                   </div>
                 </div>
                 <Inventory character={record} sheet={load.view.sheet} canEdit={canEdit} />
+                <Adjustments character={record} isGm={isGm} />
               </>
             )}
           </div>

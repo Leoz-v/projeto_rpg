@@ -128,7 +128,8 @@ export type CreatureType = z.infer<typeof CreatureTypeSchema>;
 export const STANDARD_LANGUAGES = ['common_sign_language', 'draconic', 'dwarvish', 'elvish', 'giant', 'gnomish', 'goblin', 'halfling', 'orc'] as const;
 export const RARE_LANGUAGES = ['abyssal', 'celestial', 'deep_speech', 'druidic', 'infernal', 'primordial', 'sylvan', 'thieves_cant', 'undercommon'] as const;
 
-export const SenseSchema = z.enum(['darkvision', 'blindsight', 'tremorsense', 'truesight']);
+export const SENSES = ['darkvision', 'blindsight', 'tremorsense', 'truesight'] as const;
+export const SenseSchema = z.enum(SENSES);
 export type Sense = z.infer<typeof SenseSchema>;
 
 export const RestSchema = z.enum(['short_rest', 'long_rest']);

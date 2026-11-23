@@ -24,6 +24,9 @@ export const MAX_CELL_PX = 4096;
 /** Entradas no inventário de um personagem e quantidade por entrada. */
 export const MAX_INVENTORY_ITEMS = 500;
 export const MAX_ITEM_QUANTITY = 9999;
+/** Ajustes do mestre por personagem e efeitos por ajuste. */
+export const MAX_ADJUSTMENTS = 50;
+export const MAX_ADJUSTMENT_EFFECTS = 20;
 /** Moedas de cada tipo. */
 export const MAX_COINS = 1_000_000_000;
 /** Limites da fórmula de `dice.roll`. */

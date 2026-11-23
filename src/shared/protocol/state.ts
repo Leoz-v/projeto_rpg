@@ -1,5 +1,6 @@
-import { ABILITY_ROLL_SETS, BaseScoresSchema, CharacterSchema, InventorySchema, SizeSchema } from 'rules-engine/schemas';
+import { ABILITY_ROLL_SETS, BaseScoresSchema, CharacterSchema, EffectSchema, InventorySchema, SizeSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
+import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS } from './constants';
 import { ChatTextSchema, LabelSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 
 /** `SessionState` (docs/network-protocol.md, seção 5). */
@@ -71,6 +72,17 @@ export const TokenSchema = z.strictObject({
 });
 export type Token = z.infer<typeof TokenSchema>;
 
+/**
+ * Ajuste do mestre (bênção, maldição, item caseiro): efeitos do catálogo
+ * (docs/effects-spec.md) por cima do cálculo base, sem mexer nas escolhas.
+ */
+export const SessionAdjustmentSchema = z.strictObject({
+  id: UuidSchema,
+  name: NameSchema,
+  effects: z.array(EffectSchema).min(1).max(MAX_ADJUSTMENT_EFFECTS),
+});
+export type SessionAdjustment = z.infer<typeof SessionAdjustmentSchema>;
+
 /** Valor de atributo rolado (3 a 18). */
 const RolledScoreSchema = z.int().min(3).max(18);
 
@@ -88,6 +100,8 @@ export const SessionCharacterSchema = z.strictObject({
   steps: CharacterSchema.shape.steps,
   /** Estado separado das escolhas: muda o tempo todo, só por `Intent` ao Host. */
   inventory: InventorySchema,
+  /** Ajustes do mestre, na ordem em que foram aplicados. */
+  adjustments: z.array(SessionAdjustmentSchema).max(MAX_ADJUSTMENTS),
 });
 export type SessionCharacter = z.infer<typeof SessionCharacterSchema>;
 
