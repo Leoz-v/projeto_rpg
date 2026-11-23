@@ -1,5 +1,7 @@
-import type { Ability, Condition, DamageType, Skill } from '../schemas/common';
+import type { Ability, DamageType, Skill } from '../schemas/common';
 import type { Predicate } from '../schemas/predicate';
+import { criticalDice } from './attack';
+import { CONDITION_NAME } from './names';
 import type { D20RollInput, D20Step } from './d20';
 import { type Rng, rollDice } from './dice';
 import type { Contribution, DerivedSheet, RollState, RollStat, SourceLabel, WeaponAttack } from './types';
@@ -53,23 +55,6 @@ function statFor(sheet: DerivedSheet, target: SheetRollTarget): { stat: RollStat
   }
 }
 
-const CONDITION_NAME: Record<Condition, string> = {
-  blinded: 'Cego',
-  charmed: 'Enfeitiçado',
-  deafened: 'Surdo',
-  exhaustion: 'Exaustão',
-  frightened: 'Amedrontado',
-  grappled: 'Agarrado',
-  incapacitated: 'Incapacitado',
-  invisible: 'Invisível',
-  paralyzed: 'Paralisado',
-  petrified: 'Petrificado',
-  poisoned: 'Envenenado',
-  prone: 'Caído',
-  restrained: 'Impedido',
-  stunned: 'Atordoado',
-  unconscious: 'Inconsciente',
-};
 
 /** "contra Envenenado", "contra magias": a circunstância de um `against`, se for só isso. */
 function circumstance(when: Predicate | undefined): string | undefined {
@@ -164,16 +149,11 @@ export interface WeaponDamageRoll {
   dieMinimum?: { value: number; source: string } | undefined;
 }
 
-/** `2d6+1d4` → `4d6+2d4`: o crítico dobra a quantidade de cada dado. */
-function doubleDice(expression: string): string {
-  return expression.replace(/(\d+)d(\d+)/g, (_, count: string, sides: string) => `${Number(count) * 2}d${sides}`);
-}
-
 export function rollWeaponDamage(attack: WeaponAttack, options: DamageOptions, rng: Rng): WeaponDamageRoll {
   const versatile = options.versatile === true && attack.versatileDice !== undefined;
   const base = versatile ? (attack.versatileDice ?? attack.damage.dice) : attack.damage.dice;
   const minimum = versatile ? attack.versatileDieMinimum : attack.damage.dieMinimum;
-  const dice = (expression: string): string => (options.critical ? doubleDice(expression) : expression);
+  const dice = (expression: string): string => (options.critical ? criticalDice(expression) : expression);
 
   const weapon = rollDice(dice(base), rng, { minimumDie: minimum?.value });
   const groups: DamageGroup[] = [{ dice: dice(base), type: attack.damage.type, rolls: weapon.rolls, total: weapon.total }];

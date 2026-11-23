@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import type { ChatEntry, SheetRollTarget } from '../../../shared/protocol';
+import { sendIntent } from '../store/table';
 import { ABILITY_LABEL, DAMAGE_LABEL, signed, SKILL_LABEL } from './sheet-labels';
 
 /** Entradas do chat das rolagens da ficha (`d20_roll`, `damage_roll`). */
@@ -107,6 +108,119 @@ export function DamageRollBody({ entry, header }: { entry: DamageEntry; header: 
           Dados abaixo de {entry.dieMinimum.value} valem {entry.dieMinimum.value} ({entry.dieMinimum.source})
         </p>
       )}
+    </li>
+  );
+}
+
+type AttackEntry = Extract<ChatEntry, { kind: 'attack_roll' }>;
+type AppliedEntry = Extract<ChatEntry, { kind: 'damage_applied' }>;
+
+/** Botões do mestre para a proposta de dano ainda pendente: aplicar o proposto, outro valor, ou descartar. */
+function ProposalActions({ proposalId, amount }: { proposalId: string; amount: number }) {
+  const [custom, setCustom] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const value = Number(custom);
+  const valid = custom.trim() !== '' && Number.isInteger(value) && value >= 0;
+  const send = (data: { proposalId: string; amount?: number }): void => {
+    void sendIntent({ kind: 'damage.apply', data }).then(setError);
+  };
+  return (
+    <div className="proposal">
+      <button type="button" className="danger-fill small" onClick={() => { send({ proposalId }); }}>
+        Aplicar {amount}
+      </button>
+      <input type="number" min={0} placeholder="outro" aria-label="Outro valor de dano" value={custom} onChange={(e) => { setCustom(e.target.value); }} />
+      <button type="button" className="secondary small" disabled={!valid} onClick={() => { send({ proposalId, amount: value }); }}>
+        Aplicar valor
+      </button>
+      <button type="button" className="link" onClick={() => void sendIntent({ kind: 'damage.dismiss', data: { proposalId } }).then(setError)}>
+        descartar
+      </button>
+      {error && <p className="error">{error}</p>}
+    </div>
+  );
+}
+
+export function AttackRollBody({ entry, header, pending }: { entry: AttackEntry; header: ReactNode; pending: boolean }) {
+  const keptIndex = entry.dice.indexOf(entry.natural);
+  return (
+    <li className={`entry roll attack${entry.visibility === 'gm' ? ' secret' : ''}${entry.critical ? ' critical' : ''}`}>
+      {header}
+      <p>
+        <span className="roll-label">
+          {entry.attackerName} ataca {entry.targetName}
+        </span>{' '}
+        · {entry.label}
+        {entry.mode !== 'normal' && <span className="tag">{MODE_LABEL[entry.mode]}</span>}
+        {entry.visibility === 'gm' && <span className="tag">secreta</span>}
+      </p>
+      <p className="roll-result">
+        {entry.dice.map((value, i) => (
+          <span
+            key={i}
+            className={`die${i !== keptIndex ? ' dropped' : ''}${i === keptIndex && entry.critical ? ' crit' : ''}${i === keptIndex && entry.fumble ? ' fumble' : ''}`}
+          >
+            {value}
+          </span>
+        ))}
+        <span className="modifier">{signed(entry.modifier)}</span>
+        <span className="total">= {entry.total}</span>
+        <span className={`tag ${entry.hit ? 'hit-tag' : 'miss-tag'}`}>{entry.critical ? 'acerto crítico' : entry.hit ? 'acertou' : 'errou'}</span>
+      </p>
+      {(entry.advantage.length > 0 || entry.disadvantage.length > 0) && (
+        <p className="hint">
+          {entry.advantage.length > 0 && `Vantagem: ${entry.advantage.join(', ')}`}
+          {entry.advantage.length > 0 && entry.disadvantage.length > 0 && ' · '}
+          {entry.disadvantage.length > 0 && `Desvantagem: ${entry.disadvantage.join(', ')}`}
+        </p>
+      )}
+      {[...entry.notes, ...entry.reminders].map((n, i) => (
+        <p key={i} className="hint">
+          {n}
+        </p>
+      ))}
+      {entry.damage && (
+        <>
+          <p className="roll-result">
+            {entry.damage.groups.map((g, gi) => (
+              <span key={gi} className="damage-group">
+                <code>{g.dice}</code>
+                {g.rolls.map((r, i) => (
+                  <span key={i} className="die">
+                    {r.value}
+                  </span>
+                ))}
+                <span className="hint">{DAMAGE_LABEL[g.type].toLowerCase()}</span>
+              </span>
+            ))}
+            {entry.damage.bonus !== 0 && <span className="modifier">{signed(entry.damage.bonus)}</span>}
+            <span className="total">= {entry.damage.total} de dano</span>
+          </p>
+          {entry.damage.defenses.map((d, i) => (
+            <p key={`d${i}`} className="hint">
+              {d}
+            </p>
+          ))}
+          {pending && <ProposalActions proposalId={entry.damage.proposalId} amount={entry.damage.total} />}
+        </>
+      )}
+    </li>
+  );
+}
+
+export function DamageAppliedBody({ entry, header }: { entry: AppliedEntry; header: ReactNode }) {
+  return (
+    <li className="entry applied">
+      {header}
+      <p>
+        <strong>{entry.targetName}</strong> sofreu {entry.amount} de dano
+        {entry.proposed !== undefined && <span className="hint"> (proposto: {entry.proposed})</span>}
+      </p>
+      {entry.notes.map((n, i) => (
+        <p key={i} className="hint">
+          {n}
+        </p>
+      ))}
     </li>
   );
 }

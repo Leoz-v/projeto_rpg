@@ -24,6 +24,27 @@ const entryBase = { id: UuidSchema, at: z.int().nonnegative(), authorId: UuidSch
 const LogText = z.string().min(1).max(200);
 const LogList = z.array(LogText).max(50);
 const DieSchema = z.strictObject({ sides: z.int().positive(), value: z.int().positive(), rolled: z.int().positive().optional() });
+const DamageGroupSchema = z.strictObject({
+  dice: z.string().min(1).max(100),
+  type: DamageTypeSchema,
+  source: LogText.optional(),
+  rolls: z.array(DieSchema).max(200),
+  total: z.int(),
+});
+/** O d20 de uma rolagem, no log. */
+const d20Fields = {
+  mode: z.enum(['normal', 'advantage', 'disadvantage']),
+  dice: z.array(z.int().min(1).max(20)).min(1).max(4),
+  natural: z.int().min(1).max(20),
+  modifier: z.int(),
+  total: z.int(),
+  critical: z.boolean(),
+  fumble: z.boolean(),
+  advantage: LogList,
+  disadvantage: LogList,
+  notes: LogList,
+  reminders: LogList,
+};
 
 export const ChatEntrySchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('message'), ...entryBase, text: ChatTextSchema }),
@@ -73,13 +94,47 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     label: LabelSchema,
     visibility: VisibilitySchema,
     critical: z.boolean(),
-    groups: z
-      .array(z.strictObject({ dice: z.string().min(1).max(100), type: DamageTypeSchema, source: LogText.optional(), rolls: z.array(DieSchema).max(200), total: z.int() }))
-      .min(1)
-      .max(20),
+    groups: z.array(DamageGroupSchema).min(1).max(20),
     bonus: z.int(),
     total: z.int().nonnegative(),
     dieMinimum: z.strictObject({ value: z.int().positive(), source: LogText }).optional(),
+  }),
+  /** Ataque contra um token (`attack.make`): o d20 contra a CA e, no acerto, o dano depois das defesas do alvo. */
+  z.strictObject({
+    kind: z.literal('attack_roll'),
+    ...entryBase,
+    attackerName: NameSchema,
+    /** Nome do ataque (arma ou ação do monstro). */
+    label: LabelSchema,
+    targetTokenId: UuidSchema,
+    targetName: NameSchema,
+    visibility: VisibilitySchema,
+    ...d20Fields,
+    hit: z.boolean(),
+    damage: z
+      .strictObject({
+        groups: z.array(DamageGroupSchema).min(1).max(20),
+        bonus: z.int(),
+        /** Dano depois de imunidades, resistências e vulnerabilidades do alvo. */
+        total: z.int().nonnegative(),
+        /** O que as defesas fizeram ("Resistência a Fogo: 10 → 5"). */
+        defenses: LogList,
+        /** Proposta para o mestre aplicar nos PV. */
+        proposalId: UuidSchema,
+      })
+      .optional(),
+  }),
+  /** Dano aplicado pelo mestre nos PV de um token (`damage.apply`). */
+  z.strictObject({
+    kind: z.literal('damage_applied'),
+    ...entryBase,
+    targetTokenId: UuidSchema,
+    targetName: NameSchema,
+    amount: z.int().nonnegative(),
+    /** O valor proposto, quando o mestre aplicou outro. */
+    proposed: z.int().nonnegative().optional(),
+    /** Caiu a 0 PV, dano massivo. */
+    notes: LogList,
   }),
   /** Atributos rolados pelo Host para um personagem (`character.roll_scores`): seis vezes 4d6, descartando o menor. */
   z.strictObject({
@@ -161,6 +216,17 @@ export const SessionCharacterSchema = z.strictObject({
 });
 export type SessionCharacter = z.infer<typeof SessionCharacterSchema>;
 
+/** Dano proposto por um ataque, esperando o mestre aplicar ou descartar. Só o mestre vê. */
+export const DamageProposalSchema = z.strictObject({
+  id: UuidSchema,
+  /** Entrada `attack_roll` que gerou a proposta. */
+  entryId: UuidSchema,
+  targetTokenId: UuidSchema,
+  targetName: NameSchema,
+  amount: z.int().nonnegative(),
+});
+export type DamageProposal = z.infer<typeof DamageProposalSchema>;
+
 export const SessionStateSchema = z.strictObject({
   campaign: z.strictObject({ id: UuidSchema, name: NameSchema }),
   players: z.record(UuidSchema, PlayerSchema),
@@ -169,5 +235,7 @@ export const SessionStateSchema = z.strictObject({
   activeMapId: UuidSchema.nullable(),
   tokens: z.record(UuidSchema, TokenSchema),
   characters: z.record(UuidSchema, SessionCharacterSchema),
+  /** Danos propostos por ataques, para o mestre aplicar (estado da sessão: não é gravado na campanha). */
+  proposals: z.record(UuidSchema, DamageProposalSchema),
 });
 export type SessionState = z.infer<typeof SessionStateSchema>;

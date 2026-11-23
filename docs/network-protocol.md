@@ -2,7 +2,7 @@
 
 > **Contrato fechado.** Só existem as mensagens e os tipos de `Intent` listados aqui. Para criar um novo, primeiro atualize este documento (e `PROTOCOL_VERSION`, se a mudança for incompatível) e só depois o código. Os schemas Zod em `src/shared/protocol/` devem seguir este arquivo exatamente.
 
-- **Versão do protocolo:** `PROTOCOL_VERSION = 7`
+- **Versão do protocolo:** `PROTOCOL_VERSION = 8`
 - **Transporte:** WebSocket puro (`ws://`) sobre rede virtual (Tailscale/ZeroTier). Porta padrão do Host: `47820`.
 - **Formato:** um objeto JSON (UTF-8) por frame de texto. Frames binários não são usados.
 - **Validação:** toda mensagem recebida, nos dois lados, passa pelo schema Zod antes de qualquer processamento. Mensagem inválida gera `Error` com `code: "invalid_message"` e é descartada. A conexão **não** cai por causa disso.
@@ -210,7 +210,8 @@ O Host envia `Ping` a cada 15 s. Sem `Pong` em 30 s, a conexão é considerada m
 O Host guarda o estado completo e envia a cada cliente só o que ele pode ver, no `StateSnapshot` e no `StatePatch`:
 
 - **Mestre:** vê tudo.
-- **Jogador:** uma rolagem com `visibility: "gm"` de outra pessoa chega como `hidden_roll`, sem fórmula, rótulo nem resultado. A entrada continua no log, na mesma posição, para que os índices de `chat` sejam iguais em todos os clientes. Quem rolou sempre vê a própria rolagem (o jogador que rola em segredo para o mestre vê o resultado). Vale igual para as rolagens da ficha (`d20_roll`, `damage_roll`) com `visibility: "gm"`.
+- **Jogador:** uma rolagem com `visibility: "gm"` de outra pessoa chega como `hidden_roll`, sem fórmula, rótulo nem resultado. A entrada continua no log, na mesma posição, para que os índices de `chat` sejam iguais em todos os clientes. Quem rolou sempre vê a própria rolagem (o jogador que rola em segredo para o mestre vê o resultado). Vale igual para as rolagens da ficha (`d20_roll`, `damage_roll`) e os ataques (`attack_roll`) com `visibility: "gm"`.
+- **Propostas de dano** (`proposals`) são a fila de trabalho do mestre: para os jogadores, chegam vazias, e as operações em `/proposals/…` não são enviadas.
 - **Personagens** e as rolagens de atributos (`ability_roll`) são vistos por todos, inclusive os PV dos personagens.
 - **PV de tokens** que não são personagens (monstros, objetos): só o mestre e os donos do token (`ownerIds`) veem. Para os outros, o token chega com `hp: null` no `StateSnapshot` e no `add` do token, e as operações em `/tokens/<id>/hp` não são enviadas.
 
@@ -240,6 +241,9 @@ Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do
 | `adjustment.remove` | 5  | `{ characterId: string, adjustmentId: string }` | mestre |
 | `roll.d20`        | 7    | `{ characterId: string, target: SheetRollTarget, advantage?: boolean, disadvantage?: boolean, visibility: "public" \| "gm" }` | dono e mestre |
 | `roll.damage`     | 7    | `{ characterId: string, instanceId: string, critical?: boolean, versatile?: boolean, visibility: "public" \| "gm" }` | dono e mestre |
+| `attack.make`     | 8    | `{ attacker: { characterId: string, instanceId: string } \| { tokenId: string, actionId: string }, targetTokenId: string, advantage?: boolean, disadvantage?: boolean, visibility: "public" \| "gm" }` | personagem: dono e mestre; token: mestre e donos do token |
+| `damage.apply`    | 8    | `{ proposalId: string, amount?: int (0..100000) }` | mestre |
+| `damage.dismiss`  | 8    | `{ proposalId: string }` | mestre |
 | `hp.change`       | 6    | `{ target: { characterId: string } \| { tokenId: string }, change: { kind: "damage" \| "healing" \| "temp" \| "max", amount: int (0..100000) } }` | mestre; jogador no próprio personagem e nos próprios tokens |
 
 - **Coordenadas** em unidades lógicas de mundo (`1 célula = 5 ft = 100 unidades`), nunca pixels. `position` é o canto superior esquerdo do token, e o token inteiro precisa caber no mapa: `x + lado ≤ largura × 100` e `y + lado ≤ altura × 100`, em que `lado` é o espaço do tamanho da criatura em unidades (SRD 5.2.1 p. 14: Tiny 50, Small e Medium 100, Large 200, Huge 300, Gargantuan 400; `spaceSquares` do motor). Fora disso, o Host recusa com `rule_violation`.
@@ -267,6 +271,10 @@ Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do
   - **`SheetRollTarget`:** `{ kind: "skill", skill }`, `{ kind: "save", ability }`, `{ kind: "initiative" }`, `{ kind: "death_save" }` ou `{ kind: "attack", instanceId }` (uma arma equipada da ficha).
   - **`roll.d20`:** modificador, Vantagem/Desvantagem e regras do d20 (Halfling Luck, Reliable Talent…) vêm da ficha. `advantage`/`disadvantage` declaram uma circunstância que a ficha não sabe; elas se somam às da ficha e uma Vantagem e uma Desvantagem quaisquer se anulam. O resultado entra no chat como `d20_roll`. Crítico e falha crítica só em ataques. Alvo fora da ficha (arma não equipada) ou personagem sem ficha recusam com `rule_violation`.
   - **`roll.damage`:** dano da arma equipada `instanceId`, com o bônus da ficha, o dano extra (Radiant Strikes) e o mínimo por dado (Great Weapon Fighting). `critical` rola os dados duas vezes; `versatile` usa o dado com as duas mãos. O resultado entra no chat como `damage_roll`.
+- **Ataque contra um alvo** (nota 0036): o Host rola contra a CA do alvo e propõe o dano; os PV só mudam quando o mestre aplica.
+  - **`attack.make`:** o atacante é uma arma equipada da ficha (como em `roll.d20`) ou uma ação de ataque do bloco do monstro do token (`actionId`; bônus de ataque e dano publicados). O alvo é um token: CA e defesas da ficha do personagem ligado, ou do bloco do monstro; um token sem nenhum dos dois recusa com `rule_violation`. O 20 natural sempre acerta (crítico) e o 1 natural sempre erra; no acerto, o dano é rolado (dados dobrados no crítico) e passa pelas defesas do alvo (imunidade, reduções, Resistência, Vulnerabilidade). O resultado entra no chat como `attack_roll`; com dano, o Host cria uma proposta em `proposals`.
+  - **`damage.apply`:** aplica a proposta nos PV do alvo (as regras de `hp.change`), com `amount` no lugar do valor proposto quando o mestre quiser outro; registra `damage_applied` no chat e remove a proposta. Proposta inexistente (já aplicada ou descartada) recusa com `rule_violation`.
+  - **`damage.dismiss`:** remove a proposta sem mudar os PV.
 - **`token.create` com `characterId`:** o token representa esse personagem (o Host confere que ele existe). Remover o personagem não remove o token: o `characterId` volta a `null`.
 - **Recusas** (`IntentResult` com `rejected`): `not_allowed` para permissão (jogador num `Intent` do mestre, token de outro jogador); `rule_violation` para estado inválido (mapa ou token inexistente, posição fora do mapa, monstro fora do compêndio, imagem que o Host não tem). Um `Intent` recusado não muda o estado nem o `rev`.
 
@@ -327,8 +335,9 @@ Estado da mesa (visão do mestre; a dos jogadores é filtrada pela seção 2.12)
 |---------------|-----------|
 | `campaign`    | Id e nome da campanha. |
 | `players`     | Todos os jogadores que já entraram na sessão, por `playerId`, incluindo o mestre (`role: "gm"`). `connected` muda quando a conexão abre ou cai. |
-| `chat`        | Log da sessão, em ordem. Só cresce: entradas novas entram com `add` em `/chat/-`. Tipos: `message`, `roll`, `hidden_roll` (seção 2.12), `d20_roll` (rolagem da ficha: alvo, dados, modificador e a conta, total, modo, crítico, fontes da Vantagem/Desvantagem, notas das regras do d20 e lembretes do que pode valer), `damage_roll` (dano de arma: grupos de dados por tipo, bônus, total, crítico) e `ability_roll` (atributos rolados pelo Host: seis conjuntos de 4d6 com o índice do dado descartado e o total). |
+| `chat`        | Log da sessão, em ordem. Só cresce: entradas novas entram com `add` em `/chat/-`. Tipos: `message`, `roll`, `hidden_roll` (seção 2.12), `d20_roll` (rolagem da ficha: alvo, dados, modificador e a conta, total, modo, crítico, fontes da Vantagem/Desvantagem, notas das regras do d20 e lembretes do que pode valer), `damage_roll` (dano de arma: grupos de dados por tipo, bônus, total, crítico), `attack_roll` (atacante, alvo, o d20, acerto e, no acerto, o dano com o que as defesas fizeram e o id da proposta), `damage_applied` (dano aplicado pelo mestre, com o valor proposto quando outro foi usado e as notas: caiu a 0 PV, dano massivo) e `ability_roll` (atributos rolados pelo Host: seis conjuntos de 4d6 com o índice do dado descartado e o total). |
 | `maps`        | Mapas por id. `width`/`height` em células; `background` é o SHA-256 da imagem, ou `null`; `cellPx` é o tamanho da célula em pixels da imagem de fundo, ou `null` (mapa sem fundo ou legado esticado). |
 | `activeMapId` | Mapa exibido para todos, ou `null` antes do primeiro `map.create`. |
+| `proposals`   | Danos propostos por ataques, por id, esperando o mestre (`entryId` do `attack_roll`, alvo e valor). Estado da sessão: não é gravado na campanha. Só o mestre recebe. |
 | `tokens`      | Tokens por id. `image` é o SHA-256 da imagem, ou `null`. `characterId` é o personagem que o token representa, ou `null`. `hp` são os PV próprios do token (`max`, `damage`, `temp`), ou `null` (token de personagem, token sem PV, ou monstro escondido deste jogador). |
 | `characters`  | Personagens da campanha por id: dono (`ownerId`), nome e escolhas de construção. `baseScores` é `null` até os atributos serem definidos; `rolledScores` é `null` até o Host rolar, depois os seis totais (3 a 18). `steps` segue o `BuildStep` do motor. `inventory` segue o `Inventory` do motor (moedas e entradas com `instanceId`, item, item base, variante, quantidade, equipado e sintonizado). `hp` guarda o dano sofrido e os PV temporários (o máximo vem da ficha). `adjustments` são os ajustes do mestre (id, nome e efeitos do catálogo), na ordem em que foram aplicados. |

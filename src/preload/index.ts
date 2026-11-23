@@ -17,6 +17,7 @@ const api: VttApi = {
   creationOptions: () => ipcRenderer.invoke(IpcChannel.creationOptions),
   searchItems: (query) => ipcRenderer.invoke(IpcChannel.searchItems, query),
   characterHpMaxima: () => ipcRenderer.invoke(IpcChannel.characterHpMaxima),
+  monsterAttacks: (monsterId) => ipcRenderer.invoke(IpcChannel.monsterAttacks, monsterId),
   onTableEvent: (listener) => {
     // O evento do Electron não passa para o renderer: só o payload.
     const handler = (_event: IpcRendererEvent, payload: TableEvent): void => {

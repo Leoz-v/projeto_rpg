@@ -1,6 +1,6 @@
 import { loadSrdCompendium } from 'rules-engine';
 import { describe, expect, it } from 'vitest';
-import { searchItems, searchMonsters } from './compendium';
+import { monsterAttacks, searchItems, searchMonsters } from './compendium';
 
 describe('searchMonsters (SRD compendium)', () => {
   const { creatures } = loadSrdCompendium();
@@ -37,5 +37,16 @@ describe('searchItems (SRD compendium)', () => {
     expect(weapon?.rarity).toEqual(['uncommon', 'rare', 'very_rare']);
     expect(searchItems(compendium, 'ring of protection')[0]).toMatchObject({ attunement: true });
     expect(searchItems(compendium, '   ')).toEqual([]);
+  });
+});
+
+describe('monsterAttacks', () => {
+  it('lists the attack actions of a stat block', () => {
+    const { creatures } = loadSrdCompendium();
+    expect(monsterAttacks(creatures, 'goblin_warrior')).toEqual([
+      { id: 'scimitar', name: 'Scimitar', toHit: 4, damage: [{ dice: '1d6+2', type: 'slashing' }], reach: 5 },
+      { id: 'shortbow', name: 'Shortbow', toHit: 4, damage: [{ dice: '1d6+2', type: 'piercing' }], range: 80 },
+    ]);
+    expect(monsterAttacks(creatures, 'nao_existe')).toEqual([]);
   });
 });

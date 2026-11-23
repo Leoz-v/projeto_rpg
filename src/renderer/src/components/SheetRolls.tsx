@@ -10,7 +10,15 @@ import { sendIntent } from '../store/table';
 
 export interface Roller {
   roll: (target: SheetRollTarget) => void;
+  /** Ataque com a arma: contra o alvo escolhido (CA, dano proposto) ou, sem alvo, só a rolagem. */
+  attack: (instanceId: string) => void;
   damage: (instanceId: string, critical: boolean) => void;
+}
+
+/** Um token que pode ser alvo. */
+export interface TargetOption {
+  id: string;
+  name: string;
 }
 
 type Declared = 'normal' | 'advantage' | 'disadvantage';
@@ -23,6 +31,8 @@ export interface RollState {
   setSecret: (s: boolean) => void;
   versatile: boolean;
   setVersatile: (v: boolean) => void;
+  targetId: string | null;
+  setTargetId: (id: string | null) => void;
   error: string | null;
 }
 
@@ -30,17 +40,31 @@ export function useRoller(characterId: string): RollState {
   const [declared, setDeclared] = useState<Declared>('normal');
   const [secret, setSecret] = useState(false);
   const [versatile, setVersatile] = useState(false);
+  const [targetId, setTargetId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const visibility = secret ? ('gm' as const) : ('public' as const);
+  const declaredFlags = {
+    ...(declared === 'advantage' ? { advantage: true } : {}),
+    ...(declared === 'disadvantage' ? { disadvantage: true } : {}),
+  };
   const roller: Roller = {
+    attack: (instanceId) => {
+      if (targetId === null) {
+        roller.roll({ kind: 'attack', instanceId });
+        return;
+      }
+      void sendIntent({ kind: 'attack.make', data: { attacker: { characterId, instanceId }, targetTokenId: targetId, ...declaredFlags, visibility } }).then((refused) => {
+        setError(refused);
+        if (!refused) setDeclared('normal');
+      });
+    },
     roll: (target) => {
       void sendIntent({
         kind: 'roll.d20',
         data: {
           characterId,
           target,
-          ...(declared === 'advantage' ? { advantage: true } : {}),
-          ...(declared === 'disadvantage' ? { disadvantage: true } : {}),
+          ...declaredFlags,
           visibility,
         },
       }).then((refused) => {
@@ -53,7 +77,7 @@ export function useRoller(characterId: string): RollState {
       void sendIntent({ kind: 'roll.damage', data: { characterId, instanceId, ...(critical ? { critical } : {}), ...(versatile ? { versatile } : {}), visibility } }).then(setError);
     },
   };
-  return { roller, declared, setDeclared, secret, setSecret, versatile, setVersatile, error };
+  return { roller, declared, setDeclared, secret, setSecret, versatile, setVersatile, targetId, setTargetId, error };
 }
 
 const DECLARED: readonly { value: Declared; label: string }[] = [
@@ -63,9 +87,27 @@ const DECLARED: readonly { value: Declared; label: string }[] = [
 ];
 
 /** Opções da próxima rolagem: Vantagem/Desvantagem declarada, secreta, duas mãos. */
-export function RollToolbar({ state, hasVersatile }: { state: RollState; hasVersatile: boolean }) {
+export function RollToolbar({ state, hasVersatile, targets }: { state: RollState; hasVersatile: boolean; targets: readonly TargetOption[] }) {
+  // Alvo que saiu do mapa deixa de valer.
+  const targetId = state.targetId !== null && targets.some((t) => t.id === state.targetId) ? state.targetId : '';
   return (
     <div className="roll-toolbar">
+      <label>
+        Alvo dos ataques
+        <select
+          value={targetId}
+          onChange={(e) => {
+            state.setTargetId(e.target.value === '' ? null : e.target.value);
+          }}
+        >
+          <option value="">sem alvo (só rolar)</option>
+          {targets.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+      </label>
       <span className="hint">Próxima rolagem:</span>
       <div className="method-tabs">
         {DECLARED.map((d) => (

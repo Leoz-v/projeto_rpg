@@ -1,6 +1,6 @@
 import type { AppInfo, HostTableRequest, IpcError, JoinTableRequest, Preferences } from './ipc-schemas';
 import type { DerivedSheet } from 'rules-engine';
-import type { Ability, Size } from 'rules-engine/schemas';
+import type { Ability, DamageType, Size } from 'rules-engine/schemas';
 import type { Intent, IntentResultSchema, Role, SessionState } from './protocol';
 import type { z } from 'zod';
 
@@ -22,6 +22,7 @@ export const IpcChannel = {
   creationOptions: 'compendium:creation-options',
   searchItems: 'compendium:search-items',
   characterHpMaxima: 'table:character-hp-maxima',
+  monsterAttacks: 'compendium:monster-attacks',
   sendIntent: 'table:intent',
   tableEvent: 'table:event',
 } as const;
@@ -70,6 +71,17 @@ export interface ItemSummary {
   attunementBy?: string;
   variants: { id: string; name: string }[];
   bases: { id: string; name: string }[];
+}
+
+/** Ação de ataque de um monstro do compêndio, para o mestre atacar com o token. */
+export interface MonsterAttack {
+  id: string;
+  name: string;
+  toHit: number;
+  /** Dano como publicado: a expressão e o tipo (id do motor; a tela traduz). */
+  damage: { dice: string; type: DamageType }[];
+  reach?: number;
+  range?: number;
 }
 
 /** Uma imagem importada: use `vtt-asset://<sha256>` para exibir e o `sha256` nos `Intent`. */
@@ -127,6 +139,8 @@ export interface VttApi {
   characterSheet(characterId: string): Promise<IpcResult<CharacterSheetView>>;
   /** Itens do compêndio cujo nome contém o texto (até 30). */
   searchItems(query: string): Promise<IpcResult<ItemSummary[]>>;
+  /** Ações de ataque do bloco de estatísticas de um monstro. */
+  monsterAttacks(monsterId: string): Promise<IpcResult<MonsterAttack[]>>;
   /** PV máximos da ficha de cada personagem da mesa atual (os sem atributos ficam de fora). */
   characterHpMaxima(): Promise<IpcResult<Record<string, number>>>;
   /** Espécies, antecedentes e classes do compêndio. */
