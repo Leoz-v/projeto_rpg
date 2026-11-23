@@ -1,6 +1,6 @@
 import { DiceSchema, SizeSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
-import { ChatTextSchema, LabelSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
+import { ChatTextSchema, LabelSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 import { MAX_FORMULA_DICE, MAX_FORMULA_LENGTH } from './constants';
 import { VisibilitySchema } from './state';
 
@@ -28,7 +28,13 @@ export const IntentSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('token.move'), data: z.strictObject({ tokenId: UuidSchema, to: PointSchema }) }),
   z.strictObject({
     kind: z.literal('map.create'),
-    data: z.strictObject({ name: NameSchema, width: MapCellsSchema, height: MapCellsSchema, background: Sha256Schema.optional() }),
+    data: z.strictObject({
+      name: NameSchema,
+      width: MapCellsSchema,
+      height: MapCellsSchema,
+      background: Sha256Schema.optional(),
+      cellPx: MapCellPxSchema.optional(),
+    }),
   }),
   z.strictObject({ kind: z.literal('map.activate'), data: z.strictObject({ mapId: UuidSchema }) }),
   z.strictObject({

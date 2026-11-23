@@ -241,7 +241,15 @@ export class HostSession {
 
   private createMap(data: IntentData<'map.create'>): PatchOp[] {
     this.requireAsset(data.background);
-    const map: GameMap = { id: this.deps.newId(), name: data.name, width: data.width, height: data.height, background: data.background ?? null };
+    if (data.cellPx !== undefined && data.background === undefined) throw violation('Tamanho de célula em pixels exige imagem de fundo');
+    const map: GameMap = {
+      id: this.deps.newId(),
+      name: data.name,
+      width: data.width,
+      height: data.height,
+      background: data.background ?? null,
+      cellPx: data.cellPx ?? null,
+    };
     const ops: PatchOp[] = [{ op: 'add', path: toPointer('maps', map.id), value: map }];
     if (this.current.activeMapId === null) ops.push({ op: 'replace', path: '/activeMapId', value: map.id });
     return ops;

@@ -2,7 +2,7 @@
 
 > **Contrato fechado.** Só existem as mensagens e os tipos de `Intent` listados aqui. Para criar um novo, primeiro atualize este documento (e `PROTOCOL_VERSION`, se a mudança for incompatível) e só depois o código. Os schemas Zod em `src/shared/protocol/` devem seguir este arquivo exatamente.
 
-- **Versão do protocolo:** `PROTOCOL_VERSION = 1`
+- **Versão do protocolo:** `PROTOCOL_VERSION = 2`
 - **Transporte:** WebSocket puro (`ws://`) sobre rede virtual (Tailscale/ZeroTier). Porta padrão do Host: `47820`.
 - **Formato:** um objeto JSON (UTF-8) por frame de texto. Frames binários não são usados.
 - **Validação:** toda mensagem recebida, nos dois lados, passa pelo schema Zod antes de qualquer processamento. Mensagem inválida gera `Error` com `code: "invalid_message"` e é descartada. A conexão **não** cai por causa disso.
@@ -222,14 +222,14 @@ Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do
 | `chat.message`    | 2    | `{ text: string (1..2000) }` | todos |
 | `dice.roll`       | 2    | `{ formula: string, label?: string, visibility: "public" \| "gm" }` | todos |
 | `token.move`      | 2    | `{ tokenId: string, to: { x: int, y: int } }` | mestre; jogador só nos próprios tokens |
-| `map.create`      | 2    | `{ name: string (1..100), width: int (1..200), height: int (1..200), background?: sha256 }` | mestre |
+| `map.create`      | 2    | `{ name: string (1..100), width: int (1..200), height: int (1..200), background?: sha256, cellPx?: int (1..4096) }` | mestre |
 | `map.activate`    | 2    | `{ mapId: string }` | mestre |
 | `token.create`    | 2    | `{ mapId: string, name: string (1..100), position: { x: int, y: int }, size: Size, monsterId?: string, image?: sha256, ownerIds?: string[] }` | mestre |
 | `token.remove`    | 2    | `{ tokenId: string }` | mestre |
 
 - **Coordenadas** em unidades lógicas de mundo (`1 célula = 5 ft = 100 unidades`), nunca pixels. `position` é o canto superior esquerdo do token, e o token inteiro precisa caber no mapa: `x + lado ≤ largura × 100` e `y + lado ≤ altura × 100`, em que `lado` é o espaço do tamanho da criatura em unidades (SRD 5.2.1 p. 14: Tiny 50, Small e Medium 100, Large 200, Huge 300, Gargantuan 400; `spaceSquares` do motor). Fora disso, o Host recusa com `rule_violation`.
 - **`dice.roll`:** o cliente manda só a fórmula, no formato de dados do motor (ex.: `2d6+3`, `1d20+1d4-1`), com até 100 caracteres e até 100 dados. O Host rola com o RNG do motor e publica o resultado no log via `StatePatch`.
-- **`map.create`:** `width` e `height` em células. O Host gera o `id`. O primeiro mapa criado fica ativo. `background`, quando vem, precisa ser um asset que o Host tem (senão, `rule_violation`).
+- **`map.create`:** `width` e `height` em células. O Host gera o `id`. O primeiro mapa criado fica ativo. `background`, quando vem, precisa ser um asset que o Host tem (senão, `rule_violation`). `cellPx`, quando vem, informa quantos pixels da imagem de fundo equivalem a 1 célula do grid (para desenhar a imagem na escala exata, sem esticar) e exige `background` (senão, `rule_violation`).
 - **`token.create`:** `size` é o tamanho da criatura (`tiny` … `gargantuan`). `monsterId` é o id do monstro no compêndio: quando vem, o Host confere que ele existe. `ownerIds` são os `playerId` que podem mover o token. `image`, quando vem, precisa ser um asset que o Host tem (senão, `rule_violation`). O Host gera o `id`.
 - **Ids gerados pelo Host** (mapas, tokens, entradas do chat) são UUID.
 - **`token.move`:** o mestre move qualquer token; o jogador, só os tokens em que está em `ownerIds`.
@@ -268,7 +268,7 @@ Estado da mesa (visão do mestre; a dos jogadores é filtrada pela seção 2.12)
     { "kind": "hidden_roll", "id": "…", "at": 1763769602000, "authorId": "e7f1…" }
   ],
   "maps": {
-    "m1…": { "id": "m1…", "name": "Caverna", "width": 30, "height": 20, "background": "9f86d081…" }
+    "m1…": { "id": "m1…", "name": "Caverna", "width": 30, "height": 20, "background": "9f86d081…", "cellPx": 70 }
   },
   "activeMapId": "m1…",
   "tokens": {
@@ -283,6 +283,6 @@ Estado da mesa (visão do mestre; a dos jogadores é filtrada pela seção 2.12)
 | `campaign`    | Id e nome da campanha. |
 | `players`     | Todos os jogadores que já entraram na sessão, por `playerId`, incluindo o mestre (`role: "gm"`). `connected` muda quando a conexão abre ou cai. |
 | `chat`        | Log da sessão, em ordem. Só cresce: entradas novas entram com `add` em `/chat/-`. |
-| `maps`        | Mapas por id. `width`/`height` em células; `background` é o SHA-256 da imagem, ou `null`. |
+| `maps`        | Mapas por id. `width`/`height` em células; `background` é o SHA-256 da imagem, ou `null`; `cellPx` é o tamanho da célula em pixels da imagem de fundo, ou `null` (mapa sem fundo ou legado esticado). |
 | `activeMapId` | Mapa exibido para todos, ou `null` antes do primeiro `map.create`. |
 | `tokens`      | Tokens por id. `image` é o SHA-256 da imagem, ou `null`. |

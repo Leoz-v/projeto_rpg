@@ -179,7 +179,10 @@ describe('HostSession: maps', () => {
     expect(session.state.activeMapId).toBe(second);
     expect(rejection(session.handle(GM.playerId, { kind: 'map.activate', data: { mapId: randomUUID() } }))).toBe('rule_violation');
     expect(applied(session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Com fundo', width: 5, height: 5, background: KNOWN_IMAGE } }))).toBe(true);
+    expect(applied(session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Com grid px', width: 30, height: 20, background: KNOWN_IMAGE, cellPx: 70 } }))).toBe(true);
+    expect(Object.values(session.state.maps).find((m) => m.name === 'Com grid px')?.cellPx).toBe(70);
     expect(rejection(session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Sem fundo', width: 5, height: 5, background: UNKNOWN_IMAGE } }))).toBe('rule_violation');
+    expect(rejection(session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Px sem fundo', width: 5, height: 5, cellPx: 70 } }))).toBe('rule_violation');
   });
 });
 

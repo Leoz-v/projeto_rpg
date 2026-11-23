@@ -3,6 +3,7 @@ import 'pixi.js/unsafe-eval';
 import { Application, Container, type FederatedPointerEvent, Graphics, ImageSource, Sprite, Text, Texture } from 'pixi.js';
 import { type GameMap, type Point, type Token, WORLD_UNITS_PER_CELL } from '../../../shared/protocol';
 import { type Camera, fitMap, placeToken, screenToWorld, tokenSide, zoomAt } from './geometry';
+import { backgroundWorldSize } from './map-grid';
 
 /**
  * O mapa em PixiJS v8, desacoplado do React (CLAUDE.md): a tela entrega a
@@ -128,7 +129,7 @@ export class MapStage {
     if (this.destroyed) return;
     this.scene = scene;
     const map = scene.map;
-    const mapKey = map ? `${map.id}:${map.width}x${map.height}:${map.background ?? ''}` : '';
+    const mapKey = map ? `${map.id}:${map.width}x${map.height}:${map.background ?? ''}:${map.cellPx ?? ''}` : '';
     if (mapKey !== this.shownMapKey) {
       const changedMap = map?.id !== this.shownMapKey.split(':')[0];
       this.shownMapKey = mapKey;
@@ -157,7 +158,8 @@ export class MapStage {
     if (!map) return;
     const width = map.width * WORLD_UNITS_PER_CELL;
     const height = map.height * WORLD_UNITS_PER_CELL;
-    if (!map.background) g.rect(0, 0, width, height).fill(COLORS.mapFloor);
+    // Piso na camada de fundo: aparece em mapas sem imagem e nas bordas parciais quando `cellPx` não divide exato.
+    this.backgroundLayer.addChild(new Graphics().rect(0, 0, width, height).fill(COLORS.mapFloor));
     for (let x = 0; x <= width; x += WORLD_UNITS_PER_CELL) g.moveTo(x, 0).lineTo(x, height);
     for (let y = 0; y <= height; y += WORLD_UNITS_PER_CELL) g.moveTo(0, y).lineTo(width, y);
     g.stroke({ width: 2, color: COLORS.grid, alpha: 0.12 });
@@ -165,12 +167,14 @@ export class MapStage {
 
     if (map.background) {
       const sha = map.background;
+      const cellPx = map.cellPx;
       void this.texture(sha).then((texture) => {
         // O mapa pode ter mudado enquanto a imagem carregava.
-        if (!texture || this.destroyed || this.scene.map?.background !== sha) return;
+        if (!texture || this.destroyed || this.scene.map?.id !== map.id || this.scene.map.background !== sha || this.scene.map.cellPx !== cellPx) return;
+        const size = backgroundWorldSize(map, { width: texture.width, height: texture.height });
         const sprite = new Sprite(texture);
-        sprite.width = width;
-        sprite.height = height;
+        sprite.width = size.width;
+        sprite.height = size.height;
         this.backgroundLayer.addChild(sprite);
       });
     }

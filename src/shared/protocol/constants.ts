@@ -18,6 +18,9 @@ export const PING_INTERVAL_MS = 15_000;
 export const PONG_TIMEOUT_MS = 30_000;
 /** 1 célula = 5 ft = 100 unidades de mundo. */
 export const WORLD_UNITS_PER_CELL = 100;
+/** Limites de dimensões de um mapa (em células) e da célula em pixels da imagem. */
+export const MAX_MAP_CELLS = 200;
+export const MAX_CELL_PX = 4096;
 /** Limites da fórmula de `dice.roll`. */
 export const MAX_FORMULA_LENGTH = 100;
 export const MAX_FORMULA_DICE = 100;
