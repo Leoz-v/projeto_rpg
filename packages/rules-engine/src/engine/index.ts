@@ -36,4 +36,16 @@ export {
   type SaveInput,
   type SaveResult,
 } from './attack';
+export {
+  cleaveDamageBonus,
+  grazeDamage,
+  MASTERY_ACTIONS,
+  MASTERY_NAME,
+  type MasteryAction,
+  type MasteryContext,
+  type MasteryOutcome,
+  masteryOutcome,
+  TOPPLE_DC_BASE,
+  toppleDc,
+} from './mastery';
 export { CONDITION_NAME, DAMAGE_NAME } from './names';

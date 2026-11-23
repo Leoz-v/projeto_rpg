@@ -1,9 +1,9 @@
-import { type SyntheticEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react';
-import type { ChatEntry, SessionState } from '../../../shared/protocol';
+import { type SyntheticEvent, type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
+import type { ChatEntry, Role, SessionState } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
 import { CHAT_HELP, parseChatInput } from './chat-command';
 import { type RollPart, rollParts } from './roll-parts';
-import { AttackRollBody, D20RollBody, DamageAppliedBody, DamageRollBody, SaveRollBody } from './SheetRollEntries';
+import { AttackRollBody, D20RollBody, DamageAppliedBody, DamageRollBody, MasteryDamageBody, SaveRollBody } from './SheetRollEntries';
 
 /** Log da sessão (mensagens e rolagens) e campo de envio. */
 
@@ -32,7 +32,21 @@ function RollResult({ formula, rolls, total }: { formula: string; rolls: { sides
   );
 }
 
-function Entry({ entry, author, proposals }: { entry: ChatEntry; author: string; proposals: SessionState['proposals'] }) {
+/** Quem está olhando o chat: decide quem vê os botões das maestrias. */
+export interface ChatViewer {
+  playerId: string;
+  role: Role;
+}
+
+interface EntryContext {
+  state: SessionState;
+  viewer: ChatViewer;
+  /** Ataques cuja maestria já foi usada (alguma entrada tem `masteryOf` apontando para eles). */
+  masteryUsed: ReadonlySet<string>;
+}
+
+function Entry({ entry, author, context }: { entry: ChatEntry; author: string; context: EntryContext }) {
+  const { proposals } = context.state;
   const header = (
     <header>
       <strong>{author}</strong> <time>{time(entry.at)}</time>
@@ -71,7 +85,21 @@ function Entry({ entry, author, proposals }: { entry: ChatEntry; author: string;
       return <DamageRollBody entry={entry} header={header} />;
     case 'attack_roll':
       // Só o mestre recebe as propostas: para os outros, `pending` é sempre falso.
-      return <AttackRollBody entry={entry} header={header} pending={entry.damage !== undefined && entry.damage.proposalId in proposals} />;
+      return (
+        <AttackRollBody
+          entry={entry}
+          header={header}
+          pending={entry.damage !== undefined && entry.damage.proposalId in proposals}
+          mastery={{
+            used: context.masteryUsed.has(entry.id),
+            canUse: context.viewer.role === 'gm' || entry.authorId === context.viewer.playerId,
+            tokens: context.state.tokens,
+            activeMapId: context.state.activeMapId,
+          }}
+        />
+      );
+    case 'mastery_damage':
+      return <MasteryDamageBody entry={entry} header={header} pending={entry.proposalId !== undefined && entry.proposalId in proposals} />;
     case 'save_roll':
       return <SaveRollBody entry={entry} header={header} proposals={proposals} />;
     case 'damage_applied':
@@ -100,11 +128,13 @@ function Entry({ entry, author, proposals }: { entry: ChatEntry; author: string;
   }
 }
 
-export function Chat({ state }: { state: SessionState }) {
+export function Chat({ state, viewer }: { state: SessionState; viewer: ChatViewer }) {
   const [input, setInput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const end = useRef<HTMLLIElement>(null);
+  const masteryUsed = useMemo(() => new Set(state.chat.flatMap((e) => ('masteryOf' in e && e.masteryOf !== undefined ? [e.masteryOf] : []))), [state.chat]);
+  const context: EntryContext = { state, viewer, masteryUsed };
 
   useEffect(() => {
     end.current?.scrollIntoView({ block: 'end' });
@@ -136,7 +166,7 @@ export function Chat({ state }: { state: SessionState }) {
       <ol className="log">
         {state.chat.length === 0 && <li className="hint">{CHAT_HELP}</li>}
         {state.chat.map((entry) => (
-          <Entry key={entry.id} entry={entry} author={state.players[entry.authorId]?.displayName ?? 'Desconhecido'} proposals={state.proposals} />
+          <Entry key={entry.id} entry={entry} author={state.players[entry.authorId]?.displayName ?? 'Desconhecido'} context={context} />
         ))}
         <li ref={end} aria-hidden />
       </ol>

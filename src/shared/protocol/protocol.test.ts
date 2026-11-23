@@ -198,6 +198,10 @@ describe('intents', () => {
     expect(intent('save.force', { source: fireball, targetTokenIds: [TOKEN, TOKEN], visibility: 'public' })).toBe(false);
     expect(intent('save.force', { source: fireball, targetTokenIds: [], visibility: 'public' })).toBe(false);
     expect(intent('save.force', { source: fireball, targetTokenIds: [TOKEN], against: {}, visibility: 'public' })).toBe(false);
+    expect(intent('mastery.use', { entryId: HERO })).toBe(true);
+    expect(intent('mastery.use', { entryId: HERO, targetTokenId: TOKEN, disadvantage: true })).toBe(true);
+    expect(intent('mastery.use', { entryId: 'not-a-uuid' })).toBe(false);
+    expect(intent('mastery.use', { entryId: HERO, property: 'cleave' })).toBe(false);
     expect(intent('hp.change', { target: { tokenId: TOKEN }, change: { kind: 'max', amount: 22 } })).toBe(true);
     expect(intent('token.create', { mapId: MAP, name: 'Barril', position: { x: 0, y: 0 }, size: 'medium', hpMax: 5 })).toBe(true);
     expect(intent('hp.change', { target: { tokenId: TOKEN }, change: { kind: 'damage', amount: -3 } })).toBe(false);

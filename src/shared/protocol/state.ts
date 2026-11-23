@@ -1,7 +1,7 @@
-import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, EffectSchema, InventorySchema, SizeSchema } from 'rules-engine/schemas';
+import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, EffectSchema, InventorySchema, SizeSchema, WeaponMasterySchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_HIT_POINTS, MAX_SAVE_TARGETS } from './constants';
-import { ChatTextSchema, HitPointStateSchema, LabelSchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
+import { ChatTextSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 
 /** `SessionState` (docs/network-protocol.md, seção 5). */
 
@@ -45,6 +45,10 @@ const d20Fields = {
   notes: LogList,
   reminders: LogList,
 };
+
+/** Maestrias com ação de seguimento (`mastery.use`, nota 0038). */
+export const MasteryActionSchema = z.enum(['cleave', 'graze', 'topple']);
+export type MasteryActionKind = z.infer<typeof MasteryActionSchema>;
 
 export const ChatEntrySchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('message'), ...entryBase, text: ChatTextSchema }),
@@ -123,6 +127,12 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
         proposalId: UuidSchema,
       })
       .optional(),
+    /** Arma da ficha que fez o ataque (ausente em ações de monstro). */
+    weapon: z.strictObject({ characterId: UuidSchema, instanceId: InstanceIdSchema }).optional(),
+    /** Maestria da arma: o que ela faz agora e a ação de seguimento, se houver. */
+    mastery: z.strictObject({ property: WeaponMasterySchema, action: MasteryActionSchema.optional(), notes: LogList }).optional(),
+    /** Segundo ataque do Cleave: o `attack_roll` de origem. */
+    masteryOf: UuidSchema.optional(),
   }),
   /** Salvaguarda forçada (`save.force`): a CD, o dano rolado uma vez e o resultado de cada alvo. */
   z.strictObject({
@@ -139,6 +149,8 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     damage: z.strictObject({ groups: z.array(DamageGroupSchema).min(1).max(20), total: z.int().nonnegative() }).optional(),
     /** Condições que a falha impõe (aplicar é da Fase 5). */
     conditions: z.array(ConditionSchema).max(15),
+    /** Salvaguarda do Topple: o `attack_roll` de origem. */
+    masteryOf: UuidSchema.optional(),
     results: z
       .array(
         z.strictObject({
@@ -159,6 +171,25 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
       )
       .min(1)
       .max(MAX_SAVE_TARGETS),
+  }),
+  /** Dano do Graze (`mastery.use`): o modificador do ataque, mesmo errando, depois das defesas do alvo. */
+  z.strictObject({
+    kind: z.literal('mastery_damage'),
+    ...entryBase,
+    /** O `attack_roll` de origem. */
+    masteryOf: UuidSchema,
+    property: z.literal('graze'),
+    attackerName: NameSchema,
+    label: LabelSchema,
+    targetTokenId: UuidSchema,
+    targetName: NameSchema,
+    visibility: VisibilitySchema,
+    damageType: DamageTypeSchema,
+    /** O modificador do atributo do ataque (o dano antes das defesas). */
+    amount: z.int().positive(),
+    total: z.int().nonnegative(),
+    defenses: LogList,
+    proposalId: UuidSchema.optional(),
   }),
   /** Dano aplicado pelo mestre nos PV de um token (`damage.apply`). */
   z.strictObject({
@@ -255,7 +286,7 @@ export type SessionCharacter = z.infer<typeof SessionCharacterSchema>;
 /** Dano proposto por um ataque, esperando o mestre aplicar ou descartar. Só o mestre vê. */
 export const DamageProposalSchema = z.strictObject({
   id: UuidSchema,
-  /** Entrada `attack_roll` ou `save_roll` que gerou a proposta. */
+  /** Entrada `attack_roll`, `save_roll` ou `mastery_damage` que gerou a proposta. */
   entryId: UuidSchema,
   targetTokenId: UuidSchema,
   targetName: NameSchema,

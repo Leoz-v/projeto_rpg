@@ -180,7 +180,7 @@ O valor do atributo passa a ser pelo menos `value` (ex.: Manoplas de Força do O
 
 - Permite usar a propriedade de Maestria da arma indicada. A maestria em si (`cleave`, `graze`, `nick`, `push`, `sap`, `slow`, `topple`, `vex`) é declarada no **item**, não no efeito.
 - A escolha de quais armas recebem maestria vem da lista de escolhas do personagem (ex.: Guerreiro nível 1), que gera estes efeitos.
-- O comportamento de cada maestria em combate é resolvido na Fase 4.
+- O comportamento de cada maestria em combate é do motor (`engine/mastery.ts`, nota 0038): Cleave, Graze e Topple viram ações que o Host resolve depois do ataque (`mastery.use`, `docs/network-protocol.md`); Push, Sap, Slow, Vex e Nick dependem de posição ou de turnos e aparecem como nota no resultado do ataque até a Fase 5.
 
 ### 3.10 `condition`
 
