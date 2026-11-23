@@ -19,6 +19,8 @@ export interface Scene {
   /** O usuário pode arrastar este token (mestre, ou dono do token). */
   canDrag: (token: Token) => boolean;
   selectedId: string | null;
+  /** Token do combatente da vez, ou `null` (sem combate). */
+  activeId: string | null;
   /** PV para a barra do token, ou `null` (sem barra). */
   health: (token: Token) => Health | null;
 }
@@ -37,6 +39,7 @@ const COLORS = {
   otherToken: 0xc0504d,
   outline: 0x14121c,
   selected: 0xffd166,
+  active: 0x5fd38d,
   label: 0xe8e6ef,
 };
 
@@ -61,6 +64,8 @@ interface TokenView {
   container: Container;
   /** Anel de seleção: só aparece ou some, sem redesenhar o token. */
   ring: Graphics;
+  /** Anel do combatente da vez, como o de seleção. */
+  turn: Graphics;
   /** Barra de PV, redesenhada a cada cena (barata). */
   bar: Graphics;
   /** O que, se mudar, exige redesenhar (posição, seleção e cursor não exigem). */
@@ -93,7 +98,7 @@ export class MapStage {
   private readonly views = new Map<string, TokenView>();
   private readonly textures = new Map<string, Promise<Texture | null>>();
   private camera: Camera = { x: 0, y: 0, zoom: 1 };
-  private scene: Scene = { map: null, tokens: [], canDrag: () => false, selectedId: null, health: () => null };
+  private scene: Scene = { map: null, tokens: [], canDrag: () => false, selectedId: null, activeId: null, health: () => null };
   private shownMapKey = '';
   private drag: { id: string; offset: Point } | undefined;
   private pan: { from: Point; camera: Camera } | undefined;
@@ -232,6 +237,7 @@ export class MapStage {
         this.tokenLayer.addChild(view.container);
       }
       view.ring.visible = this.scene.selectedId === token.id;
+      view.turn.visible = this.scene.activeId === token.id;
       drawHealthBar(view.bar, tokenSide(token.size), this.scene.health(token));
       if (this.drag?.id !== token.id) {
         view.container.cursor = this.scene.canDrag(token) ? 'grab' : 'pointer';
@@ -241,7 +247,7 @@ export class MapStage {
     }
   }
 
-  private drawToken(token: Token): { container: Container; ring: Graphics; bar: Graphics } {
+  private drawToken(token: Token): { container: Container; ring: Graphics; turn: Graphics; bar: Graphics } {
     const side = tokenSide(token.size);
     const radius = side / 2;
     const container = new Container();
@@ -252,7 +258,10 @@ export class MapStage {
       .stroke({ width: Math.max(3, side * 0.04), color: COLORS.outline });
     const ring = new Graphics().circle(radius, radius, radius * 0.98).stroke({ width: Math.max(4, side * 0.06), color: COLORS.selected });
     ring.visible = false;
-    container.addChild(disc, ring);
+    // Combatente da vez: um anel verde por fora do token.
+    const turn = new Graphics().circle(radius, radius, radius * 1.1).stroke({ width: Math.max(4, side * 0.05), color: COLORS.active });
+    turn.visible = false;
+    container.addChild(turn, disc, ring);
 
     if (token.image) {
       const sha = token.image;
@@ -283,7 +292,7 @@ export class MapStage {
     container.on('pointerdown', (e) => {
       this.tokenDown(token.id, e);
     });
-    return { container, ring, bar };
+    return { container, ring, turn, bar };
   }
 
   private tokenDown(id: string, e: FederatedPointerEvent): void {

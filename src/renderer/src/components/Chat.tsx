@@ -104,6 +104,44 @@ function Entry({ entry, author, context }: { entry: ChatEntry; author: string; c
       return <SaveRollBody entry={entry} header={header} proposals={proposals} />;
     case 'damage_applied':
       return <DamageAppliedBody entry={entry} header={header} />;
+    case 'initiative_roll':
+      return (
+        <li className="entry roll">
+          {header}
+          <p>
+            <span className="roll-label">Iniciativa</span>
+          </p>
+          {entry.results.length === 0 && <p className="hint">Rolada pelo mestre.</p>}
+          {entry.results.map((r) => {
+            const kept = r.dice.indexOf(r.natural);
+            return (
+              <div key={r.tokenId}>
+                <p className="roll-result">
+                  <strong>{r.name}</strong>
+                  {r.dice.map((value, i) => (
+                    <span key={i} className={`die${i !== kept ? ' dropped' : ''}`}>
+                      {value}
+                    </span>
+                  ))}
+                  <span className="modifier">{r.modifier >= 0 ? `+${r.modifier}` : `−${-r.modifier}`}</span>
+                  <span className="total">= {r.total}</span>
+                </p>
+                {r.notes.map((n, i) => (
+                  <p key={i} className="hint">
+                    {n}
+                  </p>
+                ))}
+              </div>
+            );
+          })}
+        </li>
+      );
+    case 'combat_event':
+      return (
+        <li className="entry combat-event">
+          <p>{entry.event === 'started' ? 'Combate iniciado: rodada 1' : entry.event === 'round' ? `Rodada ${entry.round}` : `Combate encerrado na rodada ${entry.round}`}</p>
+        </li>
+      );
     case 'ability_roll':
       return (
         <li className="entry roll">

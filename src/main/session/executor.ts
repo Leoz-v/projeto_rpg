@@ -9,6 +9,7 @@ import {
   type Creature,
   creatureDefenses,
   creatureSaveBonus,
+  type D20RollInput,
   d20Mode,
   d20StepNotes,
   damageNotes,
@@ -18,6 +19,8 @@ import {
   grazeDamage,
   MASTERY_NAME,
   masteryOutcome,
+  nextTurn,
+  previousTurn,
   resolveAttack,
   resolveSave,
   type Rng,
@@ -30,14 +33,17 @@ import {
   sheetD20,
   type SheetD20,
   type Size,
+  sortByInitiative,
   spaceSquares,
   toppleDc,
+  turnAfterRemoval,
   usesRolledValues,
 } from 'rules-engine';
 import type { z } from 'zod';
 import {
   applyPatch,
   type ChatEntry,
+  type Combat,
   type GameMap,
   type Intent,
   type IntentData,
@@ -50,8 +56,11 @@ import {
   type SessionState,
   type Token,
   MAX_ADJUSTMENTS,
+  MAX_COMBATANTS,
+  MAX_INITIATIVE,
   MAX_INVENTORY_ITEMS,
   MAX_ITEM_QUANTITY,
+  MIN_INITIATIVE,
   toPointer,
   WORLD_UNITS_PER_CELL,
 } from '../../shared/protocol';
@@ -150,6 +159,7 @@ export class HostSession {
       tokens: restored?.tokens ?? {},
       characters: restored?.characters ?? {},
       proposals: {},
+      combat: restored?.combat ?? null,
     };
   }
 
@@ -235,7 +245,7 @@ export class HostSession {
       case 'token.remove':
         this.requireGm(role);
         this.token(intent.data.tokenId);
-        return [{ op: 'remove', path: toPointer('tokens', intent.data.tokenId) }];
+        return [{ op: 'remove', path: toPointer('tokens', intent.data.tokenId) }, ...this.leaveCombat(playerId, intent.data.tokenId)];
       case 'character.create':
         return this.createCharacter(playerId, role, intent.data);
       case 'character.update':
@@ -270,6 +280,32 @@ export class HostSession {
         return this.forceSave(playerId, role, intent.data);
       case 'mastery.use':
         return this.useMastery(playerId, role, intent.data);
+      case 'combat.start':
+        this.requireGm(role);
+        return this.startCombat(playerId, intent.data);
+      case 'combat.add':
+        this.requireGm(role);
+        return this.joinCombat(playerId, intent.data);
+      case 'combat.remove':
+        this.requireGm(role);
+        this.combatant(intent.data.tokenId);
+        return this.leaveCombat(playerId, intent.data.tokenId);
+      case 'combat.set_initiative':
+        this.requireGm(role);
+        return this.setInitiative(intent.data.tokenId, intent.data.initiative);
+      case 'combat.next':
+        return this.nextTurn(playerId, role);
+      case 'combat.previous': {
+        this.requireGm(role);
+        const combat = this.combat();
+        const position = previousTurn(combat, combat.combatants.length);
+        return [this.replaceCombat({ ...combat, ...position })];
+      }
+      case 'combat.end': {
+        this.requireGm(role);
+        const combat = this.combat();
+        return [this.replaceCombat(null), this.appendChat({ kind: 'combat_event', ...this.entryBase(playerId), event: 'ended', round: combat.round })];
+      }
       case 'damage.apply':
         this.requireGm(role);
         return this.applyProposal(playerId, intent.data.proposalId, intent.data.amount);
@@ -744,6 +780,149 @@ export class HostSession {
       ...(cleaveOf !== undefined ? { masteryOf: cleaveOf } : {}),
     };
     return [this.appendChat(entry), ...ops];
+  }
+
+  // --- Combate e iniciativa (Fase 5, PR 1) ---------------------------------
+
+  private combat(): Combat {
+    if (!this.current.combat) throw violation('Não há combate em andamento');
+    return this.current.combat;
+  }
+
+  private combatant(tokenId: string): number {
+    const index = this.combat().combatants.findIndex((c) => c.tokenId === tokenId);
+    if (index < 0) throw violation('Este token não está no combate');
+    return index;
+  }
+
+  /** O combate inteiro vai num `replace` (é pequeno, e a visibilidade filtra o valor todo, seção 2.12). */
+  private replaceCombat(combat: Combat | null): PatchOp {
+    return { op: 'replace', path: '/combat', value: combat };
+  }
+
+  /**
+   * O Host rola a iniciativa de cada token: a da ficha do personagem ligado,
+   * o bônus publicado do monstro, ou +0. Surpresa dá Desvantagem.
+   */
+  private rollInitiatives(data: IntentData<'combat.start'>): { combatants: Combat['combatants']; entry: Extract<ChatEntry, { kind: 'initiative_roll' }>['results'] } {
+    const surprised = new Set(data.surprisedTokenIds ?? []);
+    const rolled = data.tokenIds.map((tokenId) => {
+      const token = this.token(tokenId);
+      const notes: string[] = [];
+      let modifier = 0;
+      let advantage: string[] = [];
+      let disadvantage: string[] = [];
+      let rules: D20RollInput['rules'];
+      const character = token.characterId !== null ? this.current.characters[token.characterId] : undefined;
+      const sheet = character ? this.deps.characterSheet(character) : undefined;
+      const roll = sheet ? sheetD20(sheet, { kind: 'initiative' }) : undefined;
+      const creature = token.monsterId !== null ? this.deps.creature(token.monsterId) : undefined;
+      if (roll) {
+        modifier = roll.input.modifier;
+        advantage = roll.advantage;
+        disadvantage = roll.disadvantage;
+        rules = roll.input.rules;
+      } else if (creature) {
+        modifier = creature.initiative;
+      } else {
+        notes.push(token.characterId !== null ? 'Personagem sem ficha: iniciativa +0' : 'Sem ficha nem bloco de monstro: iniciativa +0');
+      }
+      if (surprised.has(tokenId)) disadvantage = [...disadvantage, 'Surpresa'];
+      const input: D20RollInput = { modifier, mode: d20Mode(advantage.length > 0, disadvantage.length > 0), ...(rules ? { rules } : {}) };
+      const result = rollD20(input, this.deps.rng);
+      const total = Math.max(MIN_INITIATIVE, Math.min(MAX_INITIATIVE, result.total));
+      return {
+        combatant: { tokenId, initiative: total, modifier },
+        result: {
+          tokenId,
+          name: token.name,
+          mode: input.mode,
+          dice: result.dice,
+          natural: result.natural,
+          modifier,
+          total,
+          notes: [
+            ...(advantage.length > 0 ? [`Vantagem: ${advantage.join(', ')}`] : []),
+            ...(disadvantage.length > 0 ? [`Desvantagem: ${disadvantage.join(', ')}`] : []),
+            ...d20StepNotes(result.steps),
+            ...notes,
+          ].slice(0, 50),
+        },
+      };
+    });
+    return { combatants: rolled.map((r) => r.combatant), entry: rolled.map((r) => r.result) };
+  }
+
+  /** Ordem de turnos pelo motor; quem estava na vez continua na vez. */
+  private ordered(combatants: Combat['combatants'], current: string | undefined): { combatants: Combat['combatants']; turn: number } {
+    const sorted = sortByInitiative(combatants.map((c) => ({ ...c, initiative: c.initiative ?? 0, modifier: c.modifier ?? 0 })));
+    const turn = current === undefined ? 0 : Math.max(0, sorted.findIndex((c) => c.tokenId === current));
+    return { combatants: sorted, turn };
+  }
+
+  private startCombat(playerId: string, data: IntentData<'combat.start'>): PatchOp[] {
+    if (this.current.combat) throw violation('Já há um combate em andamento');
+    const { combatants, entry } = this.rollInitiatives(data);
+    const order = this.ordered(combatants, undefined);
+    return [
+      this.replaceCombat({ round: 1, turn: order.turn, combatants: order.combatants }),
+      this.appendChat({ kind: 'combat_event', ...this.entryBase(playerId), event: 'started', round: 1 }),
+      this.appendChat({ kind: 'initiative_roll', ...this.entryBase(playerId), results: entry }),
+    ];
+  }
+
+  private joinCombat(playerId: string, data: IntentData<'combat.add'>): PatchOp[] {
+    const combat = this.combat();
+    if (data.tokenIds.some((id) => combat.combatants.some((c) => c.tokenId === id))) throw violation('Token já está no combate');
+    if (combat.combatants.length + data.tokenIds.length > MAX_COMBATANTS) throw violation(`No máximo ${MAX_COMBATANTS} combatentes`);
+    const { combatants, entry } = this.rollInitiatives(data);
+    const order = this.ordered([...combat.combatants, ...combatants], combat.combatants[combat.turn]?.tokenId);
+    return [
+      this.replaceCombat({ round: combat.round, turn: order.turn, combatants: order.combatants }),
+      this.appendChat({ kind: 'initiative_roll', ...this.entryBase(playerId), results: entry }),
+    ];
+  }
+
+  /** Tira o token do combate (se estiver nele); o último a sair encerra o combate. */
+  private leaveCombat(playerId: string, tokenId: string): PatchOp[] {
+    const combat = this.current.combat;
+    const index = combat ? combat.combatants.findIndex((c) => c.tokenId === tokenId) : -1;
+    if (!combat || index < 0) return [];
+    const position = turnAfterRemoval(combat, index, combat.combatants.length);
+    if (!position) return [this.replaceCombat(null), this.appendChat({ kind: 'combat_event', ...this.entryBase(playerId), event: 'ended', round: combat.round })];
+    const combatants = combat.combatants.filter((_, i) => i !== index);
+    return [
+      this.replaceCombat({ round: position.round, turn: position.turn, combatants }),
+      ...(position.newRound ? [this.appendChat({ kind: 'combat_event', ...this.entryBase(playerId), event: 'round', round: position.round })] : []),
+    ];
+  }
+
+  private setInitiative(tokenId: string, initiative: number): PatchOp[] {
+    const combat = this.combat();
+    const index = this.combatant(tokenId);
+    const combatants = combat.combatants.map((c, i) => (i === index ? { ...c, initiative } : c));
+    const order = this.ordered(combatants, combat.combatants[combat.turn]?.tokenId);
+    return [this.replaceCombat({ round: combat.round, turn: order.turn, combatants: order.combatants })];
+  }
+
+  /** O jogador controla o token: dono do token ou do personagem que ele representa. */
+  private controls(playerId: string, token: Token): boolean {
+    if (token.ownerIds.includes(playerId)) return true;
+    return token.characterId !== null && this.current.characters[token.characterId]?.ownerId === playerId;
+  }
+
+  private nextTurn(playerId: string, role: Role): PatchOp[] {
+    const combat = this.combat();
+    if (role !== 'gm') {
+      const current = combat.combatants[combat.turn];
+      const token = current ? this.current.tokens[current.tokenId] : undefined;
+      if (!token || !this.controls(playerId, token)) throw notAllowed('Só o mestre ou quem controla o combatente da vez passa o turno');
+    }
+    const position = nextTurn(combat, combat.combatants.length);
+    return [
+      this.replaceCombat({ ...combat, round: position.round, turn: position.turn }),
+      ...(position.newRound ? [this.appendChat({ kind: 'combat_event', ...this.entryBase(playerId), event: 'round', round: position.round })] : []),
+    ];
   }
 
   // --- Maestrias de arma (Fase 4, PR 5) -------------------------------------

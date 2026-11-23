@@ -48,4 +48,5 @@ export {
   TOPPLE_DC_BASE,
   toppleDc,
 } from './mastery';
+export { type InitiativeOrder, nextTurn, previousTurn, sortByInitiative, type TurnPosition, turnAfterRemoval } from './combat';
 export { CONDITION_NAME, DAMAGE_NAME } from './names';

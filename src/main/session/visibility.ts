@@ -1,4 +1,4 @@
-import { type ChatEntry, ChatEntrySchema, type PatchOp, type Role, type SessionState, type Token, TokenSchema } from '../../shared/protocol';
+import { type ChatEntry, ChatEntrySchema, type Combat, CombatSchema, type PatchOp, type Role, type SessionState, type Token, TokenSchema } from '../../shared/protocol';
 
 /**
  * Visibilidade por cliente (docs/network-protocol.md, seção 2.12): o mestre vê
@@ -6,7 +6,9 @@ import { type ChatEntry, ChatEntrySchema, type PatchOp, type Role, type SessionS
  * - a rolagem secreta vira `hidden_roll` na mesma posição (quem rolou sempre vê a própria);
  * - os PV de tokens que não são personagens (monstros) chegam como `null`,
  *   a menos que o jogador seja dono do token;
- * - as propostas de dano (fila do mestre) não chegam.
+ * - as propostas de dano (fila do mestre) não chegam;
+ * - a iniciativa de tokens que não são personagens só chega ao mestre e aos
+ *   donos do token: a ordem do combate é de todos, o valor não.
  */
 
 export interface Viewer {
@@ -14,7 +16,11 @@ export interface Viewer {
   role: Role;
 }
 
-export function redactEntry(entry: ChatEntry, viewer: Viewer): ChatEntry {
+export function redactEntry(entry: ChatEntry, viewer: Viewer, tokens: SessionState['tokens']): ChatEntry {
+  if (entry.kind === 'initiative_roll') {
+    if (viewer.role === 'gm') return entry;
+    return { ...entry, results: entry.results.filter((r) => seesInitiative(tokens[r.tokenId], viewer)) };
+  }
   const secret = entry.kind === 'roll' || entry.kind === 'd20_roll' || entry.kind === 'damage_roll' || entry.kind === 'attack_roll' || entry.kind === 'save_roll' || entry.kind === 'mastery_damage'
       ? entry.visibility === 'gm'
       : false;
@@ -27,6 +33,20 @@ export function seesTokenHp(token: Pick<Token, 'ownerIds'>, viewer: Viewer): boo
   return viewer.role === 'gm' || token.ownerIds.includes(viewer.playerId);
 }
 
+/** O jogador vê o valor da iniciativa deste token: personagens, e os tokens em que vê os PV. Token que saiu do mapa: não. */
+export function seesInitiative(token: Pick<Token, 'ownerIds' | 'characterId'> | undefined, viewer: Viewer): boolean {
+  if (viewer.role === 'gm') return true;
+  return token !== undefined && (token.characterId !== null || seesTokenHp(token, viewer));
+}
+
+function redactCombat(combat: Combat | null, viewer: Viewer, tokens: SessionState['tokens']): Combat | null {
+  if (!combat || viewer.role === 'gm') return combat;
+  return {
+    ...combat,
+    combatants: combat.combatants.map((c) => (seesInitiative(tokens[c.tokenId], viewer) ? c : { ...c, initiative: null, modifier: null })),
+  };
+}
+
 function redactToken(token: Token, viewer: Viewer): Token {
   return token.hp === null || seesTokenHp(token, viewer) ? token : { ...token, hp: null };
 }
@@ -36,9 +56,10 @@ export function viewOf(state: SessionState, viewer: Viewer): SessionState {
   if (viewer.role === 'gm') return state;
   return {
     ...state,
-    chat: state.chat.map((e) => redactEntry(e, viewer)),
+    chat: state.chat.map((e) => redactEntry(e, viewer, state.tokens)),
     tokens: Object.fromEntries(Object.entries(state.tokens).map(([id, t]) => [id, redactToken(t, viewer)])),
     proposals: {},
+    combat: redactCombat(state.combat, viewer, state.tokens),
   };
 }
 
@@ -55,7 +76,11 @@ export function opsFor(ops: readonly PatchOp[], viewer: Viewer, state: SessionSt
   return ops.flatMap((op): PatchOp[] => {
     if (op.op === 'add' && op.path.startsWith('/chat/')) {
       const entry = ChatEntrySchema.safeParse(op.value);
-      return [entry.success ? { ...op, value: redactEntry(entry.data, viewer) } : op];
+      return [entry.success ? { ...op, value: redactEntry(entry.data, viewer, state.tokens) } : op];
+    }
+    if (op.path === '/combat' && op.op !== 'remove') {
+      const combat = CombatSchema.nullable().safeParse(op.value);
+      return [combat.success ? { ...op, value: redactCombat(combat.data, viewer, state.tokens) } : op];
     }
     if (op.op !== 'remove' && TOKEN_PATH.test(op.path)) {
       const token = TokenSchema.safeParse(op.value);

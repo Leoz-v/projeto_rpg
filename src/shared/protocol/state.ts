@@ -1,6 +1,6 @@
 import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, EffectSchema, InventorySchema, SizeSchema, WeaponMasterySchema } from 'rules-engine/schemas';
 import { z } from 'zod';
-import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_HIT_POINTS, MAX_SAVE_TARGETS } from './constants';
+import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_COMBATANTS, MAX_HIT_POINTS, MAX_INITIATIVE, MAX_SAVE_TARGETS, MIN_INITIATIVE } from './constants';
 import { ChatTextSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 
 /** `SessionState` (docs/network-protocol.md, seção 5). */
@@ -191,6 +191,33 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     defenses: LogList,
     proposalId: UuidSchema.optional(),
   }),
+  /** Iniciativa rolada pelo Host (`combat.start`, `combat.add`): o resultado de cada token. */
+  z.strictObject({
+    kind: z.literal('initiative_roll'),
+    ...entryBase,
+    results: z
+      .array(
+        z.strictObject({
+          tokenId: UuidSchema,
+          name: NameSchema,
+          mode: d20Fields.mode,
+          dice: d20Fields.dice,
+          natural: d20Fields.natural,
+          modifier: z.int(),
+          total: z.int(),
+          /** Surpresa, regras do d20 da ficha, token sem bônus conhecido. */
+          notes: LogList,
+        }),
+      )
+      .max(MAX_COMBATANTS),
+  }),
+  /** Marco do combate: começou, rodada nova, terminou. */
+  z.strictObject({
+    kind: z.literal('combat_event'),
+    ...entryBase,
+    event: z.enum(['started', 'round', 'ended']),
+    round: z.int().min(1),
+  }),
   /** Dano aplicado pelo mestre nos PV de um token (`damage.apply`). */
   z.strictObject({
     kind: z.literal('damage_applied'),
@@ -294,6 +321,28 @@ export const DamageProposalSchema = z.strictObject({
 });
 export type DamageProposal = z.infer<typeof DamageProposalSchema>;
 
+export const InitiativeSchema = z.int().min(MIN_INITIATIVE).max(MAX_INITIATIVE);
+
+/** Combatente: o token e a iniciativa (`null` para quem não pode ver, seção 2.12). */
+export const CombatantSchema = z.strictObject({
+  tokenId: UuidSchema,
+  initiative: InitiativeSchema.nullable(),
+  /** Desempate: o modificador da iniciativa (`null` como a iniciativa). */
+  modifier: z.int().nullable(),
+});
+export type Combatant = z.infer<typeof CombatantSchema>;
+
+/** Combate em andamento: a rodada, o combatente da vez e a ordem de turnos. */
+export const CombatSchema = z
+  .strictObject({
+    round: z.int().min(1),
+    turn: z.int().min(0),
+    combatants: z.array(CombatantSchema).min(1).max(MAX_COMBATANTS),
+  })
+  .refine((c) => c.turn < c.combatants.length, { message: 'turno fora da ordem' })
+  .refine((c) => new Set(c.combatants.map((x) => x.tokenId)).size === c.combatants.length, { message: 'token repetido no combate' });
+export type Combat = z.infer<typeof CombatSchema>;
+
 export const SessionStateSchema = z.strictObject({
   campaign: z.strictObject({ id: UuidSchema, name: NameSchema }),
   players: z.record(UuidSchema, PlayerSchema),
@@ -304,5 +353,7 @@ export const SessionStateSchema = z.strictObject({
   characters: z.record(UuidSchema, SessionCharacterSchema),
   /** Danos propostos por ataques, para o mestre aplicar (estado da sessão: não é gravado na campanha). */
   proposals: z.record(UuidSchema, DamageProposalSchema),
+  /** Combate em andamento, ou `null`. */
+  combat: CombatSchema.nullable(),
 });
 export type SessionState = z.infer<typeof SessionStateSchema>;

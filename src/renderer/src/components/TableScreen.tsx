@@ -5,6 +5,7 @@ import type { MapStage } from '../canvas/MapStage';
 import { CharacterSheet } from './CharacterSheet';
 import { Characters } from './Characters';
 import { Chat } from './Chat';
+import { CombatTracker } from './CombatTracker';
 import { GmPanel } from './GmPanel';
 import { MapView } from './MapView';
 
@@ -105,6 +106,7 @@ export function TableScreen({ view }: { view: TableView }) {
         </button>
       </header>
       <aside className="sidebar">
+        <CombatTracker view={view} onSelect={setSelectedId} />
         <Players view={view} />
         <Characters view={view} onOpen={setOpenCharacterId} />
         {selectedId !== null && <SelectedCharacter view={view} tokenId={selectedId} onOpen={setOpenCharacterId} />}
