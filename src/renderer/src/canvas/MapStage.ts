@@ -21,6 +21,8 @@ export interface Scene {
   selectedId: string | null;
   /** Token do combatente da vez, ou `null` (sem combate). */
   activeId: string | null;
+  /** Condições do token em pt-BR, para o rótulo acima dele. */
+  conditions: (token: Token) => readonly string[];
   /** PV para a barra do token, ou `null` (sem barra). */
   health: (token: Token) => Health | null;
 }
@@ -40,6 +42,7 @@ const COLORS = {
   outline: 0x14121c,
   selected: 0xffd166,
   active: 0x5fd38d,
+  condition: 0xffd166,
   label: 0xe8e6ef,
 };
 
@@ -98,7 +101,7 @@ export class MapStage {
   private readonly views = new Map<string, TokenView>();
   private readonly textures = new Map<string, Promise<Texture | null>>();
   private camera: Camera = { x: 0, y: 0, zoom: 1 };
-  private scene: Scene = { map: null, tokens: [], canDrag: () => false, selectedId: null, activeId: null, health: () => null };
+  private scene: Scene = { map: null, tokens: [], canDrag: () => false, selectedId: null, activeId: null, conditions: () => [], health: () => null };
   private shownMapKey = '';
   private drag: { id: string; offset: Point } | undefined;
   private pan: { from: Point; camera: Camera } | undefined;
@@ -225,11 +228,12 @@ export class MapStage {
       this.views.delete(id);
     }
     for (const token of visible) {
-      const signature = [token.name, token.size, token.image ?? '', token.ownerIds.length > 0].join('|');
+      const conditions = this.scene.conditions(token);
+      const signature = [token.name, token.size, token.image ?? '', token.ownerIds.length > 0, conditions.join(',')].join('|');
       let view = this.views.get(token.id);
       if (view?.signature !== signature) {
         const old = view?.container;
-        view = { ...this.drawToken(token), signature };
+        view = { ...this.drawToken(token, conditions), signature };
         // Redesenhado no meio de um arrasto: continua onde o ponteiro está.
         if (old && this.drag?.id === token.id) view.container.position.copyFrom(old.position);
         old?.destroy({ children: true });
@@ -247,7 +251,7 @@ export class MapStage {
     }
   }
 
-  private drawToken(token: Token): { container: Container; ring: Graphics; turn: Graphics; bar: Graphics } {
+  private drawToken(token: Token, conditions: readonly string[]): { container: Container; ring: Graphics; turn: Graphics; bar: Graphics } {
     const side = tokenSide(token.size);
     const radius = side / 2;
     const container = new Container();
@@ -287,6 +291,17 @@ export class MapStage {
     const bar = new Graphics();
     bar.position.set(0, side + 4);
     container.addChild(label, bar);
+    if (conditions.length > 0) {
+      // Condições acima do token.
+      const tags = new Text({
+        text: conditions.join(' · '),
+        style: { fill: COLORS.condition, fontSize: 20, fontWeight: '600', fontFamily: 'system-ui, sans-serif', stroke: { color: COLORS.background, width: 6 } },
+        resolution: 2,
+      });
+      tags.anchor.set(0.5, 1);
+      tags.position.set(radius, -6);
+      container.addChild(tags);
+    }
 
     container.eventMode = 'static';
     container.on('pointerdown', (e) => {

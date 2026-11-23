@@ -13,6 +13,7 @@ const token = (overrides: Partial<Token>): Token => ({
   ownerIds: [],
   characterId: null,
   hp: null,
+  conditions: { active: [], exhaustion: 0 },
   ...overrides,
 });
 

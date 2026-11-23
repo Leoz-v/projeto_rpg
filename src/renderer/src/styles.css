@@ -1780,3 +1780,51 @@ button.small {
   color: var(--muted);
   border-style: dashed;
 }
+
+/* Condições */
+
+.conditions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.condition-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.tag.condition-tag {
+  color: var(--crit);
+  border-color: var(--crit);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.tag.condition-tag button.link {
+  padding: 0 0.15rem;
+  color: inherit;
+}
+
+.condition-edit {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.condition-edit select {
+  width: auto;
+}
+
+.exhaustion-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.entry.condition-event {
+  border-left: 3px solid var(--crit);
+}

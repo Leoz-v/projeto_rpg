@@ -58,7 +58,18 @@ export interface SheetInput {
   inventory: Inventory;
   adjustments: readonly GmAdjustment[];
   compendium: Compendium;
+  /** Condições postas na mesa (não vêm de itens nem de ajustes) e o nível de Exaustão. */
+  conditions?: TableConditions | undefined;
 }
+
+/** Condições ativas de uma criatura na mesa, como o estado da sessão guarda (Exaustão à parte, 0 a 6). */
+export interface TableConditions {
+  active: readonly { condition: Exclude<Condition, 'exhaustion'> }[];
+  exhaustion: number;
+}
+
+/** Fonte das condições postas na mesa. */
+export const TABLE_CONDITION_SOURCE: SourceLabel = { kind: 'rule', id: 'table_conditions', name: 'Condição na mesa' };
 
 const ABILITY_NAME: Record<Ability, string> = { str: 'FOR', dex: 'DES', con: 'CON', int: 'INT', wis: 'SAB', cha: 'CAR' };
 const RULE = (id: string, name: string): SourceLabel => ({ kind: 'rule', id, name });
@@ -173,6 +184,10 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       const source: SourceLabel = { kind: 'adjustment', id: adj.id, name: adj.name };
       return adj.effects.map((effect): SourcedEffect => ({ effect, source, refKey: `adjustment:${adj.id}` }));
     }),
+    ...(input.conditions?.active ?? []).map((c): SourcedEffect => ({ effect: { type: 'condition', condition: c.condition }, source: TABLE_CONDITION_SOURCE, refKey: 'table:conditions' })),
+    ...(input.conditions && input.conditions.exhaustion > 0
+      ? [{ effect: { type: 'condition', condition: 'exhaustion', level: Math.min(input.conditions.exhaustion, MAX_EXHAUSTION) }, source: TABLE_CONDITION_SOURCE, refKey: 'table:conditions' } satisfies SourcedEffect]
+      : []),
   ];
 
   /** A parte mágica vale quando ativa pela sua própria regra (vestido, sintonizado) e com sintonização permitida. */

@@ -270,7 +270,7 @@ describe('HostSession: characters', () => {
   it('creates an empty draft owned by whoever asked', () => {
     const session = setup();
     const id = create(session, ANA.playerId);
-    expect(session.state.characters[id]).toEqual({ id, ownerId: ANA.playerId, name: 'Thorin', baseScores: null, rolledScores: null, steps: [], inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] }, hp: { damage: 0, temp: 0 }, adjustments: [] });
+    expect(session.state.characters[id]).toEqual({ id, ownerId: ANA.playerId, name: 'Thorin', baseScores: null, rolledScores: null, steps: [], inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] }, hp: { damage: 0, temp: 0 }, adjustments: [], conditions: { active: [], exhaustion: 0 } });
     expect(SessionStateSchema.safeParse(session.state).success).toBe(true);
   });
 
@@ -1079,6 +1079,86 @@ describe('HostSession: combat and initiative', () => {
     expect(applied(a.session.handle(GM.playerId, { kind: 'combat.end', data: {} }))).toBe(true);
     expect(a.session.state.combat).toBeNull();
     expect(a.session.state.chat.at(-1)).toMatchObject({ kind: 'combat_event', event: 'ended', round: 1 });
+  });
+});
+
+describe('HostSession: conditions', () => {
+  const fighter = dwarfFighter as { character: { baseScores: SessionCharacter['baseScores']; steps: SessionCharacter['steps'] } };
+
+  /** Thorin (anão: imune a nada, Resistência a veneno), seu token, um Skeleton (imune a Envenenado e Exaustão) e um token da Ana sem personagem. */
+  function table() {
+    const session = setup({
+      monsterExists: (id) => compendium.creatures.some((c) => c.id === id),
+      monsterHpMax: (id) => compendium.creatures.find((c) => c.id === id)?.hp.average,
+    });
+    session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Cripta', width: 10, height: 10 } });
+    const mapId = Object.keys(session.state.maps)[0] ?? '';
+    session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Thorin' } });
+    const hero = Object.keys(session.state.characters)[0] ?? '';
+    const steps = CharacterSchema.shape.steps.parse(fighter.character.steps);
+    session.handle(ANA.playerId, { kind: 'character.update', data: { characterId: hero, baseScores: fighter.character.baseScores ?? undefined, steps } });
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Thorin', position: { x: 0, y: 0 }, size: 'medium', characterId: hero } });
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Skeleton 1', position: { x: 100, y: 0 }, size: 'medium', monsterId: 'skeleton' } });
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Lobo da Ana', position: { x: 200, y: 0 }, size: 'medium', ownerIds: [ANA.playerId] } });
+    const id = (name: string) => Object.values(session.state.tokens).find((t) => t.name === name)?.id ?? '';
+    return { session, hero, thorin: id('Thorin'), skeleton: id('Skeleton 1'), wolf: id('Lobo da Ana') };
+  }
+  type Table = ReturnType<typeof table>;
+  const add = (t: Table, target: { characterId: string } | { tokenId: string }, condition: 'prone' | 'poisoned' | 'blinded', who = GM.playerId) =>
+    t.session.handle(who, { kind: 'condition.add', data: { target, condition } });
+
+  it('stores the conditions of a character token on the character, and logs the change', () => {
+    const t = table();
+    expect(applied(add(t, { tokenId: t.thorin }, 'prone', ANA.playerId))).toBe(true);
+    expect(t.session.state.characters[t.hero]?.conditions).toEqual({ active: [{ condition: 'prone' }], exhaustion: 0 });
+    expect(t.session.state.tokens[t.thorin]?.conditions).toEqual({ active: [], exhaustion: 0 });
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'condition_changed', target: { characterId: t.hero }, targetName: 'Thorin', change: { kind: 'added', condition: 'prone' }, notes: [] });
+    expect(rejection(add(t, { characterId: t.hero }, 'prone'))).toBe('rule_violation');
+    expect(applied(t.session.handle(ANA.playerId, { kind: 'condition.remove', data: { target: { characterId: t.hero }, condition: 'prone' } }))).toBe(true);
+    expect(t.session.state.characters[t.hero]?.conditions.active).toEqual([]);
+    expect(rejection(t.session.handle(ANA.playerId, { kind: 'condition.remove', data: { target: { characterId: t.hero }, condition: 'prone' } }))).toBe('rule_violation');
+  });
+
+  it('lets players change only their own characters and tokens', () => {
+    const t = table();
+    expect(rejection(add(t, { characterId: t.hero }, 'blinded', BRUNO.playerId))).toBe('not_allowed');
+    expect(rejection(add(t, { tokenId: t.thorin }, 'blinded', BRUNO.playerId))).toBe('not_allowed');
+    expect(rejection(add(t, { tokenId: t.skeleton }, 'prone', ANA.playerId))).toBe('not_allowed');
+    expect(applied(add(t, { tokenId: t.wolf }, 'prone', ANA.playerId))).toBe(true);
+    expect(t.session.state.tokens[t.wolf]?.conditions.active).toEqual([{ condition: 'prone' }]);
+    expect(applied(add(t, { tokenId: t.skeleton }, 'prone'))).toBe(true);
+  });
+
+  it('respects condition immunities, with a GM override that is logged', () => {
+    const t = table();
+    // Skeleton: imune a Envenenado e a Exaustão.
+    const wolfOwnerTry = t.session.handle(ANA.playerId, { kind: 'condition.add', data: { target: { tokenId: t.wolf }, condition: 'poisoned' } });
+    expect(applied(wolfOwnerTry)).toBe(true);
+    t.session.handle(GM.playerId, { kind: 'token.create', data: { mapId: Object.keys(t.session.state.maps)[0] ?? '', name: 'Skeleton 2', position: { x: 300, y: 0 }, size: 'medium', monsterId: 'skeleton', ownerIds: [ANA.playerId] } });
+    const owned = Object.values(t.session.state.tokens).find((x) => x.name === 'Skeleton 2')?.id ?? '';
+    expect(rejection(add(t, { tokenId: owned }, 'poisoned', ANA.playerId))).toBe('rule_violation');
+    expect(applied(add(t, { tokenId: t.skeleton }, 'poisoned'))).toBe(true);
+    expect(t.session.state.chat.at(-1)).toMatchObject({ notes: ['Skeleton 1 é imune a Envenenado (aplicada pelo mestre)'] });
+  });
+
+  it('sets exhaustion levels, feeds the sheet and warns about death at level 6', () => {
+    const t = table();
+    const speed = (): number | undefined => {
+      const character = t.session.state.characters[t.hero];
+      return character ? characterSheet(character, compendium).sheet?.speed.walk.total : undefined;
+    };
+    const before = speed() ?? 0;
+    expect(applied(t.session.handle(ANA.playerId, { kind: 'exhaustion.set', data: { target: { tokenId: t.thorin }, level: 2 } }))).toBe(true);
+    expect(t.session.state.characters[t.hero]?.conditions.exhaustion).toBe(2);
+    expect(speed()).toBe(before - 10);
+    expect(t.session.state.chat.at(-1)).toMatchObject({ change: { kind: 'exhaustion', from: 0, to: 2 } });
+    expect(rejection(t.session.handle(ANA.playerId, { kind: 'exhaustion.set', data: { target: { tokenId: t.thorin }, level: 2 } }))).toBe('rule_violation');
+    t.session.handle(GM.playerId, { kind: 'exhaustion.set', data: { target: { characterId: t.hero }, level: 6 } });
+    expect(t.session.state.chat.at(-1)).toMatchObject({ notes: ['Exaustão 6: Thorin morre (SRD)'] });
+    // Descer o nível de um imune não esbarra na imunidade.
+    t.session.handle(GM.playerId, { kind: 'exhaustion.set', data: { target: { tokenId: t.skeleton }, level: 1 } });
+    expect(applied(t.session.handle(GM.playerId, { kind: 'exhaustion.set', data: { target: { tokenId: t.skeleton }, level: 0 } }))).toBe(true);
+    expect(t.session.state.chat.at(-1)).toMatchObject({ notes: [] });
   });
 });
 

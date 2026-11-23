@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { TableView } from '../../../shared/ipc';
 import { tokenHealth } from '../canvas/health';
+import { conditionLabels, tokenConditions } from '../canvas/conditions';
 import { MapStage } from '../canvas/MapStage';
 import { sendIntent } from '../store/table';
 
@@ -85,6 +86,7 @@ export function MapView({ view, selectedId, onSelect, onStage }: Props) {
       canDrag: (token) => info.role === 'gm' || token.ownerIds.includes(info.playerId),
       selectedId,
       activeId: state.combat?.combatants[state.combat.turn]?.tokenId ?? null,
+      conditions: (token) => conditionLabels(tokenConditions(token, state.characters)),
       health: (token) => tokenHealth(token, state.characters, maxima),
     });
   }, [stage, map, state.tokens, state.characters, state.combat, maxima, info.role, info.playerId, selectedId]);

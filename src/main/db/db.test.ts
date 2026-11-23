@@ -153,8 +153,8 @@ describe('CampaignDb', () => {
     maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: null, cellPx: null } },
     activeMapId: MAP,
     tokens: {
-      [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [], characterId: null, hp: { max: 7, damage: 2, temp: 0 } },
-      [HERO_TOKEN]: { id: HERO_TOKEN, mapId: MAP, name: 'Thorin', position: { x: 0, y: 0 }, size: 'medium', monsterId: null, image: null, ownerIds: [ANA], characterId: HERO, hp: null },
+      [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [], characterId: null, hp: { max: 7, damage: 2, temp: 0 }, conditions: { active: [{ condition: 'prone' }], exhaustion: 1 } },
+      [HERO_TOKEN]: { id: HERO_TOKEN, mapId: MAP, name: 'Thorin', position: { x: 0, y: 0 }, size: 'medium', monsterId: null, image: null, ownerIds: [ANA], characterId: HERO, hp: null, conditions: { active: [], exhaustion: 0 } },
     },
     characters: {
       [HERO]: {
@@ -170,6 +170,7 @@ describe('CampaignDb', () => {
         },
         hp: { damage: 3, temp: 5 },
         adjustments: [{ id: randomUUID(), name: 'Bênção do Templo', effects: [{ type: 'flat_bonus', target: 'save.all', value: 1 }] }],
+        conditions: { active: [{ condition: 'poisoned' }], exhaustion: 2 },
       },
     },
     ...overrides,

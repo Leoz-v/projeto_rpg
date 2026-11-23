@@ -16,6 +16,7 @@ const draft = (overrides: Partial<SessionCharacter> = {}): SessionCharacter => (
   inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] },
   hp: { damage: 0, temp: 0 },
   adjustments: [],
+  conditions: { active: [], exhaustion: 0 },
   ...overrides,
 });
 

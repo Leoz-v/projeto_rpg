@@ -1,7 +1,7 @@
 import { type CharacterInput, CharacterSchema, GmAdjustmentSchema } from '../../src/schemas/character';
 import { type InventoryInput, InventorySchema } from '../../src/schemas/inventory';
 import { type ItemInput, ItemSchema } from '../../src/schemas/item';
-import { deriveSheet } from '../../src/engine/sheet';
+import { deriveSheet, type TableConditions } from '../../src/engine/sheet';
 import { FeatSchema, SubclassSchema } from '../../src/schemas/source';
 import type { DerivedSheet } from '../../src/engine/types';
 import { type Compendium, loadSrdCompendium } from '../../src/srd';
@@ -56,12 +56,14 @@ export function derive(options: {
   inventory?: InventoryInput;
   adjustments?: unknown[];
   compendium?: Compendium;
+  conditions?: TableConditions;
 }): DerivedSheet {
   return deriveSheet({
     character: CharacterSchema.parse({ id: 'test', name: 'Teste', baseScores: options.baseScores ?? STANDARD, steps: options.steps ?? fighterSteps() }),
     inventory: InventorySchema.parse(options.inventory ?? {}),
     adjustments: (options.adjustments ?? []).map((a) => GmAdjustmentSchema.parse(a)),
     compendium: options.compendium ?? loadSrdCompendium(),
+    conditions: options.conditions,
   });
 }
 
