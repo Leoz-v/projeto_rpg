@@ -1,10 +1,15 @@
 import { randomUUID } from 'node:crypto';
-import { seededRng } from 'rules-engine';
+import { loadSrdCompendium, seededRng } from 'rules-engine';
 import { describe, expect, it } from 'vitest';
 import { applyPatch, type Intent, SessionStateSchema } from '../../shared/protocol';
+import { CharacterSchema } from 'rules-engine/schemas';
+import { characterSheet } from '../character-sheet';
 import { HostSession, type IntentOutcome, type SessionDeps } from './executor';
+import dwarfFighter from '../../../packages/rules-engine/tests/fixtures/dwarf-fighter-5.json';
+import type { SessionCharacter } from '../../shared/protocol';
 import { cryptoRng } from './rng';
 
+const compendium = loadSrdCompendium();
 const CAMPAIGN = { id: randomUUID(), name: 'A Mina Perdida' };
 const GM = { playerId: randomUUID(), displayName: 'Mestre' };
 const ANA = { playerId: randomUUID(), displayName: 'Ana' };
@@ -20,7 +25,7 @@ function setup(overrides: Partial<SessionDeps> = {}): HostSession {
     monsterExists: (id) => id === 'goblin',
     pruneSteps: (steps) => steps,
     itemProblems: (entry) => (entry.itemId === 'rope' || entry.itemId === 'ring_of_protection' ? [] : ['Item desconhecido']),
-    characterHpMax: (c) => (c.baseScores === null ? undefined : 12),
+    characterSheet: (c) => characterSheet(c, compendium).sheet ?? undefined,
     monsterHpMax: (id) => (id === 'goblin' ? 7 : undefined),
     assetExists: (sha) => sha === KNOWN_IMAGE,
     ...overrides,
@@ -353,7 +358,7 @@ describe('HostSession: characters', () => {
   it('restores saved characters', () => {
     const first = setup();
     const id = create(first, ANA.playerId);
-    const restored = new HostSession(CAMPAIGN, GM, { rng: cryptoRng, now: Date.now, newId: randomUUID, monsterExists: () => false, assetExists: () => false, pruneSteps: (s) => s, itemProblems: () => [], characterHpMax: () => 10, monsterHpMax: () => undefined }, first.state);
+    const restored = new HostSession(CAMPAIGN, GM, { rng: cryptoRng, now: Date.now, newId: randomUUID, monsterExists: () => false, assetExists: () => false, pruneSteps: (s) => s, itemProblems: () => [], characterSheet: () => undefined, monsterHpMax: () => undefined }, first.state);
     expect(restored.state.characters[id]?.name).toBe('Thorin');
   });
 });
@@ -441,7 +446,7 @@ describe('HostSession: GM adjustments', () => {
 describe('HostSession: hit points', () => {
   const STANDARD = { method: 'standard_array' as const, scores: { str: 15, dex: 14, con: 13, int: 12, wis: 10, cha: 8 } };
 
-  /** Mapa, um goblin (PV médios 7), e um personagem da Ana com ficha (PV máximos 12 no stub). */
+  /** Mapa, um goblin (PV médios 7), e um Guerreiro 1 da Ana (PV máximos 10 + CON 1 = 11). */
   function table(): { session: HostSession; goblin: string; hero: string } {
     const session = setup();
     session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10 } });
@@ -449,7 +454,7 @@ describe('HostSession: hit points', () => {
     session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Goblin 1', position: { x: 0, y: 0 }, size: 'small', monsterId: 'goblin' } });
     session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Thorin' } });
     const hero = Object.keys(session.state.characters)[0] ?? '';
-    session.handle(ANA.playerId, { kind: 'character.update', data: { characterId: hero, baseScores: STANDARD } });
+    session.handle(ANA.playerId, { kind: 'character.update', data: { characterId: hero, baseScores: STANDARD, steps: [{ kind: 'class_level', classId: 'fighter', selections: [] }] } });
     return { session, goblin: Object.keys(session.state.tokens)[0] ?? '', hero };
   }
   const hp = (session: HostSession, change: { kind: 'damage' | 'healing' | 'temp' | 'max'; amount: number }, target: { characterId: string } | { tokenId: string }, who = GM.playerId) =>
@@ -527,5 +532,82 @@ describe('HostSession: hit points', () => {
     const wolf = Object.values(session.state.tokens).find((t) => t.name === 'Lobo da Ana');
     expect(session.viewFor(ANA.playerId).tokens[wolf?.id ?? '']?.hp).toEqual({ max: 11, damage: 0, temp: 0 });
     expect(session.viewFor(BRUNO.playerId).tokens[wolf?.id ?? '']?.hp).toBeNull();
+  });
+});
+
+describe('HostSession: rolls from the sheet', () => {
+  /** Dados em sequência, para saber o resultado. */
+  const sequence = (values: number[]) => {
+    let i = 0;
+    return { roll: () => values[i++ % values.length] ?? 1 };
+  };
+  const fighter = dwarfFighter as { character: { baseScores: SessionCharacter['baseScores']; steps: SessionCharacter['steps'] }; inventory: { items: unknown[] } };
+
+  /** Guerreiro anão 5 da Ana (personagem de referência), com cota de malha, escudo e espada longa equipados. */
+  function withFighter(rolls: number[]): { session: HostSession; id: string } {
+    const session = setup({ rng: sequence(rolls), itemProblems: () => [] });
+    session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Thorin' } });
+    const id = Object.keys(session.state.characters)[0] ?? '';
+    // Como na mesa: o Intent passa pelo schema (que completa `selections` omitidas no JSON).
+    const steps = CharacterSchema.shape.steps.parse(fighter.character.steps);
+    session.handle(ANA.playerId, { kind: 'character.update', data: { characterId: id, baseScores: fighter.character.baseScores ?? undefined, steps } });
+    for (const itemId of ['chain_mail', 'shield', 'longsword']) {
+      session.handle(ANA.playerId, { kind: 'inventory.add', data: { characterId: id, itemId } });
+      const entry = session.state.characters[id]?.inventory.items.at(-1);
+      session.handle(ANA.playerId, { kind: 'inventory.update', data: { characterId: id, instanceId: entry?.instanceId ?? '', equipped: true } });
+    }
+    return { session, id };
+  }
+  const last = (session: HostSession) => session.state.chat.at(-1);
+
+  it('rolls a skill with the sheet modifier, advantage and breakdown', () => {
+    const { session, id } = withFighter([4, 17]);
+    expect(applied(session.handle(ANA.playerId, { kind: 'roll.d20', data: { characterId: id, target: { kind: 'skill', skill: 'athletics' }, visibility: 'public' } }))).toBe(true);
+    const entry = last(session);
+    if (entry?.kind !== 'd20_roll') throw new Error('sem rolagem');
+    // Remarkable Athlete: Vantagem em Atletismo; fica o 17.
+    expect(entry).toMatchObject({ characterName: 'Thorin', mode: 'advantage', dice: [4, 17], natural: 17, advantage: ['Champion'] });
+    expect(entry.total).toBe(17 + entry.modifier);
+    expect(entry.parts.reduce((sum, p) => sum + p.value, 0)).toBe(entry.modifier);
+  });
+
+  it('marks critical hits only on attack rolls', () => {
+    const { session, id } = withFighter([20, 20]);
+    session.handle(ANA.playerId, { kind: 'roll.d20', data: { characterId: id, target: { kind: 'skill', skill: 'athletics' }, visibility: 'public' } });
+    expect(last(session)).toMatchObject({ kind: 'd20_roll', natural: 20, critical: false });
+  });
+
+  it('cancels the armor disadvantage on Stealth with a declared advantage', () => {
+    const { session, id } = withFighter([9]);
+    session.handle(ANA.playerId, { kind: 'roll.d20', data: { characterId: id, target: { kind: 'skill', skill: 'stealth' }, advantage: true, visibility: 'public' } });
+    expect(last(session)).toMatchObject({ kind: 'd20_roll', mode: 'normal', dice: [9] });
+  });
+
+  it('rolls attacks with the crit range and damage with doubled dice on a critical', () => {
+    const { session, id } = withFighter([19, 6, 2]);
+    const sword = session.state.characters[id]?.inventory.items.find((e) => e.itemId === 'longsword')?.instanceId ?? '';
+    session.handle(ANA.playerId, { kind: 'roll.d20', data: { characterId: id, target: { kind: 'attack', instanceId: sword }, visibility: 'public' } });
+    // Improved Critical: 19 é crítico.
+    expect(last(session)).toMatchObject({ kind: 'd20_roll', natural: 19, critical: true, label: 'Longsword' });
+    session.handle(ANA.playerId, { kind: 'roll.damage', data: { characterId: id, instanceId: sword, critical: true, visibility: 'public' } });
+    const damage = last(session);
+    if (damage?.kind !== 'damage_roll') throw new Error('sem dano');
+    expect(damage.groups[0]).toMatchObject({ dice: '2d8', type: 'slashing', total: 8 });
+    expect(damage.total).toBe(8 + damage.bonus);
+  });
+
+  it('checks ownership and that the attack is on the sheet', () => {
+    const { session, id } = withFighter([10]);
+    expect(rejection(session.handle(BRUNO.playerId, { kind: 'roll.d20', data: { characterId: id, target: { kind: 'initiative' }, visibility: 'public' } }))).toBe('not_allowed');
+    expect(applied(session.handle(GM.playerId, { kind: 'roll.d20', data: { characterId: id, target: { kind: 'initiative' }, visibility: 'gm' } }))).toBe(true);
+    expect(rejection(session.handle(ANA.playerId, { kind: 'roll.damage', data: { characterId: id, instanceId: 'nao-equipada', visibility: 'public' } }))).toBe('rule_violation');
+  });
+
+  it('hides secret sheet rolls from other players', () => {
+    const { session, id } = withFighter([12]);
+    const outcome = session.handle(ANA.playerId, { kind: 'roll.d20', data: { characterId: id, target: { kind: 'skill', skill: 'perception' }, visibility: 'gm' } });
+    if (!outcome.change) throw new Error('sem mudança');
+    expect(session.patchFor(outcome.change, BRUNO.playerId).ops[0]).toMatchObject({ value: { kind: 'hidden_roll' } });
+    expect(session.patchFor(outcome.change, ANA.playerId).ops[0]).toMatchObject({ value: { kind: 'd20_roll' } });
   });
 });

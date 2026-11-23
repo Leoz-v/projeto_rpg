@@ -1495,3 +1495,84 @@ button.heal {
   justify-content: space-between;
   align-items: baseline;
 }
+
+/* Rolagens da ficha no chat */
+
+.entry.critical {
+  border-color: var(--crit);
+}
+
+.tag.crit-tag {
+  border-color: var(--crit);
+  color: var(--crit);
+}
+
+.tag.fumble-tag {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.entry .reminder {
+  font-style: italic;
+}
+
+.entry p.hint {
+  font-size: 0.8rem;
+}
+
+/* Rolagens na ficha */
+
+.roll-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+.roll-toolbar label.check {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.roll-toolbar label.check input {
+  width: auto;
+}
+
+.roll-toolbar .error {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+button.roll-button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 5px;
+}
+
+button.roll-button:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+button.small {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.attack-rolls {
+  white-space: nowrap;
+}
+
+.attack-rolls button + button {
+  margin-left: 0.3rem;
+}
+
+.skills li {
+  grid-template-columns: auto 1fr auto auto;
+}

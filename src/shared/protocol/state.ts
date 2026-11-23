@@ -1,7 +1,7 @@
-import { ABILITY_ROLL_SETS, BaseScoresSchema, CharacterSchema, EffectSchema, InventorySchema, SizeSchema } from 'rules-engine/schemas';
+import { ABILITY_ROLL_SETS, BaseScoresSchema, CharacterSchema, DamageTypeSchema, EffectSchema, InventorySchema, SizeSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_HIT_POINTS } from './constants';
-import { ChatTextSchema, HitPointStateSchema, LabelSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
+import { ChatTextSchema, HitPointStateSchema, LabelSchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 
 /** `SessionState` (docs/network-protocol.md, seção 5). */
 
@@ -20,6 +20,11 @@ export type Player = z.infer<typeof PlayerSchema>;
 
 const entryBase = { id: UuidSchema, at: z.int().nonnegative(), authorId: UuidSchema };
 
+/** Textos curtos do log de uma rolagem (rótulos da conta, fontes, notas). */
+const LogText = z.string().min(1).max(200);
+const LogList = z.array(LogText).max(50);
+const DieSchema = z.strictObject({ sides: z.int().positive(), value: z.int().positive(), rolled: z.int().positive().optional() });
+
 export const ChatEntrySchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('message'), ...entryBase, text: ChatTextSchema }),
   z.strictObject({
@@ -33,6 +38,49 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
   }),
   /** Rolagem do mestre vista por um jogador (seção 2.12): sem fórmula, rótulo nem resultado. */
   z.strictObject({ kind: z.literal('hidden_roll'), ...entryBase }),
+  /** Teste d20 a partir da ficha (`roll.d20`): perícia, salvaguarda, iniciativa, morte ou ataque. */
+  z.strictObject({
+    kind: z.literal('d20_roll'),
+    ...entryBase,
+    characterId: UuidSchema,
+    characterName: NameSchema,
+    target: SheetRollTargetSchema,
+    /** Nome do ataque (arma), quando o alvo é um ataque. */
+    label: LabelSchema.optional(),
+    visibility: VisibilitySchema,
+    mode: z.enum(['normal', 'advantage', 'disadvantage']),
+    dice: z.array(z.int().min(1).max(20)).min(1).max(4),
+    natural: z.int().min(1).max(20),
+    modifier: z.int(),
+    total: z.int(),
+    critical: z.boolean(),
+    fumble: z.boolean(),
+    /** A conta do modificador. */
+    parts: z.array(z.strictObject({ label: LogText, value: z.int() })).max(50),
+    advantage: LogList,
+    disadvantage: LogList,
+    /** O que as regras do d20 fizeram (rolar de novo, mínimo, conta como 20). */
+    notes: LogList,
+    /** O que pode valer e a ficha não decide sozinha (circunstâncias). */
+    reminders: LogList,
+  }),
+  /** Dano de uma arma da ficha (`roll.damage`). */
+  z.strictObject({
+    kind: z.literal('damage_roll'),
+    ...entryBase,
+    characterId: UuidSchema,
+    characterName: NameSchema,
+    label: LabelSchema,
+    visibility: VisibilitySchema,
+    critical: z.boolean(),
+    groups: z
+      .array(z.strictObject({ dice: z.string().min(1).max(100), type: DamageTypeSchema, source: LogText.optional(), rolls: z.array(DieSchema).max(200), total: z.int() }))
+      .min(1)
+      .max(20),
+    bonus: z.int(),
+    total: z.int().nonnegative(),
+    dieMinimum: z.strictObject({ value: z.int().positive(), source: LogText }).optional(),
+  }),
   /** Atributos rolados pelo Host para um personagem (`character.roll_scores`): seis vezes 4d6, descartando o menor. */
   z.strictObject({
     kind: z.literal('ability_roll'),

@@ -180,6 +180,11 @@ describe('intents', () => {
     expect(intent('adjustment.add', { characterId: HERO, name: 'Bênção', effects: [{ type: 'flat_bonus', target: 'ac', value: 1 }, { type: 'resistance', damageType: 'fire' }] })).toBe(true);
     expect(intent('adjustment.remove', { characterId: HERO, adjustmentId: ROLL })).toBe(true);
     expect(intent('hp.change', { target: { characterId: HERO }, change: { kind: 'damage', amount: 7 } })).toBe(true);
+    expect(intent('roll.d20', { characterId: HERO, target: { kind: 'skill', skill: 'stealth' }, advantage: true, visibility: 'public' })).toBe(true);
+    expect(intent('roll.d20', { characterId: HERO, target: { kind: 'attack', instanceId: 'sword' }, visibility: 'gm' })).toBe(true);
+    expect(intent('roll.d20', { characterId: HERO, target: { kind: 'skill', skill: 'luck' }, visibility: 'public' })).toBe(false);
+    expect(intent('roll.damage', { characterId: HERO, instanceId: 'sword', critical: true, visibility: 'public' })).toBe(true);
+    expect(intent('roll.damage', { characterId: HERO, instanceId: 'sword' })).toBe(false);
     expect(intent('hp.change', { target: { tokenId: TOKEN }, change: { kind: 'max', amount: 22 } })).toBe(true);
     expect(intent('token.create', { mapId: MAP, name: 'Barril', position: { x: 0, y: 0 }, size: 'medium', hpMax: 5 })).toBe(true);
     expect(intent('hp.change', { target: { tokenId: TOKEN }, change: { kind: 'damage', amount: -3 } })).toBe(false);

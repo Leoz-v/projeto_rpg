@@ -32,7 +32,7 @@ async function host(options: Partial<HostServerOptions> = {}): Promise<{ server:
     monsterExists: () => true,
     pruneSteps: (steps) => steps,
     itemProblems: () => [],
-    characterHpMax: () => 10,
+    characterSheet: () => undefined,
     monsterHpMax: () => 7,
     assetExists: () => true,
   });
