@@ -5,6 +5,7 @@ const api: VttApi = {
   getAppInfo: () => ipcRenderer.invoke(IpcChannel.getAppInfo),
   getPreferences: () => ipcRenderer.invoke(IpcChannel.getPreferences),
   listCampaigns: () => ipcRenderer.invoke(IpcChannel.listCampaigns),
+  deleteCampaign: (id) => ipcRenderer.invoke(IpcChannel.deleteCampaign, id),
   hostTable: (request) => ipcRenderer.invoke(IpcChannel.hostTable, request),
   joinTable: (request) => ipcRenderer.invoke(IpcChannel.joinTable, request),
   leaveTable: () => ipcRenderer.invoke(IpcChannel.leaveTable),

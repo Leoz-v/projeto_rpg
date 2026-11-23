@@ -161,6 +161,15 @@ describe('TableController: saved campaigns', () => {
     second.close();
   });
 
+  it('knows which campaign is open, so it cannot be deleted while hosting', async () => {
+    const { gm } = await hosted();
+    const [open] = gm.library.list();
+    expect(gm.controller.isHosting(open?.id ?? '')).toBe(true);
+    expect(gm.controller.isHosting(randomUUID())).toBe(false);
+    await gm.controller.leave();
+    expect(gm.controller.isHosting(open?.id ?? '')).toBe(false);
+  });
+
   it('turns a missing campaign into a TableError', async () => {
     const gm = app();
     await expect(gm.controller.host({ campaign: { kind: 'existing', id: randomUUID() }, displayName: 'Mestre', port: 0 })).rejects.toThrow('Arquivo da campanha não encontrado');

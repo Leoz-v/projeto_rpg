@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -207,6 +207,44 @@ describe('CampaignLibrary', () => {
 
     rmSync(summary?.file ?? '');
     expect(() => library.open({ kind: 'existing', id: created.campaign.id })).toThrow(CampaignNotFoundError);
+    app.close();
+  });
+
+  it('deletes a campaign: file and backup to the trash, SQLite side files removed, out of the index', async () => {
+    const dir = tempDir();
+    const app = AppDb.open(join(dir, 'app.db'));
+    const trashed: string[] = [];
+    const library = new CampaignLibrary(app, join(dir, 'campaigns'), () => 1, (file) => {
+      trashed.push(file);
+      rmSync(file);
+      return Promise.resolve();
+    });
+    const keep = library.open({ kind: 'new', name: 'Fica' });
+    keep.close();
+    const gone = library.open({ kind: 'new', name: 'Sai' });
+    gone.close();
+    const file = library.list().find((c) => c.id === gone.campaign.id)?.file ?? '';
+    copyFileSync(file, `${file}.bak`);
+    writeFileSync(`${file}-wal`, '');
+    writeFileSync(`${file}-shm`, '');
+
+    await library.delete(gone.campaign.id);
+    expect(trashed).toEqual([file, `${file}.bak`]);
+    expect([`${file}-wal`, `${file}-shm`].some((f) => existsSync(f))).toBe(false);
+    expect(library.list().map((c) => c.name)).toEqual(['Fica']);
+    await expect(library.delete(gone.campaign.id)).rejects.toThrow(CampaignNotFoundError);
+    app.close();
+  });
+
+  it('removes from the index a campaign whose file is already gone', async () => {
+    const dir = tempDir();
+    const app = AppDb.open(join(dir, 'app.db'));
+    const library = new CampaignLibrary(app, join(dir, 'campaigns'));
+    const lost = library.open({ kind: 'new', name: 'Perdida' });
+    lost.close();
+    rmSync(library.list()[0]?.file ?? '');
+    await library.delete(lost.campaign.id);
+    expect(library.list()).toEqual([]);
     app.close();
   });
 });

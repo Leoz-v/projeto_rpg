@@ -159,7 +159,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - ✅ Executor de sessão em `src/main/session/` (lógica pura: permissões, `rev`, visibilidade, rolagem com o RNG do Host). Ver `docs/decisions/0020-executor-de-sessao.md`.
    - ✅ Transporte WebSocket em `src/main/net/` (handshake, Ping/Pong, limites, cliente com ressincronização). Ver `docs/decisions/0021-transporte-websocket.md`.
    - ✅ IPC e tela da mesa (`src/main/table/`, telas de hospedar e entrar, chat com `/r` e `/gr`). Ver `docs/decisions/0022-tela-da-mesa-e-ipc.md`.
-   - ✅ SQLite em `src/main/db/` (`app.db` com o id do jogador, preferências e índice de campanhas; `<campanha>.db` com a sessão; migrações com `.bak`). Ver `docs/decisions/0023-sqlite-embutido-no-node.md`.
+   - ✅ SQLite em `src/main/db/` (`app.db` com o id do jogador, preferências e índice de campanhas; `<campanha>.db` com a sessão; migrações com `.bak`). Ver `docs/decisions/0023-sqlite-embutido-no-node.md`. Campanhas podem ser excluídas pela tela inicial (o arquivo vai para a Lixeira, nota 0026).
    - ✅ Assets em `src/main/assets/` (armazenamento por SHA-256, `vtt-asset://` com CORS para o PixiJS, `AssetChunk` com conferência do hash, importação de imagens pelo mestre). Ver `docs/decisions/0025-assets-por-hash.md`.
    - Mapa PixiJS (grid, tokens, câmera, `token.move`).
 3. **Fase 3 — Fichas & Progressão (interface):** telas de criação de personagem e de subida de nível sobre o motor da Fase 1, gerenciamento de inventário e sincronização offline com aprovação do mestre.

@@ -15,7 +15,7 @@ interface FormProps {
   onError: (message: string | null) => void;
 }
 
-function HostForm({ preferences, campaigns, onError }: FormProps & { campaigns: CampaignSummary[] }) {
+function HostForm({ preferences, campaigns, onError, onDeleted }: FormProps & { campaigns: CampaignSummary[]; onDeleted: () => void }) {
   // Com campanhas salvas, a mais recente vem selecionada: o caso comum é continuar.
   const [selected, setSelected] = useState<string>(campaigns[0]?.id ?? NEW_CAMPAIGN);
   const [campaignName, setCampaignName] = useState('');
@@ -23,6 +23,23 @@ function HostForm({ preferences, campaigns, onError }: FormProps & { campaigns: 
   const [port, setPort] = useState(String(preferences.lastPort ?? DEFAULT_PORT));
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
+
+  /** Exclui a campanha selecionada, depois de confirmar; o arquivo vai para a Lixeira. */
+  const remove = async (): Promise<void> => {
+    const target = campaigns.find((c) => c.id === selected);
+    if (!target) return;
+    if (!window.confirm(`Excluir a campanha "${target.name}"?\n\nO arquivo vai para a Lixeira do sistema; dá para recuperá-lo de lá.`)) return;
+    setBusy(true);
+    onError(null);
+    const result = await window.vtt.deleteCampaign(target.id);
+    setBusy(false);
+    if (!result.ok) {
+      onError(result.error.message);
+      return;
+    }
+    setSelected(campaigns.find((c) => c.id !== target.id)?.id ?? NEW_CAMPAIGN);
+    onDeleted();
+  };
 
   const submit = async (event: SyntheticEvent): Promise<void> => {
     event.preventDefault();
@@ -55,6 +72,11 @@ function HostForm({ preferences, campaigns, onError }: FormProps & { campaigns: 
           <option value={NEW_CAMPAIGN}>Nova campanha…</option>
         </select>
       </label>
+      {selected !== NEW_CAMPAIGN && (
+        <button type="button" className="link danger" onClick={() => void remove()} disabled={busy}>
+          Excluir esta campanha
+        </button>
+      )}
       {selected === NEW_CAMPAIGN && (
         <label>
           Nome da campanha
@@ -188,19 +210,24 @@ function Versions() {
 }
 
 /** Preferências e campanhas salvas, carregadas antes dos formulários (que as usam como valor inicial). */
-function useLobbyData(): { preferences: Preferences; campaigns: CampaignSummary[] } | null {
+function useLobbyData(): { data: { preferences: Preferences; campaigns: CampaignSummary[] } | null; reloadCampaigns: () => void } {
   const [data, setData] = useState<{ preferences: Preferences; campaigns: CampaignSummary[] } | null>(null);
   useEffect(() => {
     void Promise.all([window.vtt.getPreferences(), window.vtt.listCampaigns()]).then(([prefs, list]) => {
       setData({ preferences: prefs.ok ? prefs.value : {}, campaigns: list.ok ? list.value : [] });
     });
   }, []);
-  return data;
+  const reloadCampaigns = (): void => {
+    void window.vtt.listCampaigns().then((list) => {
+      if (list.ok) setData((current) => (current ? { ...current, campaigns: list.value } : current));
+    });
+  };
+  return { data, reloadCampaigns };
 }
 
 export function Lobby({ notice }: { notice?: string | undefined }) {
   const [error, setError] = useState<string | null>(null);
-  const data = useLobbyData();
+  const { data, reloadCampaigns } = useLobbyData();
   return (
     <main className="lobby">
       <h1>VTT</h1>
@@ -213,7 +240,7 @@ export function Lobby({ notice }: { notice?: string | undefined }) {
       )}
       {data && (
         <div className="lobby-forms">
-          <HostForm preferences={data.preferences} campaigns={data.campaigns} onError={setError} />
+          <HostForm preferences={data.preferences} campaigns={data.campaigns} onError={setError} onDeleted={reloadCampaigns} />
           <JoinForm preferences={data.preferences} onError={setError} />
         </div>
       )}

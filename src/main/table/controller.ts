@@ -124,6 +124,11 @@ export class TableController {
     }
   }
 
+  /** A campanha está aberta nesta mesa (não pode ser excluída agora). */
+  isHosting(campaignId: string): boolean {
+    return this.table?.mode === 'host' && this.table.store.campaign.id === campaignId;
+  }
+
   async join(request: JoinTableRequest): Promise<TableView> {
     this.requireIdle();
     const { deps } = this;

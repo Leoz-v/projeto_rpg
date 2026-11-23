@@ -237,7 +237,8 @@ describe('intents and patches', () => {
 
 describe('heartbeat', () => {
   it('pings players and drops those that stop answering', async () => {
-    const { url } = await host({ timings: { pingIntervalMs: 20, pongTimeoutMs: 60 } });
+    // Folga larga entre o Ping (25 ms) e o prazo (1 s): uma pausa do runner (comum no Windows do CI) não derruba quem responde.
+    const { url } = await host({ timings: { pingIntervalMs: 25, pongTimeoutMs: 1000 } });
     const ana = await join(url, 'Ana');
     const { socket, next, closed } = await raw(url);
     socket.send(handshake());

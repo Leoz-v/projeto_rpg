@@ -5,10 +5,10 @@ import { loadSrdCompendium, RULES_ENGINE_VERSION } from 'rules-engine';
 import type { z } from 'zod';
 import { type AppInfo, IpcChannel, type IpcResult, type TableEvent } from '../shared/ipc';
 import { HostTableRequestSchema, JoinTableRequestSchema } from '../shared/ipc-schemas';
-import { IntentSchema, MAX_ASSET_BYTES } from '../shared/protocol';
+import { IntentSchema, MAX_ASSET_BYTES, UuidSchema } from '../shared/protocol';
 import { PROTOCOL_VERSION } from '../shared/versions';
 import { ASSET_SCHEME, AssetError, assetResponse, AssetStore, type StoredAsset } from './assets';
-import { AppDb, CampaignLibrary } from './db';
+import { AppDb, CampaignLibrary, CampaignNotFoundError } from './db';
 import { cryptoRng } from './session';
 import { localAddresses, TableController, TableError } from './table';
 
@@ -63,7 +63,7 @@ function handle<T>(channel: string, run: (payload: unknown) => T | Promise<T>): 
       return { ok: true, value: await run(payload) };
     } catch (err: unknown) {
       if (err instanceof InvalidPayload) return { ok: false, error: { code: 'invalid_payload', message: err.message } };
-      if (err instanceof TableError || err instanceof AssetError) return { ok: false, error: { code: 'table_error', message: err.message } };
+      if (err instanceof TableError || err instanceof AssetError || err instanceof CampaignNotFoundError) return { ok: false, error: { code: 'table_error', message: err.message } };
       console.error(`[ipc ${channel}]`, err);
       return { ok: false, error: { code: 'internal_error', message: 'Erro interno' } };
     }
@@ -102,6 +102,12 @@ function registerIpc(appDb: AppDb, table: TableController, library: CampaignLibr
   handle(IpcChannel.getAppInfo, (): AppInfo => ({ appVersion: app.getVersion(), protocolVersion: PROTOCOL_VERSION, rulesEngineVersion: RULES_ENGINE_VERSION }));
   handle(IpcChannel.getPreferences, () => appDb.preferences());
   handle(IpcChannel.listCampaigns, () => library.list().map(({ id, name, lastOpenedAt }) => ({ id, name, lastOpenedAt })));
+  handle(IpcChannel.deleteCampaign, async (payload) => {
+    const id = parse(UuidSchema, payload);
+    if (table.isHosting(id)) throw new TableError('Encerre a mesa antes de excluir esta campanha');
+    await library.delete(id);
+    return null;
+  });
   handle(IpcChannel.hostTable, async (payload) => {
     const request = parse(HostTableRequestSchema, payload);
     const view = await table.host(request);
@@ -143,7 +149,7 @@ void app.whenReady().then(() => {
     app.quit();
     return;
   }
-  const library = new CampaignLibrary(appDb, join(app.getPath('userData'), 'campaigns'));
+  const library = new CampaignLibrary(appDb, join(app.getPath('userData'), 'campaigns'), Date.now, (file) => shell.trashItem(file));
   const assets = new AssetStore(join(app.getPath('userData'), 'assets'));
   const controller = new TableController({
     assets,
