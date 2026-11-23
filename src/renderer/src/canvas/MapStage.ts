@@ -3,6 +3,7 @@ import 'pixi.js/unsafe-eval';
 import { Application, Container, type FederatedPointerEvent, Graphics, ImageSource, Sprite, Text, Texture } from 'pixi.js';
 import { type GameMap, type Point, type Token, WORLD_UNITS_PER_CELL } from '../../../shared/protocol';
 import { type Camera, fitMap, placeToken, screenToWorld, tokenSide, zoomAt } from './geometry';
+import { type Health, healthColor } from './health';
 import { backgroundWorldSize } from './map-grid';
 
 /**
@@ -18,6 +19,8 @@ export interface Scene {
   /** O usuário pode arrastar este token (mestre, ou dono do token). */
   canDrag: (token: Token) => boolean;
   selectedId: string | null;
+  /** PV para a barra do token, ou `null` (sem barra). */
+  health: (token: Token) => Health | null;
 }
 
 export interface MapStageEvents {
@@ -38,11 +41,28 @@ const COLORS = {
 };
 
 const ZOOM_SPEED = 0.0015;
+const HEALTH_BAR_HEIGHT = 10;
+const TEMP_HP_COLOR = 0x6fb6ff;
+
+/** Barra de PV sob o token: fundo, PV atuais na cor do estado e os temporários em azul por cima. */
+function drawHealthBar(bar: Graphics, side: number, health: Health | null): void {
+  bar.clear();
+  bar.visible = health !== null;
+  if (!health) return;
+  const width = side * 0.9;
+  const x = (side - width) / 2;
+  const total = Math.max(health.max, health.current + health.temp);
+  bar.roundRect(x - 2, -2, width + 4, HEALTH_BAR_HEIGHT + 4, 4).fill(COLORS.outline);
+  if (health.current > 0) bar.rect(x, 0, (width * health.current) / total, HEALTH_BAR_HEIGHT).fill(healthColor(health));
+  if (health.temp > 0) bar.rect(x + (width * health.current) / total, 0, (width * health.temp) / total, HEALTH_BAR_HEIGHT).fill(TEMP_HP_COLOR);
+}
 
 interface TokenView {
   container: Container;
   /** Anel de seleção: só aparece ou some, sem redesenhar o token. */
   ring: Graphics;
+  /** Barra de PV, redesenhada a cada cena (barata). */
+  bar: Graphics;
   /** O que, se mudar, exige redesenhar (posição, seleção e cursor não exigem). */
   signature: string;
 }
@@ -73,7 +93,7 @@ export class MapStage {
   private readonly views = new Map<string, TokenView>();
   private readonly textures = new Map<string, Promise<Texture | null>>();
   private camera: Camera = { x: 0, y: 0, zoom: 1 };
-  private scene: Scene = { map: null, tokens: [], canDrag: () => false, selectedId: null };
+  private scene: Scene = { map: null, tokens: [], canDrag: () => false, selectedId: null, health: () => null };
   private shownMapKey = '';
   private drag: { id: string; offset: Point } | undefined;
   private pan: { from: Point; camera: Camera } | undefined;
@@ -212,6 +232,7 @@ export class MapStage {
         this.tokenLayer.addChild(view.container);
       }
       view.ring.visible = this.scene.selectedId === token.id;
+      drawHealthBar(view.bar, tokenSide(token.size), this.scene.health(token));
       if (this.drag?.id !== token.id) {
         view.container.cursor = this.scene.canDrag(token) ? 'grab' : 'pointer';
         // Quem está sendo arrastado fica onde o ponteiro está, até soltar.
@@ -220,7 +241,7 @@ export class MapStage {
     }
   }
 
-  private drawToken(token: Token): { container: Container; ring: Graphics } {
+  private drawToken(token: Token): { container: Container; ring: Graphics; bar: Graphics } {
     const side = tokenSide(token.size);
     const radius = side / 2;
     const container = new Container();
@@ -253,14 +274,16 @@ export class MapStage {
       resolution: 2,
     });
     label.anchor.set(0.5, 0);
-    label.position.set(radius, side + 4);
-    container.addChild(label);
+    label.position.set(radius, side + 4 + HEALTH_BAR_HEIGHT + 4);
+    const bar = new Graphics();
+    bar.position.set(0, side + 4);
+    container.addChild(label, bar);
 
     container.eventMode = 'static';
     container.on('pointerdown', (e) => {
       this.tokenDown(token.id, e);
     });
-    return { container, ring };
+    return { container, ring, bar };
   }
 
   private tokenDown(id: string, e: FederatedPointerEvent): void {

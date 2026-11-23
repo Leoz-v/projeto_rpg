@@ -14,6 +14,9 @@ export type Point = z.infer<typeof PointSchema>;
 /** Id de uma entrada do inventário (gerado pelo Host). */
 export const InstanceIdSchema = z.string().min(1).max(64);
 
+/** PV sofridos e temporários (os PV atuais são o máximo menos o dano; o máximo é derivado). */
+export const HitPointStateSchema = z.strictObject({ damage: z.int().nonnegative(), temp: z.int().nonnegative() });
+
 export const NameSchema = z.string().min(1).max(100);
 export const LabelSchema = z.string().min(1).max(100);
 export const ChatTextSchema = z.string().min(1).max(2000);

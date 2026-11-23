@@ -20,6 +20,8 @@ function setup(overrides: Partial<SessionDeps> = {}): HostSession {
     monsterExists: (id) => id === 'goblin',
     pruneSteps: (steps) => steps,
     itemProblems: (entry) => (entry.itemId === 'rope' || entry.itemId === 'ring_of_protection' ? [] : ['Item desconhecido']),
+    characterHpMax: (c) => (c.baseScores === null ? undefined : 12),
+    monsterHpMax: (id) => (id === 'goblin' ? 7 : undefined),
     assetExists: (sha) => sha === KNOWN_IMAGE,
     ...overrides,
   });
@@ -262,7 +264,7 @@ describe('HostSession: characters', () => {
   it('creates an empty draft owned by whoever asked', () => {
     const session = setup();
     const id = create(session, ANA.playerId);
-    expect(session.state.characters[id]).toEqual({ id, ownerId: ANA.playerId, name: 'Thorin', baseScores: null, rolledScores: null, steps: [], inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] }, adjustments: [] });
+    expect(session.state.characters[id]).toEqual({ id, ownerId: ANA.playerId, name: 'Thorin', baseScores: null, rolledScores: null, steps: [], inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] }, hp: { damage: 0, temp: 0 }, adjustments: [] });
     expect(SessionStateSchema.safeParse(session.state).success).toBe(true);
   });
 
@@ -351,7 +353,7 @@ describe('HostSession: characters', () => {
   it('restores saved characters', () => {
     const first = setup();
     const id = create(first, ANA.playerId);
-    const restored = new HostSession(CAMPAIGN, GM, { rng: cryptoRng, now: Date.now, newId: randomUUID, monsterExists: () => false, assetExists: () => false, pruneSteps: (s) => s, itemProblems: () => [] }, first.state);
+    const restored = new HostSession(CAMPAIGN, GM, { rng: cryptoRng, now: Date.now, newId: randomUUID, monsterExists: () => false, assetExists: () => false, pruneSteps: (s) => s, itemProblems: () => [], characterHpMax: () => 10, monsterHpMax: () => undefined }, first.state);
     expect(restored.state.characters[id]?.name).toBe('Thorin');
   });
 });
@@ -433,5 +435,97 @@ describe('HostSession: GM adjustments', () => {
     expect(applied(session.handle(GM.playerId, remove))).toBe(true);
     expect(session.state.characters[id]?.adjustments).toEqual([]);
     expect(rejection(session.handle(GM.playerId, remove))).toBe('rule_violation');
+  });
+});
+
+describe('HostSession: hit points', () => {
+  const STANDARD = { method: 'standard_array' as const, scores: { str: 15, dex: 14, con: 13, int: 12, wis: 10, cha: 8 } };
+
+  /** Mapa, um goblin (PV médios 7), e um personagem da Ana com ficha (PV máximos 12 no stub). */
+  function table(): { session: HostSession; goblin: string; hero: string } {
+    const session = setup();
+    session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10 } });
+    const mapId = Object.keys(session.state.maps)[0] ?? '';
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Goblin 1', position: { x: 0, y: 0 }, size: 'small', monsterId: 'goblin' } });
+    session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Thorin' } });
+    const hero = Object.keys(session.state.characters)[0] ?? '';
+    session.handle(ANA.playerId, { kind: 'character.update', data: { characterId: hero, baseScores: STANDARD } });
+    return { session, goblin: Object.keys(session.state.tokens)[0] ?? '', hero };
+  }
+  const hp = (session: HostSession, change: { kind: 'damage' | 'healing' | 'temp' | 'max'; amount: number }, target: { characterId: string } | { tokenId: string }, who = GM.playerId) =>
+    session.handle(who, { kind: 'hp.change', data: { target, change } });
+
+  it('gives monster tokens the average hit points of their stat block', () => {
+    const { session, goblin } = table();
+    expect(session.state.tokens[goblin]?.hp).toEqual({ max: 7, damage: 0, temp: 0 });
+  });
+
+  it('applies damage, temporary hit points and healing with the engine rules', () => {
+    const { session, goblin, hero } = table();
+    expect(applied(hp(session, { kind: 'damage', amount: 5 }, { tokenId: goblin }))).toBe(true);
+    expect(session.state.tokens[goblin]?.hp).toEqual({ max: 7, damage: 5, temp: 0 });
+    hp(session, { kind: 'damage', amount: 50 }, { tokenId: goblin });
+    expect(session.state.tokens[goblin]?.hp?.damage).toBe(7);
+
+    hp(session, { kind: 'temp', amount: 5 }, { characterId: hero }, ANA.playerId);
+    hp(session, { kind: 'damage', amount: 7 }, { characterId: hero });
+    expect(session.state.characters[hero]?.hp).toEqual({ damage: 2, temp: 0 });
+    hp(session, { kind: 'healing', amount: 10 }, { characterId: hero }, ANA.playerId);
+    expect(session.state.characters[hero]?.hp).toEqual({ damage: 0, temp: 0 });
+  });
+
+  it('lets the GM set a token maximum and keeps the damage within it', () => {
+    const { session, goblin } = table();
+    hp(session, { kind: 'damage', amount: 5 }, { tokenId: goblin });
+    hp(session, { kind: 'max', amount: 4 }, { tokenId: goblin });
+    expect(session.state.tokens[goblin]?.hp).toEqual({ max: 4, damage: 4, temp: 0 });
+    expect(rejection(hp(session, { kind: 'max', amount: 0 }, { tokenId: goblin }))).toBe('rule_violation');
+  });
+
+  it('checks who may change hit points', () => {
+    const { session, goblin, hero } = table();
+    expect(rejection(hp(session, { kind: 'damage', amount: 1 }, { tokenId: goblin }, ANA.playerId))).toBe('not_allowed');
+    expect(rejection(hp(session, { kind: 'damage', amount: 1 }, { characterId: hero }, BRUNO.playerId))).toBe('not_allowed');
+    expect(rejection(hp(session, { kind: 'max', amount: 30 }, { characterId: hero }))).toBe('rule_violation');
+  });
+
+  it('refuses characters without a sheet and tokens without hit points', () => {
+    const { session } = table();
+    session.handle(BRUNO.playerId, { kind: 'character.create', data: { name: 'Rascunho' } });
+    const draft = Object.values(session.state.characters).find((c) => c.name === 'Rascunho')?.id ?? '';
+    expect(rejection(hp(session, { kind: 'damage', amount: 1 }, { characterId: draft }))).toBe('rule_violation');
+    const mapId = Object.keys(session.state.maps)[0] ?? '';
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Barril', position: { x: 100, y: 0 }, size: 'medium' } });
+    const barrel = Object.values(session.state.tokens).find((t) => t.name === 'Barril');
+    expect(barrel?.hp).toBeNull();
+    expect(rejection(hp(session, { kind: 'damage', amount: 1 }, { tokenId: barrel?.id ?? '' }))).toBe('rule_violation');
+    expect(applied(hp(session, { kind: 'max', amount: 10 }, { tokenId: barrel?.id ?? '' }))).toBe(true);
+  });
+
+  it('hides monster hit points from players, in snapshots and patches', () => {
+    const { session, goblin } = table();
+    expect(session.viewFor(ANA.playerId).tokens[goblin]?.hp).toBeNull();
+    expect(session.viewFor(GM.playerId).tokens[goblin]?.hp).toEqual({ max: 7, damage: 0, temp: 0 });
+    const outcome = hp(session, { kind: 'damage', amount: 3 }, { tokenId: goblin });
+    if (!outcome.change) throw new Error('sem mudança');
+    expect(session.patchFor(outcome.change, ANA.playerId).ops).toEqual([]);
+    expect(session.patchFor(outcome.change, GM.playerId).ops).toHaveLength(1);
+    // Token novo de monstro chega sem PV para o jogador.
+    const mapId = Object.keys(session.state.maps)[0] ?? '';
+    const created = session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Goblin 2', position: { x: 200, y: 0 }, size: 'small', monsterId: 'goblin' } });
+    if (!created.change) throw new Error('sem mudança');
+    const [op] = session.patchFor(created.change, ANA.playerId).ops;
+    expect(op?.op === 'add' && (op.value as { hp: unknown }).hp).toBeNull();
+    // A visão do jogador, com os patches filtrados, continua válida.
+    expect(SessionStateSchema.safeParse(session.viewFor(ANA.playerId)).success).toBe(true);
+  });
+
+  it('shows the hit points of their own tokens to players', () => {
+    const { session } = table();
+    const mapId = Object.keys(session.state.maps)[0] ?? '';
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Lobo da Ana', position: { x: 300, y: 0 }, size: 'medium', hpMax: 11, ownerIds: [ANA.playerId] } });
+    const wolf = Object.values(session.state.tokens).find((t) => t.name === 'Lobo da Ana');
+    expect(session.viewFor(ANA.playerId).tokens[wolf?.id ?? '']?.hp).toEqual({ max: 11, damage: 0, temp: 0 });
+    expect(session.viewFor(BRUNO.playerId).tokens[wolf?.id ?? '']?.hp).toBeNull();
   });
 });

@@ -1,4 +1,4 @@
-import { rollAbilityScores, rollDice, type Rng, type Size, spaceSquares, usesRolledValues } from 'rules-engine';
+import { applyHitPointChange, clampHitPoints, rollAbilityScores, rollDice, type Rng, type Size, spaceSquares, usesRolledValues } from 'rules-engine';
 import type { z } from 'zod';
 import {
   applyPatch,
@@ -45,6 +45,10 @@ export interface SessionDeps {
   pruneSteps(steps: SessionCharacter['steps']): SessionCharacter['steps'];
   /** Problemas de uma entrada nova do inventário (`inventoryEntryProblems` do motor); vazio = pode entrar. */
   itemProblems(entry: { itemId: string; baseItemId?: string | undefined; variantId?: string | undefined }): string[];
+  /** PV máximos da ficha calculada pelo motor; `undefined` sem ficha (atributos não definidos). */
+  characterHpMax(character: SessionCharacter): number | undefined;
+  /** PV médios do bloco de estatísticas de um monstro do compêndio. */
+  monsterHpMax(monsterId: string): number | undefined;
 }
 
 type InventoryEntry = SessionCharacter['inventory']['items'][number];
@@ -135,7 +139,7 @@ export class HostSession {
 
   /** O patch para um jogador: mesmo `rev`, operações filtradas (podem ficar vazias). */
   patchFor(change: StateChange, playerId: string): StateChange {
-    return { ...change, ops: opsFor(change.ops, { playerId, role: this.roleOf(playerId) ?? 'player' }) };
+    return { ...change, ops: opsFor(change.ops, { playerId, role: this.roleOf(playerId) ?? 'player' }, this.current) };
   }
 
   /** Conexão aceita no handshake: registra o jogador ou o marca como conectado. */
@@ -218,6 +222,8 @@ export class HostSession {
         if (index < 0) throw violation('Ajuste não encontrado');
         return [{ op: 'remove', path: toPointer('characters', character.id, 'adjustments', String(index)) }];
       }
+      case 'hp.change':
+        return this.changeHp(playerId, role, intent.data);
       case 'inventory.currency':
         this.ownCharacter(playerId, role, intent.data.characterId);
         return [{ op: 'replace', path: toPointer('characters', intent.data.characterId, 'inventory', 'currency'), value: intent.data.currency }];
@@ -301,6 +307,8 @@ export class HostSession {
     const ownerIds = [...new Set(data.ownerIds ?? [])];
     if (ownerIds.some((id) => this.current.players[id] === undefined)) throw violation('Dono do token não está na mesa');
     if (data.characterId !== undefined && this.current.characters[data.characterId] === undefined) throw violation('Personagem não encontrado');
+    // PV próprios só para tokens que não são personagem: os informados, ou a média do monstro.
+    const hpMax = data.characterId !== undefined ? undefined : (data.hpMax ?? (data.monsterId !== undefined ? this.deps.monsterHpMax(data.monsterId) : undefined));
     const token: Token = {
       id: this.deps.newId(),
       mapId: data.mapId,
@@ -311,6 +319,7 @@ export class HostSession {
       image: data.image ?? null,
       ownerIds,
       characterId: data.characterId ?? null,
+      hp: hpMax !== undefined ? { max: hpMax, damage: 0, temp: 0 } : null,
     };
     return [{ op: 'add', path: toPointer('tokens', token.id), value: token }];
   }
@@ -329,7 +338,7 @@ export class HostSession {
       this.requireGm(role);
       if (this.current.players[ownerId] === undefined) throw violation('Dono do personagem não está na mesa');
     }
-    const character: SessionCharacter = { id: this.deps.newId(), ownerId, name: data.name, baseScores: null, rolledScores: null, steps: [], inventory: EMPTY_INVENTORY, adjustments: [] };
+    const character: SessionCharacter = { id: this.deps.newId(), ownerId, name: data.name, baseScores: null, rolledScores: null, steps: [], inventory: EMPTY_INVENTORY, hp: { damage: 0, temp: 0 }, adjustments: [] };
     return [{ op: 'add', path: toPointer('characters', character.id), value: character }];
   }
 
@@ -455,5 +464,33 @@ export class HostSession {
     if (character.adjustments.length >= MAX_ADJUSTMENTS) throw violation(`No máximo ${MAX_ADJUSTMENTS} ajustes por personagem`);
     const adjustment = { id: this.deps.newId(), name: data.name, effects: data.effects };
     return [{ op: 'add', path: toPointer('characters', character.id, 'adjustments', '-'), value: adjustment }];
+  }
+
+  /**
+   * Dano, cura e PV temporários (regras no motor, `applyHitPointChange`). O
+   * mestre muda qualquer um; o jogador, o próprio personagem e os próprios
+   * tokens. Cair a 0 PV, morte e Salvaguardas contra a Morte são da Fase 5.
+   */
+  private changeHp(playerId: string, role: Role, data: IntentData<'hp.change'>): PatchOp[] {
+    const { change } = data;
+    if ('characterId' in data.target) {
+      if (change.kind === 'max') throw violation('Os PV máximos de um personagem vêm da ficha');
+      const character = this.ownCharacter(playerId, role, data.target.characterId);
+      const max = this.deps.characterHpMax(character);
+      if (max === undefined) throw violation('O personagem ainda não tem ficha (defina os atributos)');
+      const result = applyHitPointChange(max, character.hp, { kind: change.kind, amount: change.amount });
+      return [{ op: 'replace', path: toPointer('characters', character.id, 'hp'), value: result.state }];
+    }
+    const token = this.token(data.target.tokenId);
+    if (role !== 'gm' && !token.ownerIds.includes(playerId)) throw notAllowed('Você não controla este token');
+    const path = toPointer('tokens', token.id, 'hp');
+    if (change.kind === 'max') {
+      if (change.amount < 1) throw violation('PV máximos precisam ser pelo menos 1');
+      const state = clampHitPoints(change.amount, token.hp ?? { damage: 0, temp: 0 });
+      return [{ op: 'replace', path, value: { max: change.amount, ...state } }];
+    }
+    if (token.hp === null) throw violation(token.characterId ? 'Mude os PV no personagem' : 'Este token não tem PV (defina os PV máximos)');
+    const result = applyHitPointChange(token.hp.max, token.hp, { kind: change.kind, amount: change.amount });
+    return [{ op: 'replace', path, value: { max: token.hp.max, ...result.state } }];
   }
 }

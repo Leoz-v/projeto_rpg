@@ -132,6 +132,13 @@ function registerIpc(appDb: AppDb, table: TableController, library: CampaignLibr
   handle(IpcChannel.getTable, () => table.view());
   handle(IpcChannel.sendIntent, (payload) => table.send(parse(IntentSchema, payload)));
   handle(IpcChannel.creationOptions, () => creationOptions(getCompendium()));
+  handle(IpcChannel.characterHpMaxima, () => {
+    const characters = Object.values(table.view()?.state.characters ?? {});
+    return Object.fromEntries(characters.flatMap((c) => {
+      const max = characterSheet(c, getCompendium()).sheet?.hpMax.total;
+      return max === undefined ? [] : [[c.id, max]];
+    }));
+  });
   handle(IpcChannel.searchItems, (payload) => searchItems(getCompendium(), parse(z.string().max(100), payload)));
   handle(IpcChannel.characterSheet, (payload) => {
     const record = table.view()?.state.characters[parse(UuidSchema, payload)];
@@ -171,6 +178,8 @@ void app.whenReady().then(() => {
     rng: cryptoRng,
     monsterExists,
     pruneSteps: (steps) => pruneSelections(steps, getCompendium()),
+    characterHpMax: (character) => characterSheet(character, getCompendium()).sheet?.hpMax.total,
+    monsterHpMax: (id) => getCompendium().creatures.find((c) => c.id === id)?.hp.average,
     itemProblems: (entry) => inventoryEntryProblems(entry, getCompendium()),
     addresses: localAddresses,
     emit,

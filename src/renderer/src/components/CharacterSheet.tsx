@@ -1,11 +1,13 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import type { DerivedSheet, Stat } from 'rules-engine';
+import { currentHitPoints } from 'rules-engine/hit-points';
 import { ABILITIES, SKILLS } from 'rules-engine/schemas';
 import type { CharacterSheetView, TableView } from '../../../shared/ipc';
 import { sendIntent } from '../store/table';
 import { AbilityScoresEditor } from './AbilityScoresEditor';
 import { Adjustments } from './Adjustments';
 import { BuildPanel } from './BuildPanel';
+import { HitPointsControl, HitPointsSummary } from './HitPoints';
 import { Inventory } from './Inventory';
 import { ABILITY_LABEL, CONDITION_LABEL, DAMAGE_LABEL, humanizeId, nameOf, SENSE_LABEL, SIZE_LABEL, signed, SKILL_LABEL } from './sheet-labels';
 
@@ -125,7 +127,8 @@ function Status({ sheet, showPending }: { sheet: DerivedSheet; showPending: bool
   );
 }
 
-function Vitals({ sheet, onSelect }: { sheet: DerivedSheet; onSelect: (d: Detail) => void }) {
+function Vitals({ sheet, hp, onSelect }: { sheet: DerivedSheet; hp: { damage: number; temp: number }; onSelect: (d: Detail) => void }) {
+  const health = { current: currentHitPoints(sheet.hpMax.total, hp), max: sheet.hpMax.total, temp: hp.temp };
   const speed = sheet.speed;
   const extraSpeeds = (['fly', 'swim', 'climb', 'burrow'] as const).filter((k) => speed[k].total > 0);
   const speedLabel = { fly: 'voo', swim: 'natação', climb: 'escalada', burrow: 'escavação' } as const;
@@ -139,9 +142,11 @@ function Vitals({ sheet, onSelect }: { sheet: DerivedSheet; onSelect: (d: Detail
         </dd>
       </div>
       <div>
-        <dt>PV máximos</dt>
+        <dt>PV</dt>
         <dd>
-          <StatButton title="Pontos de Vida máximos" stat={sheet.hpMax} onSelect={onSelect} />
+          <StatButton title="Pontos de Vida máximos" stat={sheet.hpMax} onSelect={onSelect}>
+            <HitPointsSummary health={health} />
+          </StatButton>
         </dd>
       </div>
       <div>
@@ -520,7 +525,13 @@ export function CharacterSheet({ view, characterId, onClose }: { view: TableView
                     }}
                   />
                 )}
-                <Vitals sheet={load.view.sheet} onSelect={setDetail} />
+                <Vitals sheet={load.view.sheet} hp={record.hp} onSelect={setDetail} />
+                {canEdit && (
+                  <HitPointsControl
+                    target={{ characterId: record.id }}
+                    health={{ current: currentHitPoints(load.view.sheet.hpMax.total, record.hp), max: load.view.sheet.hpMax.total, temp: record.hp.temp }}
+                  />
+                )}
                 <Abilities sheet={load.view.sheet} onSelect={setDetail} />
                 <Attacks sheet={load.view.sheet} onSelect={setDetail} />
                 <div className="sheet-columns">

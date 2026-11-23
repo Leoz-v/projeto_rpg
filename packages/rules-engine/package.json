@@ -7,7 +7,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./schemas": "./src/schemas/index.ts",
-    "./space": "./src/engine/space.ts"
+    "./space": "./src/engine/space.ts",
+    "./hit-points": "./src/engine/hit-points.ts"
   },
   "scripts": {
     "test": "vitest run",

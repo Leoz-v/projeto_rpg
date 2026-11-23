@@ -68,7 +68,7 @@ const state: SessionState = {
   maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: SHA, cellPx: 70 } },
   activeMapId: MAP,
   tokens: {
-    [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [], characterId: null },
+    [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [], characterId: null, hp: { max: 7, damage: 2, temp: 0 } },
   },
   characters: {
     [HERO]: {
@@ -82,6 +82,7 @@ const state: SessionState = {
         currency: { cp: 0, sp: 0, ep: 0, gp: 15, pp: 0 },
         items: [{ instanceId: 'b9c0d1e2-f3a4-4b5c-8d6e-7f8a9b0c1d2e', itemId: 'weapon_plus', baseItemId: 'longsword', variantId: 'plus_1', quantity: 1, equipped: true, attuned: false }],
       },
+      hp: { damage: 4, temp: 0 },
       adjustments: [{ id: 'c0d1e2f3-a4b5-4c6d-8e7f-8a9b0c1d2e3f', name: 'Maldição da Múmia', effects: [{ type: 'disadvantage', target: 'save.all' }] }],
     },
   },
@@ -178,6 +179,12 @@ describe('intents', () => {
     expect(intent('inventory.currency', { characterId: HERO, currency: { cp: 0, sp: 0, ep: 0, gp: 10, pp: 0 } })).toBe(true);
     expect(intent('adjustment.add', { characterId: HERO, name: 'Bênção', effects: [{ type: 'flat_bonus', target: 'ac', value: 1 }, { type: 'resistance', damageType: 'fire' }] })).toBe(true);
     expect(intent('adjustment.remove', { characterId: HERO, adjustmentId: ROLL })).toBe(true);
+    expect(intent('hp.change', { target: { characterId: HERO }, change: { kind: 'damage', amount: 7 } })).toBe(true);
+    expect(intent('hp.change', { target: { tokenId: TOKEN }, change: { kind: 'max', amount: 22 } })).toBe(true);
+    expect(intent('token.create', { mapId: MAP, name: 'Barril', position: { x: 0, y: 0 }, size: 'medium', hpMax: 5 })).toBe(true);
+    expect(intent('hp.change', { target: { tokenId: TOKEN }, change: { kind: 'damage', amount: -3 } })).toBe(false);
+    expect(intent('hp.change', { target: { tokenId: TOKEN, characterId: HERO }, change: { kind: 'damage', amount: 3 } })).toBe(false);
+    expect(intent('hp.change', { target: { tokenId: TOKEN }, change: { kind: 'kill', amount: 3 } })).toBe(false);
   });
 
   it('accepts only catalog effects in adjustments', () => {

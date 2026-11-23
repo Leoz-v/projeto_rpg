@@ -44,6 +44,8 @@ function app(): { controller: TableController; events: TableEvent[]; playerId: s
     monsterExists: (id) => id === 'goblin',
     pruneSteps: (steps) => steps,
     itemProblems: () => [],
+    characterHpMax: () => 10,
+    monsterHpMax: () => 7,
     addresses: () => ['100.64.0.7'],
     emit: (e) => events.push(e),
     listenHost: '127.0.0.1',

@@ -1450,3 +1450,48 @@ button.secondary.danger:focus-visible {
 .effect-form label.check input {
   width: auto;
 }
+
+/* Pontos de vida */
+
+.hp-summary strong {
+  font-size: inherit;
+}
+
+.hp-temp {
+  color: #6fb6ff;
+  font-size: 0.85em;
+}
+
+.hp-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.hp-control input {
+  width: 6rem;
+}
+
+.hp-control .error {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+button.danger-fill {
+  background: var(--error);
+}
+
+button.heal {
+  background: var(--ok);
+}
+
+.selected.stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.selected .row {
+  justify-content: space-between;
+  align-items: baseline;
+}
