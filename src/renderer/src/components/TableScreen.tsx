@@ -112,7 +112,7 @@ export function TableScreen({ view }: { view: TableView }) {
         <HostAddresses view={view} />
       </aside>
       <MapView view={view} selectedId={selectedId} onSelect={setSelectedId} onStage={setStage} />
-      <Chat state={view.state} />
+      <Chat state={view.state} viewer={view.info} />
       {openCharacterId !== null && <CharacterSheet view={view} characterId={openCharacterId} onClose={closeSheet} />}
     </div>
   );

@@ -171,6 +171,17 @@ export const IntentSchema = z.discriminatedUnion('kind', [
     }),
   }),
   z.strictObject({
+    kind: z.literal('mastery.use'),
+    data: z.strictObject({
+      /** O `attack_roll` cuja maestria será usada. */
+      entryId: UuidSchema,
+      /** Cleave: o segundo alvo. */
+      targetTokenId: UuidSchema.optional(),
+      advantage: z.boolean().optional(),
+      disadvantage: z.boolean().optional(),
+    }),
+  }),
+  z.strictObject({
     kind: z.literal('damage.apply'),
     data: z.strictObject({ proposalId: UuidSchema, amount: z.int().min(0).max(MAX_HIT_POINTS).optional() }),
   }),

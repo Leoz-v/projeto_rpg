@@ -798,3 +798,144 @@ describe('HostSession: forced saving throws', () => {
   });
 });
 
+describe('HostSession: weapon masteries', () => {
+  const sequence = (values: number[]) => {
+    let i = 0;
+    return { roll: () => values[i++ % values.length] ?? 1 };
+  };
+  const fighter = dwarfFighter as { character: { baseScores: SessionCharacter['baseScores']; steps: SessionCharacter['steps'] } };
+
+  /**
+   * Thorin (guerreiro anão 5, FOR 18: +4, proficiência +3) com a arma pedida
+   * equipada e maestria em Greataxe (Cleave), Maul (Topple), Longsword (Sap) e
+   * Greatsword (Graze); dois Goblin Warriors (CA 15, CON 10) no mapa.
+   */
+  function arena(weaponId: string, rolls: number[]) {
+    const session = setup({
+      rng: sequence(rolls),
+      itemProblems: () => [],
+      monsterExists: (id) => compendium.creatures.some((c) => c.id === id),
+      monsterHpMax: (id) => compendium.creatures.find((c) => c.id === id)?.hp.average,
+    });
+    session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10 } });
+    const mapId = Object.keys(session.state.maps)[0] ?? '';
+    session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Thorin' } });
+    const hero = Object.keys(session.state.characters)[0] ?? '';
+    const raw = JSON.stringify(fighter.character.steps).replace('["longsword","heavy_crossbow","handaxe"]', '["greataxe","maul","longsword"]');
+    const steps = CharacterSchema.shape.steps.parse(JSON.parse(raw));
+    session.handle(ANA.playerId, { kind: 'character.update', data: { characterId: hero, baseScores: fighter.character.baseScores ?? undefined, steps } });
+    session.handle(ANA.playerId, { kind: 'inventory.add', data: { characterId: hero, itemId: weaponId } });
+    const weapon = session.state.characters[hero]?.inventory.items.at(-1)?.instanceId ?? '';
+    session.handle(ANA.playerId, { kind: 'inventory.update', data: { characterId: hero, instanceId: weapon, equipped: true } });
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Thorin', position: { x: 0, y: 0 }, size: 'medium', characterId: hero, ownerIds: [ANA.playerId] } });
+    for (const [name, x] of [['Goblin 1', 100], ['Goblin 2', 200]] as const) {
+      session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name, position: { x, y: 0 }, size: 'small', monsterId: 'goblin_warrior' } });
+    }
+    const tokenNamed = (name: string) => Object.values(session.state.tokens).find((t) => t.name === name)?.id ?? '';
+    const attack = (visibility: 'public' | 'gm' = 'public') =>
+      session.handle(ANA.playerId, { kind: 'attack.make', data: { attacker: { characterId: hero, instanceId: weapon }, targetTokenId: tokenNamed('Goblin 1'), visibility } });
+    const use = (entryId: string, extra: { targetTokenId?: string; advantage?: boolean } = {}, who = ANA.playerId) =>
+      session.handle(who, { kind: 'mastery.use', data: { entryId, ...extra } });
+    return { session, hero, weapon, goblin1: tokenNamed('Goblin 1'), goblin2: tokenNamed('Goblin 2'), attack, use };
+  }
+  const lastEntry = (a: ReturnType<typeof arena>) => a.session.state.chat.at(-1);
+  const attackEntry = (a: ReturnType<typeof arena>) => {
+    const entry = lastEntry(a);
+    if (entry?.kind !== 'attack_roll') throw new Error('sem ataque');
+    return entry;
+  };
+
+  it('Topple: offered on a hit, the target saves against DC 8 + 4 + 3 and falls Prone on a failure, once per attack', () => {
+    // d20 8 (+7 = 15 contra CA 15) acerta; 2d6 = 3+3, +4; salvaguarda: d20 5 + 0.
+    const a = arena('maul', [8, 3, 3, 5]);
+    expect(applied(a.attack())).toBe(true);
+    const entry = attackEntry(a);
+    expect(entry.weapon).toEqual({ characterId: a.hero, instanceId: a.weapon });
+    expect(entry.mastery).toMatchObject({ property: 'topple', action: 'topple' });
+    expect(entry.mastery?.notes[0]).toContain('CD 15');
+    expect(applied(a.use(entry.id))).toBe(true);
+    const save = lastEntry(a);
+    if (save?.kind !== 'save_roll') throw new Error('sem salvaguarda');
+    expect(save).toMatchObject({ actorName: 'Thorin', label: 'Topple (Maul)', ability: 'con', dc: 15, conditions: ['prone'], masteryOf: entry.id });
+    expect(save.results[0]).toMatchObject({ targetTokenId: a.goblin1, total: 5, success: false });
+    expect(save.results[0]?.notes).toContain('Na falha: Caído');
+    expect(save.damage).toBeUndefined();
+    expect(rejection(a.use(entry.id))).toBe('rule_violation');
+  });
+
+  it('Graze: offered on a miss, deals the ability modifier as a proposal for the GM', () => {
+    // d20 2 (+7 = 9) erra.
+    const a = arena('greatsword', [2]);
+    a.attack();
+    const entry = attackEntry(a);
+    expect(entry).toMatchObject({ hit: false, mastery: { property: 'graze', action: 'graze' } });
+    expect(rejection(a.use(entry.id, {}, BRUNO.playerId))).toBe('not_allowed');
+    expect(rejection(a.use(entry.id, { advantage: true }))).toBe('rule_violation');
+    expect(applied(a.use(entry.id))).toBe(true);
+    const graze = lastEntry(a);
+    if (graze?.kind !== 'mastery_damage') throw new Error('sem graze');
+    expect(graze).toMatchObject({ property: 'graze', masteryOf: entry.id, targetTokenId: a.goblin1, damageType: 'slashing', amount: 4, total: 4 });
+    expect(a.session.state.proposals[graze.proposalId ?? '']).toMatchObject({ entryId: graze.id, targetTokenId: a.goblin1, amount: 4 });
+    expect(a.session.state.tokens[a.goblin1]?.hp?.damage).toBe(0);
+    // O mestre também pode usar, mas só uma vez por ataque.
+    expect(rejection(a.use(entry.id, {}, GM.playerId))).toBe('rule_violation');
+  });
+
+  it('Graze: nothing to use on a hit', () => {
+    const a = arena('greatsword', [15, 3, 3]);
+    a.attack();
+    const entry = attackEntry(a);
+    expect(entry.hit).toBe(true);
+    expect(entry.mastery).toBeUndefined();
+    expect(rejection(a.use(entry.id))).toBe('rule_violation');
+  });
+
+  it('Cleave: a second attack against another creature, without the ability modifier in the damage and without another Cleave', () => {
+    // 1º: d20 8 acerta, 1d12 6 +4. 2º: d20 8 acerta, 1d12 6 sem o +4.
+    const a = arena('greataxe', [8, 6]);
+    a.attack();
+    const first = attackEntry(a);
+    expect(first.damage?.total).toBe(10);
+    expect(first.mastery).toMatchObject({ property: 'cleave', action: 'cleave' });
+    expect(rejection(a.use(first.id))).toBe('rule_violation');
+    expect(rejection(a.use(first.id, { targetTokenId: a.goblin1 }))).toBe('rule_violation');
+    expect(applied(a.use(first.id, { targetTokenId: a.goblin2 }))).toBe(true);
+    const second = attackEntry(a);
+    expect(second).toMatchObject({ targetTokenId: a.goblin2, hit: true, masteryOf: first.id, visibility: 'public' });
+    expect(second.damage).toMatchObject({ bonus: 0, total: 6 });
+    expect(second.mastery).toBeUndefined();
+    expect(rejection(a.use(second.id, { targetTokenId: a.goblin1 }))).toBe('rule_violation');
+    expect(rejection(a.use(first.id, { targetTokenId: a.goblin2 }))).toBe('rule_violation');
+  });
+
+  it('Sap is a reminder on the hit, without a follow-up action', () => {
+    const a = arena('longsword', [8, 5]);
+    a.attack();
+    const entry = attackEntry(a);
+    expect(entry.mastery?.property).toBe('sap');
+    expect(entry.mastery?.action).toBeUndefined();
+    expect(entry.mastery?.notes[0]).toContain('Desvantagem');
+    expect(rejection(a.use(entry.id))).toBe('rule_violation');
+  });
+
+  it('has no mastery without Weapon Mastery in that weapon, and refuses once the weapon is unequipped', () => {
+    const none = arena('battleaxe', [8, 5]);
+    none.attack();
+    expect(attackEntry(none).mastery).toBeUndefined();
+
+    const a = arena('maul', [8, 3, 3, 5]);
+    a.attack();
+    const entry = attackEntry(a);
+    a.session.handle(ANA.playerId, { kind: 'inventory.update', data: { characterId: a.hero, instanceId: a.weapon, equipped: false } });
+    expect(rejection(a.use(entry.id))).toBe('rule_violation');
+  });
+
+  it('hides a secret Graze from other players', () => {
+    const a = arena('greatsword', [2]);
+    a.attack('gm');
+    a.use(attackEntry(a).id);
+    expect(a.session.viewFor(BRUNO.playerId).chat.at(-1)?.kind).toBe('hidden_roll');
+    expect(a.session.viewFor(ANA.playerId).chat.at(-1)?.kind).toBe('mastery_damage');
+  });
+});
+

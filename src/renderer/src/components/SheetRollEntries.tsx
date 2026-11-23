@@ -1,5 +1,5 @@
 import { type ReactNode, useState } from 'react';
-import type { ChatEntry, SheetRollTarget } from '../../../shared/protocol';
+import type { ChatEntry, SessionState, SheetRollTarget } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
 import { ABILITY_LABEL, DAMAGE_LABEL, signed, SKILL_LABEL } from './sheet-labels';
 
@@ -141,7 +141,67 @@ function ProposalActions({ proposalId, amount }: { proposalId: string; amount: n
   );
 }
 
-export function AttackRollBody({ entry, header, pending }: { entry: AttackEntry; header: ReactNode; pending: boolean }) {
+const MASTERY_LABEL = { cleave: 'Cleave', graze: 'Graze', nick: 'Nick', push: 'Push', sap: 'Sap', slow: 'Slow', topple: 'Topple', vex: 'Vex' } as const;
+
+/** O que a tela precisa para oferecer a maestria do ataque. */
+export interface MasteryView {
+  /** A maestria deste ataque já foi usada. */
+  used: boolean;
+  /** Quem olha pode usar (quem atacou ou o mestre). */
+  canUse: boolean;
+  tokens: SessionState['tokens'];
+  activeMapId: string | null;
+}
+
+/** Botão da ação de seguimento da maestria (Cleave pede o segundo alvo). */
+function MasteryActions({ entry, view }: { entry: AttackEntry; view: MasteryView }) {
+  const [targetId, setTargetId] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const action = entry.mastery?.action;
+  if (!action) return null;
+  if (view.used) return <p className="hint">{MASTERY_LABEL[action]} usado.</p>;
+  if (!view.canUse) return null;
+  const send = (targetTokenId?: string): void => {
+    setBusy(true);
+    void sendIntent({ kind: 'mastery.use', data: { entryId: entry.id, ...(targetTokenId !== undefined ? { targetTokenId } : {}) } }).then((refused) => {
+      setBusy(false);
+      setError(refused);
+    });
+  };
+  if (action === 'cleave') {
+    const attacker = entry.weapon?.characterId;
+    // Outra criatura no mapa do alvo, que não é o alvo nem o próprio atacante.
+    const mapId = view.tokens[entry.targetTokenId]?.mapId ?? view.activeMapId;
+    const options = Object.values(view.tokens).filter((t) => t.mapId === mapId && t.id !== entry.targetTokenId && (attacker === undefined || t.characterId !== attacker));
+    return (
+      <div className="proposal">
+        <select aria-label="Segundo alvo do Cleave" value={targetId} onChange={(e) => { setTargetId(e.target.value); }}>
+          <option value="">segundo alvo…</option>
+          {options.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+        <button type="button" className="secondary small" disabled={busy || targetId === ''} onClick={() => { send(targetId); }}>
+          Atacar com Cleave
+        </button>
+        {error && <p className="error">{error}</p>}
+      </div>
+    );
+  }
+  return (
+    <div className="proposal">
+      <button type="button" className="secondary small" disabled={busy} onClick={() => { send(); }}>
+        Usar {MASTERY_LABEL[action]}
+      </button>
+      {error && <p className="error">{error}</p>}
+    </div>
+  );
+}
+
+export function AttackRollBody({ entry, header, pending, mastery }: { entry: AttackEntry; header: ReactNode; pending: boolean; mastery: MasteryView }) {
   const keptIndex = entry.dice.indexOf(entry.natural);
   return (
     <li className={`entry roll attack${entry.visibility === 'gm' ? ' secret' : ''}${entry.critical ? ' critical' : ''}`}>
@@ -204,6 +264,46 @@ export function AttackRollBody({ entry, header, pending }: { entry: AttackEntry;
           {pending && <ProposalActions proposalId={entry.damage.proposalId} amount={entry.damage.total} />}
         </>
       )}
+      {entry.masteryOf !== undefined && <p className="hint">Segundo ataque do Cleave (sem o modificador de atributo no dano)</p>}
+      {entry.mastery && (
+        <>
+          {entry.mastery.notes.map((n, i) => (
+            <p key={`m${i}`} className="hint reminder">
+              {n}
+            </p>
+          ))}
+          <MasteryActions entry={entry} view={mastery} />
+        </>
+      )}
+    </li>
+  );
+}
+
+type MasteryDamageEntry = Extract<ChatEntry, { kind: 'mastery_damage' }>;
+
+/** Dano do Graze: o modificador de atributo, mesmo errando, com a proposta para o mestre. */
+export function MasteryDamageBody({ entry, header, pending }: { entry: MasteryDamageEntry; header: ReactNode; pending: boolean }) {
+  return (
+    <li className={`entry roll attack${entry.visibility === 'gm' ? ' secret' : ''}`}>
+      {header}
+      <p>
+        <span className="roll-label">
+          {MASTERY_LABEL[entry.property]}: {entry.attackerName} atinge {entry.targetName}
+        </span>{' '}
+        · {entry.label}
+        {entry.visibility === 'gm' && <span className="tag">secreta</span>}
+      </p>
+      <p className="roll-result">
+        <span className="modifier">{entry.amount}</span>
+        <span className="hint">{DAMAGE_LABEL[entry.damageType].toLowerCase()}</span>
+        <span className="total">= {entry.total} de dano</span>
+      </p>
+      {entry.defenses.map((d, i) => (
+        <p key={i} className="hint">
+          {d}
+        </p>
+      ))}
+      {pending && entry.proposalId !== undefined && <ProposalActions proposalId={entry.proposalId} amount={entry.total} />}
     </li>
   );
 }

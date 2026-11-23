@@ -1,6 +1,8 @@
 import {
   type Ability,
+  applyDamage,
   applyHitPointChange,
+  cleaveDamageBonus,
   clampHitPoints,
   type Condition,
   CONDITION_NAME,
@@ -13,6 +15,9 @@ import {
   type DamageType,
   type Defenses,
   type DerivedSheet,
+  grazeDamage,
+  MASTERY_NAME,
+  masteryOutcome,
   resolveAttack,
   resolveSave,
   type Rng,
@@ -26,6 +31,7 @@ import {
   type SheetD20,
   type Size,
   spaceSquares,
+  toppleDc,
   usesRolledValues,
 } from 'rules-engine';
 import type { z } from 'zod';
@@ -262,6 +268,8 @@ export class HostSession {
         return this.makeAttack(playerId, role, intent.data);
       case 'save.force':
         return this.forceSave(playerId, role, intent.data);
+      case 'mastery.use':
+        return this.useMastery(playerId, role, intent.data);
       case 'damage.apply':
         this.requireGm(role);
         return this.applyProposal(playerId, intent.data.proposalId, intent.data.amount);
@@ -629,13 +637,15 @@ export class HostSession {
    * rola o dano e aplica as defesas do alvo com o motor. O dano vira uma
    * proposta: só muda os PV quando o mestre aplica (override manual).
    */
-  private makeAttack(playerId: string, role: Role, data: IntentData<'attack.make'>): PatchOp[] {
+  private makeAttack(playerId: string, role: Role, data: IntentData<'attack.make'>, cleaveOf?: string): PatchOp[] {
     const target = this.token(data.targetTokenId);
     const declared = { advantage: data.advantage, disadvantage: data.disadvantage };
     let attackerName: string;
     let label: string;
     let d20: SheetD20;
     let rollDamage: (critical: boolean) => { groups: ReturnType<typeof rollActionDamage>; bonus: number };
+    /** Arma da ficha: o que a maestria dela permite depois do resultado. */
+    let weapon: { ref: { characterId: string; instanceId: string }; mastery: (hit: boolean, damaged: boolean) => ReturnType<typeof masteryOutcome> | undefined } | undefined;
 
     if ('characterId' in data.attacker) {
       const { character, sheet } = this.sheetOf(playerId, role, data.attacker.characterId);
@@ -646,9 +656,27 @@ export class HostSession {
       d20 = roll;
       attackerName = character.name;
       label = attack.name;
+      const abilityModifier = sheet.abilities[attack.ability].modifier;
       rollDamage = (critical) => {
         const rolled = rollWeaponDamage(attack, { critical }, this.deps.rng);
-        return { groups: rolled.groups, bonus: rolled.bonus };
+        // Cleave: o dano do segundo ataque fica sem o modificador de atributo, a menos que seja negativo.
+        return { groups: rolled.groups, bonus: cleaveOf !== undefined ? cleaveDamageBonus(rolled.bonus, abilityModifier) : rolled.bonus };
+      };
+      weapon = {
+        ref: { characterId: character.id, instanceId },
+        mastery: (hit, damaged) =>
+          attack.mastery.available
+            ? masteryOutcome({
+                property: attack.mastery.property,
+                hit,
+                damaged,
+                abilityModifier,
+                proficiencyBonus: sheet.proficiencyBonus,
+                damageType: attack.damage.type,
+                targetSize: target.size,
+                fromCleave: cleaveOf !== undefined,
+              })
+            : undefined,
       };
     } else {
       const token = this.token(data.attacker.tokenId);
@@ -667,6 +695,7 @@ export class HostSession {
     }
     const defender = this.targetOf(target);
     const result = resolveAttack({ d20: d20.input, targetAc: defender.ac, rollDamage, defenses: defender.defenses }, this.deps.rng);
+    const mastery = weapon?.mastery(result.hit, (result.damage?.applied.total ?? 0) > 0);
     const entryId = this.deps.newId();
     const ops: PatchOp[] = [];
     let damage: Extract<ChatEntry, { kind: 'attack_roll' }>['damage'];
@@ -708,8 +737,124 @@ export class HostSession {
       reminders: [...d20.reminders, ...defender.reminders].slice(0, 50),
       hit: result.hit,
       ...(damage ? { damage } : {}),
+      ...(weapon ? { weapon: weapon.ref } : {}),
+      ...(mastery && (mastery.action || mastery.notes.length > 0)
+        ? { mastery: { property: mastery.property, ...(mastery.action ? { action: mastery.action } : {}), notes: mastery.notes } }
+        : {}),
+      ...(cleaveOf !== undefined ? { masteryOf: cleaveOf } : {}),
     };
     return [this.appendChat(entry), ...ops];
+  }
+
+  // --- Maestrias de arma (Fase 4, PR 5) -------------------------------------
+
+  /**
+   * Usa a ação de seguimento da maestria de um `attack_roll` (uma vez por
+   * ataque): Cleave ataca um segundo alvo, Graze causa o modificador de dano
+   * no erro, Topple força a salvaguarda de Constituição contra Caído. A ficha
+   * é recalculada: a arma precisa continuar equipada e com a maestria.
+   */
+  private useMastery(playerId: string, role: Role, data: IntentData<'mastery.use'>): PatchOp[] {
+    const entry = this.current.chat.find((e) => e.id === data.entryId);
+    if (entry?.kind !== 'attack_roll') throw violation('Ataque não encontrado no chat');
+    if (role !== 'gm' && entry.authorId !== playerId) throw notAllowed('Só quem fez o ataque (ou o mestre) usa a maestria');
+    const action = entry.mastery?.action;
+    if (!entry.weapon || !entry.mastery || !action) throw violation('Este ataque não tem maestria para usar');
+    if (this.current.chat.some((e) => 'masteryOf' in e && e.masteryOf === entry.id)) throw violation('A maestria deste ataque já foi usada');
+    if (action !== 'cleave' && (data.targetTokenId !== undefined || data.advantage !== undefined || data.disadvantage !== undefined)) {
+      throw violation('Alvo e Vantagem/Desvantagem só valem no Cleave');
+    }
+    const { character, sheet } = this.sheetOf(playerId, role, entry.weapon.characterId);
+    const instanceId = entry.weapon.instanceId;
+    const attack = sheet.attacks.find((a) => a.instanceId === instanceId);
+    if (!attack?.mastery.available || attack.mastery.property !== entry.mastery.property) throw violation('A arma não está mais equipada com esta maestria');
+    const abilityModifier = sheet.abilities[attack.ability].modifier;
+    const name = MASTERY_NAME[entry.mastery.property];
+
+    if (action === 'cleave') {
+      if (data.targetTokenId === undefined) throw violation('Escolha o segundo alvo do Cleave');
+      if (data.targetTokenId === entry.targetTokenId) throw violation('O Cleave precisa de outra criatura');
+      return this.makeAttack(
+        playerId,
+        role,
+        {
+          attacker: entry.weapon,
+          targetTokenId: data.targetTokenId,
+          ...(data.advantage !== undefined ? { advantage: data.advantage } : {}),
+          ...(data.disadvantage !== undefined ? { disadvantage: data.disadvantage } : {}),
+          visibility: entry.visibility,
+        },
+        entry.id,
+      );
+    }
+
+    const target = this.token(entry.targetTokenId);
+    if (action === 'graze') {
+      const amount = grazeDamage(abilityModifier);
+      if (amount === 0) throw violation('Sem dano do Graze: o modificador de atributo não é positivo');
+      const defender = this.targetOf(target);
+      const applied = applyDamage(defender.defenses, [{ amount, type: attack.damage.type }], this.deps.rng);
+      const base = this.entryBase(playerId);
+      const proposalId = applied.total > 0 ? this.deps.newId() : undefined;
+      return [
+        this.appendChat({
+          kind: 'mastery_damage',
+          ...base,
+          masteryOf: entry.id,
+          property: 'graze',
+          attackerName: character.name,
+          label: attack.name.slice(0, 100),
+          targetTokenId: target.id,
+          targetName: target.name,
+          visibility: entry.visibility,
+          damageType: attack.damage.type,
+          amount,
+          total: applied.total,
+          defenses: [...damageNotes(applied), ...defender.reminders].slice(0, 50),
+          ...(proposalId ? { proposalId } : {}),
+        }),
+        ...(proposalId
+          ? [{ op: 'add' as const, path: toPointer('proposals', proposalId), value: { id: proposalId, entryId: base.id, targetTokenId: target.id, targetName: target.name, amount: applied.total } }]
+          : []),
+      ];
+    }
+
+    // Topple: salvaguarda de Constituição contra Caído, sem dano.
+    const dc = toppleDc(abilityModifier, sheet.proficiencyBonus);
+    const save = this.saveOf(target, 'con', { condition: 'prone' });
+    const result = resolveSave({ d20: save.input, dc, damage: [], onSuccess: 'none', defenses: save.defenses }, this.deps.rng);
+    const immune = save.defenses.conditionImmunities.some((c) => c.condition === 'prone');
+    const conditionNotes = result.success ? [] : [immune ? `Imune a ${CONDITION_NAME.prone}` : `Na falha: ${CONDITION_NAME.prone}`];
+    return [
+      this.appendChat({
+        kind: 'save_roll',
+        ...this.entryBase(playerId),
+        actorName: character.name,
+        label: `${name} (${attack.name})`.slice(0, 100),
+        ability: 'con',
+        dc,
+        onSuccess: 'none',
+        visibility: entry.visibility,
+        conditions: ['prone'],
+        masteryOf: entry.id,
+        results: [
+          {
+            targetTokenId: target.id,
+            targetName: target.name,
+            mode: save.input.mode,
+            dice: result.roll.dice,
+            natural: result.roll.natural,
+            modifier: save.input.modifier,
+            total: result.roll.total,
+            success: result.success,
+            advantage: save.advantage,
+            disadvantage: save.disadvantage,
+            notes: [...d20StepNotes(result.roll.steps), ...conditionNotes].slice(0, 50),
+            reminders: save.reminders.slice(0, 50),
+          },
+        ],
+      }),
+    ];
   }
 
   /** Aplica o dano proposto (ou o valor do mestre) nos PV do alvo e registra no chat. */
