@@ -115,3 +115,35 @@ export function masteryOutcome(ctx: MasteryContext): MasteryOutcome {
       return out([`${name}: o ataque extra da propriedade Leve pode ser parte da ação de Ataque, em vez de Ação Bônus (1 vez por turno)`]);
   }
 }
+
+// --- Efeitos temporários (com combate) ---------------------------------------
+
+/** Maestrias que deixam um efeito no alvo até um turno do atacante. */
+export const TIMED_MASTERIES = ['sap', 'vex', 'slow'] as const;
+export type TimedMastery = (typeof TIMED_MASTERIES)[number];
+
+/** Até quando vale cada uma, contado no próximo turno do atacante (SRD 5.2.1, p. 90). */
+export const TIMED_MASTERY_UNTIL: Record<TimedMastery, 'turn_start' | 'turn_end'> = { sap: 'turn_start', vex: 'turn_end', slow: 'turn_start' };
+
+/** Redução de deslocamento do Slow (não acumula). */
+export const SLOW_SPEED_PENALTY = 10;
+
+/** O efeito temporário que este ataque deixa: Sap no acerto; Vex e Slow no acerto com dano. */
+export function timedMastery(property: WeaponMastery, hit: boolean, damaged: boolean): TimedMastery | undefined {
+  if (!hit) return undefined;
+  if (property === 'sap') return 'sap';
+  if ((property === 'vex' || property === 'slow') && damaged) return property;
+  return undefined;
+}
+
+/** A nota do efeito aplicado, em pt-BR. */
+export function timedMasteryNote(kind: TimedMastery, attackerName: string, targetName: string): string {
+  switch (kind) {
+    case 'sap':
+      return `Sap: ${targetName} tem Desvantagem na próxima jogada de ataque, até o início do próximo turno de ${attackerName}`;
+    case 'vex':
+      return `Vex: ${attackerName} tem Vantagem na próxima jogada de ataque contra ${targetName}, até o fim do próximo turno de ${attackerName}`;
+    case 'slow':
+      return `Slow: deslocamento de ${targetName} −${SLOW_SPEED_PENALTY} ft até o início do próximo turno de ${attackerName}`;
+  }
+}

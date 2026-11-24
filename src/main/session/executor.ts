@@ -21,10 +21,12 @@ import {
   type DerivedSheet,
   distanceFeet,
   effectiveConditions,
+  expiresAt,
   grazeDamage,
   MASTERY_NAME,
   masteryOutcome,
   nextTurn,
+  nextTurnRound,
   previousTurn,
   resolveAttack,
   resolveSave,
@@ -40,7 +42,11 @@ import {
   type Size,
   sortByInitiative,
   spaceSquares,
+  TIMED_MASTERY_UNTIL,
+  timedMastery,
+  timedMasteryNote,
   toppleDc,
+  type TurnExpiry,
   turnAfterRemoval,
   usesRolledValues,
 } from 'rules-engine';
@@ -51,6 +57,7 @@ import {
   type Combat,
   type ConditionState,
   NO_CONDITIONS,
+  type TimedEffect,
   type TableCondition,
   type GameMap,
   type Intent,
@@ -313,7 +320,9 @@ export class HostSession {
       case 'combat.end': {
         this.requireGm(role);
         const combat = this.combat();
-        return [this.replaceCombat(null), this.appendChat({ kind: 'combat_event', ...this.entryBase(playerId), event: 'ended', round: combat.round })];
+        // As durações por turno não fazem sentido fora do combate: terminam todas.
+        const expired = this.expire(combat, () => true, playerId);
+        return [...expired.ops, this.replaceCombat(null), this.appendChat({ kind: 'combat_event', ...this.entryBase(playerId), event: 'ended', round: combat.round })];
       }
       case 'damage.apply':
         this.requireGm(role);
@@ -660,7 +669,8 @@ export class HostSession {
       if (intent.kind === 'condition.add') {
         if (has) throw violation(`${holder.name} já está ${CONDITION_NAME[condition]}`);
         checkImmunity(condition);
-        state = { ...holder.state, active: [...holder.state.active, { condition }] };
+        const until = intent.data.until ? this.untilNextTurn(intent.data.until.at, intent.data.until.tokenId) : undefined;
+        state = { ...holder.state, active: [...holder.state.active, { condition, ...(until ? { until } : {}) }] };
         change = { kind: 'added', condition };
       } else {
         if (!has) throw violation(`${holder.name} não está ${CONDITION_NAME[condition]}`);
@@ -672,6 +682,15 @@ export class HostSession {
       { op: 'replace', path: holder.path, value: state },
       this.appendChat({ kind: 'condition_changed', ...this.entryBase(playerId), target: holder.logTarget, targetName: holder.name, change, notes }),
     ];
+  }
+
+  /** Duração até o início ou o fim do próximo turno do combatente (precisa de combate com ele). */
+  private untilNextTurn(at: TurnExpiry['at'], tokenId: string): TurnExpiry {
+    const combat = this.current.combat;
+    if (!combat) throw violation('Duração por turno só com combate em andamento');
+    const index = combat.combatants.findIndex((c) => c.tokenId === tokenId);
+    if (index < 0) throw violation('A duração precisa de um combatente do combate');
+    return { at, tokenId, round: nextTurnRound(combat, index) };
   }
 
   /** A ficha do personagem, se quem pede pode rolar por ele (dono ou mestre). */
@@ -836,8 +855,24 @@ export class HostSession {
     const defender = this.targetOf(target);
     // Condições do alvo: Vantagem contra Impedido, Caído pela distância, crítico automático contra Paralisado a até 5 ft.
     const against = attackedConditions(this.conditionsOf(target).conditions, this.distanceBetween(attackerToken, target));
-    const advantage = [...d20.advantage, ...against.advantage.map((s) => s.name)];
-    const disadvantage = [...d20.disadvantage, ...against.disadvantage.map((s) => s.name)];
+    // Efeitos temporários das maestrias: Sap pesa no próximo ataque do alvo; Vex ajuda o próximo do atacante contra ele. Gastam-se aqui.
+    const combat = this.current.combat;
+    const used = new Set<string>();
+    const fromEffects = { advantage: [] as string[], disadvantage: [] as string[] };
+    if (combat && attackerToken) {
+      for (const effect of combat.effects) {
+        const source = this.current.tokens[effect.sourceTokenId]?.name ?? 'Token removido';
+        if (effect.kind === 'sap' && effect.targetTokenId === attackerToken.id) {
+          fromEffects.disadvantage.push(`Sap (${source})`);
+          used.add(effect.id);
+        } else if (effect.kind === 'vex' && effect.sourceTokenId === attackerToken.id && effect.targetTokenId === target.id) {
+          fromEffects.advantage.push('Vex');
+          used.add(effect.id);
+        }
+      }
+    }
+    const advantage = [...d20.advantage, ...against.advantage.map((s) => s.name), ...fromEffects.advantage];
+    const disadvantage = [...d20.disadvantage, ...against.disadvantage.map((s) => s.name), ...fromEffects.disadvantage];
     d20 = { ...d20, input: { ...d20.input, mode: d20Mode(advantage.length > 0, disadvantage.length > 0) }, advantage, disadvantage, reminders: [...d20.reminders, ...against.reminders] };
     const result = resolveAttack(
       { d20: d20.input, targetAc: defender.ac, rollDamage, defenses: defender.defenses, autoCritical: against.autoCritical.length > 0 },
@@ -845,7 +880,28 @@ export class HostSession {
     );
     const autoCriticalNote =
       result.critical && !result.roll.critical ? [`Acerto Crítico: alvo ${against.autoCritical.map((s) => s.name).join(', ')} a até 5 ft`] : [];
-    const mastery = weapon?.mastery(result.hit, (result.damage?.applied.total ?? 0) > 0);
+    const damaged = (result.damage?.applied.total ?? 0) > 0;
+    let mastery = weapon?.mastery(result.hit, damaged);
+    // Com combate e o atacante nele, Sap, Vex e Slow viram efeitos temporários de verdade (até o próximo turno do atacante).
+    const attackerId = attackerToken?.id;
+    const attackerIndex = combat && attackerId !== undefined ? combat.combatants.findIndex((c) => c.tokenId === attackerId) : -1;
+    const timed = mastery && combat && attackerToken && attackerIndex >= 0 ? timedMastery(mastery.property, result.hit, damaged) : undefined;
+    let effects = combat ? combat.effects.filter((e) => !used.has(e.id)) : [];
+    const started: TimedEffect[] = [];
+    if (timed && combat && attackerToken && mastery) {
+      const effect: TimedEffect = {
+        id: this.deps.newId(),
+        kind: timed,
+        sourceTokenId: attackerToken.id,
+        targetTokenId: target.id,
+        until: { at: TIMED_MASTERY_UNTIL[timed], tokenId: attackerToken.id, round: nextTurnRound(combat, attackerIndex) },
+      };
+      // Slow não acumula: o novo substitui o anterior no mesmo alvo.
+      if (timed === 'slow') effects = effects.filter((e) => !(e.kind === 'slow' && e.targetTokenId === target.id));
+      effects = [...effects, effect];
+      started.push(effect);
+      mastery = { ...mastery, notes: [timedMasteryNote(timed, attackerName, target.name)] };
+    }
     const entryId = this.deps.newId();
     const ops: PatchOp[] = [];
     let damage: Extract<ChatEntry, { kind: 'attack_roll' }>['damage'];
@@ -893,7 +949,11 @@ export class HostSession {
         : {}),
       ...(cleaveOf !== undefined ? { masteryOf: cleaveOf } : {}),
     };
-    return [this.appendChat(entry), ...ops];
+    const combatOps: PatchOp[] =
+      combat && (used.size > 0 || started.length > 0)
+        ? [...started.map((e) => this.appendChat(this.timedEffectEntry(playerId, 'started', e))), this.replaceCombat({ ...combat, effects })]
+        : [];
+    return [this.appendChat(entry), ...ops, ...combatOps];
   }
 
   // --- Combate e iniciativa (Fase 5, PR 1) ---------------------------------
@@ -982,7 +1042,7 @@ export class HostSession {
     const { combatants, entry } = this.rollInitiatives(data);
     const order = this.ordered(combatants, undefined);
     return [
-      this.replaceCombat({ round: 1, turn: order.turn, combatants: order.combatants }),
+      this.replaceCombat({ round: 1, turn: order.turn, combatants: order.combatants, effects: [] }),
       this.appendChat({ kind: 'combat_event', ...this.entryBase(playerId), event: 'started', round: 1 }),
       this.appendChat({ kind: 'initiative_roll', ...this.entryBase(playerId), results: entry }),
     ];
@@ -995,7 +1055,7 @@ export class HostSession {
     const { combatants, entry } = this.rollInitiatives(data);
     const order = this.ordered([...combat.combatants, ...combatants], combat.combatants[combat.turn]?.tokenId);
     return [
-      this.replaceCombat({ round: combat.round, turn: order.turn, combatants: order.combatants }),
+      this.replaceCombat({ ...combat, turn: order.turn, combatants: order.combatants }),
       this.appendChat({ kind: 'initiative_roll', ...this.entryBase(playerId), results: entry }),
     ];
   }
@@ -1006,10 +1066,16 @@ export class HostSession {
     const index = combat ? combat.combatants.findIndex((c) => c.tokenId === tokenId) : -1;
     if (!combat || index < 0) return [];
     const position = turnAfterRemoval(combat, index, combat.combatants.length);
-    if (!position) return [this.replaceCombat(null), this.appendChat({ kind: 'combat_event', ...this.entryBase(playerId), event: 'ended', round: combat.round })];
+    if (!position) {
+      const all = this.expire(combat, () => true, playerId);
+      return [...all.ops, this.replaceCombat(null), this.appendChat({ kind: 'combat_event', ...this.entryBase(playerId), event: 'ended', round: combat.round })];
+    }
+    // Durações presas aos turnos de quem saiu não teriam fim: terminam agora, como os efeitos que ele causou ou sofria.
+    const expired = this.expire(combat, (until) => until.tokenId === tokenId, playerId, (e) => e.sourceTokenId === tokenId || e.targetTokenId === tokenId);
     const combatants = combat.combatants.filter((_, i) => i !== index);
     return [
-      this.replaceCombat({ round: position.round, turn: position.turn, combatants }),
+      ...expired.ops,
+      this.replaceCombat({ round: position.round, turn: position.turn, combatants, effects: expired.effects }),
       ...(position.newRound ? [this.appendChat({ kind: 'combat_event', ...this.entryBase(playerId), event: 'round', round: position.round })] : []),
     ];
   }
@@ -1019,7 +1085,7 @@ export class HostSession {
     const index = this.combatant(tokenId);
     const combatants = combat.combatants.map((c, i) => (i === index ? { ...c, initiative } : c));
     const order = this.ordered(combatants, combat.combatants[combat.turn]?.tokenId);
-    return [this.replaceCombat({ round: combat.round, turn: order.turn, combatants: order.combatants })];
+    return [this.replaceCombat({ ...combat, turn: order.turn, combatants: order.combatants })];
   }
 
   /** O jogador controla o token: dono do token ou do personagem que ele representa. */
@@ -1036,10 +1102,69 @@ export class HostSession {
       if (!token || !this.controls(playerId, token)) throw notAllowed('Só o mestre ou quem controla o combatente da vez passa o turno');
     }
     const position = nextTurn(combat, combat.combatants.length);
-    return [
-      this.replaceCombat({ ...combat, round: position.round, turn: position.turn }),
-      ...(position.newRound ? [this.appendChat({ kind: 'combat_event', ...this.entryBase(playerId), event: 'round', round: position.round })] : []),
+    // Termina o que vai até o fim do turno que acabou e até o início do turno que começa.
+    const ended = combat.combatants[combat.turn]?.tokenId;
+    const started = combat.combatants[position.turn]?.tokenId;
+    const events: TurnExpiry[] = [
+      ...(ended !== undefined ? [{ at: 'turn_end' as const, tokenId: ended, round: combat.round }] : []),
+      ...(started !== undefined ? [{ at: 'turn_start' as const, tokenId: started, round: position.round }] : []),
     ];
+    const expired = this.expire(combat, (until) => events.some((e) => expiresAt(until, e)), playerId);
+    return [
+      ...(position.newRound ? [this.appendChat({ kind: 'combat_event', ...this.entryBase(playerId), event: 'round', round: position.round })] : []),
+      ...expired.ops,
+      this.replaceCombat({ ...combat, round: position.round, turn: position.turn, effects: expired.effects }),
+    ];
+  }
+
+  /**
+   * Termina as condições com duração e os efeitos temporários cujo `until`
+   * passa no teste (ou que `alsoEffect` manda terminar), com o registro no
+   * chat. Devolve os efeitos que continuam e as operações.
+   */
+  private expire(
+    combat: Combat,
+    isOver: (until: TurnExpiry) => boolean,
+    playerId: string,
+    alsoEffect: (effect: TimedEffect) => boolean = () => false,
+  ): { effects: TimedEffect[]; ops: PatchOp[] } {
+    const ops: PatchOp[] = [];
+    const prune = (state: ConditionState, path: string, target: { characterId: string } | { tokenId: string }, name: string): void => {
+      const over = state.active.filter((c) => c.until !== undefined && isOver(c.until));
+      if (over.length === 0) return;
+      ops.push({ op: 'replace', path, value: { ...state, active: state.active.filter((c) => !over.includes(c)) } });
+      for (const c of over) {
+        ops.push(this.appendChat({ kind: 'condition_changed', ...this.entryBase(playerId), target, targetName: name, change: { kind: 'removed', condition: c.condition }, notes: ['Fim da duração'] }));
+      }
+    };
+    for (const character of Object.values(this.current.characters)) {
+      prune(character.conditions, toPointer('characters', character.id, 'conditions'), { characterId: character.id }, character.name);
+    }
+    for (const token of Object.values(this.current.tokens)) {
+      if (token.characterId === null) prune(token.conditions, toPointer('tokens', token.id, 'conditions'), { tokenId: token.id }, token.name);
+    }
+    const effects: TimedEffect[] = [];
+    for (const effect of combat.effects) {
+      if (!isOver(effect.until) && !alsoEffect(effect)) {
+        effects.push(effect);
+        continue;
+      }
+      ops.push(this.appendChat(this.timedEffectEntry(playerId, 'ended', effect)));
+    }
+    return { effects, ops };
+  }
+
+  private timedEffectEntry(playerId: string, event: 'started' | 'ended', effect: TimedEffect): ChatEntry {
+    const target = this.current.tokens[effect.targetTokenId];
+    return {
+      kind: 'timed_effect',
+      ...this.entryBase(playerId),
+      event,
+      effect: effect.kind,
+      sourceName: this.current.tokens[effect.sourceTokenId]?.name ?? 'Token removido',
+      targetTokenId: effect.targetTokenId,
+      targetName: target?.name ?? 'Token removido',
+    };
   }
 
   // --- Maestrias de arma (Fase 4, PR 5) -------------------------------------

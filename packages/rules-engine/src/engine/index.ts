@@ -45,10 +45,16 @@ export {
   type MasteryContext,
   type MasteryOutcome,
   masteryOutcome,
+  SLOW_SPEED_PENALTY,
+  TIMED_MASTERIES,
+  TIMED_MASTERY_UNTIL,
+  type TimedMastery,
+  timedMastery,
+  timedMasteryNote,
   TOPPLE_DC_BASE,
   toppleDc,
 } from './mastery';
-export { type InitiativeOrder, nextTurn, previousTurn, sortByInitiative, type TurnPosition, turnAfterRemoval } from './combat';
+export { expiresAt, type InitiativeOrder, nextTurn, nextTurnRound, previousTurn, sortByInitiative, type TurnEdge, type TurnExpiry, type TurnPosition, turnAfterRemoval } from './combat';
 export {
   type AttackedConditionEffects,
   attackedConditions,

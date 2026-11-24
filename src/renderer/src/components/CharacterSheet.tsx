@@ -7,6 +7,7 @@ import { sendIntent } from '../store/table';
 import { AbilityScoresEditor } from './AbilityScoresEditor';
 import { Adjustments } from './Adjustments';
 import { BuildPanel } from './BuildPanel';
+import { combatantOptions } from '../canvas/conditions';
 import { ConditionsControl } from './Conditions';
 import { HitPointsControl, HitPointsSummary } from './HitPoints';
 import { SaveEffectForm } from './SaveEffect';
@@ -562,7 +563,7 @@ export function CharacterSheet({ view, characterId, onClose }: { view: TableView
                     health={{ current: currentHitPoints(load.view.sheet.hpMax.total, record.hp), max: load.view.sheet.hpMax.total, temp: record.hp.temp }}
                   />
                 )}
-                <ConditionsControl target={{ characterId: record.id }} state={record.conditions} canEdit={canEdit} />
+                <ConditionsControl target={{ characterId: record.id }} state={record.conditions} canEdit={canEdit} combatants={combatantOptions(view.state)} />
                 <Abilities sheet={load.view.sheet} roller={roller} onSelect={setDetail} />
                 <Attacks sheet={load.view.sheet} roller={roller} onSelect={setDetail} />
                 <div className="sheet-columns">

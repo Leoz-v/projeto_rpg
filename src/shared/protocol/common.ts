@@ -25,10 +25,17 @@ export type TableCondition = z.infer<typeof TableConditionSchema>;
 /** Nível máximo de Exaustão (SRD 5.2.1: no 6, a criatura morre). */
 export const MAX_EXHAUSTION_LEVEL = 6;
 
+/** Início ou fim de um turno. */
+export const TurnEdgeSchema = z.enum(['turn_start', 'turn_end']);
+
+/** Até o início ou o fim do turno de um combatente numa rodada (durações por turno, nota 0042). */
+export const TurnExpirySchema = z.strictObject({ at: TurnEdgeSchema, tokenId: UuidSchema, round: z.int().min(1) });
+export type TurnExpiryValue = z.infer<typeof TurnExpirySchema>;
+
 /** Condições ativas de uma criatura na mesa e o nível de Exaustão. */
 export const ConditionStateSchema = z.strictObject({
   active: z
-    .array(z.strictObject({ condition: TableConditionSchema }))
+    .array(z.strictObject({ condition: TableConditionSchema, until: TurnExpirySchema.optional() }))
     .max(TableConditionSchema.options.length)
     .refine((list) => new Set(list.map((c) => c.condition)).size === list.length, { message: 'condição repetida' }),
   exhaustion: z.int().min(0).max(MAX_EXHAUSTION_LEVEL),

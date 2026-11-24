@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { type ConditionState, type CreatureTarget, type Intent, MAX_EXHAUSTION_LEVEL, type TableCondition, TableConditionSchema } from '../../../shared/protocol';
+import { type ConditionState, type CreatureTarget, type Intent, MAX_EXHAUSTION_LEVEL, type TableCondition, TableConditionSchema, type TurnExpiryValue } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
 import { CONDITION_LABEL } from './sheet-labels';
 
@@ -11,8 +11,33 @@ import { CONDITION_LABEL } from './sheet-labels';
 
 const ALL: readonly TableCondition[] = TableConditionSchema.options;
 
-export function ConditionsControl({ target, state, canEdit }: { target: CreatureTarget; state: ConditionState; canEdit: boolean }) {
+/** Combatente para escolher a duração ("até o fim do próximo turno de…"). */
+export interface DurationOption {
+  tokenId: string;
+  name: string;
+}
+
+/** "até o fim do turno de Thorin (rodada 2)". */
+export function untilLabel(until: TurnExpiryValue, names: ReadonlyMap<string, string>): string {
+  const who = names.get(until.tokenId) ?? 'combatente';
+  return `até o ${until.at === 'turn_start' ? 'início' : 'fim'} do turno de ${who} (rodada ${until.round})`;
+}
+
+export function ConditionsControl({
+  target,
+  state,
+  canEdit,
+  combatants = [],
+}: {
+  target: CreatureTarget;
+  state: ConditionState;
+  canEdit: boolean;
+  /** Combatentes do combate em andamento (vazio sem combate: sem duração por turno). */
+  combatants?: readonly DurationOption[];
+}) {
   const [error, setError] = useState<string | null>(null);
+  const [duration, setDuration] = useState('');
+  const names = new Map(combatants.map((c) => [c.tokenId, c.name]));
   const [busy, setBusy] = useState(false);
   const send = (intent: Intent): void => {
     setBusy(true);
@@ -27,9 +52,10 @@ export function ConditionsControl({ target, state, canEdit }: { target: Creature
     <div className="conditions" aria-label="Condições">
       <div className="condition-tags">
         {state.active.length === 0 && state.exhaustion === 0 && <span className="hint">Sem condições</span>}
-        {state.active.map(({ condition }) => (
-          <span key={condition} className="tag condition-tag">
+        {state.active.map(({ condition, until }) => (
+          <span key={condition} className="tag condition-tag" title={until ? untilLabel(until, names) : undefined}>
             {CONDITION_LABEL[condition]}
+            {until && <span className="hint"> ⏱</span>}
             {canEdit && (
               <button
                 type="button"
@@ -59,7 +85,11 @@ export function ConditionsControl({ target, state, canEdit }: { target: Creature
             disabled={busy}
             onChange={(e) => {
               const condition = TableConditionSchema.safeParse(e.target.value);
-              if (condition.success) send({ kind: 'condition.add', data: { target, condition: condition.data } });
+              if (!condition.success) return;
+              const [edge, tokenId] = duration.split(':');
+              const at = edge === 'turn_start' ? 'turn_start' : edge === 'turn_end' ? 'turn_end' : undefined;
+              const until: { at: TurnExpiryValue['at']; tokenId: string } | undefined = at && tokenId ? { at, tokenId } : undefined;
+              send({ kind: 'condition.add', data: { target, condition: condition.data, ...(until ? { until } : {}) } });
             }}
           >
             <option value="">Pôr condição…</option>
@@ -69,6 +99,25 @@ export function ConditionsControl({ target, state, canEdit }: { target: Creature
               </option>
             ))}
           </select>
+          {combatants.length > 0 && (
+            <select
+              aria-label="Duração da condição"
+              value={duration}
+              onChange={(e) => {
+                setDuration(e.target.value);
+              }}
+            >
+              <option value="">sem duração</option>
+              {combatants.flatMap((c) => [
+                <option key={`s:${c.tokenId}`} value={`turn_start:${c.tokenId}`}>
+                  até o início do próximo turno de {c.name}
+                </option>,
+                <option key={`e:${c.tokenId}`} value={`turn_end:${c.tokenId}`}>
+                  até o fim do próximo turno de {c.name}
+                </option>,
+              ])}
+            </select>
+          )}
           <span className="exhaustion-edit">
             Exaustão
             <button

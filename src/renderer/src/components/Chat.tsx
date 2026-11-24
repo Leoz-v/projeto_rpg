@@ -157,6 +157,16 @@ function Entry({ entry, author, context }: { entry: ChatEntry; author: string; c
           })}
         </li>
       );
+    case 'timed_effect': {
+      const label = { sap: 'Sap', vex: 'Vex', slow: 'Slow' }[entry.effect];
+      return (
+        <li className="entry condition-event">
+          <p>
+            {entry.event === 'started' ? `${label} de ${entry.sourceName} em ${entry.targetName}` : `Fim do ${label} de ${entry.sourceName} em ${entry.targetName}`}
+          </p>
+        </li>
+      );
+    }
     case 'combat_event':
       return (
         <li className="entry combat-event">
