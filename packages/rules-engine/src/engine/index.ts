@@ -5,7 +5,7 @@ export { deriveSheet, evaluatePredicate, type PredicateContext, type RollContext
 export { applyDamage, damageNotes, type AppliedDamage, type DamageInstance, type DamageResult, type DamageStep } from './damage';
 export { type DiceRoll, type Rng, type RollDiceOptions, rollDice, seededRng } from './dice';
 export { type D20RollInput, type D20RollResult, type D20Step, rollD20 } from './d20';
-export { FEET_PER_SQUARE, SPACE_FEET, spaceSquares } from './space';
+export { distanceFeet, FEET_PER_SQUARE, type Footprint, SPACE_FEET, spaceSquares } from './space';
 export { baseItemOptions, inventoryEntryProblems } from './items';
 export { ABILITY_ROLL_DICE, ABILITY_ROLL_SIDES, type AbilityRollSet, rollAbilityScores, usesRolledValues } from './ability-scores';
 export { applyHitPointChange, clampHitPoints, currentHitPoints, type HitPointChange, type HitPointResult, type HitPointState } from './hit-points';
@@ -49,4 +49,18 @@ export {
   toppleDc,
 } from './mastery';
 export { type InitiativeOrder, nextTurn, previousTurn, sortByInitiative, type TurnPosition, turnAfterRemoval } from './combat';
+export {
+  type AttackedConditionEffects,
+  attackedConditions,
+  CLOSE_RANGE_FT,
+  type ConditionRoll,
+  type ConditionRollEffects,
+  conditionDefenses,
+  conditionSource,
+  creatureD20,
+  type CreatureD20,
+  effectiveConditions,
+  ownRollConditions,
+  SPEED_ZERO_CONDITIONS,
+} from './conditions';
 export { CONDITION_NAME, DAMAGE_NAME } from './names';

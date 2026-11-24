@@ -182,7 +182,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 5. **Fase 5 — Combate:** iniciativa, turnos, condições (incluindo Exaustão 2024) e concentração. Dividida em 5 PRs (ver `docs/decisions/0039-combate-e-iniciativa.md`); condições: o mestre em qualquer token, o jogador nos próprios; a ordem de turnos é de todos, o valor da iniciativa dos monstros só do mestre:
    - ✅ Combate e iniciativa (`combat.*`, `PROTOCOL_VERSION = 11`, `<campanha>.db` v7): o Host rola a iniciativa (ficha, bloco do monstro, surpresa com Desvantagem), ordem pelo motor (`engine/combat.ts`), rodadas, próximo/anterior, override do mestre, o jogador encerra o próprio turno, tracker na barra lateral e anel no token da vez.
    - ✅ Condições na mesa (`condition.add`/`remove`, `exhaustion.set`, `PROTOCOL_VERSION = 12`, `<campanha>.db` v8): condições e Exaustão 0–6 no personagem (também pelo token dele) e nos tokens, imunidade com override do mestre, a Exaustão já pesa na ficha, "Aplicar Caído" na falha de salvaguarda e condições acima do token. Ver `docs/decisions/0040-condicoes-na-mesa.md`.
-   - Efeitos das condições nas rolagens (tabela do SRD no motor; distância entre tokens para Caído).
+   - ✅ Efeitos das condições nas rolagens (`engine/conditions.ts`): a tabela do SRD na ficha e nas rolagens dos monstros (com a Exaustão deles), falha automática em FOR/DES, deslocamento 0, Petrificado resistente a tudo, e nos ataques as condições do alvo com a distância entre os tokens (Caído, crítico automático a até 5 ft). Ver `docs/decisions/0041-efeitos-das-condicoes.md`.
    - Durações ligadas aos turnos, efeitos temporários de Sap, Vex e Slow e lembretes de início e fim de turno.
    - Concentração e Salvaguardas contra a Morte.
 

@@ -159,10 +159,35 @@ describe('exhaustion', () => {
     expect(derive({ adjustments: [curse], conditions: { active: [], exhaustion: 3 } }).exhaustion).toBe(6);
   });
 
-  it('warns that other conditions are not applied yet', () => {
-    const sheet = derive({ adjustments: [{ id: 'p', name: 'Veneno', effects: [{ type: 'condition', condition: 'poisoned' }] }] });
-    expect(sheet.conditions.map((c) => c.condition)).toEqual(['poisoned']);
-    expect(sheet.issues.map((i) => i.code)).toContain('not_supported');
+  it('applies condition effects to the rolls of the sheet (SRD Rules Glossary)', () => {
+    const poisoned = derive({ adjustments: [{ id: 'p', name: 'Veneno', effects: [{ type: 'condition', condition: 'poisoned' }] }] });
+    expect(poisoned.conditions.map((c) => c.condition)).toEqual(['poisoned']);
+    expect(poisoned.issues.map((i) => i.code)).not.toContain('not_supported');
+    // Envenenado: Desvantagem em ataques e testes de atributo (perícias, iniciativa), não em salvaguardas.
+    expect(poisoned.skills.athletics.roll.disadvantage.map((s) => s.name)).toEqual(['Envenenado']);
+    expect(poisoned.initiative.roll.disadvantage.map((s) => s.name)).toEqual(['Envenenado']);
+    expect(poisoned.saves.con.roll.disadvantage).toEqual([]);
+    const armed = derive({ conditions: { active: [{ condition: 'poisoned' }], exhaustion: 0 }, inventory: { items: [{ instanceId: 'w', itemId: 'longsword', equipped: true }] } });
+    expect(armed.attacks[0]?.attack.roll.mode).toBe('disadvantage');
+  });
+
+  it('makes Paralyzed (and its implied Incapacitated) fail STR and DEX saves and drop the speed to 0', () => {
+    const sheet = derive({ conditions: { active: [{ condition: 'paralyzed' }], exhaustion: 0 } });
+    expect(sheet.saves.str.roll.autoFail.map((s) => s.name)).toEqual(['Paralisado']);
+    expect(sheet.saves.dex.roll.autoFail.map((s) => s.name)).toEqual(['Paralisado']);
+    expect(sheet.saves.con.roll.autoFail).toEqual([]);
+    expect(sheet.initiative.roll.disadvantage.map((s) => s.name)).toEqual(['Incapacitado']);
+    expect(sheet.speed.walk.total).toBe(0);
+    expect(sheet.speed.walk.parts.at(-1)?.label).toBe('Paralisado: deslocamento 0');
+  });
+
+  it('gives Restrained Disadvantage on DEX saves, keeps Frightened as a reminder and resists everything while Petrified', () => {
+    const restrained = derive({ conditions: { active: [{ condition: 'restrained' }, { condition: 'frightened' }], exhaustion: 0 } });
+    expect(restrained.saves.dex.roll.disadvantage.map((s) => s.name)).toEqual(['Impedido']);
+    expect(restrained.skills.stealth.roll.situational).toContainEqual(expect.objectContaining({ kind: 'disadvantage', note: 'enquanto a fonte do medo estiver à vista' }));
+    const petrified = derive({ conditions: { active: [{ condition: 'petrified' }], exhaustion: 0 } });
+    expect(petrified.defenses.resistances.map((r) => r.damageType)).toContain('fire');
+    expect(petrified.defenses.conditionImmunities.map((c) => c.condition)).toContain('poisoned');
   });
 });
 

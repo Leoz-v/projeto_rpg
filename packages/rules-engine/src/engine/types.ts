@@ -50,6 +50,8 @@ export interface RollState {
   situational: { kind: 'advantage' | 'disadvantage'; source: SourceLabel; when?: Predicate | undefined; note?: string | undefined }[];
   /** Regras `d20_rule` que valem nesta rolagem (Halfling Luck, Reliable Talent), aplicadas por `rollD20`. */
   rules: SourcedD20Rule[];
+  /** Falha automática contra a CD (condições: Paralisado em salvaguarda de FOR/DES). */
+  autoFail: SourceLabel[];
   /** Regras com `when` que depende do contexto da rolagem (Greater Magic Resistance, contra magia): lembrete. */
   situationalRules: (SourcedD20Rule & { when?: Predicate | undefined; note?: string | undefined })[];
 }

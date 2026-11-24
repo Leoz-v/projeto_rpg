@@ -1162,3 +1162,87 @@ describe('HostSession: conditions', () => {
   });
 });
 
+describe('HostSession: condition effects on rolls', () => {
+  const sequence = (values: number[]) => {
+    let i = 0;
+    return { roll: () => values[i++ % values.length] ?? 1 };
+  };
+  const fighter = dwarfFighter as { character: { baseScores: SessionCharacter['baseScores']; steps: SessionCharacter['steps'] } };
+
+  /** Thorin (espada longa +7) em (0,0), Goblin 1 vizinho (CA 15, ataque +4) e Goblin 2 a 25 ft. */
+  function arena(rolls: number[]) {
+    const session = setup({
+      rng: sequence(rolls),
+      itemProblems: () => [],
+      monsterExists: (id) => compendium.creatures.some((c) => c.id === id),
+      monsterHpMax: (id) => compendium.creatures.find((c) => c.id === id)?.hp.average,
+    });
+    session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10 } });
+    const mapId = Object.keys(session.state.maps)[0] ?? '';
+    session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Thorin' } });
+    const hero = Object.keys(session.state.characters)[0] ?? '';
+    const steps = CharacterSchema.shape.steps.parse(fighter.character.steps);
+    session.handle(ANA.playerId, { kind: 'character.update', data: { characterId: hero, baseScores: fighter.character.baseScores ?? undefined, steps } });
+    session.handle(ANA.playerId, { kind: 'inventory.add', data: { characterId: hero, itemId: 'longsword' } });
+    const sword = session.state.characters[hero]?.inventory.items.at(-1)?.instanceId ?? '';
+    session.handle(ANA.playerId, { kind: 'inventory.update', data: { characterId: hero, instanceId: sword, equipped: true } });
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Thorin', position: { x: 0, y: 0 }, size: 'medium', characterId: hero } });
+    for (const [name, x] of [['Goblin 1', 100], ['Goblin 2', 600]] as const) {
+      session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name, position: { x, y: 0 }, size: 'small', monsterId: 'goblin_warrior' } });
+    }
+    const id = (name: string) => Object.values(session.state.tokens).find((t) => t.name === name)?.id ?? '';
+    const condition = (tokenId: string, c: 'prone' | 'paralyzed' | 'poisoned') => session.handle(GM.playerId, { kind: 'condition.add', data: { target: { tokenId }, condition: c } });
+    const swing = (targetTokenId: string) => session.handle(ANA.playerId, { kind: 'attack.make', data: { attacker: { characterId: hero, instanceId: sword }, targetTokenId, visibility: 'public' } });
+    return { session, hero, thorin: id('Thorin'), goblin1: id('Goblin 1'), goblin2: id('Goblin 2'), condition, swing };
+  }
+  const lastEntry = (session: HostSession) => session.state.chat.at(-1);
+
+  it('attacks a Prone target with Advantage up close and Disadvantage from afar', () => {
+    const a = arena([3, 12, 5, 4, 9]);
+    a.condition(a.goblin1, 'prone');
+    a.condition(a.goblin2, 'prone');
+    a.swing(a.goblin1);
+    expect(lastEntry(a.session)).toMatchObject({ kind: 'attack_roll', mode: 'advantage', advantage: ['Caído'], dice: [3, 12], natural: 12 });
+    a.swing(a.goblin2);
+    expect(lastEntry(a.session)).toMatchObject({ kind: 'attack_roll', mode: 'disadvantage', disadvantage: ['Caído'] });
+  });
+
+  it('turns a hit against a Paralyzed target within 5 ft into a Critical Hit', () => {
+    // Vantagem (Paralisado): 10 e 8, fica o 10 (+7 = 17 contra CA 15); crítico: 2d8 = 4 + 4, +4.
+    const a = arena([10, 8, 4, 4]);
+    a.condition(a.goblin1, 'paralyzed');
+    a.swing(a.goblin1);
+    const entry = lastEntry(a.session);
+    if (entry?.kind !== 'attack_roll') throw new Error('sem ataque');
+    expect(entry).toMatchObject({ mode: 'advantage', natural: 10, hit: true, critical: true });
+    expect(entry.notes).toContain('Acerto Crítico: alvo Paralisado a até 5 ft');
+    expect(entry.damage?.groups[0]?.dice).toBe('2d8');
+  });
+
+  it('applies the conditions and the exhaustion of the attacking monster', () => {
+    const a = arena([15, 6, 3]);
+    a.condition(a.goblin1, 'poisoned');
+    a.session.handle(GM.playerId, { kind: 'exhaustion.set', data: { target: { tokenId: a.goblin1 }, level: 1 } });
+    a.session.handle(GM.playerId, { kind: 'attack.make', data: { attacker: { tokenId: a.goblin1, actionId: 'scimitar' }, targetTokenId: a.thorin, visibility: 'public' } });
+    expect(lastEntry(a.session)).toMatchObject({ kind: 'attack_roll', mode: 'disadvantage', disadvantage: ['Envenenado'], modifier: 2, dice: [15, 6], natural: 6 });
+  });
+
+  it('applies the character own conditions through the sheet', () => {
+    const a = arena([15, 6]);
+    a.session.handle(ANA.playerId, { kind: 'condition.add', data: { target: { characterId: a.hero }, condition: 'poisoned' } });
+    a.swing(a.goblin2);
+    expect(lastEntry(a.session)).toMatchObject({ kind: 'attack_roll', mode: 'disadvantage', disadvantage: ['Envenenado'] });
+  });
+
+  it('makes a Paralyzed monster fail DEX saves automatically', () => {
+    const a = arena([20]);
+    a.condition(a.goblin1, 'paralyzed');
+    const fire = { custom: { name: 'Fogo', ability: 'dex' as const, dc: 10, damage: [], onSuccess: 'none' as const } };
+    a.session.handle(GM.playerId, { kind: 'save.force', data: { source: fire, targetTokenIds: [a.goblin1], visibility: 'public' } });
+    const entry = lastEntry(a.session);
+    if (entry?.kind !== 'save_roll') throw new Error('sem salvaguarda');
+    expect(entry.results[0]).toMatchObject({ natural: 20, success: false });
+    expect(entry.results[0]?.notes).toContain('Falha automática (Paralisado)');
+  });
+});
+
