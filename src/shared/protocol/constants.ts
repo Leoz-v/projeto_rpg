@@ -33,6 +33,10 @@ export const MAX_HIT_POINTS = 100_000;
 export const MAX_SAVE_TARGETS = 20;
 /** Itens de uma entrada `turn_trigger` (lembretes e cura de um combatente num momento). */
 export const MAX_TURN_TRIGGER_ITEMS = 20;
+/** Entradas do chat no `StateSnapshot` e no estado que vai à tela (nota 0047). */
+export const CHAT_WINDOW = 200;
+/** Entradas por `ChatHistoryRequest`. */
+export const MAX_CHAT_HISTORY = 200;
 /** Combatentes num combate. */
 export const MAX_COMBATANTS = 50;
 /** Faixa da iniciativa (rolada ou definida pelo mestre). */

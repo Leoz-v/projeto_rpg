@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { NameSchema, Sha256Schema, UuidSchema } from './common';
-import { ASSET_CHUNK_BYTES, MAX_ASSET_BYTES } from './constants';
+import { ASSET_CHUNK_BYTES, MAX_ASSET_BYTES, MAX_CHAT_HISTORY } from './constants';
 import { IntentSchema } from './intents';
-import { RoleSchema, SessionStateSchema } from './state';
+import { ChatEntrySchema, RoleSchema, SessionStateSchema } from './state';
 
 /** Mensagens WebSocket (docs/network-protocol.md, seção 2). */
 
@@ -76,7 +76,10 @@ export const IntentResultSchema = reply(
     z.strictObject({ status: z.literal('pending_gm') }),
   ]),
 );
-export const StateSnapshotSchema = message('StateSnapshot', z.strictObject({ rev: RevSchema, state: SessionStateSchema }));
+/** `chatFrom`: posição da primeira entrada de `state.chat` no log completo (janela do chat, nota 0047). */
+export const StateSnapshotSchema = message('StateSnapshot', z.strictObject({ rev: RevSchema, state: SessionStateSchema, chatFrom: z.int().nonnegative() }));
+export const ChatHistoryRequestSchema = message('ChatHistoryRequest', z.strictObject({ before: z.int().nonnegative(), limit: z.int().min(1).max(MAX_CHAT_HISTORY) }));
+export const ChatHistorySchema = reply('ChatHistory', z.strictObject({ from: z.int().nonnegative(), entries: z.array(ChatEntrySchema).max(MAX_CHAT_HISTORY) }));
 export const StatePatchSchema = message(
   'StatePatch',
   z
@@ -105,6 +108,7 @@ export const ErrorMessageSchema = message('Error', z.strictObject({ code: ErrorC
 export const ClientMessageSchema = z.discriminatedUnion('type', [
   HandshakeSchema,
   IntentMessageSchema,
+  ChatHistoryRequestSchema,
   AssetRequestSchema,
   PingSchema,
   PongSchema,
@@ -119,6 +123,7 @@ export const HostMessageSchema = z.discriminatedUnion('type', [
   IntentResultSchema,
   StateSnapshotSchema,
   StatePatchSchema,
+  ChatHistorySchema,
   AssetChunkSchema,
   PingSchema,
   PongSchema,

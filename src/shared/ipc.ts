@@ -24,6 +24,7 @@ export const IpcChannel = {
   characterHpMaxima: 'table:character-hp-maxima',
   monsterActions: 'compendium:monster-actions',
   sendIntent: 'table:intent',
+  chatHistory: 'table:chat-history',
   tableEvent: 'table:event',
 } as const;
 
@@ -123,13 +124,25 @@ export interface CreationOptions {
 }
 
 /** O que o renderer precisa para desenhar a mesa. */
+/**
+ * A mesa na tela. `state.chat` traz só as últimas entradas (janela do chat,
+ * nota 0047); `chatFrom` é a posição da primeira no log completo, e as
+ * anteriores vêm por `chatHistory`.
+ */
 export interface TableView {
   info: TableInfo;
   rev: number;
   state: SessionState;
+  chatFrom: number;
 }
 
-export type TableEvent = { kind: 'state'; rev: number; state: SessionState } | { kind: 'closed'; message: string };
+export type TableEvent = { kind: 'state'; rev: number; state: SessionState; chatFrom: number } | { kind: 'closed'; message: string };
+
+/** Entradas antigas do chat, com a posição da primeira no log completo. */
+export interface ChatHistoryPage {
+  from: number;
+  entries: SessionState['chat'];
+}
 
 /** API exposta pelo preload em `window.vtt`. */
 export interface VttApi {
@@ -145,6 +158,8 @@ export interface VttApi {
   /** A mesa atual, ou `null` (ex.: depois de recarregar a janela). */
   getTable(): Promise<IpcResult<TableView | null>>;
   sendIntent(intent: Intent): Promise<IpcResult<IntentResultPayload>>;
+  /** Até `limit` entradas do chat antes da posição `before` do log. */
+  chatHistory(before: number, limit: number): Promise<IpcResult<ChatHistoryPage>>;
   /** Monstros do compêndio cujo nome contém o texto (até 20). */
   searchMonsters(query: string): Promise<IpcResult<MonsterSummary[]>>;
   /** Ficha calculada de um personagem da mesa atual. */

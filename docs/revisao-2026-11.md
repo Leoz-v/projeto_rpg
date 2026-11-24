@@ -75,8 +75,8 @@ Limitações sem certificado pago: aviso do SmartScreen na primeira instalação
 
 | # | PR | Situação |
 |---|---|---|
-| 1 | Preparar para público: `LICENSE`, `NOTICE`, tela "Sobre" com a atribuição, `README` e `CLAUDE.md` | em andamento |
-| 2 | Chat: snapshot limitado, histórico sob demanda, patches para a tela | |
+| 1 | Preparar para público: `LICENSE`, `NOTICE`, tela "Sobre" com a atribuição, `README` e `CLAUDE.md` | ✅ PR #49 (nota 0046) |
+| 2 | Chat: snapshot limitado, histórico sob demanda, janela para a tela | ✅ nota 0047 (patches pela IPC ficaram como otimização futura) |
 | 3 | Release pelo GitHub Actions e atualização automática | |
 | 4 | Dividir o executor | |
 | 5 | Fase 6 — Recursos e descansos (descansos, espaços de magia, recursos de classe, conjurar) | |

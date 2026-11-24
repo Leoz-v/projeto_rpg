@@ -134,6 +134,28 @@ describe('TableController', () => {
   });
 });
 
+describe('TableController: chat window (note 0047)', () => {
+  it('sends only the last entries to the screen and serves the older ones, for the GM and for players', async () => {
+    const { gm, port } = await hosted();
+    for (let i = 0; i < 230; i++) await gm.controller.send({ kind: 'chat.message', data: { text: `m${i}` } });
+    const last = gm.events.at(-1);
+    if (last?.kind !== 'state') throw new Error('esperava estado');
+    expect(last.chatFrom).toBe(30);
+    expect(last.state.chat).toHaveLength(200);
+    expect(gm.controller.view()).toMatchObject({ chatFrom: 30 });
+    const older = await gm.controller.chatHistory(30, 200);
+    expect(older.from).toBe(0);
+    expect(older.entries.map((e) => (e.kind === 'message' ? e.text : e.kind)).slice(0, 2)).toEqual(['m0', 'm1']);
+
+    const ana = app();
+    const view = await ana.controller.join({ address: `127.0.0.1:${port}`, displayName: 'Ana' });
+    // A entrada da Ana não muda o chat; a janela é a mesma.
+    expect(view.chatFrom).toBe(30);
+    expect(view.state.chat).toHaveLength(200);
+    expect((await ana.controller.chatHistory(view.chatFrom, 200)).entries).toHaveLength(30);
+  });
+});
+
 describe('TableController: saved campaigns', () => {
   it('restores the log, maps and players when the GM hosts the same campaign again', async () => {
     const { gm, port } = await hosted();

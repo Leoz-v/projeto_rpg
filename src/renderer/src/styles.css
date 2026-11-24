@@ -1967,3 +1967,10 @@ button.small {
   background: var(--bg);
   overflow-wrap: anywhere;
 }
+
+/* Janela do chat (nota 0047) */
+
+.chat-older {
+  text-align: center;
+  padding: 0.25rem 0;
+}

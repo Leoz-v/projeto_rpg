@@ -14,6 +14,7 @@ const api: VttApi = {
   sendIntent: (intent) => ipcRenderer.invoke(IpcChannel.sendIntent, intent),
   importAsset: () => ipcRenderer.invoke(IpcChannel.importAsset),
   characterSheet: (characterId) => ipcRenderer.invoke(IpcChannel.characterSheet, characterId),
+  chatHistory: (before, limit) => ipcRenderer.invoke(IpcChannel.chatHistory, { before, limit }),
   creationOptions: () => ipcRenderer.invoke(IpcChannel.creationOptions),
   searchItems: (query) => ipcRenderer.invoke(IpcChannel.searchItems, query),
   characterHpMaxima: () => ipcRenderer.invoke(IpcChannel.characterHpMaxima),

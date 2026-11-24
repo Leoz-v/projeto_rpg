@@ -2,7 +2,7 @@
 
 > **Contrato fechado.** Só existem as mensagens e os tipos de `Intent` listados aqui. Para criar um novo, primeiro atualize este documento (e `PROTOCOL_VERSION`, se a mudança for incompatível) e só depois o código. Os schemas Zod em `src/shared/protocol/` devem seguir este arquivo exatamente.
 
-- **Versão do protocolo:** `PROTOCOL_VERSION = 16`
+- **Versão do protocolo:** `PROTOCOL_VERSION = 17`
 - **Transporte:** WebSocket puro (`ws://`) sobre rede virtual (Tailscale/ZeroTier). Porta padrão do Host: `47820`.
 - **Formato:** um objeto JSON (UTF-8) por frame de texto. Frames binários não são usados.
 - **Validação:** toda mensagem recebida, nos dois lados, passa pelo schema Zod antes de qualquer processamento. Mensagem inválida gera `Error` com `code: "invalid_message"` e é descartada. A conexão **não** cai por causa disso.
@@ -33,8 +33,10 @@ Toda mensagem tem o formato:
 | `HandshakeReject` | Host → cliente   | Conexão recusada; o Host fecha o socket. |
 | `Intent`          | cliente → Host   | Pedido de ação. O cliente nunca altera estado local. |
 | `IntentResult`    | Host → cliente   | Resultado do processamento de um `Intent` (só para quem enviou). |
-| `StateSnapshot`   | Host → cliente   | Estado completo e visível para aquele cliente. |
+| `StateSnapshot`   | Host → cliente   | Estado visível para aquele cliente, com as últimas entradas do chat. |
 | `StatePatch`      | Host → clientes  | Mudança incremental de estado (broadcast). |
+| `ChatHistoryRequest` | cliente → Host | Pede entradas antigas do chat, anteriores à janela do snapshot. |
+| `ChatHistory`     | Host → cliente   | Resposta com as entradas pedidas. |
 | `AssetRequest`    | cliente → Host   | Pede um asset pelo hash SHA-256. |
 | `AssetChunk`      | Host → cliente   | Pedaço de um asset. |
 | `Ping`            | ambos            | Keep-alive. |
@@ -131,11 +133,12 @@ Regras:
 ### 2.6 `StateSnapshot`
 
 ```json
-{ "type": "StateSnapshot", "id": "…", "payload": { "rev": 41, "state": { } } }
+{ "type": "StateSnapshot", "id": "…", "payload": { "rev": 41, "state": { }, "chatFrom": 1340 } }
 ```
 
 - Enviado logo após `HandshakeAccept` e sempre que o cliente precisar ressincronizar (ver 2.7).
 - `state` é o estado visível para aquele cliente (seção 2.12), no formato `SessionState` (seção 5).
+- **Janela do chat** (nota 0047): `state.chat` leva só as últimas `CHAT_WINDOW = 200` entradas. `chatFrom` é a posição da primeira delas no log completo (0 quando o log cabe inteiro). Sem a janela, o snapshot de uma campanha longa passava do limite de 1 MB por mensagem. Os `StatePatch` seguintes acrescentam entradas ao fim, como antes; as anteriores vêm por `ChatHistoryRequest` (2.8.1).
 
 ### 2.7 `StatePatch`
 
@@ -164,6 +167,17 @@ Regras:
 - `sha256`: 64 caracteres hexadecimais minúsculos.
 - O cliente pede um asset quando o estado o referencia (`background` de um mapa, `image` de um token) e ele não está no cache local. Pedidos repetidos do mesmo hash, enquanto o primeiro não termina, viram um só.
 - O Host entrega qualquer asset do seu armazenamento: o hash funciona como nome impossível de adivinhar, e só quem viu a referência no estado sabe pedir.
+
+### 2.8.1 `ChatHistoryRequest` / `ChatHistory`
+
+```json
+{ "type": "ChatHistoryRequest", "id": "h1…", "payload": { "before": 1340, "limit": 200 } }
+{ "type": "ChatHistory", "id": "…", "replyTo": "h1…", "payload": { "from": 1140, "entries": [ ] } }
+```
+
+- Pede as até `limit` (1 a 200) entradas imediatamente anteriores à posição `before` do log. A resposta traz as entradas em ordem e `from`, a posição da primeira (`before − entries.length`).
+- As entradas vêm filtradas para quem pediu, como no snapshot (seção 2.12): cada entrada ocupa a mesma posição para todos.
+- `before` além do fim do log é tratado como o fim. Sem entradas (`before` = 0), `entries` vem vazio.
 
 ### 2.9 `AssetChunk`
 

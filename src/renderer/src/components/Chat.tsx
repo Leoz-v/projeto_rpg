@@ -1,8 +1,9 @@
 import { type SyntheticEvent, type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
-import type { ChatEntry, Role, SessionState } from '../../../shared/protocol';
+import { type ChatEntry, MAX_CHAT_HISTORY, type Role, type SessionState } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
 import { CHAT_HELP, parseChatInput } from './chat-command';
 import { type RollPart, rollParts } from './roll-parts';
+import { addToChatLog, type ChatLog, chatLogEntries, chatLogWithWindow, EMPTY_CHAT_LOG, firstChatIndex } from './chat-log';
 import { AttackRollBody, D20RollBody, DamageAppliedBody, DamageRollBody, MasteryDamageBody, SaveRollBody } from './SheetRollEntries';
 import { CONDITION_LABEL } from './sheet-labels';
 import { DeathSaveBody, DeathStateBody } from './DeathSaves';
@@ -226,17 +227,37 @@ function Entry({ entry, author, context }: { entry: ChatEntry; author: string; c
   }
 }
 
-export function Chat({ state, viewer }: { state: SessionState; viewer: ChatViewer }) {
+export function Chat({ state, chatFrom, viewer }: { state: SessionState; chatFrom: number; viewer: ChatViewer }) {
   const [input, setInput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const end = useRef<HTMLLIElement>(null);
-  const masteryUsed = useMemo(() => new Set(state.chat.flatMap((e) => ('masteryOf' in e && e.masteryOf !== undefined ? [e.masteryOf] : []))), [state.chat]);
+  // Páginas antigas do chat carregadas sob demanda, por campanha; a janela vem do estado (nota 0047).
+  const [saved, setSaved] = useState<{ campaignId: string; log: ChatLog }>({ campaignId: state.campaign.id, log: EMPTY_CHAT_LOG });
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const base = saved.campaignId === state.campaign.id ? saved.log : EMPTY_CHAT_LOG;
+  const log = useMemo(() => chatLogWithWindow(base, chatFrom, state.chat), [base, chatFrom, state.chat]);
+  const entries = useMemo(() => chatLogEntries(log), [log]);
+  const first = firstChatIndex(log);
+  const masteryUsed = useMemo(() => new Set(entries.flatMap((e) => ('masteryOf' in e && e.masteryOf !== undefined ? [e.masteryOf] : []))), [entries]);
   const context: EntryContext = { state, viewer, masteryUsed };
+  const lastId = state.chat.at(-1)?.id;
 
   useEffect(() => {
     end.current?.scrollIntoView({ block: 'end' });
-  }, [state.chat.length]);
+  }, [lastId]);
+
+  const loadOlder = async (): Promise<void> => {
+    setLoadingOlder(true);
+    const result = await window.vtt.chatHistory(first, MAX_CHAT_HISTORY);
+    setLoadingOlder(false);
+    if (!result.ok) {
+      setError(result.error.message);
+      return;
+    }
+    // Guarda a janela atual junto: ela pode sair da janela antes do próximo pedido.
+    setSaved({ campaignId: state.campaign.id, log: addToChatLog(log, result.value.from, result.value.entries) });
+  };
 
   const submit = async (event?: SyntheticEvent): Promise<void> => {
     event?.preventDefault();
@@ -262,8 +283,15 @@ export function Chat({ state, viewer }: { state: SessionState; viewer: ChatViewe
   return (
     <section className="chat" aria-label="Chat e rolagens">
       <ol className="log">
-        {state.chat.length === 0 && <li className="hint">{CHAT_HELP}</li>}
-        {state.chat.map((entry) => (
+        {first > 0 && (
+          <li className="chat-older">
+            <button type="button" className="link" disabled={loadingOlder} onClick={() => void loadOlder()}>
+              {loadingOlder ? 'Carregando…' : 'Carregar mensagens anteriores'}
+            </button>
+          </li>
+        )}
+        {entries.length === 0 && <li className="hint">{CHAT_HELP}</li>}
+        {entries.map((entry) => (
           <Entry key={entry.id} entry={entry} author={state.players[entry.authorId]?.displayName ?? 'Desconhecido'} context={context} />
         ))}
         <li ref={end} aria-hidden />

@@ -257,3 +257,34 @@ describe('heartbeat', () => {
     expect(alive.status).toBe('applied');
   });
 });
+
+describe('chat window (note 0047)', () => {
+  it('sends only the last entries in the snapshot and the older ones on request, filtered for the player', async () => {
+    const { server, session, url } = await host();
+    for (let i = 0; i < 450; i++) {
+      const intent = i % 50 === 0 ? { kind: 'dice.roll' as const, data: { formula: '1d20', visibility: 'gm' as const } } : { kind: 'chat.message' as const, data: { text: `mensagem ${i}` } };
+      session.handle(GM.playerId, intent);
+    }
+    const playerId = randomUUID();
+    const client = await join(url, 'Ana', { playerId });
+    expect(client.chatFrom).toBe(250);
+    expect(client.state.chat).toHaveLength(200);
+    const full = session.viewFor(playerId).chat;
+    expect(client.state.chat).toEqual(full.slice(250));
+
+    const page = await client.requestChatHistory(250, 200);
+    expect(page.from).toBe(50);
+    expect(page.entries).toEqual(full.slice(50, 250));
+    // As rolagens secretas do mestre chegam filtradas, como no snapshot.
+    expect(page.entries.some((e) => e.kind === 'hidden_roll')).toBe(true);
+    expect(page.entries).not.toEqual(session.state.chat.slice(50, 250));
+
+    expect(await client.requestChatHistory(50, 200)).toEqual({ from: 0, entries: full.slice(0, 50) });
+    expect(await client.requestChatHistory(0, 10)).toEqual({ from: 0, entries: [] });
+
+    // Entradas novas continuam chegando por patch, no fim.
+    server.dispatch(GM.playerId, { kind: 'chat.message', data: { text: 'nova' } });
+    const state = await until(client, (s) => s.chat.length === 201);
+    expect(state.chat.at(-1)).toMatchObject({ kind: 'message', text: 'nova' });
+  });
+});
