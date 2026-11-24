@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "12fa6d78-e6cd-3af7-b565-c2a0301c4f55",
+  "key": "greyvein.talus_alcove",
+  "displayName": "Talus alcove",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

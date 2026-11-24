@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "20cfd893-5e4c-3c91-8228-bfbd343a3927",
+  "key": "greyvein.flowstone_drapery",
+  "displayName": "Flowstone drapery",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

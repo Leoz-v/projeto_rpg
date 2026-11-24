@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "61d3d31c-57f3-32d4-82d9-5e75f8974589",
+  "key": "dunmere_lower_ward.diagonal_parapet",
+  "displayName": "Diagonal parapet",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

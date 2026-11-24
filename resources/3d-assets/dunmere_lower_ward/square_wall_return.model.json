@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "12720cc1-4fd8-30dd-9c19-eaedc9e235b5",
+  "key": "dunmere_lower_ward.square_wall_return",
+  "displayName": "Square wall return",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "05807bd1-ddac-381f-8797-0c96fee47f8a",
+  "key": "barleyfold.cabbage_bed",
+  "displayName": "Cabbage bed",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

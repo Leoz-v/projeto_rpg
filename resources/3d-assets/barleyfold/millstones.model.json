@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "009ae47c-b986-325d-99b8-3323bf4d7693",
+  "key": "barleyfold.millstones",
+  "displayName": "Millstones",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

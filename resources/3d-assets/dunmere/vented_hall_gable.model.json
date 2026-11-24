@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "a450a621-aa03-3673-adab-1d329fb7682d",
+  "key": "dunmere.vented_hall_gable",
+  "displayName": "Vented hall gable",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

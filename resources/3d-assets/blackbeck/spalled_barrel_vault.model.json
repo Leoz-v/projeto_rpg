@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "14158e53-8309-3a8b-906c-5fd30159a169",
+  "key": "blackbeck.spalled_barrel_vault",
+  "displayName": "Spalled barrel vault",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

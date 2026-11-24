@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "d3ad1745-390f-3268-8d6b-a87fc90101a0",
+  "key": "alderwatch.shuttered_casement",
+  "displayName": "Shuttered casement",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

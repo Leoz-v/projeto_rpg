@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "e782d99c-e21e-3f95-b11f-ebd23f62bdbe",
+  "key": "greyvein.four_way_crossing",
+  "displayName": "Four-way crossing",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

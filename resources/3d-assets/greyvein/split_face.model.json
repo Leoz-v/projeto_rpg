@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "361e97d3-e0e1-3516-89be-625a533d1fc9",
+  "key": "greyvein.split_face",
+  "displayName": "Split face",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

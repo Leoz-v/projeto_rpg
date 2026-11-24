@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "3969d508-ad59-370c-b4c4-a629d434dee3",
+  "key": "blackbeck.hinged_wicket",
+  "displayName": "Hinged wicket",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

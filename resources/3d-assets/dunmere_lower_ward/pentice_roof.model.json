@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "0a2482d8-3d03-3631-b261-e9a3092e3079",
+  "key": "dunmere_lower_ward.pentice_roof",
+  "displayName": "Pentice roof",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

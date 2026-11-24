@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "3d09a014-1078-3d37-943c-61773806592b",
+  "key": "blackbeck.barrel_vault",
+  "displayName": "Barrel vault",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

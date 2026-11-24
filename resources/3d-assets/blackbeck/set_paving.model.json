@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "d987f5c6-27bc-3215-b8e6-f85c6c87bb36",
+  "key": "blackbeck.set_paving",
+  "displayName": "Set paving",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "8335bba6-e3f0-3cdb-850b-470b02f94357",
+  "key": "reedbank.board_floor",
+  "displayName": "Board floor",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

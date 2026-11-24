@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "24d7b321-4d5d-35be-8156-a49fb14ee54e",
+  "key": "blackbeck.oak_footbridge",
+  "displayName": "Oak footbridge",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "ebffdd77-d045-3972-afe6-8dcd0a767f15",
+  "key": "dunmere_lower_ward.hinge_pier",
+  "displayName": "Hinge pier",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "be5a649a-3eec-35e7-8816-7d71cffb84a6",
+  "key": "dunmere_lower_ward.watch_pennant",
+  "displayName": "Watch pennant",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

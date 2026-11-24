@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "603ab58b-41b7-341a-a02e-ad78ad16bc69",
+  "key": "blackbeck.scoured_race",
+  "displayName": "Scoured race",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

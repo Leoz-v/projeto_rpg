@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "5d3e3f40-f0b4-31a5-b65c-7c735bec5264",
+  "key": "greyvein.pendant_roof",
+  "displayName": "Pendant roof",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

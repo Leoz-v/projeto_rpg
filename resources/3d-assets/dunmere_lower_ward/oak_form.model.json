@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "2472bba4-5e6c-33b2-bcb7-debf5c10cb6e",
+  "key": "dunmere_lower_ward.oak_form",
+  "displayName": "Oak form",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

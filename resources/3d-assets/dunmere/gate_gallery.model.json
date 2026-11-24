@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "1a0733f8-05c1-3ce5-bbe7-be04154f06f4",
+  "key": "dunmere.gate_gallery",
+  "displayName": "Gate gallery",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

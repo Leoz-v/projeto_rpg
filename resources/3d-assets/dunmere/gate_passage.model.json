@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "e3ad9e80-2b8e-3175-883e-491419aaac8b",
+  "key": "dunmere.gate_passage",
+  "displayName": "Gate passage",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

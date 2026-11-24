@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "b8fcf90d-de59-31dc-83da-593e742c6a4a",
+  "key": "barleyfold.open_stall_bay",
+  "displayName": "Open stall bay",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

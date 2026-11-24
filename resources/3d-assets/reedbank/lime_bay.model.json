@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "d24671c8-d01e-39ad-b0b6-6ba9f455cb01",
+  "key": "reedbank.lime_bay",
+  "displayName": "Lime bay",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

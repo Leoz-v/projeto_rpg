@@ -1,9 +1,11 @@
-import { type SyntheticEvent, useEffect, useState } from 'react';
+import { type ChangeEvent, type SyntheticEvent, useEffect, useRef, useState } from 'react';
 import type { Size } from 'rules-engine/schemas';
 import type { ImportedAsset, MonsterAction, MonsterSummary, TableView } from '../../../shared/ipc';
-import type { MapStage } from '../canvas/MapStage';
+import type { GameMap } from '../../../shared/protocol';
+import type { MapStageHandle } from '../canvas/MapStage';
 import { placeToken, tokenSide } from '../canvas/geometry';
 import { defaultCellPx, gridDimensionsForImage } from '../canvas/map-grid';
+import { parseMapDocument } from '../canvas3d/map/mapDocument';
 import { sendIntent } from '../store/table';
 import { tokenHealth } from '../canvas/health';
 import { tokenConditions } from '../canvas/conditions';
@@ -89,14 +91,50 @@ interface BackgroundGrid {
   cellPx: number;
 }
 
-function Maps({ view, onError }: { view: TableView; onError: (m: string | null) => void }) {
+function Maps({ view, onError, onOpen3dEditor }: { view: TableView; onError: (m: string | null) => void; onOpen3dEditor: (map: GameMap | null) => void }) {
   const { maps, activeMapId } = view.state;
   const [name, setName] = useState('');
   const [width, setWidth] = useState('30');
   const [height, setHeight] = useState('20');
   const [background, setBackground] = useState<BackgroundGrid | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [open, setOpen] = useState(Object.keys(maps).length === 0);
+  const [open, setOpen] = useState(false);
+  const [importing3d, setImporting3d] = useState(false);
+  const import3dInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImport3dFile = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setImporting3d(true);
+    onError(null);
+    try {
+      const text = await file.text();
+      const raw: unknown = JSON.parse(text);
+      const fallbackName = file.name.replace(/\.vttmap\.json$/i, '').replace(/\.json$/i, '') || 'Mapa 3D';
+      const doc = parseMapDocument(raw, fallbackName);
+      const stored = await window.vtt.save3dMapAsset(JSON.stringify(doc));
+      if (!stored.ok) {
+        onError(stored.error.message);
+        return;
+      }
+      const mapName = doc.name.trim().slice(0, 100) || fallbackName.slice(0, 100);
+      const refused = await sendIntent({
+        kind: 'map.create',
+        data: {
+          name: mapName,
+          width: doc.terrain.width,
+          height: doc.terrain.length,
+          scene3d: stored.value.sha256,
+        },
+      });
+      onError(refused);
+    } catch (err: unknown) {
+      onError(err instanceof Error ? err.message : 'Arquivo de mapa 3D inválido');
+    } finally {
+      setImporting3d(false);
+    }
+  };
 
   const backgroundDims = background
     ? gridDimensionsForImage({ width: background.image.naturalWidth, height: background.image.naturalHeight }, background.cellPx)
@@ -149,6 +187,7 @@ function Maps({ view, onError }: { view: TableView; onError: (m: string | null) 
         {Object.values(maps).map((m) => (
           <li key={m.id}>
             {m.name}{' '}
+            {m.scene3d !== null && <span className="tag">3D</span>}{' '}
             <span className="hint">
               ({m.width}×{m.height}
               {m.cellPx !== null ? `, ${m.cellPx} px` : ''})
@@ -158,6 +197,17 @@ function Maps({ view, onError }: { view: TableView; onError: (m: string | null) 
             ) : (
               <button type="button" className="link" onClick={() => void sendIntent({ kind: 'map.activate', data: { mapId: m.id } }).then(onError)}>
                 Mostrar
+              </button>
+            )}
+            {m.scene3d !== null && (
+              <button
+                type="button"
+                className="link"
+                onClick={() => {
+                  onOpen3dEditor(m);
+                }}
+              >
+                Editar 3D
               </button>
             )}
           </li>
@@ -231,29 +281,59 @@ function Maps({ view, onError }: { view: TableView; onError: (m: string | null) 
           )}
           <div className="row">
             <button type="submit">Criar mapa</button>
-            {Object.keys(maps).length > 0 && (
-              <button
-                type="button"
-                className="link"
-                onClick={() => {
-                  setOpen(false);
-                }}
-              >
-                Cancelar
-              </button>
-            )}
+            <button
+              type="button"
+              className="link"
+              onClick={() => {
+                setOpen(false);
+              }}
+            >
+              Cancelar
+            </button>
           </div>
         </form>
       ) : (
-        <button
-          type="button"
-          className="secondary"
-          onClick={() => {
-            setOpen(true);
-          }}
-        >
-          Novo mapa
-        </button>
+        <div className="stack">
+          <div className="row">
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => {
+                setOpen(true);
+              }}
+            >
+              Novo mapa 2D
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => {
+                onOpen3dEditor(null);
+              }}
+            >
+              Novo mapa 3D
+            </button>
+          </div>
+          <button
+            type="button"
+            className="secondary"
+            disabled={importing3d}
+            onClick={() => {
+              import3dInputRef.current?.click();
+            }}
+          >
+            {importing3d ? 'Importando mapa 3D…' : 'Importar mapa 3D (.vttmap.json)…'}
+          </button>
+          <input
+            ref={import3dInputRef}
+            type="file"
+            accept=".json,.vttmap.json,application/json"
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              void handleImport3dFile(e);
+            }}
+          />
+        </div>
       )}
       {previewOpen && background && (
         <MapGridModal
@@ -293,7 +373,7 @@ function useMonsterSearch(query: string): MonsterSummary[] {
   return active && found.query === query ? found.results : [];
 }
 
-function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: MapStage | null; selectedId: string | null; onError: (m: string | null) => void }) {
+function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: MapStageHandle | null; selectedId: string | null; onError: (m: string | null) => void }) {
   const { state } = view;
   const map = state.activeMapId !== null ? state.maps[state.activeMapId] : undefined;
   const [query, setQuery] = useState('');
@@ -624,7 +704,7 @@ function MonsterActions({ tokenId, monsterId, targets, onError }: { tokenId: str
  * Token de um personagem da mesa: nome, tamanho (da ficha) e dono vêm do
  * personagem, e o token fica ligado a ele (`characterId`).
  */
-function CharacterTokens({ view, stage, onError }: { view: TableView; stage: MapStage | null; onError: (m: string | null) => void }) {
+function CharacterTokens({ view, stage, onError }: { view: TableView; stage: MapStageHandle | null; onError: (m: string | null) => void }) {
   const { state } = view;
   const map = state.activeMapId !== null ? state.maps[state.activeMapId] : undefined;
   const characters = Object.values(state.characters).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
@@ -678,7 +758,7 @@ function CharacterTokens({ view, stage, onError }: { view: TableView; stage: Map
   );
 }
 
-export function GmPanel({ view, stage, selectedId }: { view: TableView; stage: MapStage | null; selectedId: string | null }) {
+export function GmPanel({ view, stage, selectedId, onOpen3dEditor }: { view: TableView; stage: MapStageHandle | null; selectedId: string | null; onOpen3dEditor: (map: GameMap | null) => void }) {
   const [error, setError] = useState<string | null>(null);
   return (
     <>
@@ -687,7 +767,7 @@ export function GmPanel({ view, stage, selectedId }: { view: TableView; stage: M
           {error}
         </p>
       )}
-      <Maps view={view} onError={setError} />
+      <Maps view={view} onError={setError} onOpen3dEditor={onOpen3dEditor} />
       <RestPanel state={view.state} />
       <CharacterTokens view={view} stage={stage} onError={setError} />
       <Tokens view={view} stage={stage} selectedId={selectedId} onError={setError} />

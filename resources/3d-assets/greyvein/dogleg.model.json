@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "7f596d2c-4dd4-3c29-a36e-9bf23ee9b917",
+  "key": "greyvein.dogleg",
+  "displayName": "Dogleg",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

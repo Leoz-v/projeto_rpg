@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "cd9b193b-34a1-36f3-82eb-b4b5b181fa6e",
+  "key": "dunmere.drawbridge_stays",
+  "displayName": "Drawbridge stays",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

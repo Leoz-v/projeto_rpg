@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "8a9725a7-0f8b-364b-a73a-eeed2b31ddd6",
+  "key": "alderwatch.pantile_slope",
+  "displayName": "Pantile slope",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

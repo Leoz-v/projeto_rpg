@@ -10,7 +10,7 @@ import { cancelRest, finishRest, spendHitDie, startRest } from './rest';
 import { changeSpellSlot } from './spell-slots';
 import { changeResource } from './resources';
 import { castSpell, useSpellEffect } from './casting';
-import { createMap, createToken, moveToken, roll } from './map-tokens';
+import { createMap, createToken, moveToken, roll, updateMap } from './map-tokens';
 import { changeHp, concentrate, concentrationBreaks, deathStateEntry, endConcentration, inCombat, rollDeathSave } from './vitality';
 
 export type { Identity, IntentOutcome, IntentResultPayload, SessionDeps, StateChange } from './context';
@@ -139,6 +139,9 @@ export class HostSession extends SessionContext {
       case 'map.create':
         this.requireGm(role);
         return createMap(this, intent.data);
+      case 'map.update':
+        this.requireGm(role);
+        return updateMap(this, intent.data);
       case 'map.activate':
         this.requireGm(role);
         this.map(intent.data.mapId);

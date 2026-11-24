@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "18be1494-6845-3057-88ac-de950cb327d2",
+  "key": "dunmere.chamfered_return",
+  "displayName": "Chamfered return",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

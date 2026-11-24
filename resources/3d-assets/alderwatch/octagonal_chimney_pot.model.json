@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "b226aec2-f37a-32c4-ad10-2de5a565dac9",
+  "key": "alderwatch.octagonal_chimney_pot",
+  "displayName": "Octagonal chimney pot",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "dc03b4e5-60a9-32bc-bc49-c85f5c6839ac",
+  "key": "dunmere.faceted_spire",
+  "displayName": "Faceted spire",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

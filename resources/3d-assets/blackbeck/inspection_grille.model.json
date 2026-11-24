@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "7a8908bc-525a-363d-b457-c64b8c9b1e59",
+  "key": "blackbeck.inspection_grille",
+  "displayName": "Inspection grille",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

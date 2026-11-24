@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "85bf182e-058e-38be-92ac-27b54097637f",
+  "key": "barleyfold.ripe_wheat",
+  "displayName": "Ripe wheat",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

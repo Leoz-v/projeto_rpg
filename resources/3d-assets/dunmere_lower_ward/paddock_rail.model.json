@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "5309ba0f-991f-3468-af26-6e92743be734",
+  "key": "dunmere_lower_ward.paddock_rail",
+  "displayName": "Paddock rail",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

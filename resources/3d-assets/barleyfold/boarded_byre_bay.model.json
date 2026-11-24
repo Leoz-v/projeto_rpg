@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "732899e4-ca4f-3852-9bb4-a9c7544a5b66",
+  "key": "barleyfold.boarded_byre_bay",
+  "displayName": "Boarded byre bay",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

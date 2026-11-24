@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "8d2f6a1e-f2bb-3e68-b518-22ff5d3c1bcb",
+  "key": "greyvein.three_way_fork",
+  "displayName": "Three-way fork",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

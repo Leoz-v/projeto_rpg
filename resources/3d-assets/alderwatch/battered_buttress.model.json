@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "7be1abd2-b4d3-3001-9141-97d3ebd629ee",
+  "key": "alderwatch.battered_buttress",
+  "displayName": "Battered buttress",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

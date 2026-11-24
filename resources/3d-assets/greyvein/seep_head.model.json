@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "ece91d02-e3df-3ea4-8159-72c19d9c7db3",
+  "key": "greyvein.seep_head",
+  "displayName": "Seep head",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

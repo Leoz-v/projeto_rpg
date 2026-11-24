@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "0f3ca7b4-966c-3dcd-9311-e2208bb7bb03",
+  "key": "greyvein.open_sinkhole",
+  "displayName": "Open sinkhole",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

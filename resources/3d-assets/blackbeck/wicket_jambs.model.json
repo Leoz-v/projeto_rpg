@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "016ae2fb-6ee5-39e5-bf16-66aaf469d84a",
+  "key": "blackbeck.wicket_jambs",
+  "displayName": "Wicket jambs",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

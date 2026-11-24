@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "fe220473-5f6d-3ad0-8e93-9befcef19d18",
+  "key": "dunmere_lower_ward.terrace_coping",
+  "displayName": "Terrace coping",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

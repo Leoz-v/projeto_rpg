@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "e91a6c1d-33b4-3ec7-bf3b-d10439633c01",
+  "key": "dunmere.right_angle_return",
+  "displayName": "Right-angle return",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

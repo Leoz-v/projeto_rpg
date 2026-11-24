@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "447d82e1-2df0-3b1a-bbd5-711723bcd34c",
+  "key": "alderwatch.arcade_column",
+  "displayName": "Arcade column",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

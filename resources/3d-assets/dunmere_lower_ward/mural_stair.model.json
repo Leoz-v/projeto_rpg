@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "f47548aa-02fa-393f-a826-95fbac119789",
+  "key": "dunmere_lower_ward.mural_stair",
+  "displayName": "Mural stair",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

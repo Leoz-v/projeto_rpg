@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "37c9bb40-2251-32a6-a2d8-750862c1291d",
+  "key": "blackbeck.splintered_footbridge",
+  "displayName": "Splintered footbridge",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

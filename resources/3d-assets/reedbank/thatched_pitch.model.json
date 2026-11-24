@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "89049743-fde3-32b4-9287-77d27e48fc23",
+  "key": "reedbank.thatched_pitch",
+  "displayName": "Thatched pitch",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

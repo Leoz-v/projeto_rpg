@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "f9d41427-c72d-311c-91d0-46f5db3cd3a5",
+  "key": "dunmere_lower_ward.pentice_post",
+  "displayName": "Pentice post",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

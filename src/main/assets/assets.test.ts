@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { ASSET_CHUNK_BYTES, MAX_ASSET_BYTES } from '../../shared/protocol';
 import { type ChunkPayload, ChunkAssembler, toChunks } from './chunks';
 import { assetHashOf, assetResponse } from './protocol';
+import { create3dAssetHandler } from './catalog-3d';
 import { AssetError, AssetStore, sha256Hex, sniffMime } from './store';
 
 const PNG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
@@ -25,10 +26,14 @@ afterEach(() => {
 });
 
 describe('sniffMime', () => {
-  it('recognizes PNG, JPEG and WebP by their signature, not by name', () => {
+  it('recognizes PNG, JPEG, WebP and JSON objects by content, not by name', () => {
     expect(sniffMime(image(PNG))).toBe('image/png');
     expect(sniffMime(image(JPEG))).toBe('image/jpeg');
     expect(sniffMime(image(WEBP))).toBe('image/webp');
+    expect(sniffMime(Buffer.from('{"schemaVersion":1}'))).toBe('application/json');
+    expect(sniffMime(Buffer.from('  \n{"ok":true}'))).toBe('application/json');
+    expect(sniffMime(Buffer.from('[1,2,3]'))).toBeUndefined();
+    expect(sniffMime(Buffer.from('{invalid'))).toBeUndefined();
     expect(sniffMime(Buffer.from('GIF89a…'))).toBeUndefined();
     expect(sniffMime(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'))).toBeUndefined();
     expect(sniffMime(Buffer.alloc(0))).toBeUndefined();
@@ -130,5 +135,24 @@ describe('vtt-asset protocol', () => {
     expect((await assetResponse(new Request('vtt-asset://x'), resolve)).status).toBe(400);
     expect((await assetResponse(new Request(`vtt-asset://${sha}`, { method: 'POST' }), resolve)).status).toBe(405);
     expect((await assetResponse(new Request(`vtt-asset://${sha}`), () => Promise.reject(new Error('rede')))).status).toBe(502);
+  });
+});
+
+describe('vtt-3d protocol', () => {
+  it('serves the bundled 3D catalog and blocks path traversal', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'vtt-3d-'));
+    dirs.push(dir);
+    const handler = create3dAssetHandler(dir);
+
+    const catalogRes = handler(new Request('vtt-3d://catalog.json'));
+    expect(catalogRes.status).toBe(200);
+    expect(catalogRes.headers.get('Content-Type')).toContain('application/json');
+    const body = (await catalogRes.json()) as { count: number; assets: unknown[] };
+    expect(body.count).toBe(0);
+    expect(body.assets).toEqual([]);
+
+    expect(handler(new Request('vtt-3d://models/%2e%2e%2f%2e%2e%2fsecret.glb')).status).toBe(403);
+    expect(handler(new Request('vtt-3d://models/missing.glb')).status).toBe(404);
+    expect(handler(new Request('vtt-3d://catalog.json', { method: 'POST' })).status).toBe(405);
   });
 });

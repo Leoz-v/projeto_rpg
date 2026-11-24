@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "9d2712a2-c5ed-32dd-8a0d-89c3e961ca4c",
+  "key": "dunmere_lower_ward.coping_return",
+  "displayName": "Coping return",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

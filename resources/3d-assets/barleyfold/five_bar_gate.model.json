@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "954dda9e-6b65-32b2-8fb3-2b35291f5e34",
+  "key": "barleyfold.five_bar_gate",
+  "displayName": "Five-bar gate",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

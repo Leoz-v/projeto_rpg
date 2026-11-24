@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "47531e3d-b0ac-3495-a350-56be54ecac2d",
+  "key": "alderwatch.parapet_finial",
+  "displayName": "Parapet finial",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

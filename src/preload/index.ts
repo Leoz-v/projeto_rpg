@@ -13,6 +13,7 @@ const api: VttApi = {
   getTable: () => ipcRenderer.invoke(IpcChannel.getTable),
   sendIntent: (intent) => ipcRenderer.invoke(IpcChannel.sendIntent, intent),
   importAsset: () => ipcRenderer.invoke(IpcChannel.importAsset),
+  save3dMapAsset: (json) => ipcRenderer.invoke(IpcChannel.save3dMapAsset, json),
   characterSheet: (characterId) => ipcRenderer.invoke(IpcChannel.characterSheet, characterId),
   chatHistory: (before, limit) => ipcRenderer.invoke(IpcChannel.chatHistory, { before, limit }),
   creationOptions: () => ipcRenderer.invoke(IpcChannel.creationOptions),

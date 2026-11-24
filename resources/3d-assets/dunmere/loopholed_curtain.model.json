@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "11ab2a87-558c-392d-bb8a-4df6259e9900",
+  "key": "dunmere.loopholed_curtain",
+  "displayName": "Loopholed curtain",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

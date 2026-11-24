@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "227208b8-03e0-3419-8099-1c1c7428e51c",
+  "key": "dunmere_lower_ward.walk_slab",
+  "displayName": "Walk slab",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

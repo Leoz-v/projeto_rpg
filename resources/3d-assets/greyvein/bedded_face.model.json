@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "b66c3f59-6e6e-31a1-be0b-7d290b93b2f0",
+  "key": "greyvein.bedded_face",
+  "displayName": "Bedded face",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "7695302e-3a1d-344f-a72d-8dac408a6db2",
+  "key": "reedbank.diagonal_bay",
+  "displayName": "Diagonal bay",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

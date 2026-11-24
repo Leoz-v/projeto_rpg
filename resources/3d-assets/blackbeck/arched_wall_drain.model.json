@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "b5193b6e-3669-31da-bc3f-4564d0e48935",
+  "key": "blackbeck.arched_wall_drain",
+  "displayName": "Arched wall drain",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

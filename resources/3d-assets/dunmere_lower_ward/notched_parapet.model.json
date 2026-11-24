@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "f3397144-bd8d-3e8e-8740-bcaaf432a9b5",
+  "key": "dunmere_lower_ward.notched_parapet",
+  "displayName": "Notched parapet",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

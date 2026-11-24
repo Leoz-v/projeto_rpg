@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "47da1fa0-235b-3618-b920-2076420b2995",
+  "key": "reedbank.fence_end",
+  "displayName": "Fence end",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

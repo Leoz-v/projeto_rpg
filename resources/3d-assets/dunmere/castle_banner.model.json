@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "4e456083-9af9-31b2-8151-716b63f0dd8f",
+  "key": "dunmere.castle_banner",
+  "displayName": "Castle banner",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

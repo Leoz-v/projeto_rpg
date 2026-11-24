@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "156549f5-96eb-3f3e-a9b5-465b565bf77c",
+  "key": "alderwatch.timber_corner_return",
+  "displayName": "Timber corner return",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "9933935c-bf31-3c0b-b457-939b85208123",
+  "key": "alderwatch.oriel_window",
+  "displayName": "Oriel window",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

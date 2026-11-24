@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "bfe36df9-1684-32f5-99a7-3746ee1004c3",
+  "key": "blackbeck.branch_race",
+  "displayName": "Branch race",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

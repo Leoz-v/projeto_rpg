@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "bb26216d-9a8b-3e54-b5f6-4f5312910e35",
+  "key": "greyvein.wall_torch",
+  "displayName": "Wall torch",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

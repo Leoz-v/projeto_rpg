@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "dc764580-96aa-34bf-83fc-02e40a37c78b",
+  "key": "dunmere_lower_ward.wall_cresset",
+  "displayName": "Wall cresset",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

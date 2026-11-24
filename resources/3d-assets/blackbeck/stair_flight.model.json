@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "2d1d2598-9fd5-3950-b6e6-b32d06e8dc17",
+  "key": "blackbeck.stair_flight",
+  "displayName": "Stair flight",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

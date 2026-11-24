@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "afc12dd6-052c-3792-b70e-e100b7c5f17e",
+  "key": "blackbeck.shaft_lid",
+  "displayName": "Shaft lid",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

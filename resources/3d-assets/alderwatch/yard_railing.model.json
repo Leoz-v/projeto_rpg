@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "0cb5eb70-b1c6-3cf9-82da-1949e45514c4",
+  "key": "alderwatch.yard_railing",
+  "displayName": "Yard railing",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

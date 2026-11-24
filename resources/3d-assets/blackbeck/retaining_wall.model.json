@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "bc9bfcee-e76f-3a14-8ec5-5dc2dc574ea6",
+  "key": "blackbeck.retaining_wall",
+  "displayName": "Retaining wall",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

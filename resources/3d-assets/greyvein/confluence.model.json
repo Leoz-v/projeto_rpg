@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "5b27311c-b86f-33b3-beb8-ee8c9d381503",
+  "key": "greyvein.confluence",
+  "displayName": "Confluence",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

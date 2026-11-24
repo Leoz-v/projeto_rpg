@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "5ffe0a5c-c6b6-38fc-a9a1-9502029ae5ed",
+  "key": "reedbank.two_tile_gable",
+  "displayName": "Two-tile gable",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

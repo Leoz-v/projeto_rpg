@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "c863d5c4-9878-36d6-8942-c1494b865965",
+  "key": "dunmere_lower_ward.lancet_bay",
+  "displayName": "Lancet bay",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

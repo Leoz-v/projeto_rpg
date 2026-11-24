@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "b05d89eb-4d3d-37ff-9b24-6ef10965ccee",
+  "key": "barleyfold.water_trough",
+  "displayName": "Water trough",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

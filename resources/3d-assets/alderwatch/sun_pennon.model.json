@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "50f20614-9c4f-378a-8b76-5a247f44aa56",
+  "key": "alderwatch.sun_pennon",
+  "displayName": "Sun pennon",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

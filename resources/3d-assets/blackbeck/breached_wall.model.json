@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "7e2c2c36-a208-3744-a75d-d0072b5db51c",
+  "key": "blackbeck.breached_wall",
+  "displayName": "Breached wall",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

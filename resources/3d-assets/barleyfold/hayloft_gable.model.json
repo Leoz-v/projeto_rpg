@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "da1d3700-9653-343b-8527-f95f8e0c8174",
+  "key": "barleyfold.hayloft_gable",
+  "displayName": "Hayloft gable",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

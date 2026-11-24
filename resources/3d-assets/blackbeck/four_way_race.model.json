@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "a53e066a-4bb5-35ea-b7b1-f29d445feed0",
+  "key": "blackbeck.four_way_race",
+  "displayName": "Four-way race",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

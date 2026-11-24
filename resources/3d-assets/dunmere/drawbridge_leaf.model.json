@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "184cfe8f-6dec-3278-b154-8a55aaba3406",
+  "key": "dunmere.drawbridge_leaf",
+  "displayName": "Drawbridge leaf",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

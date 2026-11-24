@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "e638c2cf-9718-3b3d-8ade-e7e2d3a86edd",
+  "key": "dunmere.stone_floor",
+  "displayName": "Stone floor",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

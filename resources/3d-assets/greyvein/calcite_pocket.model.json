@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "65c2a4e2-6424-3ca5-a107-7ce01f72121c",
+  "key": "greyvein.calcite_pocket",
+  "displayName": "Calcite pocket",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

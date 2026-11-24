@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "5e1d5908-fe4e-387b-b4f9-865ee5327dd6",
+  "key": "greyvein.pillar_chamber",
+  "displayName": "Pillar chamber",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

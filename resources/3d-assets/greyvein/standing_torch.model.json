@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "34b8b792-107b-3208-9378-a593476b74f2",
+  "key": "greyvein.standing_torch",
+  "displayName": "Standing torch",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

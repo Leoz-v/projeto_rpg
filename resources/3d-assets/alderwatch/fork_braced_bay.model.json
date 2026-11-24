@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "16bdf1b0-0bce-34aa-b42d-31f4383520fa",
+  "key": "alderwatch.fork_braced_bay",
+  "displayName": "Fork-braced bay",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

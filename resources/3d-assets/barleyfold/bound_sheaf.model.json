@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "b323d6fc-593e-399c-91f2-fff1a1a381de",
+  "key": "barleyfold.bound_sheaf",
+  "displayName": "Bound sheaf",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

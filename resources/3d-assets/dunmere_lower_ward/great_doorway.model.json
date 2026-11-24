@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "2c6012f9-1939-3dce-8388-09c0a5a7bdb9",
+  "key": "dunmere_lower_ward.great_doorway",
+  "displayName": "Great doorway",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

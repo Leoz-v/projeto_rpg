@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "44b9563c-13a3-38b2-b8b1-8963a6f8db95",
+  "key": "barleyfold.byre_end_post",
+  "displayName": "Byre end post",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

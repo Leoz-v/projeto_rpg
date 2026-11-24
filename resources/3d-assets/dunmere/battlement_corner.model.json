@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "8c7cd49e-db75-3a0d-bdb5-c95d7d6ae8b2",
+  "key": "dunmere.battlement_corner",
+  "displayName": "Battlement corner",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

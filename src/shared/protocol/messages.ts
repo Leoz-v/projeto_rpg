@@ -28,7 +28,7 @@ export const IntentRejectCodeSchema = z.enum(['invalid_intent', 'not_allowed', '
 export type IntentRejectCode = z.infer<typeof IntentRejectCodeSchema>;
 export const ErrorCodeSchema = z.enum(['invalid_message', 'not_ready', 'asset_not_found', 'internal_error']);
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
-export const AssetMimeSchema = z.enum(['image/png', 'image/jpeg', 'image/webp']);
+export const AssetMimeSchema = z.enum(['image/png', 'image/jpeg', 'image/webp', 'application/json']);
 export type AssetMime = z.infer<typeof AssetMimeSchema>;
 
 /** Operação JSON Patch (RFC 6902), restrita a `add`, `remove` e `replace`. */

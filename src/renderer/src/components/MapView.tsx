@@ -1,21 +1,25 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { TableView } from '../../../shared/ipc';
+import type { GameMap } from '../../../shared/protocol';
 import { tokenHealth } from '../canvas/health';
 import { conditionLabels, timedEffectLabels, tokenConditions } from '../canvas/conditions';
-import { MapStage } from '../canvas/MapStage';
+import { MapStage, type MapStageHandle } from '../canvas/MapStage';
 import { sendIntent } from '../store/table';
+import { Map3DView } from './Map3DView';
 
 /**
- * O mapa ativo: liga o `MapStage` (PixiJS) ao estado da mesa. Mover um token
- * vira `token.move`; se o Host recusar, o token volta e a mensagem aparece.
+ * O mapa ativo: liga o `MapStage` (PixiJS 2D) ou o `Map3DView` (PixiJS 3D) ao
+ * estado da mesa. Abrir um mapa 3D segue exatamente o mesmo fluxo dos mapas 2D.
  */
 
 interface Props {
   view: TableView;
   selectedId: string | null;
   onSelect: (tokenId: string | null) => void;
-  /** O palco pronto (ou `null` ao sair), para o painel do mestre saber o centro da tela. */
-  onStage: (stage: MapStage | null) => void;
+  /** O palco pronto (2D ou 3D; `null` ao sair), para o painel do mestre saber o centro da tela. */
+  onStage: (stage: MapStageHandle | null) => void;
+  /** Abre o editor 3D exclusivo do mestre para o mapa informado. */
+  onEdit3dMap?: (map: GameMap) => void;
 }
 
 /** PV máximos das fichas dos personagens (calculados no processo main), atualizados quando algum personagem muda. */
@@ -33,7 +37,7 @@ function useHpMaxima(characters: TableView['state']['characters']): Record<strin
   return maxima;
 }
 
-export function MapView({ view, selectedId, onSelect, onStage }: Props) {
+function Map2DView({ view, selectedId, onSelect, onStage }: Omit<Props, 'onEdit3dMap'>) {
   const host = useRef<HTMLDivElement>(null);
   const [stage, setStage] = useState<MapStage | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -102,4 +106,25 @@ export function MapView({ view, selectedId, onSelect, onStage }: Props) {
       )}
     </section>
   );
+}
+
+export function MapView({ view, selectedId, onSelect, onStage, onEdit3dMap }: Props) {
+  const { state, info } = view;
+  const map = state.activeMapId !== null ? (state.maps[state.activeMapId] ?? null) : null;
+  const maxima = useHpMaxima(state.characters);
+  if (map !== null && map.scene3d !== null) {
+    return (
+      <Map3DView
+        view={view}
+        map={map}
+        maxima={maxima}
+        selectedId={selectedId}
+        onSelect={onSelect}
+        onStage={onStage}
+        isGm={info.role === 'gm'}
+        onEditMap={onEdit3dMap}
+      />
+    );
+  }
+  return <Map2DView view={view} selectedId={selectedId} onSelect={onSelect} onStage={onStage} />;
 }

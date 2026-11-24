@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "0e970d15-d5b9-3f3f-bdbf-4e58ee0774e1",
+  "key": "reedbank.door_opening",
+  "displayName": "Door opening",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "55e842f2-c067-344d-870a-6d29afc87a6b",
+  "key": "barleyfold.turning_cap",
+  "displayName": "Turning cap",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

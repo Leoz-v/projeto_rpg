@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "58c75c7c-9018-3502-a863-f1237c33c4d9",
+  "key": "dunmere.keep_wall",
+  "displayName": "Keep wall",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

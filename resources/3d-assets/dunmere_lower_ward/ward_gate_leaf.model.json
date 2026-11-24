@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "f2e6b392-6938-3fcc-8f2b-324694d2ba9c",
+  "key": "dunmere_lower_ward.ward_gate_leaf",
+  "displayName": "Ward gate leaf",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

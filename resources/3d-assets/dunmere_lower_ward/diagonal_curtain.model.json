@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "532cdf8f-1f30-3095-8ca0-c5e209a892b7",
+  "key": "dunmere_lower_ward.diagonal_curtain",
+  "displayName": "Diagonal curtain",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

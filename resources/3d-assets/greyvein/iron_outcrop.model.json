@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "ce68f7d6-b9e3-3c23-adaf-2b6de3815950",
+  "key": "greyvein.iron_outcrop",
+  "displayName": "Iron outcrop",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

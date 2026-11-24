@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "1d490362-c7ec-39fc-98bb-e3a18b9942e6",
+  "key": "dunmere.gallery_roof",
+  "displayName": "Gallery roof",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

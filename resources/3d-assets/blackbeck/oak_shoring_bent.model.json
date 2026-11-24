@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "94425ce2-d20e-3186-85a8-73fb9eb55866",
+  "key": "blackbeck.oak_shoring_bent",
+  "displayName": "Oak shoring bent",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

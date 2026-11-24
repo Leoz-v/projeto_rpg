@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "a007dc59-3ea0-3b8a-942d-60c842cd0124",
+  "key": "greyvein.spring_pool",
+  "displayName": "Spring pool",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "9f320ec5-0636-3a0a-88f3-4950c650fb6d",
+  "key": "greyvein.iron_ore_tub",
+  "displayName": "Iron ore tub",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

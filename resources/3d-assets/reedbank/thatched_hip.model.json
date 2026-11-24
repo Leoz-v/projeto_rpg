@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "0f37f085-bcd3-3c3f-9bf8-d6628fad106b",
+  "key": "reedbank.thatched_hip",
+  "displayName": "Thatched hip",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "4886bd4e-923a-3bc3-8264-d6cc46aa2be6",
+  "key": "greyvein.open_chimney_roof",
+  "displayName": "Open chimney roof",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

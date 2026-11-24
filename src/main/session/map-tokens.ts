@@ -26,7 +26,11 @@ export function moveToken(ctx: SessionContext, playerId: string, role: Role, dat
 
 export function createMap(ctx: SessionContext, data: IntentData<'map.create'>): PatchOp[] {
   ctx.requireAsset(data.background);
+  ctx.requireAsset(data.scene3d);
   if (data.cellPx !== undefined && data.background === undefined) throw violation('Tamanho de célula em pixels exige imagem de fundo');
+  if (data.scene3d !== undefined && (data.background !== undefined || data.cellPx !== undefined)) {
+    throw violation('Mapa 3D não usa imagem de fundo 2D');
+  }
   const map: GameMap = {
     id: ctx.deps.newId(),
     name: data.name,
@@ -34,9 +38,24 @@ export function createMap(ctx: SessionContext, data: IntentData<'map.create'>): 
     height: data.height,
     background: data.background ?? null,
     cellPx: data.cellPx ?? null,
+    scene3d: data.scene3d ?? null,
   };
   const ops: PatchOp[] = [{ op: 'add', path: toPointer('maps', map.id), value: map }];
   if (ctx.current.activeMapId === null) ops.push({ op: 'replace', path: '/activeMapId', value: map.id });
+  return ops;
+}
+
+export function updateMap(ctx: SessionContext, data: IntentData<'map.update'>): PatchOp[] {
+  const map = ctx.map(data.mapId);
+  if (data.scene3d !== undefined) {
+    if (map.background !== null) throw violation('Não é possível definir cena 3D em um mapa 2D com imagem de fundo');
+    ctx.requireAsset(data.scene3d);
+  }
+  const ops: PatchOp[] = [];
+  if (data.name !== undefined) ops.push({ op: 'replace', path: toPointer('maps', map.id, 'name'), value: data.name });
+  if (data.width !== undefined) ops.push({ op: 'replace', path: toPointer('maps', map.id, 'width'), value: data.width });
+  if (data.height !== undefined) ops.push({ op: 'replace', path: toPointer('maps', map.id, 'height'), value: data.height });
+  if (data.scene3d !== undefined) ops.push({ op: 'replace', path: toPointer('maps', map.id, 'scene3d'), value: data.scene3d });
   return ops;
 }
 

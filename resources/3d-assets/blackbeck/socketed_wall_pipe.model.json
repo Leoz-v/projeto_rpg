@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "f55492c8-7387-34b8-af9f-5c24e6f46152",
+  "key": "blackbeck.socketed_wall_pipe",
+  "displayName": "Socketed wall pipe",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

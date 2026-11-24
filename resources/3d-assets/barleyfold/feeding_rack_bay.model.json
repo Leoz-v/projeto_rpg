@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "6255776e-cbfe-328b-9ee1-c607a5137c63",
+  "key": "barleyfold.feeding_rack_bay",
+  "displayName": "Feeding rack bay",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

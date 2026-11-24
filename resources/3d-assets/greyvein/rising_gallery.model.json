@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "8abfb271-32e9-371d-8a70-820d00be88af",
+  "key": "greyvein.rising_gallery",
+  "displayName": "Rising gallery",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

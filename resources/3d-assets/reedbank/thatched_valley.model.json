@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "b8f8c200-eaa8-3b54-9347-3b94cd8f31a4",
+  "key": "reedbank.thatched_valley",
+  "displayName": "Thatched valley",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "ee2ce233-8745-3b67-9f48-8798e65439d2",
+  "key": "greyvein.roof_fall_blocks",
+  "displayName": "Roof-fall blocks",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

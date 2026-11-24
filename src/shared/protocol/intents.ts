@@ -49,7 +49,20 @@ export const IntentSchema = z.discriminatedUnion('kind', [
       height: MapCellsSchema,
       background: Sha256Schema.optional(),
       cellPx: MapCellPxSchema.optional(),
+      scene3d: Sha256Schema.optional(),
     }),
+  }),
+  z.strictObject({
+    kind: z.literal('map.update'),
+    data: z
+      .strictObject({
+        mapId: UuidSchema,
+        name: NameSchema.optional(),
+        width: MapCellsSchema.optional(),
+        height: MapCellsSchema.optional(),
+        scene3d: Sha256Schema.optional(),
+      })
+      .refine((d) => d.name !== undefined || d.width !== undefined || d.height !== undefined || d.scene3d !== undefined, { message: 'nada para alterar' }),
   }),
   z.strictObject({ kind: z.literal('map.activate'), data: z.strictObject({ mapId: UuidSchema }) }),
   z.strictObject({

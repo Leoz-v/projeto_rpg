@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "240bfd72-9967-3da7-945d-9a4c4c733269",
+  "key": "alderwatch.terrace_plinth",
+  "displayName": "Terrace plinth",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

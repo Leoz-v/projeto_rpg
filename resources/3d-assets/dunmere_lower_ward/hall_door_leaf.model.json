@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "10e9495f-4f22-3534-a0ca-43203d4213f6",
+  "key": "dunmere_lower_ward.hall_door_leaf",
+  "displayName": "Hall door leaf",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

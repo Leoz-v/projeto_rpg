@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "337fd91c-85a1-3929-a72d-a02871c68fab",
+  "key": "alderwatch.storey_stair",
+  "displayName": "Storey stair",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

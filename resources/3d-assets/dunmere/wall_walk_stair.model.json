@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "a6006032-3016-39de-9fcb-d421fbb3a697",
+  "key": "dunmere.wall_walk_stair",
+  "displayName": "Wall-walk stair",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

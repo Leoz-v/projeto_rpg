@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "698e7401-dfac-3bc2-a5f7-28fd167015d8",
+  "key": "barleyfold.mill_roundhouse",
+  "displayName": "Mill roundhouse",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

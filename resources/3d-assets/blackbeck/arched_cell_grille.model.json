@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "f654dcc7-fba4-3a3e-8ea5-af74caaf267a",
+  "key": "blackbeck.arched_cell_grille",
+  "displayName": "Arched cell grille",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

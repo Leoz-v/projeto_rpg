@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "f0c29220-e0bd-3eaf-995d-0b2b3e84af0a",
+  "key": "dunmere.portcullis",
+  "displayName": "Portcullis",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

@@ -64,6 +64,13 @@ export default tseslint.config(
       ],
     },
   },
+  // Motor e editor 3D (portado do vtt-3d-proto): permite `!` em laços de malha/terreno, mantendo sem `any` e sem `@ts-ignore`.
+  {
+    files: ['src/renderer/src/canvas3d/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-non-null-assertion': 'off',
+    },
+  },
   {
     files: ['src/main/**/*.ts', 'src/preload/**/*.ts', '*.config.ts'],
     languageOptions: { globals: globals.node },

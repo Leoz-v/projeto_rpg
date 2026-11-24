@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "28dbb862-4a9c-3eb1-a56f-c47151fade46",
+  "key": "alderwatch.carriage_arch",
+  "displayName": "Carriage arch",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

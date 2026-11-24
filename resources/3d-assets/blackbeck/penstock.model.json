@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "523e15eb-774d-3120-a3df-6e8210444750",
+  "key": "blackbeck.penstock",
+  "displayName": "Penstock",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

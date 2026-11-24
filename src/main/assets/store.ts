@@ -29,12 +29,24 @@ export function sha256Hex(bytes: Uint8Array): string {
 
 const startsWith = (bytes: Uint8Array, signature: readonly number[], offset = 0): boolean => signature.every((b, i) => bytes[offset + i] === b);
 
-/** O tipo da imagem pela assinatura dos primeiros bytes; `undefined` se não for PNG, JPEG nem WebP. */
+/** O tipo do asset pela assinatura dos primeiros bytes; `undefined` se não for PNG, JPEG, WebP nem objeto JSON válido. */
 export function sniffMime(bytes: Uint8Array): AssetMime | undefined {
   if (startsWith(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return 'image/png';
   if (startsWith(bytes, [0xff, 0xd8, 0xff])) return 'image/jpeg';
   // RIFF....WEBP
   if (startsWith(bytes, [0x52, 0x49, 0x46, 0x46]) && startsWith(bytes, [0x57, 0x45, 0x42, 0x50], 8)) return 'image/webp';
+  // Objeto JSON UTF-8 (documentos de mapa 3D).
+  let i = 0;
+  if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) i = 3;
+  while (i < bytes.length && (bytes[i] === 0x20 || bytes[i] === 0x09 || bytes[i] === 0x0a || bytes[i] === 0x0d)) i += 1;
+  if (bytes[i] === 0x7b) {
+    try {
+      const parsed: unknown = JSON.parse(Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength).toString('utf8'));
+      if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) return 'application/json';
+    } catch {
+      return undefined;
+    }
+  }
   return undefined;
 }
 
@@ -66,7 +78,7 @@ export class AssetStore {
     if (bytes.length === 0) throw new AssetError('Arquivo vazio');
     if (bytes.length > MAX_ASSET_BYTES) throw new AssetError('Imagem maior que 32 MiB');
     const mime = sniffMime(bytes);
-    if (!mime) throw new AssetError('Formato não suportado: use PNG, JPEG ou WebP');
+    if (!mime) throw new AssetError('Formato não suportado: use PNG, JPEG, WebP ou JSON de mapa 3D');
     const sha256 = sha256Hex(bytes);
     if (expected !== undefined && expected !== sha256) throw new AssetError('O conteúdo não confere com o SHA-256');
 

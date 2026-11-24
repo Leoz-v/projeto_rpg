@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "41d1f5c7-e034-35e1-9b3d-f76c0bb5b57e",
+  "key": "blackbeck.blind_sump",
+  "displayName": "Blind sump",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

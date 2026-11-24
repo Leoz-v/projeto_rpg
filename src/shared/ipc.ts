@@ -18,6 +18,7 @@ export const IpcChannel = {
   leaveTable: 'table:leave',
   getTable: 'table:get',
   importAsset: 'assets:import',
+  save3dMapAsset: 'assets:save-3d-map',
   characterSheet: 'table:character-sheet',
   creationOptions: 'compendium:creation-options',
   searchItems: 'compendium:search-items',
@@ -100,10 +101,10 @@ export type MonsterAction =
       conditions: Condition[];
     };
 
-/** Uma imagem importada: use `vtt-asset://<sha256>` para exibir e o `sha256` nos `Intent`. */
+/** Um asset importado ou salvo: use `vtt-asset://<sha256>` para exibir/carregar e o `sha256` nos `Intent`. */
 export interface ImportedAsset {
   sha256: string;
-  mime: 'image/png' | 'image/jpeg' | 'image/webp';
+  mime: 'image/png' | 'image/jpeg' | 'image/webp' | 'application/json';
   size: number;
 }
 
@@ -188,6 +189,8 @@ export interface VttApi {
   creationOptions(): Promise<IpcResult<CreationOptions>>;
   /** Abre o seletor de arquivos e importa uma imagem; `null` se o usuário cancelou. */
   importAsset(): Promise<IpcResult<ImportedAsset | null>>;
+  /** Grava o JSON de um mapa 3D no armazenamento de assets (por SHA-256) para uso em `map.create` / `map.update`. */
+  save3dMapAsset(json: string): Promise<IpcResult<ImportedAsset>>;
   /** Avisa a cada estado novo e quando a mesa fecha. Devolve a função que cancela. */
   onTableEvent(listener: (event: TableEvent) => void): () => void;
   getUpdateStatus(): Promise<IpcResult<UpdateStatus>>;

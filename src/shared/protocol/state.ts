@@ -472,6 +472,8 @@ export const MapSchema = z.strictObject({
   background: Sha256Schema.nullable(),
   /** Pixels da imagem de fundo por célula do grid, ou `null` (mapa sem fundo ou legado esticado). */
   cellPx: MapCellPxSchema.nullable(),
+  /** SHA-256 do documento JSON de um mapa 3D (`VttMapDocument`), ou `null` (mapa 2D). */
+  scene3d: Sha256Schema.nullable().default(null),
 });
 export type GameMap = z.infer<typeof MapSchema>;
 

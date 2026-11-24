@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "80684774-7a5e-3f62-bf19-4872209a8a1d",
+  "key": "dunmere.hatch_ladder",
+  "displayName": "Hatch ladder",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

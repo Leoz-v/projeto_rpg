@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "be2b938c-7291-333d-b209-7921def17a1f",
+  "key": "alderwatch.terrace_steps",
+  "displayName": "Terrace steps",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

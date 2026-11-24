@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "f389daf7-7a61-3569-b49b-fbedfa9fdceb",
+  "key": "blackbeck.fallen_arch_rib",
+  "displayName": "Fallen arch rib",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

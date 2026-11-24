@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "4dc03769-6604-3939-9743-4ba9f47ab309",
+  "key": "reedbank.fish_box",
+  "displayName": "Fish box",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

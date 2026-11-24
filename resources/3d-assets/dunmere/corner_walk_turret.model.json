@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "972c2112-dd95-3aa4-b331-cd4a6545fa00",
+  "key": "dunmere.corner_walk_turret",
+  "displayName": "Corner walk turret",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

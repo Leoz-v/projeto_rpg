@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "a51a9793-0bde-390e-aaca-40bebcdcbbb1",
+  "key": "reedbank.crown_run",
+  "displayName": "Crown run",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

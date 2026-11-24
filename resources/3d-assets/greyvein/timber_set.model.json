@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "59117164-f6e2-3d2e-85da-465b1775eda2",
+  "key": "greyvein.timber_set",
+  "displayName": "Timber set",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

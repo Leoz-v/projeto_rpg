@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "4d8ac4d9-59e8-3d2c-846a-d29bd63f75a4",
+  "key": "alderwatch.bracketed_canopy",
+  "displayName": "Bracketed canopy",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}
