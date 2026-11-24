@@ -1,4 +1,4 @@
-import { type Condition, type Creature, type DerivedSheet, distanceFeet, effectiveConditions, type Rng, type Size, spaceSquares } from 'rules-engine';
+import { type Condition, type Creature, type DerivedSheet, distanceFeet, effectiveConditions, type Rng, type Size, spaceSquares, type Spell } from 'rules-engine';
 import type { z } from 'zod';
 import { type ChatEntry, type Combat, NO_CONDITIONS, type GameMap, type IntentRejectCode, type IntentResultSchema, type PatchOp, type Point, type Role, type SessionCharacter, type SessionState, type Token, WORLD_UNITS_PER_CELL } from '../../shared/protocol';
 
@@ -24,8 +24,8 @@ export interface SessionDeps {
   monsterHpMax(monsterId: string): number | undefined;
   /** Bloco de estatísticas de um monstro do compêndio. */
   creature(monsterId: string): Creature | undefined;
-  /** Nome de uma magia do compêndio (para o chat da Concentração). */
-  spellName(spellId: string): string | undefined;
+  /** Magia do compêndio (nome, círculo, texto): Concentração e conjurar. */
+  spell(spellId: string): Spell | undefined;
 }
 
 export type InventoryEntry = SessionCharacter['inventory']['items'][number];

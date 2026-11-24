@@ -2,4 +2,4 @@
  * Versão do protocolo de rede (docs/network-protocol.md).
  * Incrementar a cada mudança incompatível nas mensagens.
  */
-export const PROTOCOL_VERSION = 20;
+export const PROTOCOL_VERSION = 21;

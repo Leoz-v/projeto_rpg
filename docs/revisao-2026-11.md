@@ -79,5 +79,5 @@ Limitações sem certificado pago: aviso do SmartScreen na primeira instalação
 | 2 | Chat: snapshot limitado, histórico sob demanda, janela para a tela | ✅ nota 0047 (patches pela IPC ficaram como otimização futura) |
 | 3 | Release pelo GitHub Actions e atualização automática | ✅ nota 0048 |
 | 4 | Dividir o executor | ✅ nota 0049 |
-| 5 | Fase 6 — Recursos e descansos (descansos, espaços de magia, recursos de classe, conjurar) | em andamento: descansos ✅ (nota 0050), espaços de magia ✅ (nota 0051), recursos ✅ (nota 0052) |
+| 5 | Fase 6 — Recursos e descansos (descansos, espaços de magia, recursos de classe, conjurar) | ✅ notas 0050 a 0053 (descansos, espaços de magia, recursos, conjurar) |
 | 6 | Ferramentas de mapa e extras | |

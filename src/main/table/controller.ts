@@ -29,7 +29,7 @@ export interface TableControllerDeps {
   characterSheet: SessionDeps['characterSheet'];
   monsterHpMax: SessionDeps['monsterHpMax'];
   creature: SessionDeps['creature'];
-  spellName: SessionDeps['spellName'];
+  spell: SessionDeps['spell'];
   /** Endereços desta máquina para mostrar aos jogadores. */
   addresses(): string[];
   /** Entrega um evento à tela. */
@@ -91,7 +91,7 @@ export class TableController {
     const session = new HostSession(
       store.campaign,
       { playerId: deps.playerId, displayName: request.displayName },
-      { rng: deps.rng, now: Date.now, newId: randomUUID, monsterExists: (id) => deps.monsterExists(id), assetExists: (sha) => deps.assets.has(sha), pruneSteps: deps.pruneSteps, itemProblems: deps.itemProblems, characterSheet: deps.characterSheet, monsterHpMax: deps.monsterHpMax, creature: deps.creature, spellName: deps.spellName },
+      { rng: deps.rng, now: Date.now, newId: randomUUID, monsterExists: (id) => deps.monsterExists(id), assetExists: (sha) => deps.assets.has(sha), pruneSteps: deps.pruneSteps, itemProblems: deps.itemProblems, characterSheet: deps.characterSheet, monsterHpMax: deps.monsterHpMax, creature: deps.creature, spell: deps.spell },
       store.restored,
     );
     const server = new HostServer({

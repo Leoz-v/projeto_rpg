@@ -204,6 +204,7 @@ export const IntentSchema = z.discriminatedUnion('kind', [
   }),
   z.strictObject({ kind: z.literal('condition.remove'), data: z.strictObject({ target: CreatureTargetSchema, condition: TableConditionSchema }) }),
   z.strictObject({ kind: z.literal('exhaustion.set'), data: z.strictObject({ target: CreatureTargetSchema, level: z.int().min(0).max(MAX_EXHAUSTION_LEVEL) }) }),
+  z.strictObject({ kind: z.literal('spell.cast'), data: z.strictObject({ characterId: UuidSchema, spellId: IdSchema, using: z.union([z.strictObject({ slot: SpellSlotRefSchema }), z.literal('free'), z.literal('ritual')]) }) }),
   z.strictObject({ kind: z.literal('resource.spend'), data: z.strictObject({ characterId: UuidSchema, resourceId: IdSchema, amount: z.int().min(1).max(100).optional() }) }),
   z.strictObject({ kind: z.literal('resource.restore'), data: z.strictObject({ characterId: UuidSchema, resourceId: IdSchema, amount: z.int().min(1).max(100).optional() }) }),
   z.strictObject({ kind: z.literal('spell_slot.spend'), data: z.strictObject({ characterId: UuidSchema, slot: SpellSlotRefSchema }) }),

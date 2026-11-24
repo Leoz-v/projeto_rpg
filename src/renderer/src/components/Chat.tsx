@@ -11,6 +11,7 @@ import { ConcentrationBody, ConcentrationSaveBody } from './Concentration';
 import { HitDieBody, RestBody } from './Rest';
 import { SpellSlotBody } from './SpellSlots';
 import { ResourceBody } from './Resources';
+import { SpellCastBody } from './Casting';
 
 /** Log da sessão (mensagens e rolagens) e campo de envio. */
 
@@ -173,6 +174,8 @@ function Entry({ entry, author, context }: { entry: ChatEntry; author: string; c
         </li>
       );
     }
+    case 'spell_cast':
+      return <SpellCastBody entry={entry} header={header} />;
     case 'resource':
       return <ResourceBody entry={entry} header={header} />;
     case 'spell_slot':

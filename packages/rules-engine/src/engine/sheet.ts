@@ -34,6 +34,7 @@ import type {
   ClassSpellcasting,
   Contribution,
   DerivedSheet,
+  CastableSpell,
   SheetResource,
   SheetTrigger,
   GrantedSpell,
@@ -805,7 +806,49 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       source: known?.source ?? namedSource(e),
     });
   }
+  // Magias concedidas com usos por descanso viram recursos (`spell_<id>`; nota 0053).
+  for (const g of granted) {
+    if (typeof g.uses === 'string' || g.count === undefined || g.count <= 0) continue;
+    const id = `spell_${g.spellId}`;
+    const known = resourceMap.get(id);
+    const recharge = g.uses.per === 'short_rest' ? 'short_rest' : 'long_rest';
+    resourceMap.set(id, {
+      id,
+      name: known?.name ?? find(compendium.spells, g.spellId)?.name ?? g.spellId,
+      max: Math.max(known?.max ?? 0, g.count),
+      recharge: known && RECHARGE_RANK[known.recharge] > RECHARGE_RANK[recharge] ? known.recharge : recharge,
+      source: known?.source ?? g.source,
+    });
+  }
   const resources = [...resourceMap.values()].filter((r) => r.max > 0);
+
+  // --- Magias conjuráveis (nota 0053) -----------------------------------------
+
+  const castableMap = new Map<string, CastableSpell>();
+  const addCastable = (spellId: string, slots: boolean, free: CastableSpell['free']): void => {
+    const spell = find(compendium.spells, spellId);
+    if (!spell) return;
+    const known = castableMap.get(spellId);
+    castableMap.set(spellId, {
+      spellId,
+      level: spell.level,
+      ritual: spell.ritual,
+      concentration: spell.concentration,
+      slots: (known?.slots ?? false) || (slots && spell.level > 0),
+      free: known?.free ?? free,
+    });
+  };
+  for (const c of casterClasses) {
+    for (const id of c.cantrips) addCastable(id, false, 'cantrip');
+    for (const id of c.spells) addCastable(id, true, undefined);
+  }
+  for (const g of granted) {
+    const spellLevel = find(compendium.spells, g.spellId)?.level ?? 0;
+    if (g.uses === 'at_will' || spellLevel === 0) addCastable(g.spellId, false, spellLevel === 0 ? 'cantrip' : 'at_will');
+    else if (g.uses === 'slot') addCastable(g.spellId, true, undefined);
+    else addCastable(g.spellId, g.uses.slots === true, { resourceId: `spell_${g.spellId}` });
+  }
+  const castable = [...castableMap.values()];
 
   // --- Concentração (nota 0045) ---------------------------------------------
 
@@ -843,7 +886,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     proficiencies,
     weaponMasteries,
     attacks,
-    spellcasting: { classes: casterClasses, slots: spellSlots(casterLevel), pactSlots, granted, canCast: armorTrained, concentration: concentrationSpells, keepConcentration },
+    spellcasting: { classes: casterClasses, slots: spellSlots(casterLevel), pactSlots, granted, canCast: armorTrained, concentration: concentrationSpells, keepConcentration, castable },
     feats: build.feats,
     features: build.features,
     conditions,
