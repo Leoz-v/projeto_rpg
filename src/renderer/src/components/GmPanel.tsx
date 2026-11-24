@@ -1,8 +1,9 @@
 import { type ChangeEvent, type SyntheticEvent, useEffect, useRef, useState } from 'react';
 import type { Size } from 'rules-engine/schemas';
 import type { ImportedAsset, MonsterAction, MonsterSummary, TableView } from '../../../shared/ipc';
-import type { GameMap } from '../../../shared/protocol';
+import { type GameMap, MAX_VISION_FEET, MIN_VISION_FEET, type Token } from '../../../shared/protocol';
 import type { MapStageHandle } from '../canvas/MapStage';
+import type { FogTool } from '../canvas/fog-render';
 import { placeToken, tokenSide } from '../canvas/geometry';
 import { defaultCellPx, gridDimensionsForImage } from '../canvas/map-grid';
 import { parseMapDocument } from '../canvas3d/map/mapDocument';
@@ -11,6 +12,7 @@ import { tokenHealth } from '../canvas/health';
 import { tokenConditions } from '../canvas/conditions';
 import { combatantOptions } from '../canvas/conditions';
 import { ConditionsControl } from './Conditions';
+import { FogPanel } from './FogPanel';
 import { HitPointsControl, HitPointsSummary } from './HitPoints';
 import { MapGridModal } from './MapGridModal';
 import { RestPanel } from './Rest';
@@ -474,6 +476,7 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
               />
             </>
           )}
+          <TokenVisionControl key={`vision:${selected.id}`} token={selected} defaultFeet={map.fog.visionFeet} onError={onError} />
         </div>
       )}
       <form className="stack" onSubmit={(e) => void place(e)}>
@@ -758,7 +761,69 @@ function CharacterTokens({ view, stage, onError }: { view: TableView; stage: Map
   );
 }
 
-export function GmPanel({ view, stage, selectedId, onOpen3dEditor }: { view: TableView; stage: MapStageHandle | null; selectedId: string | null; onOpen3dEditor: (map: GameMap | null) => void }) {
+function TokenVisionControl({ token, defaultFeet, onError }: { token: Token; defaultFeet: number; onError: (m: string | null) => void }) {
+  const saved = token.visionFeet !== null ? String(token.visionFeet) : '';
+  const [draft, setDraft] = useState(saved);
+  const [lastSaved, setLastSaved] = useState(saved);
+  if (saved !== lastSaved) {
+    setLastSaved(saved);
+    setDraft(saved);
+  }
+
+  const commit = (): void => {
+    const trimmed = draft.trim();
+    if (trimmed === '') {
+      if (token.visionFeet !== null) void sendIntent({ kind: 'token.vision', data: { tokenId: token.id, visionFeet: null } }).then(onError);
+      return;
+    }
+    const parsed = Math.round(Number(trimmed));
+    if (!Number.isFinite(parsed) || parsed < MIN_VISION_FEET || parsed > MAX_VISION_FEET) {
+      setDraft(token.visionFeet !== null ? String(token.visionFeet) : '');
+      return;
+    }
+    if (parsed !== token.visionFeet) void sendIntent({ kind: 'token.vision', data: { tokenId: token.id, visionFeet: parsed } }).then(onError);
+  };
+
+  return (
+    <label>
+      Visão do token (pés, vazio = padrão {defaultFeet})
+      <input
+        type="number"
+        min={MIN_VISION_FEET}
+        max={MAX_VISION_FEET}
+        step={5}
+        placeholder={`Padrão (${defaultFeet})`}
+        value={draft}
+        onChange={(e) => {
+          setDraft(e.target.value);
+        }}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            commit();
+          }
+        }}
+      />
+    </label>
+  );
+}
+
+export function GmPanel({
+  view,
+  stage,
+  selectedId,
+  fogTool,
+  onFogTool,
+  onOpen3dEditor,
+}: {
+  view: TableView;
+  stage: MapStageHandle | null;
+  selectedId: string | null;
+  fogTool: FogTool;
+  onFogTool: (tool: FogTool) => void;
+  onOpen3dEditor: (map: GameMap | null) => void;
+}) {
   const [error, setError] = useState<string | null>(null);
   return (
     <>
@@ -768,6 +833,7 @@ export function GmPanel({ view, stage, selectedId, onOpen3dEditor }: { view: Tab
         </p>
       )}
       <Maps view={view} onError={setError} onOpen3dEditor={onOpen3dEditor} />
+      <FogPanel view={view} fogTool={fogTool} onFogTool={onFogTool} onError={setError} />
       <RestPanel state={view.state} />
       <CharacterTokens view={view} stage={stage} onError={setError} />
       <Tokens view={view} stage={stage} selectedId={selectedId} onError={setError} />

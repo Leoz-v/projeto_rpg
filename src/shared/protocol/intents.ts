@@ -1,7 +1,8 @@
 import { AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, DiceSchema, EffectSchema, IdSchema, SizeSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { ChatTextSchema, CreatureTargetSchema, DeathSavesSchema, HitDieSchema, SpellSlotRefSchema, InstanceIdSchema, TurnEdgeSchema, LabelSchema, MAX_EXHAUSTION_LEVEL, RollAgainstSchema, TableConditionSchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
-import { MAX_ADJUSTMENT_EFFECTS, MAX_COINS, MAX_COMBATANTS, MAX_FORMULA_DICE, MAX_FORMULA_LENGTH, MAX_HIT_POINTS, MAX_ITEM_QUANTITY, MAX_SAVE_TARGETS, MAX_SPELL_PARTS } from './constants';
+import { MAX_ADJUSTMENT_EFFECTS, MAX_COINS, MAX_COMBATANTS, MAX_FOG_PAINT_CELLS, MAX_FORMULA_DICE, MAX_FORMULA_LENGTH, MAX_HIT_POINTS, MAX_ITEM_QUANTITY, MAX_SAVE_TARGETS, MAX_SPELL_PARTS } from './constants';
+import { FogCellSchema, FogModeSchema, VisionFeetSchema } from './fog';
 import { InitiativeSchema, VisibilitySchema } from './state';
 
 /** Catálogo de `Intent` (docs/network-protocol.md, seção 3). */
@@ -277,6 +278,55 @@ export const IntentSchema = z.discriminatedUnion('kind', [
         kind: z.enum(['damage', 'healing', 'temp', 'max']),
         amount: z.int().min(0).max(MAX_HIT_POINTS),
       }),
+    }),
+  }),
+  z.strictObject({
+    kind: z.literal('fog.manual.paint'),
+    data: z.strictObject({
+      mapId: UuidSchema,
+      mode: FogModeSchema,
+      cells: z.array(FogCellSchema).min(1).max(MAX_FOG_PAINT_CELLS),
+    }),
+  }),
+  z.strictObject({
+    kind: z.literal('fog.manual.rect'),
+    data: z.strictObject({
+      mapId: UuidSchema,
+      mode: FogModeSchema,
+      from: FogCellSchema,
+      to: FogCellSchema,
+    }),
+  }),
+  z.strictObject({
+    kind: z.literal('fog.manual.fill'),
+    data: z.strictObject({
+      mapId: UuidSchema,
+      mode: FogModeSchema,
+    }),
+  }),
+  z.strictObject({
+    kind: z.literal('fog.config'),
+    data: z
+      .strictObject({
+        mapId: UuidSchema,
+        autoEnabled: z.boolean().optional(),
+        visionFeet: VisionFeetSchema.optional(),
+        rememberExplored: z.boolean().optional(),
+      })
+      .refine((d) => d.autoEnabled !== undefined || d.visionFeet !== undefined || d.rememberExplored !== undefined, { message: 'nada para alterar' }),
+  }),
+  z.strictObject({
+    kind: z.literal('fog.memory.clear'),
+    data: z.strictObject({
+      mapId: UuidSchema,
+      playerId: UuidSchema.optional(),
+    }),
+  }),
+  z.strictObject({
+    kind: z.literal('token.vision'),
+    data: z.strictObject({
+      tokenId: UuidSchema,
+      visionFeet: VisionFeetSchema.nullable(),
     }),
   }),
 ]);

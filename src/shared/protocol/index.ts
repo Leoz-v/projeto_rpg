@@ -2,6 +2,7 @@
 export * from './common';
 export * from './constants';
 export * from './chat-window';
+export * from './fog';
 export * from './intents';
 export * from './messages';
 export * from './patch';

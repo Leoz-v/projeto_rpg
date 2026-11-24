@@ -2262,3 +2262,32 @@ input.resource-amount {
   max-width: 100%;
   min-width: 0;
 }
+
+.fog-tools {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+}
+
+button.fog-tool.active {
+  border-color: var(--accent);
+  color: var(--text);
+  background: rgba(143, 124, 247, 0.22);
+}
+
+.fog-memory-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.fog-memory-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}

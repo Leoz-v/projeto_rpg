@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { TableView } from '../../../shared/ipc';
 import type { GameMap } from '../../../shared/protocol';
 import { conditionLabels, timedEffectLabels, tokenConditions } from '../canvas/conditions';
+import type { FogTool } from '../canvas/fog-render';
 import { tokenHealth } from '../canvas/health';
 import type { MapStageHandle } from '../canvas/MapStage';
 import { DEFAULT_RULER_OPTIONS, type RulerOptions } from '../canvas/ruler';
@@ -12,6 +13,7 @@ import {
   parseMapDocument,
 } from '../canvas3d/map/mapDocument';
 import { AssetManager } from '../canvas3d/render/assetManager';
+import { FogLayer3d } from '../canvas3d/render/fogLayer3d';
 import { LightingManager } from '../canvas3d/render/lightingSystem';
 import { LiquidRenderer } from '../canvas3d/render/liquidRenderer';
 import { RulerTool3d } from '../canvas3d/render/rulerTool3d';
@@ -36,6 +38,8 @@ interface Props {
   map: GameMap;
   maxima: Record<string, number>;
   selectedId: string | null;
+  fogTool: FogTool;
+  onFogTool: (tool: FogTool) => void;
   onSelect: (tokenId: string | null) => void;
   onStage: (stage: MapStageHandle | null) => void;
   isGm: boolean;
@@ -49,12 +53,13 @@ interface ActiveViewer {
   assets: AssetManager;
   tokens3d: TokenRenderer3d;
   ruler3d: RulerTool3d;
+  fog3d: FogLayer3d;
   width: number;
   length: number;
   destroy: () => void;
 }
 
-export function Map3DView({ view, map, maxima, selectedId, onSelect, onStage, isGm, onEditMap }: Props) {
+export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, onSelect, onStage, isGm, onEditMap }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<ActiveViewer | null>(null);
   const [viewer, setViewer] = useState<ActiveViewer | null>(null);
@@ -154,6 +159,14 @@ export function Map3DView({ view, map, maxima, selectedId, onSelect, onStage, is
       scene.configureForMap(surfaceGrid.width, surfaceGrid.length);
 
       const ruler3d = new RulerTool3d(scene, surfaceRenderer, surfaceGrid);
+      const fog3d = new FogLayer3d(scene, surfaceGrid, {
+        onFogPaint: (mapId, mode, cells) => {
+          void sendIntent({ kind: 'fog.manual.paint', data: { mapId, mode, cells } }).then(setError);
+        },
+        onFogRect: (mapId, mode, from, to) => {
+          void sendIntent({ kind: 'fog.manual.rect', data: { mapId, mode, from, to } }).then(setError);
+        },
+      });
       const tokens3d = new TokenRenderer3d(scene, surfaceGrid, {
         onSelect: (id) => {
           latest.current.onSelect(id);
@@ -180,9 +193,11 @@ export function Map3DView({ view, map, maxima, selectedId, onSelect, onStage, is
         assets,
         tokens3d,
         ruler3d,
+        fog3d,
         width: surfaceGrid.width,
         length: surfaceGrid.length,
         destroy: () => {
+          fog3d.destroy();
           ruler3d.destroy();
           tokens3d.destroy();
           assets.destroy();
@@ -225,9 +240,11 @@ export function Map3DView({ view, map, maxima, selectedId, onSelect, onStage, is
   const { state, info } = view;
 
   useEffect(() => {
+    const tokens = Object.values(state.tokens);
+    const viewerInfo = { role: info.role, playerId: info.playerId };
     viewer?.tokens3d.setScene({
       map,
-      tokens: Object.values(state.tokens),
+      tokens,
       canDrag: (token) => info.role === 'gm' || token.ownerIds.includes(info.playerId),
       selectedId,
       activeId: state.combat?.combatants[state.combat.turn]?.tokenId ?? null,
@@ -236,14 +253,26 @@ export function Map3DView({ view, map, maxima, selectedId, onSelect, onStage, is
         ...timedEffectLabels(token, { combat: state.combat, tokens: state.tokens }),
       ],
       health: (token) => tokenHealth(token, state.characters, maxima),
+      viewer: viewerInfo,
+      fogTool: isGm ? fogTool : 'none',
     });
-  }, [viewer, map, state.tokens, state.characters, state.combat, maxima, info.role, info.playerId, selectedId]);
+    viewer?.fog3d.setScene(map, tokens, viewerInfo);
+  }, [viewer, map, state.tokens, state.characters, state.combat, maxima, info.role, info.playerId, selectedId, isGm, fogTool]);
 
   useEffect(() => {
     if (!viewer) return;
-    viewer.tokens3d.setInteractionEnabled(!rulerActive);
-    viewer.ruler3d.setActive(rulerActive);
-  }, [viewer, rulerActive]);
+    const activeFog = isGm && fogTool !== 'none';
+    const activeRuler = rulerActive && !activeFog;
+    viewer.tokens3d.setInteractionEnabled(!activeRuler && !activeFog);
+    viewer.ruler3d.setActive(activeRuler);
+    if (activeFog) {
+      viewer.fog3d.setTool(fogTool);
+    } else {
+      viewer.fog3d.setTool('none');
+      // Restaura cursor/ação da régua se ela estiver ativa.
+      if (activeRuler) viewer.ruler3d.setActive(true);
+    }
+  }, [viewer, rulerActive, isGm, fogTool]);
 
   useEffect(() => {
     viewer?.ruler3d.setOptions(rulerOptions);
@@ -272,7 +301,7 @@ export function Map3DView({ view, map, maxima, selectedId, onSelect, onStage, is
     const v = viewerRef.current;
     if (!v) return;
     v.scene.setCameraViewMode(mode);
-    v.scene.setLeftButtonAction(rulerActive ? 'none' : 'pan');
+    v.scene.setLeftButtonAction(rulerActive || (isGm && fogTool !== 'none') ? 'none' : 'pan');
     setCamMode(mode);
   };
 
@@ -331,7 +360,11 @@ export function Map3DView({ view, map, maxima, selectedId, onSelect, onStage, is
           aria-pressed={rulerActive}
           title="Medir distância ou área de impacto (R)"
           onClick={() => {
-            setRulerActive((prev) => !prev);
+            setRulerActive((prev) => {
+              const next = !prev;
+              if (next) onFogTool('none');
+              return next;
+            });
           }}
         >
           Régua

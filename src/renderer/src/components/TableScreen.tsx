@@ -4,6 +4,7 @@ import type { GameMap } from '../../../shared/protocol';
 import { leaveTable } from '../store/table';
 import { AboutButton } from './About';
 import type { MapStageHandle } from '../canvas/MapStage';
+import type { FogTool } from '../canvas/fog-render';
 import { CharacterSheet } from './CharacterSheet';
 import { Characters } from './Characters';
 import { Chat } from './Chat';
@@ -85,6 +86,7 @@ export function TableScreen({ view }: { view: TableView }) {
   const [leaving, setLeaving] = useState(false);
   const [stage, setStage] = useState<MapStageHandle | null>(null);
   const [selected, setSelectedId] = useState<string | null>(null);
+  const [fogTool, setFogTool] = useState<FogTool>('none');
   // Um token removido deixa de estar selecionado.
   const selectedId = selected !== null && selected in view.state.tokens ? selected : null;
   const isHost = view.info.mode === 'host';
@@ -121,12 +123,14 @@ export function TableScreen({ view }: { view: TableView }) {
         <Players view={view} />
         <Characters view={view} onOpen={setOpenCharacterId} />
         {selectedId !== null && <SelectedCharacter view={view} tokenId={selectedId} onOpen={setOpenCharacterId} />}
-        {view.info.role === 'gm' && <GmPanel view={view} stage={stage} selectedId={selectedId} onOpen3dEditor={open3dEditor} />}
+        {view.info.role === 'gm' && <GmPanel view={view} stage={stage} selectedId={selectedId} fogTool={fogTool} onFogTool={setFogTool} onOpen3dEditor={open3dEditor} />}
         <HostAddresses view={view} />
       </aside>
       <MapView
         view={view}
         selectedId={selectedId}
+        fogTool={fogTool}
+        onFogTool={setFogTool}
         onSelect={setSelectedId}
         onStage={setStage}
         {...(view.info.role === 'gm' ? { onEdit3dMap: open3dEditor } : {})}

@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { TableView } from '../../../shared/ipc';
 import type { GameMap } from '../../../shared/protocol';
+import type { FogTool } from '../canvas/fog-render';
 import { tokenHealth } from '../canvas/health';
 import { conditionLabels, timedEffectLabels, tokenConditions } from '../canvas/conditions';
 import { MapStage, type MapStageHandle } from '../canvas/MapStage';
@@ -17,6 +18,8 @@ import { RulerOptionsBar } from './RulerControls';
 interface Props {
   view: TableView;
   selectedId: string | null;
+  fogTool: FogTool;
+  onFogTool: (tool: FogTool) => void;
   onSelect: (tokenId: string | null) => void;
   /** O palco pronto (2D ou 3D; `null` ao sair), para o painel do mestre saber o centro da tela. */
   onStage: (stage: MapStageHandle | null) => void;
@@ -39,7 +42,7 @@ function useHpMaxima(characters: TableView['state']['characters']): Record<strin
   return maxima;
 }
 
-function Map2DView({ view, selectedId, onSelect, onStage }: Omit<Props, 'onEdit3dMap'>) {
+function Map2DView({ view, selectedId, fogTool, onFogTool, onSelect, onStage }: Omit<Props, 'onEdit3dMap'>) {
   const host = useRef<HTMLDivElement>(null);
   const [stage, setStage] = useState<MapStage | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +68,12 @@ function Map2DView({ view, selectedId, onSelect, onStage }: Omit<Props, 'onEdit3
           setError(refused);
           if (refused) created?.revert(tokenId);
         });
+      },
+      onFogPaint: (mapId, mode, cells) => {
+        void sendIntent({ kind: 'fog.manual.paint', data: { mapId, mode, cells } }).then(setError);
+      },
+      onFogRect: (mapId, mode, from, to) => {
+        void sendIntent({ kind: 'fog.manual.rect', data: { mapId, mode, from, to } }).then(setError);
       },
     }).then((s) => {
       // Desmontou antes de o PixiJS terminar de iniciar (StrictMode faz isso no desenvolvimento).
@@ -96,12 +105,14 @@ function Map2DView({ view, selectedId, onSelect, onStage }: Omit<Props, 'onEdit3
       activeId: state.combat?.combatants[state.combat.turn]?.tokenId ?? null,
       conditions: (token) => [...conditionLabels(tokenConditions(token, state.characters)), ...timedEffectLabels(token, { combat: state.combat, tokens: state.tokens })],
       health: (token) => tokenHealth(token, state.characters, maxima),
+      viewer: { role: info.role, playerId: info.playerId },
+      fogTool: info.role === 'gm' ? fogTool : 'none',
     });
-  }, [stage, map, state.tokens, state.characters, state.combat, maxima, info.role, info.playerId, selectedId]);
+  }, [stage, map, state.tokens, state.characters, state.combat, maxima, info.role, info.playerId, selectedId, fogTool]);
 
   useEffect(() => {
-    stage?.setRulerMode(rulerActive && map !== null);
-  }, [stage, rulerActive, map]);
+    stage?.setRulerMode(rulerActive && fogTool === 'none' && map !== null);
+  }, [stage, rulerActive, fogTool, map]);
 
   useEffect(() => {
     stage?.setRulerOptions(rulerOptions);
@@ -139,7 +150,11 @@ function Map2DView({ view, selectedId, onSelect, onStage }: Omit<Props, 'onEdit3
               aria-pressed={rulerActive}
               title="Medir distância ou área de impacto (R)"
               onClick={() => {
-                setRulerActive((prev) => !prev);
+                setRulerActive((prev) => {
+                  const next = !prev;
+                  if (next) onFogTool('none');
+                  return next;
+                });
               }}
             >
               Régua
@@ -158,7 +173,7 @@ function Map2DView({ view, selectedId, onSelect, onStage }: Omit<Props, 'onEdit3
   );
 }
 
-export function MapView({ view, selectedId, onSelect, onStage, onEdit3dMap }: Props) {
+export function MapView({ view, selectedId, fogTool, onFogTool, onSelect, onStage, onEdit3dMap }: Props) {
   const { state, info } = view;
   const map = state.activeMapId !== null ? (state.maps[state.activeMapId] ?? null) : null;
   const maxima = useHpMaxima(state.characters);
@@ -169,6 +184,8 @@ export function MapView({ view, selectedId, onSelect, onStage, onEdit3dMap }: Pr
         map={map}
         maxima={maxima}
         selectedId={selectedId}
+        fogTool={info.role === 'gm' ? fogTool : 'none'}
+        onFogTool={onFogTool}
         onSelect={onSelect}
         onStage={onStage}
         isGm={info.role === 'gm'}
@@ -176,5 +193,5 @@ export function MapView({ view, selectedId, onSelect, onStage, onEdit3dMap }: Pr
       />
     );
   }
-  return <Map2DView view={view} selectedId={selectedId} onSelect={onSelect} onStage={onStage} />;
+  return <Map2DView view={view} selectedId={selectedId} fogTool={fogTool} onFogTool={onFogTool} onSelect={onSelect} onStage={onStage} />;
 }
