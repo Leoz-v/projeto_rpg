@@ -45,6 +45,15 @@ export type ConditionState = z.infer<typeof ConditionStateSchema>;
 /** Sem condições. */
 export const NO_CONDITIONS: ConditionState = { active: [], exhaustion: 0 };
 
+/** Salvaguardas contra a Morte de um personagem (nota 0044). */
+export const DeathSavesSchema = z.strictObject({
+  successes: z.int().min(0).max(3),
+  failures: z.int().min(0).max(3),
+  stable: z.boolean(),
+  dead: z.boolean(),
+});
+export type DeathSaves = z.infer<typeof DeathSavesSchema>;
+
 /** Alvo de PV e condições: um personagem, ou um token. */
 export const CreatureTargetSchema = z.union([z.strictObject({ characterId: UuidSchema }), z.strictObject({ tokenId: UuidSchema })]);
 export type CreatureTarget = z.infer<typeof CreatureTargetSchema>;

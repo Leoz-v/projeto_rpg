@@ -1,7 +1,7 @@
 import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, EffectSchema, InventorySchema, SizeSchema, TriggerMomentSchema, WeaponMasterySchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_COMBATANTS, MAX_HIT_POINTS, MAX_INITIATIVE, MAX_SAVE_TARGETS, MAX_TURN_TRIGGER_ITEMS, MIN_INITIATIVE } from './constants';
-import { ChatTextSchema, ConditionStateSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
+import { ChatTextSchema, ConditionStateSchema, DeathSavesSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 
 /** `SessionState` (docs/network-protocol.md, seção 5). */
 
@@ -236,6 +236,33 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     targetTokenId: UuidSchema,
     targetName: NameSchema,
   }),
+  /** Salvaguarda contra a Morte rolada pelo Host (início do turno, ou `roll.d20` fora do combate; nota 0044). */
+  z.strictObject({
+    kind: z.literal('death_save'),
+    ...entryBase,
+    characterId: UuidSchema,
+    characterName: NameSchema,
+    mode: d20Fields.mode,
+    dice: d20Fields.dice,
+    natural: d20Fields.natural,
+    modifier: z.int(),
+    total: z.int(),
+    outcome: z.enum(['success', 'failure', 'two_failures', 'revived']),
+    /** O estado depois da rolagem. */
+    deathSaves: DeathSavesSchema,
+    /** Vantagens, regras do d20, Estável, morte. */
+    notes: LogList,
+  }),
+  /** Mudança nas Salvaguardas contra a Morte fora da rolagem: dano, cura, Exaustão 6 ou o mestre. */
+  z.strictObject({
+    kind: z.literal('death_state'),
+    ...entryBase,
+    characterId: UuidSchema,
+    characterName: NameSchema,
+    cause: z.enum(['damage', 'healing', 'gm', 'exhaustion']),
+    deathSaves: DeathSavesSchema,
+    notes: LogList,
+  }),
   /** Lembretes e cura de um combatente num momento do combate (efeitos `reminder` e `turn_start_heal`, nota 0043). */
   z.strictObject({
     kind: z.literal('turn_trigger'),
@@ -357,6 +384,8 @@ export const SessionCharacterSchema = z.strictObject({
   adjustments: z.array(SessionAdjustmentSchema).max(MAX_ADJUSTMENTS),
   /** Condições postas na mesa e o nível de Exaustão (entram na ficha). */
   conditions: ConditionStateSchema,
+  /** Salvaguardas contra a Morte (nota 0044). */
+  deathSaves: DeathSavesSchema,
 });
 export type SessionCharacter = z.infer<typeof SessionCharacterSchema>;
 

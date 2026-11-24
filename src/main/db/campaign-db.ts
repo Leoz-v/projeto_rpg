@@ -66,6 +66,8 @@ const MIGRATIONS = [
   // Condições postas na mesa (lista e nível de Exaustão), em JSON validado ao carregar.
   `ALTER TABLE characters ADD COLUMN conditions TEXT NOT NULL DEFAULT '{"active":[],"exhaustion":0}';
    ALTER TABLE tokens ADD COLUMN conditions TEXT NOT NULL DEFAULT '{"active":[],"exhaustion":0}';`,
+  // Salvaguardas contra a Morte do personagem (sucessos, falhas, estável, morto), em JSON validado ao carregar.
+  `ALTER TABLE characters ADD COLUMN death_saves TEXT NOT NULL DEFAULT '{"successes":0,"failures":0,"stable":false,"dead":false}';`,
 ] as const;
 
 export const CAMPAIGN_DB_SCHEMA_VERSION = MIGRATIONS.length;
@@ -95,7 +97,7 @@ const TokenRow = z.object({
   conditions: z.string(),
 });
 const ChatRow = z.object({ entry: z.string() });
-const CharacterRow = z.object({ id: z.string(), owner_id: z.string(), name: z.string(), build: z.string(), inventory: z.string(), adjustments: z.string(), hp: z.string(), conditions: z.string() });
+const CharacterRow = z.object({ id: z.string(), owner_id: z.string(), name: z.string(), build: z.string(), inventory: z.string(), adjustments: z.string(), hp: z.string(), conditions: z.string(), death_saves: z.string() });
 const CountRow = z.object({ n: z.number() });
 
 export class CampaignDb {
@@ -173,7 +175,7 @@ export class CampaignDb {
     );
     const characters = Object.fromEntries(
       this.db
-        .prepare('SELECT id, owner_id, name, build, inventory, adjustments, hp, conditions FROM characters')
+        .prepare('SELECT id, owner_id, name, build, inventory, adjustments, hp, conditions, death_saves FROM characters')
         .all()
         .map((row) => {
           const c = CharacterRow.parse(row);
@@ -182,7 +184,8 @@ export class CampaignDb {
           const adjustments: unknown = JSON.parse(c.adjustments);
           const hp: unknown = JSON.parse(c.hp);
           const conditions: unknown = JSON.parse(c.conditions);
-          return [c.id, { id: c.id, ownerId: c.owner_id, name: c.name, ...(typeof build === 'object' ? build : {}), inventory, hp, adjustments, conditions }];
+          const deathSaves: unknown = JSON.parse(c.death_saves);
+          return [c.id, { id: c.id, ownerId: c.owner_id, name: c.name, ...(typeof build === 'object' ? build : {}), inventory, hp, adjustments, conditions, deathSaves }];
         }),
     );
     const chat = this.db
@@ -229,12 +232,12 @@ export class CampaignDb {
 
       this.removeMissing('characters', Object.keys(state.characters));
       const upsertCharacter = db.prepare(
-        `INSERT INTO characters (id, owner_id, name, build, inventory, adjustments, hp, conditions) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO characters (id, owner_id, name, build, inventory, adjustments, hp, conditions, death_saves) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (id) DO UPDATE SET owner_id = excluded.owner_id, name = excluded.name, build = excluded.build, inventory = excluded.inventory,
-           adjustments = excluded.adjustments, hp = excluded.hp, conditions = excluded.conditions`,
+           adjustments = excluded.adjustments, hp = excluded.hp, conditions = excluded.conditions, death_saves = excluded.death_saves`,
       );
       for (const c of Object.values(state.characters)) {
-        upsertCharacter.run(c.id, c.ownerId, c.name, JSON.stringify({ baseScores: c.baseScores, rolledScores: c.rolledScores, steps: c.steps }), JSON.stringify(c.inventory), JSON.stringify(c.adjustments), JSON.stringify(c.hp), JSON.stringify(c.conditions));
+        upsertCharacter.run(c.id, c.ownerId, c.name, JSON.stringify({ baseScores: c.baseScores, rolledScores: c.rolledScores, steps: c.steps }), JSON.stringify(c.inventory), JSON.stringify(c.adjustments), JSON.stringify(c.hp), JSON.stringify(c.conditions), JSON.stringify(c.deathSaves));
       }
 
       const saved = CountRow.parse(db.prepare('SELECT COUNT(*) AS n FROM chat').get()).n;

@@ -12,6 +12,7 @@ import { ConditionsControl } from './Conditions';
 import { HitPointsControl, HitPointsSummary } from './HitPoints';
 import { SaveEffectForm } from './SaveEffect';
 import { type Roller, RollToolbar, RollButton, useRoller } from './SheetRolls';
+import { DeathSavesPanel } from './DeathSaves';
 import { Inventory } from './Inventory';
 import { ABILITY_LABEL, CONDITION_LABEL, DAMAGE_LABEL, humanizeId, nameOf, SENSE_LABEL, SIZE_LABEL, signed, SKILL_LABEL } from './sheet-labels';
 
@@ -563,6 +564,17 @@ export function CharacterSheet({ view, characterId, onClose }: { view: TableView
                     health={{ current: currentHitPoints(load.view.sheet.hpMax.total, record.hp), max: load.view.sheet.hpMax.total, temp: record.hp.temp }}
                   />
                 )}
+                <DeathSavesPanel
+                  characterId={record.id}
+                  state={record.deathSaves}
+                  currentHp={currentHitPoints(load.view.sheet.hpMax.total, record.hp)}
+                  canRoll={roller !== undefined}
+                  inCombat={view.state.combat?.combatants.some((c) => view.state.tokens[c.tokenId]?.characterId === record.id) ?? false}
+                  isGm={isGm}
+                  onRoll={() => {
+                    roller?.roll({ kind: 'death_save' });
+                  }}
+                />
                 <ConditionsControl target={{ characterId: record.id }} state={record.conditions} canEdit={canEdit} combatants={combatantOptions(view.state)} />
                 <Abilities sheet={load.view.sheet} roller={roller} onSelect={setDetail} />
                 <Attacks sheet={load.view.sheet} roller={roller} onSelect={setDetail} />

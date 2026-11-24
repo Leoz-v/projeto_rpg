@@ -270,7 +270,7 @@ describe('HostSession: characters', () => {
   it('creates an empty draft owned by whoever asked', () => {
     const session = setup();
     const id = create(session, ANA.playerId);
-    expect(session.state.characters[id]).toEqual({ id, ownerId: ANA.playerId, name: 'Thorin', baseScores: null, rolledScores: null, steps: [], inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] }, hp: { damage: 0, temp: 0 }, adjustments: [], conditions: { active: [], exhaustion: 0 } });
+    expect(session.state.characters[id]).toEqual({ id, ownerId: ANA.playerId, name: 'Thorin', baseScores: null, rolledScores: null, steps: [], inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] }, hp: { damage: 0, temp: 0 }, adjustments: [], conditions: { active: [], exhaustion: 0 }, deathSaves: { successes: 0, failures: 0, stable: false, dead: false } });
     expect(SessionStateSchema.safeParse(session.state).success).toBe(true);
   });
 
@@ -1154,7 +1154,10 @@ describe('HostSession: conditions', () => {
     expect(t.session.state.chat.at(-1)).toMatchObject({ change: { kind: 'exhaustion', from: 0, to: 2 } });
     expect(rejection(t.session.handle(ANA.playerId, { kind: 'exhaustion.set', data: { target: { tokenId: t.thorin }, level: 2 } }))).toBe('rule_violation');
     t.session.handle(GM.playerId, { kind: 'exhaustion.set', data: { target: { characterId: t.hero }, level: 6 } });
-    expect(t.session.state.chat.at(-1)).toMatchObject({ notes: ['Exaustão 6: Thorin morre (SRD)'] });
+    expect(t.session.state.chat.at(-2)).toMatchObject({ notes: ['Exaustão 6: Thorin morre (SRD)'] });
+    // No personagem, a morte entra nas Salvaguardas contra a Morte (nota 0044).
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'death_state', cause: 'exhaustion', deathSaves: { dead: true } });
+    expect(t.session.state.characters[t.hero]?.deathSaves.dead).toBe(true);
     // Descer o nível de um imune não esbarra na imunidade.
     t.session.handle(GM.playerId, { kind: 'exhaustion.set', data: { target: { tokenId: t.skeleton }, level: 1 } });
     expect(applied(t.session.handle(GM.playerId, { kind: 'exhaustion.set', data: { target: { tokenId: t.skeleton }, level: 0 } }))).toBe(true);
@@ -1490,5 +1493,160 @@ describe('HostSession: turn and initiative reminders (note 0043)', () => {
     t.next();
     t.next();
     expect(t.triggers()).toEqual([expect.objectContaining({ on: 'turn_end', tokenId: t.thorin, items: [{ source: 'Bênção', text: 'Pode encerrar Envenenado.' }] })]);
+  });
+});
+
+describe('HostSession: death saving throws (note 0044)', () => {
+  const fighter = dwarfFighter as { character: { baseScores: SessionCharacter['baseScores']; steps: SessionCharacter['steps'] } };
+  /** RNG que devolve os valores em ordem e depois 10. */
+  const queue = (values: number[]) => ({ roll: () => values.shift() ?? 10 });
+
+  /**
+   * Thorin (dwarf-fighter-5) e um Goblin Warrior vizinho. Na iniciativa, Thorin rola 19 e o Goblin 5: com 0 PV o Thorin
+   * está Incapacitado, e a Desvantagem anula a Vantagem dele (um dado só).
+   */
+  function table(rolls: number[] = []) {
+    const session = setup({
+      rng: queue([19, 5, ...rolls]),
+      itemProblems: () => [],
+      monsterExists: (id) => compendium.creatures.some((c) => c.id === id),
+      monsterHpMax: (id) => compendium.creatures.find((c) => c.id === id)?.hp.average,
+    });
+    session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10 } });
+    const mapId = Object.keys(session.state.maps)[0] ?? '';
+    session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Thorin' } });
+    const hero = Object.keys(session.state.characters)[0] ?? '';
+    session.handle(ANA.playerId, {
+      kind: 'character.update',
+      data: { characterId: hero, baseScores: fighter.character.baseScores ?? undefined, steps: CharacterSchema.shape.steps.parse(fighter.character.steps) },
+    });
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Thorin', position: { x: 100, y: 100 }, size: 'medium', characterId: hero } });
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Goblin', position: { x: 200, y: 100 }, size: 'small', monsterId: 'goblin_warrior' } });
+    const id = (name: string) => Object.values(session.state.tokens).find((t) => t.name === name)?.id ?? '';
+    const thorin = id('Thorin');
+    const goblin = id('Goblin');
+    const max = characterSheet(session.state.characters[hero] as SessionCharacter, compendium).sheet?.hpMax.total ?? 0;
+    const character = () => session.state.characters[hero] as SessionCharacter;
+    return {
+      session,
+      hero,
+      thorin,
+      goblin,
+      max,
+      character,
+      hp: (kind: 'damage' | 'healing', amount: number, who = GM.playerId) => session.handle(who, { kind: 'hp.change', data: { target: { characterId: hero }, change: { kind, amount } } }),
+      start: () => session.handle(GM.playerId, { kind: 'combat.start', data: { tokenIds: [thorin, goblin] } }),
+      /** Volta à vez do Thorin (passa pelo Goblin). */
+      round: () => {
+        session.handle(GM.playerId, { kind: 'combat.next', data: {} });
+        session.handle(GM.playerId, { kind: 'combat.next', data: {} });
+      },
+      saves: () => session.state.chat.filter((e) => e.kind === 'death_save'),
+    };
+  }
+
+  it('dropping to 0 HP makes the character Unconscious; healing ends it and resets the counts', () => {
+    const t = table();
+    t.hp('damage', t.max);
+    expect(t.character().conditions.active).toEqual([{ condition: 'unconscious' }]);
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'condition_changed', change: { kind: 'added', condition: 'unconscious' }, notes: ['Caiu a 0 PV'] });
+    t.hp('damage', 1);
+    expect(t.character().deathSaves).toEqual({ successes: 0, failures: 1, stable: false, dead: false });
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'death_state', cause: 'damage', notes: ['Dano com 0 PV: uma falha'] });
+    t.hp('healing', 5, ANA.playerId);
+    expect(t.character().conditions.active).toEqual([]);
+    expect(t.character().deathSaves).toEqual({ successes: 0, failures: 0, stable: false, dead: false });
+    expect(SessionStateSchema.safeParse(t.session.state).success).toBe(true);
+  });
+
+  it('massive damage kills outright', () => {
+    const t = table();
+    t.hp('damage', t.max * 2);
+    expect(t.character().deathSaves.dead).toBe(true);
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'death_state', notes: ['Dano massivo: morte instantânea'] });
+  });
+
+  it('the Host rolls the death save at the start of the turn of a dying character', () => {
+    // Rodada 1: 12 (sucesso). Rodada 2: 4 (falha).
+    const t = table([12, 4]);
+    t.hp('damage', t.max);
+    t.start();
+    expect(t.saves()).toHaveLength(1);
+    expect(t.saves()[0]).toMatchObject({ characterId: t.hero, dice: [12], total: 12, outcome: 'success', deathSaves: { successes: 1, failures: 0, stable: false, dead: false } });
+    t.round();
+    expect(t.saves().at(-1)).toMatchObject({ outcome: 'failure', deathSaves: { successes: 1, failures: 1 } });
+    expect(t.character().deathSaves).toEqual({ successes: 1, failures: 1, stable: false, dead: false });
+  });
+
+  it('three successes make the character Stable: no more rolls', () => {
+    const t = table([15, 15, 15]);
+    t.hp('damage', t.max);
+    t.start();
+    t.round();
+    t.round();
+    expect(t.character().deathSaves).toEqual({ successes: 0, failures: 0, stable: true, dead: false });
+    const last = t.saves().at(-1);
+    expect(last?.kind === 'death_save' && last.notes).toContain('Três sucessos: Estável');
+    t.round();
+    expect(t.saves()).toHaveLength(3);
+    // Dano tira o Estável e conta uma falha.
+    t.hp('damage', 1);
+    expect(t.character().deathSaves).toEqual({ successes: 0, failures: 1, stable: false, dead: false });
+  });
+
+  it('a 1 counts two failures; the third failure kills, and the dead are not healed until the GM revives them', () => {
+    const t = table([1, 5]);
+    t.hp('damage', t.max);
+    t.start();
+    expect(t.saves().at(-1)).toMatchObject({ outcome: 'two_failures', deathSaves: { failures: 2 } });
+    t.round();
+    expect(t.character().deathSaves.dead).toBe(true);
+    const last = t.saves().at(-1);
+    expect(last?.kind === 'death_save' && last.notes).toContain('Três falhas: morto');
+    t.round();
+    expect(t.saves()).toHaveLength(2);
+    expect(rejection(t.hp('healing', 5))).toBe('rule_violation');
+    const revive = { kind: 'death.set' as const, data: { characterId: t.hero, deathSaves: { successes: 0, failures: 0, stable: false, dead: false } } };
+    expect(rejection(t.session.handle(ANA.playerId, revive))).toBe('not_allowed');
+    t.session.handle(GM.playerId, revive);
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'death_state', cause: 'gm' });
+    expect(applied(t.hp('healing', 5))).toBe(true);
+  });
+
+  it('a 20 regains 1 HP and ends Unconscious', () => {
+    const t = table([20]);
+    t.hp('damage', t.max);
+    t.start();
+    expect(t.saves().at(-1)).toMatchObject({ outcome: 'revived', deathSaves: { successes: 0, failures: 0 } });
+    expect(t.character().hp.damage).toBe(t.max - 1);
+    expect(t.character().conditions.active).toEqual([]);
+  });
+
+  it('damage from a Critical Hit at 0 HP counts two failures', () => {
+    // Thorin falha a salvaguarda (3); o Goblin vizinho ataca o Thorin Inconsciente (Vantagem; acerto a até 5 ft é crítico).
+    const t = table([3, 20, 20, 4, 4]);
+    t.hp('damage', t.max);
+    t.start();
+    t.session.handle(GM.playerId, { kind: 'combat.next', data: {} });
+    t.session.handle(GM.playerId, { kind: 'attack.make', data: { attacker: { tokenId: t.goblin, actionId: 'scimitar' }, targetTokenId: t.thorin, visibility: 'public' } });
+    const proposalId = Object.keys(t.session.state.proposals)[0] ?? '';
+    expect(applied(t.session.handle(GM.playerId, { kind: 'damage.apply', data: { proposalId } }))).toBe(true);
+    expect(t.character().deathSaves).toEqual({ successes: 0, failures: 3, stable: false, dead: true });
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'death_state', notes: ['Três falhas: morto'] });
+  });
+
+  it('a death save rolled from the sheet counts outside combat, and is refused in combat', () => {
+    const t = table();
+    t.hp('damage', t.max);
+    const rollSave = () => t.session.handle(ANA.playerId, { kind: 'roll.d20', data: { characterId: t.hero, target: { kind: 'death_save' }, visibility: 'public' } });
+    // Fora do combate a fila começa nos valores da iniciativa: 19.
+    expect(applied(rollSave())).toBe(true);
+    expect(t.saves().at(-1)).toMatchObject({ outcome: 'success', deathSaves: { successes: 1 } });
+    t.start();
+    expect(rejection(rollSave())).toBe('rule_violation');
+    // Sem estar morrendo, é uma rolagem comum.
+    t.hp('healing', 3);
+    expect(applied(rollSave())).toBe(true);
+    expect(t.session.state.chat.at(-1)?.kind).toBe('d20_roll');
   });
 });

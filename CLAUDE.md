@@ -185,7 +185,8 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - ✅ Efeitos das condições nas rolagens (`engine/conditions.ts`): a tabela do SRD na ficha e nas rolagens dos monstros (com a Exaustão deles), falha automática em FOR/DES, deslocamento 0, Petrificado resistente a tudo, e nos ataques as condições do alvo com a distância entre os tokens (Caído, crítico automático a até 5 ft). Ver `docs/decisions/0041-efeitos-das-condicoes.md`.
    - ✅ Durações por turno (`condition.add` com `until`, `combat.effects`, `PROTOCOL_VERSION = 13`): condições até o início ou o fim do próximo turno de um combatente, encerradas pelo Host a cada turno, e Sap, Vex e Slow como efeitos temporários reais no combate. Ver `docs/decisions/0042-duracoes-por-turno.md`.
    - ✅ Lembretes de turno e de iniciativa (efeitos `reminder` e `turn_start_heal`, entrada `turn_trigger`, `PROTOCOL_VERSION = 14`): o Host lembra no chat o que a ficha permite ao rolar a iniciativa e no início e no fim de cada turno (Persistent Rage, Superior Inspiration, Self-Restoration…), e o Heroic Rally cura sozinho no início do turno. Ver `docs/decisions/0043-lembretes-de-turno.md`.
-   - Concentração e Salvaguardas contra a Morte.
+   - ✅ Salvaguardas contra a Morte (`death.set`, `PROTOCOL_VERSION = 15`, `<campanha>.db` v9, `engine/death.ts`): cair a 0 PV deixa Inconsciente, o Host rola a salvaguarda no início do turno (fora do combate, pela ficha), conta sucessos e falhas (crítico com 0 PV, duas), Estável, morte (inclusive por dano massivo e Exaustão 6), e o mestre estabiliza ou revive. Ver `docs/decisions/0044-salvaguardas-contra-a-morte.md`.
+   - Concentração (com a Relentless Hunter).
 
 *Extras futuros:* criação de token a partir de imagem com recorte/moldura automáticos, spawn de vários inimigos de uma vez (a numeração Goblin 1, Goblin 2… já existe, um por vez), colar texto de ficha de monstro e converter para o schema.
 
