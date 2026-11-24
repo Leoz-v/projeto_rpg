@@ -297,10 +297,6 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:class:ranger/relentless_hunter": {
-      "category": "phase_5",
-      "reason": "Concentração em Hunter's Mark que o dano não quebra (Concentração, Fase 5)."
-    },
     "feature:class:ranger/spellcasting": {
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."

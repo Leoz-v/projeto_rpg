@@ -24,10 +24,10 @@ Magias ficam fora: a resolução delas é toda da Fase 4.
 | `structural` | A mecânica já existe em outro ponto do modelo: escolha, concessão ou conjuração no mesmo nível (ex.: "Expertise" é a escolha `expertise_1`). | 53 |
 | `automate` | Passivo e automatizável agora, estendendo o catálogo de efeitos. Fila abaixo. | 0 |
 | `phase_4` | Ação, reação, recurso, uso de item, ou efeito no momento da rolagem ou do dano contra um alvo (Sneak Attack, cargas, poções, Multiattack). | 445 |
-| `phase_5` | Depende do estado de combate que ainda falta: concentração (Relentless Hunter). Os lembretes de iniciativa e de turno já saíram (nota 0043). | 1 |
+| `phase_5` | Depende do estado de combate. Vazia desde a Concentração (nota 0045); conteúdo novo que dependa de turnos, iniciativa ou Concentração entra aqui. | 0 |
 | `gm` | Exploração, percepção, narrativa ou efeito permanente que é ajuste do mestre (Bag of Holding, Manuals e Tomes, Spider Climb). | 95 |
 
-Total: 594 entradas.
+Total: 593 entradas.
 
 Uma entrada **parcial** (`<chave>#<aspecto>`) marca a parte pendente de um item, característica ou traço de monstro que já tem outros efeitos (ex.: `item:sun_blade#longsword_with_finesse`, `feature:subclass:champion/survivor#heroic_rally`).
 
@@ -82,3 +82,6 @@ Um PR por grupo. Em cada um: primeiro `docs/effects-spec.md`, depois o schema, o
   - No início do turno: Heroic Warrior. No fim: Self-Restoration, só com Enfeitiçado, Amedrontado ou Envenenado.
   - Heroic Rally (Survivor): cura automática de 5 + CON no início do turno, Sangrando e com pelo menos 1 PV.
   - Ficaram como parciais da Fase 4 o Nature Magician do Archdruid e a duração de 10 minutos da Rage do Persistent Rage (dependem de recursos e do estado de Rage). Mindless Rage foi para a Fase 4 pelo mesmo motivo; o salto das Boots of Striding and Springing foi para o mestre (o Host não controla o movimento). A Relentless Hunter fica para a Concentração.
+- **Concentração** (nota 0045, Fase 5): efeito `keep_concentration` e predicado `against: { concentration: true }`.
+  - Relentless Hunter: o dano não quebra a Concentração em Hunter's Mark. Com ela, a fila `phase_5` fica vazia.
+  - Eldritch Mind (Warlock): a Vantagem "para manter Concentração" era só lembrete (`note`); agora vale sozinha na salvaguarda que o Host rola.

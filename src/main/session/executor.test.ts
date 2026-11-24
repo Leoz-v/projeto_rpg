@@ -6,6 +6,7 @@ import { CharacterSchema } from 'rules-engine/schemas';
 import { characterSheet } from '../character-sheet';
 import { HostSession, type IntentOutcome, type SessionDeps } from './executor';
 import dwarfFighter from '../../../packages/rules-engine/tests/fixtures/dwarf-fighter-5.json';
+import gnomeRanger from '../../../packages/rules-engine/tests/fixtures/gnome-ranger-6.json';
 import type { SessionCharacter } from '../../shared/protocol';
 import { cryptoRng } from './rng';
 
@@ -28,6 +29,7 @@ function setup(overrides: Partial<SessionDeps> = {}): HostSession {
     characterSheet: (c) => characterSheet(c, compendium).sheet ?? undefined,
     monsterHpMax: (id) => (id === 'goblin' ? 7 : undefined),
     creature: (id) => compendium.creatures.find((c) => c.id === id),
+    spellName: (id) => compendium.spells.find((s) => s.id === id)?.name,
     assetExists: (sha) => sha === KNOWN_IMAGE,
     ...overrides,
   });
@@ -270,7 +272,7 @@ describe('HostSession: characters', () => {
   it('creates an empty draft owned by whoever asked', () => {
     const session = setup();
     const id = create(session, ANA.playerId);
-    expect(session.state.characters[id]).toEqual({ id, ownerId: ANA.playerId, name: 'Thorin', baseScores: null, rolledScores: null, steps: [], inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] }, hp: { damage: 0, temp: 0 }, adjustments: [], conditions: { active: [], exhaustion: 0 }, deathSaves: { successes: 0, failures: 0, stable: false, dead: false } });
+    expect(session.state.characters[id]).toEqual({ id, ownerId: ANA.playerId, name: 'Thorin', baseScores: null, rolledScores: null, steps: [], inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] }, hp: { damage: 0, temp: 0 }, adjustments: [], conditions: { active: [], exhaustion: 0 }, deathSaves: { successes: 0, failures: 0, stable: false, dead: false }, concentration: null });
     expect(SessionStateSchema.safeParse(session.state).success).toBe(true);
   });
 
@@ -359,7 +361,7 @@ describe('HostSession: characters', () => {
   it('restores saved characters', () => {
     const first = setup();
     const id = create(first, ANA.playerId);
-    const restored = new HostSession(CAMPAIGN, GM, { rng: cryptoRng, now: Date.now, newId: randomUUID, monsterExists: () => false, assetExists: () => false, pruneSteps: (s) => s, itemProblems: () => [], characterSheet: () => undefined, monsterHpMax: () => undefined, creature: () => undefined }, first.state);
+    const restored = new HostSession(CAMPAIGN, GM, { rng: cryptoRng, now: Date.now, newId: randomUUID, monsterExists: () => false, assetExists: () => false, pruneSteps: (s) => s, itemProblems: () => [], characterSheet: () => undefined, monsterHpMax: () => undefined, creature: () => undefined, spellName: () => undefined }, first.state);
     expect(restored.state.characters[id]?.name).toBe('Thorin');
   });
 });
@@ -1648,5 +1650,117 @@ describe('HostSession: death saving throws (note 0044)', () => {
     t.hp('healing', 3);
     expect(applied(rollSave())).toBe(true);
     expect(t.session.state.chat.at(-1)?.kind).toBe('d20_roll');
+  });
+});
+
+describe('HostSession: concentration (note 0045)', () => {
+  const ranger = gnomeRanger as { character: { baseScores: SessionCharacter['baseScores']; steps: SessionCharacter['steps'] } };
+  /** RNG que devolve os valores em ordem e depois 10. */
+  const queue = (values: number[]) => ({ roll: () => values.shift() ?? 10 });
+
+  /** Ranger de referência da Ana (Hunter's Mark) e, opcionalmente, ajustes do mestre. */
+  function table(rolls: number[] = [], effects: unknown[] = []) {
+    const session = setup({ rng: queue(rolls), itemProblems: () => [] });
+    session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Nim' } });
+    const hero = Object.keys(session.state.characters)[0] ?? '';
+    session.handle(ANA.playerId, {
+      kind: 'character.update',
+      data: { characterId: hero, baseScores: ranger.character.baseScores ?? undefined, steps: CharacterSchema.shape.steps.parse(ranger.character.steps) },
+    });
+    if (effects.length > 0) session.handle(GM.playerId, { kind: 'adjustment.add', data: { characterId: hero, name: 'Bênção', effects: effects as never } });
+    const sheet = characterSheet(session.state.characters[hero] as SessionCharacter, compendium).sheet;
+    if (!sheet) throw new Error('sem ficha');
+    const character = () => session.state.characters[hero] as SessionCharacter;
+    return {
+      session,
+      hero,
+      sheet,
+      character,
+      concentrate: (spellId: string, who = ANA.playerId) => session.handle(who, { kind: 'concentration.set', data: { characterId: hero, spellId } }),
+      damage: (amount: number) => session.handle(GM.playerId, { kind: 'hp.change', data: { target: { characterId: hero }, change: { kind: 'damage', amount } } }),
+      last: (kind: string) => [...session.state.chat].reverse().find((e) => e.kind === kind),
+    };
+  }
+
+  it("concentrates on a spell of the sheet that requires Concentration; another one replaces it", () => {
+    const t = table();
+    const other = t.sheet.spellcasting.concentration.find((id) => id !== 'hunters_mark');
+    const plain = [...t.sheet.spellcasting.classes.flatMap((c) => c.spells)].find((id) => !t.sheet.spellcasting.concentration.includes(id));
+    if (plain) expect(rejection(t.concentrate(plain))).toBe('rule_violation');
+    expect(rejection(t.concentrate('haste'))).toBe('rule_violation');
+    expect(rejection(t.concentrate('hunters_mark', BRUNO.playerId))).toBe('not_allowed');
+    expect(applied(t.concentrate('hunters_mark'))).toBe(true);
+    expect(t.character().concentration).toEqual({ spellId: 'hunters_mark', name: "Hunter's Mark" });
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'concentration', event: 'started', spellName: "Hunter's Mark" });
+    expect(rejection(t.concentrate('hunters_mark'))).toBe('rule_violation');
+    if (other) {
+      t.concentrate(other);
+      expect(t.session.state.chat.slice(-2)).toMatchObject([
+        { kind: 'concentration', event: 'ended', reason: 'replaced', spellName: "Hunter's Mark" },
+        { kind: 'concentration', event: 'started' },
+      ]);
+    }
+    t.session.handle(ANA.playerId, { kind: 'concentration.end', data: { characterId: t.hero } });
+    expect(t.character().concentration).toBeNull();
+    expect(t.last('concentration')).toMatchObject({ event: 'ended', reason: 'ended' });
+    expect(rejection(t.session.handle(ANA.playerId, { kind: 'concentration.end', data: { characterId: t.hero } }))).toBe('rule_violation');
+    expect(SessionStateSchema.safeParse(t.session.state).success).toBe(true);
+  });
+
+  it('damage asks for a Constitution save: DC 10 or half the damage; failing ends the Concentration', () => {
+    // 15 passa na CD 10; 2 falha na CD 15 (30 de dano).
+    const t = table([15, 2]);
+    t.concentrate('hunters_mark');
+    t.damage(5);
+    expect(t.last('concentration_save')).toMatchObject({ dc: 10, dice: [15], success: true, spellName: "Hunter's Mark" });
+    expect(t.character().concentration).not.toBeNull();
+    t.damage(30);
+    expect(t.last('concentration_save')).toMatchObject({ dc: 15, dice: [2], success: false });
+    expect(t.character().concentration).toBeNull();
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'concentration', event: 'ended', reason: 'failed_save' });
+  });
+
+  it('dropping to 0 HP (Unconscious) ends it without a save', () => {
+    const t = table();
+    t.concentrate('hunters_mark');
+    t.damage(t.sheet.hpMax.total);
+    expect(t.character().conditions.active).toEqual([{ condition: 'unconscious' }]);
+    expect(t.character().concentration).toBeNull();
+    expect(t.session.state.chat.filter((e) => e.kind === 'concentration_save')).toEqual([]);
+    expect(t.last('concentration')).toMatchObject({ event: 'ended', reason: 'incapacitated' });
+    // Dano massivo: morto.
+    const dead = table();
+    dead.concentrate('hunters_mark');
+    dead.damage(dead.sheet.hpMax.total * 2);
+    expect(dead.last('concentration')).toMatchObject({ event: 'ended', reason: 'dead' });
+  });
+
+  it('Incapacitated (or a condition that includes it) and death end it', () => {
+    const t = table();
+    t.concentrate('hunters_mark');
+    t.session.handle(GM.playerId, { kind: 'condition.add', data: { target: { characterId: t.hero }, condition: 'stunned' } });
+    expect(t.character().concentration).toBeNull();
+    expect(t.last('concentration')).toMatchObject({ event: 'ended', reason: 'incapacitated' });
+    expect(rejection(t.concentrate('hunters_mark'))).toBe('rule_violation');
+    t.session.handle(GM.playerId, { kind: 'condition.remove', data: { target: { characterId: t.hero }, condition: 'stunned' } });
+    t.concentrate('hunters_mark');
+    t.session.handle(GM.playerId, { kind: 'exhaustion.set', data: { target: { characterId: t.hero }, level: 6 } });
+    expect(t.last('concentration')).toMatchObject({ event: 'ended', reason: 'dead' });
+  });
+
+  it('keep_concentration (Relentless Hunter): damage keeps it without a save', () => {
+    const t = table([], [{ type: 'keep_concentration', spellId: 'hunters_mark' }]);
+    t.concentrate('hunters_mark');
+    t.damage(10);
+    expect(t.character().concentration).not.toBeNull();
+    expect(t.session.state.chat.filter((e) => e.kind === 'concentration_save')).toEqual([]);
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'concentration', event: 'kept' });
+  });
+
+  it('advantage to maintain Concentration applies on the save (Eldritch Mind)', () => {
+    const t = table([3, 14], [{ type: 'advantage', target: 'save.con', when: { against: { concentration: true } } }]);
+    t.concentrate('hunters_mark');
+    t.damage(4);
+    expect(t.last('concentration_save')).toMatchObject({ mode: 'advantage', dice: [3, 14], success: true, advantage: ['Bênção'] });
   });
 });

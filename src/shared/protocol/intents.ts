@@ -204,6 +204,8 @@ export const IntentSchema = z.discriminatedUnion('kind', [
   }),
   z.strictObject({ kind: z.literal('condition.remove'), data: z.strictObject({ target: CreatureTargetSchema, condition: TableConditionSchema }) }),
   z.strictObject({ kind: z.literal('exhaustion.set'), data: z.strictObject({ target: CreatureTargetSchema, level: z.int().min(0).max(MAX_EXHAUSTION_LEVEL) }) }),
+  z.strictObject({ kind: z.literal('concentration.set'), data: z.strictObject({ characterId: UuidSchema, spellId: IdSchema }) }),
+  z.strictObject({ kind: z.literal('concentration.end'), data: z.strictObject({ characterId: UuidSchema }) }),
   z.strictObject({ kind: z.literal('death.set'), data: z.strictObject({ characterId: UuidSchema, deathSaves: DeathSavesSchema }) }),
   z.strictObject({ kind: z.literal('combat.start'), data: CombatJoinSchema }),
   z.strictObject({ kind: z.literal('combat.add'), data: CombatJoinSchema }),

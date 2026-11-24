@@ -131,6 +131,10 @@ export interface Spellcasting {
   granted: GrantedSpell[];
   /** Falso vestindo armadura sem treinamento. */
   canCast: boolean;
+  /** Magias do personagem que exigem Concentração (nota 0045). */
+  concentration: string[];
+  /** Magias cuja Concentração o dano não quebra (`keep_concentration`). */
+  keepConcentration: string[];
 }
 
 /** Classe em que o personagem pode ganhar o próximo nível. `problems` vazio = pode. */

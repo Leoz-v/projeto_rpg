@@ -1901,3 +1901,35 @@ button.small {
 .entry.death-event.bad {
   border-left-color: var(--error);
 }
+
+/* Concentração (nota 0045) */
+
+.concentration {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.concentration p {
+  margin: 0;
+}
+
+.concentration select {
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.entry.concentration-event {
+  border-left: 3px solid var(--accent);
+}
+
+.entry.concentration-event.ended {
+  border-left-color: var(--crit);
+}
+
+.concentration button.link {
+  margin-left: 0.5rem;
+}

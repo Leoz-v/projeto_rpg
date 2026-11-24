@@ -13,6 +13,7 @@ import { HitPointsControl, HitPointsSummary } from './HitPoints';
 import { SaveEffectForm } from './SaveEffect';
 import { type Roller, RollToolbar, RollButton, useRoller } from './SheetRolls';
 import { DeathSavesPanel } from './DeathSaves';
+import { ConcentrationControl } from './Concentration';
 import { Inventory } from './Inventory';
 import { ABILITY_LABEL, CONDITION_LABEL, DAMAGE_LABEL, humanizeId, nameOf, SENSE_LABEL, SIZE_LABEL, signed, SKILL_LABEL } from './sheet-labels';
 
@@ -576,6 +577,12 @@ export function CharacterSheet({ view, characterId, onClose }: { view: TableView
                   }}
                 />
                 <ConditionsControl target={{ characterId: record.id }} state={record.conditions} canEdit={canEdit} combatants={combatantOptions(view.state)} />
+                <ConcentrationControl
+                  characterId={record.id}
+                  current={record.concentration}
+                  spells={load.view.sheet.spellcasting.concentration.map((id) => ({ id, name: load.view.names[id] ?? id }))}
+                  canEdit={canEdit}
+                />
                 <Abilities sheet={load.view.sheet} roller={roller} onSelect={setDetail} />
                 <Attacks sheet={load.view.sheet} roller={roller} onSelect={setDetail} />
                 <div className="sheet-columns">

@@ -26,6 +26,8 @@ export type SheetRollTarget =
 export interface RollAgainst {
   condition?: Condition | undefined;
   source?: 'spell' | 'magic' | undefined;
+  /** Salvaguarda para manter a Concentração (nota 0045). */
+  concentration?: boolean | undefined;
 }
 
 /**
@@ -38,6 +40,7 @@ export function matchesAgainst(when: Predicate | undefined, against: RollAgainst
   if ('against' in when) {
     const target = when.against;
     if ('condition' in target) return against.condition === target.condition;
+    if ('concentration' in target) return against.concentration === true;
     return target.source === 'magic' ? against.source !== undefined : against.source === 'spell';
   }
   if ('all' in when) return when.all.every((p) => matchesAgainst(p, against));
@@ -87,6 +90,7 @@ function circumstance(when: Predicate | undefined): string | undefined {
   if (!when || !('against' in when)) return undefined;
   const { against } = when;
   if ('condition' in against) return `contra ${CONDITION_NAME[against.condition]}`;
+  if ('concentration' in against) return 'para manter Concentração';
   return against.source === 'spell' ? 'contra magias' : 'contra magia e efeitos mágicos';
 }
 
