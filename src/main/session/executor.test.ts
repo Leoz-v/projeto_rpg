@@ -1246,3 +1246,127 @@ describe('HostSession: condition effects on rolls', () => {
   });
 });
 
+describe('HostSession: turn-bound durations and timed masteries', () => {
+  const sequence = (values: number[]) => {
+    let i = 0;
+    return { roll: () => values[i++ % values.length] ?? 1 };
+  };
+  const fighter = dwarfFighter as { character: { baseScores: SessionCharacter['baseScores']; steps: SessionCharacter['steps'] } };
+  // Iniciativa: Thorin (Vantagem) 19 e 19 +1 = 20; Goblin 1 5 +2 = 7; Goblin 2 3 +2 = 5. Ordem: Thorin, Goblin 1, Goblin 2.
+  const INITIATIVE = [19, 19, 5, 3];
+
+  /** Thorin com maestria em Longsword (Sap), Handaxe (Vex) e Club (Slow), a arma pedida equipada, dois Goblin Warriors vizinhos e o combate começado. */
+  function arena(weaponId: string, rolls: number[], startCombat = true) {
+    const session = setup({
+      rng: sequence([...INITIATIVE, ...rolls]),
+      itemProblems: () => [],
+      monsterExists: (id) => compendium.creatures.some((c) => c.id === id),
+      monsterHpMax: (id) => compendium.creatures.find((c) => c.id === id)?.hp.average,
+    });
+    session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10 } });
+    const mapId = Object.keys(session.state.maps)[0] ?? '';
+    session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Thorin' } });
+    const hero = Object.keys(session.state.characters)[0] ?? '';
+    const raw = JSON.stringify(fighter.character.steps).replace('["longsword","heavy_crossbow","handaxe"]', '["longsword","handaxe","club"]');
+    session.handle(ANA.playerId, { kind: 'character.update', data: { characterId: hero, baseScores: fighter.character.baseScores ?? undefined, steps: CharacterSchema.shape.steps.parse(JSON.parse(raw)) } });
+    session.handle(ANA.playerId, { kind: 'inventory.add', data: { characterId: hero, itemId: weaponId } });
+    const weapon = session.state.characters[hero]?.inventory.items.at(-1)?.instanceId ?? '';
+    session.handle(ANA.playerId, { kind: 'inventory.update', data: { characterId: hero, instanceId: weapon, equipped: true } });
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Thorin', position: { x: 100, y: 100 }, size: 'medium', characterId: hero } });
+    for (const [name, x] of [['Goblin 1', 200], ['Goblin 2', 0]] as const) {
+      session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name, position: { x, y: 100 }, size: 'small', monsterId: 'goblin_warrior' } });
+    }
+    const id = (name: string) => Object.values(session.state.tokens).find((t) => t.name === name)?.id ?? '';
+    const ids = { thorin: id('Thorin'), goblin1: id('Goblin 1'), goblin2: id('Goblin 2') };
+    if (startCombat) session.handle(GM.playerId, { kind: 'combat.start', data: { tokenIds: [ids.thorin, ids.goblin1, ids.goblin2] } });
+    const swing = (targetTokenId: string) => session.handle(ANA.playerId, { kind: 'attack.make', data: { attacker: { characterId: hero, instanceId: weapon }, targetTokenId, visibility: 'public' } });
+    const next = () => session.handle(GM.playerId, { kind: 'combat.next', data: {} });
+    return { session, hero, ...ids, swing, next };
+  }
+  const attackOf = (session: HostSession) => {
+    const entry = [...session.state.chat].reverse().find((e) => e.kind === 'attack_roll');
+    if (entry?.kind !== 'attack_roll') throw new Error('sem ataque');
+    return entry;
+  };
+
+  it('ends a condition at the end of the next turn of the chosen combatant', () => {
+    const a = arena('longsword', []);
+    const current = () => a.session.state.tokens[a.session.state.combat?.combatants[a.session.state.combat.turn]?.tokenId ?? '']?.name;
+    expect(current()).toBe('Thorin');
+    a.session.handle(GM.playerId, { kind: 'condition.add', data: { target: { tokenId: a.goblin1 }, condition: 'prone', until: { at: 'turn_end', tokenId: a.thorin } } });
+    // É a vez do Thorin: o próximo turno dele é o da rodada 2.
+    expect(a.session.state.tokens[a.goblin1]?.conditions.active).toEqual([{ condition: 'prone', until: { at: 'turn_end', tokenId: a.thorin, round: 2 } }]);
+    a.next();
+    a.next();
+    a.next(); // rodada 2, vez do Thorin
+    expect(a.session.state.tokens[a.goblin1]?.conditions.active).toHaveLength(1);
+    a.next(); // fim do turno do Thorin
+    expect(a.session.state.tokens[a.goblin1]?.conditions.active).toEqual([]);
+    expect(a.session.state.chat.at(-1)).toMatchObject({ kind: 'condition_changed', change: { kind: 'removed', condition: 'prone' }, notes: ['Fim da duração'] });
+  });
+
+  it('refuses a turn duration without combat or for someone outside it', () => {
+    const a = arena('longsword', [], false);
+    const add = () => a.session.handle(GM.playerId, { kind: 'condition.add', data: { target: { tokenId: a.goblin1 }, condition: 'prone', until: { at: 'turn_start', tokenId: a.thorin } } });
+    expect(rejection(add())).toBe('rule_violation');
+    a.session.handle(GM.playerId, { kind: 'combat.start', data: { tokenIds: [a.goblin1] } });
+    expect(rejection(add())).toBe('rule_violation');
+  });
+
+  it('Sap: the target has Disadvantage on its next attack, then the effect is spent', () => {
+    // Thorin: d20 15 (+7) acerta, 1d8 5. Goblin 1: Desvantagem, 10 e 4.
+    const a = arena('longsword', [15, 5, 10, 4]);
+    a.swing(a.goblin1);
+    expect(a.session.state.combat?.effects).toHaveLength(1);
+    expect(a.session.state.combat?.effects[0]).toMatchObject({ kind: 'sap', sourceTokenId: a.thorin, targetTokenId: a.goblin1, until: { at: 'turn_start', tokenId: a.thorin, round: 2 } });
+    expect(attackOf(a.session).mastery?.notes[0]).toContain('Sap: Goblin 1 tem Desvantagem');
+    expect(a.session.state.chat.at(-1)).toMatchObject({ kind: 'timed_effect', event: 'started', effect: 'sap', sourceName: 'Thorin', targetName: 'Goblin 1' });
+    a.session.handle(GM.playerId, { kind: 'attack.make', data: { attacker: { tokenId: a.goblin1, actionId: 'scimitar' }, targetTokenId: a.thorin, visibility: 'public' } });
+    expect(attackOf(a.session)).toMatchObject({ mode: 'disadvantage', disadvantage: ['Sap (Thorin)'], dice: [10, 4] });
+    expect(a.session.state.combat?.effects).toEqual([]);
+  });
+
+  it('Sap ends at the start of the next turn of the attacker if unused', () => {
+    const a = arena('longsword', [15, 5]);
+    a.swing(a.goblin1);
+    a.next();
+    a.next();
+    expect(a.session.state.combat?.effects).toHaveLength(1);
+    a.next(); // início do turno do Thorin na rodada 2
+    expect(a.session.state.combat?.effects).toEqual([]);
+    expect(a.session.state.chat.at(-1)).toMatchObject({ kind: 'timed_effect', event: 'ended', effect: 'sap' });
+  });
+
+  it('Vex: Advantage on the next attack of the attacker against that target only', () => {
+    // 1º: 15 acerta, 1d6 4. 2º contra o Goblin 2: 12 (sem Vex). 3º contra o Goblin 1: 3 e 16 (Vex).
+    const a = arena('handaxe', [15, 4, 12, 4, 3, 16, 4]);
+    a.swing(a.goblin1);
+    expect(a.session.state.combat?.effects.map((e) => e.kind)).toEqual(['vex']);
+    a.swing(a.goblin2);
+    expect(attackOf(a.session)).toMatchObject({ mode: 'normal', advantage: [] });
+    a.swing(a.goblin1);
+    expect(attackOf(a.session)).toMatchObject({ mode: 'advantage', advantage: ['Vex'], dice: [3, 16] });
+    expect(a.session.state.combat?.effects.some((e) => e.kind === 'vex' && e.targetTokenId === a.goblin1)).toBe(true);
+  });
+
+  it('Slow does not stack on the same target, and leaving the combat ends the effects', () => {
+    const a = arena('club', [15, 3, 15, 3]);
+    a.swing(a.goblin1);
+    a.swing(a.goblin1);
+    expect(a.session.state.combat?.effects.filter((e) => e.kind === 'slow')).toHaveLength(1);
+    a.session.handle(GM.playerId, { kind: 'combat.remove', data: { tokenId: a.goblin1 } });
+    expect(a.session.state.combat?.effects).toEqual([]);
+    expect(a.session.state.chat.at(-1)).toMatchObject({ kind: 'timed_effect', event: 'ended', effect: 'slow' });
+  });
+
+  it('ends every turn duration when the combat ends', () => {
+    const a = arena('longsword', [15, 5]);
+    a.swing(a.goblin1);
+    a.session.handle(GM.playerId, { kind: 'condition.add', data: { target: { characterId: a.hero }, condition: 'restrained', until: { at: 'turn_end', tokenId: a.goblin2 } } });
+    a.session.handle(GM.playerId, { kind: 'condition.add', data: { target: { characterId: a.hero }, condition: 'poisoned' } });
+    a.session.handle(GM.playerId, { kind: 'combat.end', data: {} });
+    expect(a.session.state.characters[a.hero]?.conditions.active).toEqual([{ condition: 'poisoned' }]);
+    expect(a.session.state.chat.slice(-3).map((e) => e.kind)).toEqual(['condition_changed', 'timed_effect', 'combat_event']);
+  });
+});
+

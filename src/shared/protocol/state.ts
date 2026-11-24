@@ -1,7 +1,7 @@
 import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, EffectSchema, InventorySchema, SizeSchema, WeaponMasterySchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_COMBATANTS, MAX_HIT_POINTS, MAX_INITIATIVE, MAX_SAVE_TARGETS, MIN_INITIATIVE } from './constants';
-import { ChatTextSchema, ConditionStateSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
+import { ChatTextSchema, ConditionStateSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 
 /** `SessionState` (docs/network-protocol.md, seção 5). */
 
@@ -226,6 +226,16 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     /** Imunidade ignorada pelo mestre, morte no nível 6 de Exaustão. */
     notes: LogList,
   }),
+  /** Efeito temporário de maestria (Sap, Vex, Slow) que começou ou terminou. */
+  z.strictObject({
+    kind: z.literal('timed_effect'),
+    ...entryBase,
+    event: z.enum(['started', 'ended']),
+    effect: z.enum(['sap', 'vex', 'slow']),
+    sourceName: NameSchema,
+    targetTokenId: UuidSchema,
+    targetName: NameSchema,
+  }),
   /** Marco do combate: começou, rodada nova, terminou. */
   z.strictObject({
     kind: z.literal('combat_event'),
@@ -351,12 +361,24 @@ export const CombatantSchema = z.strictObject({
 });
 export type Combatant = z.infer<typeof CombatantSchema>;
 
-/** Combate em andamento: a rodada, o combatente da vez e a ordem de turnos. */
+/** Efeito temporário de uma maestria, preso ao próximo turno do atacante (nota 0042). */
+export const TimedEffectSchema = z.strictObject({
+  id: UuidSchema,
+  kind: z.enum(['sap', 'vex', 'slow']),
+  sourceTokenId: UuidSchema,
+  targetTokenId: UuidSchema,
+  until: TurnExpirySchema,
+});
+export type TimedEffect = z.infer<typeof TimedEffectSchema>;
+
+/** Combate em andamento: a rodada, o combatente da vez, a ordem de turnos e os efeitos temporários. */
 export const CombatSchema = z
   .strictObject({
     round: z.int().min(1),
     turn: z.int().min(0),
     combatants: z.array(CombatantSchema).min(1).max(MAX_COMBATANTS),
+    /** Combates gravados antes da versão 13 não têm o campo: começam sem efeitos. */
+    effects: z.array(TimedEffectSchema).max(MAX_COMBATANTS * 4).default([]),
   })
   .refine((c) => c.turn < c.combatants.length, { message: 'turno fora da ordem' })
   .refine((c) => new Set(c.combatants.map((x) => x.tokenId)).size === c.combatants.length, { message: 'token repetido no combate' });

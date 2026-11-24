@@ -7,6 +7,7 @@ import { defaultCellPx, gridDimensionsForImage } from '../canvas/map-grid';
 import { sendIntent } from '../store/table';
 import { tokenHealth } from '../canvas/health';
 import { tokenConditions } from '../canvas/conditions';
+import { combatantOptions } from '../canvas/conditions';
 import { ConditionsControl } from './Conditions';
 import { HitPointsControl, HitPointsSummary } from './HitPoints';
 import { MapGridModal } from './MapGridModal';
@@ -369,7 +370,7 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
                 </span>
               )}
               <HitPointsControl key={selected.id} target={{ tokenId: selected.id }} health={selectedHealth} allowMax />
-              <ConditionsControl key={`conditions:${selected.id}`} target={{ tokenId: selected.id }} state={selected.conditions} canEdit />
+              <ConditionsControl key={`conditions:${selected.id}`} target={{ tokenId: selected.id }} state={selected.conditions} canEdit combatants={combatantOptions(state)} />
               {selected.monsterId !== null && (
                 <MonsterActions
                   key={`actions:${selected.id}`}
@@ -383,7 +384,13 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
           ) : (
             <>
               <p className="hint">Os PV deste token são os do personagem: mude na ficha.</p>
-              <ConditionsControl key={`conditions:${selected.id}`} target={{ tokenId: selected.id }} state={tokenConditions(selected, state.characters)} canEdit />
+              <ConditionsControl
+                key={`conditions:${selected.id}`}
+                target={{ tokenId: selected.id }}
+                state={tokenConditions(selected, state.characters)}
+                canEdit
+                combatants={combatantOptions(state)}
+              />
             </>
           )}
         </div>

@@ -190,13 +190,24 @@ describe('CampaignDb', () => {
   });
 
   it('saves, loads and clears the combat in progress', () => {
-    const combat = { round: 3, turn: 1, combatants: [{ tokenId: HERO_TOKEN, initiative: 18, modifier: 2 }, { tokenId: TOKEN, initiative: 9, modifier: 2 }] };
+    const effects = [{ id: randomUUID(), kind: 'sap' as const, sourceTokenId: HERO_TOKEN, targetTokenId: TOKEN, until: { at: 'turn_start' as const, tokenId: HERO_TOKEN, round: 4 } }];
+    const combat = { round: 3, turn: 1, combatants: [{ tokenId: HERO_TOKEN, initiative: 18, modifier: 2 }, { tokenId: TOKEN, initiative: 9, modifier: 2 }], effects };
     const s = state({ combat });
     const db = CampaignDb.create(':memory:', s.campaign, 0);
     db.save(s);
     expect(db.load().combat).toEqual(combat);
     db.save({ ...s, combat: null });
     expect(db.load().combat).toBeNull();
+    db.close();
+  });
+
+  it('loads a combat saved before timed effects existed, without effects', () => {
+    const s = state();
+    const db = CampaignDb.create(':memory:', s.campaign, 0);
+    db.save(s);
+    const legacy = { round: 2, turn: 0, combatants: [{ tokenId: TOKEN, initiative: 9, modifier: 2 }] };
+    (db as unknown as { db: { prepare: (sql: string) => { run: (...args: unknown[]) => void } } }).db.prepare('UPDATE campaign SET combat = ?').run(JSON.stringify(legacy));
+    expect(db.load().combat).toEqual({ ...legacy, effects: [] });
     db.close();
   });
 

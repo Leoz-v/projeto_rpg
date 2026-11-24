@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleaveDamageBonus, grazeDamage, type MasteryContext, masteryOutcome, toppleDc } from '../../src/engine/mastery';
+import { cleaveDamageBonus, grazeDamage, type MasteryContext, masteryOutcome, timedMastery, timedMasteryNote, toppleDc } from '../../src/engine/mastery';
 import { WEAPON_MASTERIES } from '../../src/schemas/common';
 
 const base: Omit<MasteryContext, 'property'> = {
@@ -61,5 +61,20 @@ describe('weapon mastery outcomes (SRD 5.2.1, Mastery Properties)', () => {
     expect(masteryOutcome({ ...base, property: 'nick', hit: false }).notes).toHaveLength(1);
     const withAction = WEAPON_MASTERIES.filter((property) => masteryOutcome({ ...base, property }).action ?? masteryOutcome({ ...base, property, hit: false }).action);
     expect(withAction).toEqual(['cleave', 'graze', 'topple']);
+  });
+});
+
+describe('timed mastery effects', () => {
+  it('leaves Sap on a hit, Vex and Slow on a hit with damage', () => {
+    expect(timedMastery('sap', true, false)).toBe('sap');
+    expect(timedMastery('vex', true, false)).toBeUndefined();
+    expect(timedMastery('vex', true, true)).toBe('vex');
+    expect(timedMastery('slow', true, true)).toBe('slow');
+    expect(timedMastery('slow', false, false)).toBeUndefined();
+    expect(timedMastery('topple', true, true)).toBeUndefined();
+  });
+
+  it('describes the applied effect', () => {
+    expect(timedMasteryNote('slow', 'Thorin', 'Goblin')).toBe('Slow: deslocamento de Goblin −10 ft até o início do próximo turno de Thorin');
   });
 });

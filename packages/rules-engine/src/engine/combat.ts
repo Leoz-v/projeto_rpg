@@ -50,3 +50,29 @@ export function turnAfterRemoval(position: TurnPosition, removed: number, count:
   if (position.turn < remaining) return { round: position.round, turn: position.turn, newRound: false };
   return { round: position.round + 1, turn: 0, newRound: true };
 }
+
+// --- Durações ligadas aos turnos ------------------------------------------
+
+/** Início ou fim de um turno. */
+export type TurnEdge = 'turn_start' | 'turn_end';
+
+/** Até quando vale: o início ou o fim do turno de um combatente, numa rodada. */
+export interface TurnExpiry {
+  at: TurnEdge;
+  tokenId: string;
+  round: number;
+}
+
+/**
+ * Rodada do próximo turno do combatente de índice `index`: o primeiro turno
+ * dele que começa depois de agora. Na vez dele, é o da rodada seguinte
+ * ("until the end of your next turn").
+ */
+export function nextTurnRound(position: TurnPosition, index: number): number {
+  return index > position.turn ? position.round : position.round + 1;
+}
+
+/** A duração termina neste momento (o início ou o fim de um turno, numa rodada)? */
+export function expiresAt(until: TurnExpiry, event: TurnExpiry): boolean {
+  return until.at === event.at && until.tokenId === event.tokenId && event.round >= until.round;
+}

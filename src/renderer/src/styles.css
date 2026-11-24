@@ -1817,6 +1817,8 @@ button.small {
 
 .condition-edit select {
   width: auto;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .exhaustion-edit {
