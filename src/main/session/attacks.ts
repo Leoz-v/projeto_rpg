@@ -475,7 +475,7 @@ export interface SaveEffect {
 /**
  * Rola o dano uma vez e a salvaguarda de cada alvo, com as defesas dele; o
  * dano de cada um vira proposta para o mestre. Devolve a entrada `save_roll`
- * e as propostas, e quem falhou (para as condições das magias, nota 0057).
+ * e as propostas, e quem falhou (para as condições das magias, nota 0058).
  * `declared`: Vantagem ou Desvantagem dos alvos (Charm Person contra quem luta).
  */
 export function rollSaves(

@@ -2240,7 +2240,7 @@ describe('HostSession: structured spell effects (note 0055)', () => {
   });
 });
 
-describe('HostSession: spell healing and conditions (note 0057)', () => {
+describe('HostSession: spell healing and conditions (note 0058)', () => {
   type Fixture = { character: { baseScores: SessionCharacter['baseScores']; steps: SessionCharacter['steps'] } };
   const sequence = (values: number[]) => {
     let i = 0;

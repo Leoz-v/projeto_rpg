@@ -206,7 +206,7 @@ export function endConcentration(
       reason,
       notes,
     }),
-    // As condições que a magia pôs caem junto (Hold Person, nota 0057).
+    // As condições que a magia pôs caem junto (Hold Person, nota 0058).
     ...liftSpellConditions(ctx, playerId, { characterId: character.id, spellId }, name, character.conditions),
   ];
 }

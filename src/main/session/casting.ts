@@ -110,7 +110,7 @@ const partLabel = (entry: CastEntry, part: SpellEffectPart): string => (part.lab
  * Usa uma parte de uma magia conjurada (`spell.effect`): o Host rola os
  * ataques, as salvaguardas ou o dano direto com a CD e o bônus gravados no
  * `spell_cast`, e o dano de cada alvo vira proposta para o mestre. A cura e
- * as condições (da falha, do acerto ou sem salvaguarda) entram direto (nota 0057).
+ * as condições (da falha, do acerto ou sem salvaguarda) entram direto (nota 0058).
  *
  * Magia instantânea: cada parte uma vez. Magia com Concentração: só enquanto
  * quem conjurou estiver concentrado nela. As demais (Fire Shield, Glyph of
@@ -169,7 +169,7 @@ export function useSpellEffect(ctx: SessionContext, playerId: string, role: Role
       declared,
     });
     if (conditions.length === 0 || saves.failed.length === 0) return saves.ops;
-    // Na falha, as condições entram direto (nota 0057).
+    // Na falha, as condições entram direto (nota 0058).
     const timing = conditionTiming(ctx, part.conditionsEnd, link);
     const ledger = new ConditionLedger(ctx);
     return [...saves.ops, ...saves.failed.flatMap((target) => imposeConditions(ctx, playerId, ledger, target, conditions, timing, label).ops)];
@@ -222,7 +222,7 @@ function spellAttacks(
       },
       ctx.deps.rng,
     );
-    // No acerto, as condições entram direto (nota 0057).
+    // No acerto, as condições entram direto (nota 0058).
     let conditionNotes: string[] = [];
     if (result.hit && part.onHitConditions.length > 0) {
       const done = imposeConditions(ctx, playerId, ledger, target, part.onHitConditions, timing, label);

@@ -1,4 +1,4 @@
-# 0057 — Cura e condições das magias (Fase 7, PR 3)
+# 0058 — Cura e condições das magias (Fase 7, PR 3)
 
 - **Status:** aceita
 - **Data:** 2026-11-24

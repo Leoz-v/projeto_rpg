@@ -5,7 +5,7 @@ import { untilNextTurn } from './conditions';
 import { changeCharacterHp, concentrationBreaks } from './vitality';
 
 /**
- * Cura e condições das magias estruturadas (nota 0057). O Host aplica direto:
+ * Cura e condições das magias estruturadas (nota 0058). O Host aplica direto:
  * a cura nos PV (decisão do usuário, nota 0054) e as condições da falha, do
  * acerto ou sem salvaguarda. O mestre corrige pelos PV e pelas condições.
  */
@@ -245,7 +245,7 @@ export function applyConditionPart(
 
 /**
  * As condições que uma magia pôs (`spell` igual ao do personagem e da magia)
- * saem de todos os personagens e tokens: a Concentração acabou (nota 0057).
+ * saem de todos os personagens e tokens: a Concentração acabou (nota 0058).
  * `own`: as condições atuais de quem conjurou, quando a mesma ação acabou de
  * mudá-las (caiu Inconsciente).
  */
