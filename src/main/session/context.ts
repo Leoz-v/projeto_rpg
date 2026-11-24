@@ -158,4 +158,15 @@ export class SessionContext {
     const footprint = (t: Token) => ({ x: t.position.x / WORLD_UNITS_PER_CELL, y: t.position.y / WORLD_UNITS_PER_CELL, size: t.size });
     return distanceFeet(footprint(a), footprint(b));
   }
+
+  /** Tira o personagem do descanso em andamento (dano interrompe; SRD 5.2.1, "Short Rest"); o último a sair encerra o descanso. */
+  leaveRest(playerId: string, character: SessionCharacter, note: string): PatchOp[] {
+    const rest = this.current.rest;
+    if (!rest?.characterIds.includes(character.id)) return [];
+    const characterIds = rest.characterIds.filter((id) => id !== character.id);
+    return [
+      { op: 'replace', path: '/rest', value: characterIds.length > 0 ? { ...rest, characterIds } : null },
+      this.appendChat({ kind: 'rest', ...this.entryBase(playerId), event: 'interrupted', rest: rest.kind, characters: [{ characterId: character.id, name: character.name }], notes: [note] }),
+    ];
+  }
 }

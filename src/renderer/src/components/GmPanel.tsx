@@ -11,6 +11,7 @@ import { combatantOptions } from '../canvas/conditions';
 import { ConditionsControl } from './Conditions';
 import { HitPointsControl, HitPointsSummary } from './HitPoints';
 import { MapGridModal } from './MapGridModal';
+import { RestPanel } from './Rest';
 import { forceSave, SaveEffectForm, TargetChecklist, type TargetOption } from './SaveEffect';
 import { ABILITY_LABEL, CONDITION_LABEL, DAMAGE_LABEL, signed } from './sheet-labels';
 import { nextTokenName } from './token-name';
@@ -687,6 +688,7 @@ export function GmPanel({ view, stage, selectedId }: { view: TableView; stage: M
         </p>
       )}
       <Maps view={view} onError={setError} />
+      <RestPanel state={view.state} />
       <CharacterTokens view={view} stage={stage} onError={setError} />
       <Tokens view={view} stage={stage} selectedId={selectedId} onError={setError} />
       {view.state.activeMapId !== null && (

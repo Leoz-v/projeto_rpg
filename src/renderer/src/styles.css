@@ -1994,3 +1994,35 @@ button.small {
 .update-notice.ready p {
   margin: 0;
 }
+
+/* Descansos e Dados de Vida (nota 0050) */
+
+.rest-characters {
+  list-style: none;
+  margin: 0.25rem 0 0.5rem;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+}
+
+.hit-dice {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hit-die-pool {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.entry.rest-event {
+  border-left: 3px solid var(--ok);
+}
+
+.entry.rest-event.interrupted {
+  border-left-color: var(--crit);
+}

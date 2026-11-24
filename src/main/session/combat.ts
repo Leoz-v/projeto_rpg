@@ -1,6 +1,7 @@
 import { creatureD20, currentHitPoints, type D20RollInput, d20Mode, d20StepNotes, expiresAt, isDying, isBloodied, nextTurn, rollD20, sheetD20, sortByInitiative, type TriggerMoment, type TurnExpiry, turnAfterRemoval } from 'rules-engine';
 import { applyPatch, type ChatEntry, type Combat, type ConditionState, type TimedEffect, type IntentData, type PatchOp, type Role, type SessionState, MAX_TURN_TRIGGER_ITEMS, MAX_COMBATANTS, MAX_INITIATIVE, MIN_INITIATIVE, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
+import { cancelRest } from './rest';
 import { changeCharacterHp, rollDeathSave } from './vitality';
 
 /** Combate, iniciativa, turnos, lembretes de turno e fim das durações (notas 0039, 0042 e 0043). Funções do executor da sessão (`HostSession`), sobre o `SessionContext`. */
@@ -74,6 +75,8 @@ export function startCombat(ctx: SessionContext, playerId: string, data: IntentD
   const order = ordered(ctx, combatants, undefined);
   const first = order.combatants[order.turn]?.tokenId;
   return [
+    // Rolar a iniciativa interrompe o descanso (SRD 5.2.1, "Short Rest").
+    ...cancelRest(ctx, playerId, 'Rolaram a iniciativa'),
     ctx.replaceCombat({ round: 1, turn: order.turn, combatants: order.combatants, effects: [] }),
     ctx.appendChat({ kind: 'combat_event', ...ctx.entryBase(playerId), event: 'started', round: 1 }),
     ctx.appendChat({ kind: 'initiative_roll', ...ctx.entryBase(playerId), results: entry }),

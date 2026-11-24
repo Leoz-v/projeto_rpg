@@ -164,6 +164,8 @@ export function changeCharacterHp(
     ops.push(...kept.ops);
     if (!kept.kept) concentration = null;
   }
+  // Dano interrompe o descanso de quem o sofre.
+  if (change.kind === 'damage' && Math.trunc(change.amount) > 0) ops.push(...ctx.leaveRest(playerId, character, 'Sofreu dano: o descanso não vale'));
   return { ops, result, after: { ...character, hp: result.state, conditions, deathSaves, concentration } };
 }
 

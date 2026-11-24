@@ -6,6 +6,7 @@ import { applyProposal, forceSave, makeAttack, proposalOf, rollDamage, rollFromS
 import { addAdjustment, addItem, createCharacter, removeCharacter, removeItem, rollScores, updateCharacter, updateItem } from './characters';
 import { advanceTurn, expire, joinCombat, leaveCombat, setInitiative, startCombat } from './combat';
 import { changeConditions } from './conditions';
+import { cancelRest, finishRest, spendHitDie, startRest } from './rest';
 import { createMap, createToken, moveToken, roll } from './map-tokens';
 import { changeHp, concentrate, concentrationBreaks, deathStateEntry, endConcentration, inCombat, rollDeathSave } from './vitality';
 
@@ -46,6 +47,7 @@ export class HostSession extends SessionContext {
       characters: restored?.characters ?? {},
       proposals: {},
       combat: restored?.combat ?? null,
+      rest: restored?.rest ?? null,
     };
   }
 
@@ -190,6 +192,18 @@ export class HostSession extends SessionContext {
           ...concentrationBreaks(this, playerId, character, character.conditions, intent.data.deathSaves),
         ];
       }
+      case 'rest.start':
+        this.requireGm(role);
+        return startRest(this, playerId, intent.data);
+      case 'rest.finish':
+        this.requireGm(role);
+        return finishRest(this, playerId);
+      case 'rest.cancel':
+        this.requireGm(role);
+        if (!this.current.rest) throw violation('Não há descanso em andamento');
+        return cancelRest(this, playerId, 'Interrompido pelo mestre');
+      case 'hit_dice.spend':
+        return spendHitDie(this, playerId, role, intent.data);
       case 'concentration.set':
         return concentrate(this, playerId, role, intent.data.characterId, intent.data.spellId);
       case 'concentration.end': {

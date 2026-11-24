@@ -58,6 +58,12 @@ export type DeathSaves = z.infer<typeof DeathSavesSchema>;
 export const ConcentrationSchema = z.strictObject({ spellId: z.string().min(1).max(64), name: z.string().min(1).max(100) });
 export type Concentration = z.infer<typeof ConcentrationSchema>;
 
+/** Tamanhos de Dado de Vida das classes. */
+export const HitDieSchema = z.union([z.literal(6), z.literal(8), z.literal(10), z.literal(12)]);
+
+/** Dados de Vida gastos por tamanho do dado, como texto ("10": 2) (nota 0050). */
+export const HitDiceSpentSchema = z.partialRecord(z.enum(['6', '8', '10', '12']), z.int().min(1).max(20));
+
 /** Alvo de PV e condições: um personagem, ou um token. */
 export const CreatureTargetSchema = z.union([z.strictObject({ characterId: UuidSchema }), z.strictObject({ tokenId: UuidSchema })]);
 export type CreatureTarget = z.infer<typeof CreatureTargetSchema>;

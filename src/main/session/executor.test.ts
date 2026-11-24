@@ -272,7 +272,7 @@ describe('HostSession: characters', () => {
   it('creates an empty draft owned by whoever asked', () => {
     const session = setup();
     const id = create(session, ANA.playerId);
-    expect(session.state.characters[id]).toEqual({ id, ownerId: ANA.playerId, name: 'Thorin', baseScores: null, rolledScores: null, steps: [], inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] }, hp: { damage: 0, temp: 0 }, adjustments: [], conditions: { active: [], exhaustion: 0 }, deathSaves: { successes: 0, failures: 0, stable: false, dead: false }, concentration: null });
+    expect(session.state.characters[id]).toEqual({ id, ownerId: ANA.playerId, name: 'Thorin', baseScores: null, rolledScores: null, steps: [], inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] }, hp: { damage: 0, temp: 0 }, adjustments: [], conditions: { active: [], exhaustion: 0 }, deathSaves: { successes: 0, failures: 0, stable: false, dead: false }, concentration: null, hitDiceSpent: {} });
     expect(SessionStateSchema.safeParse(session.state).success).toBe(true);
   });
 
@@ -1762,5 +1762,119 @@ describe('HostSession: concentration (note 0045)', () => {
     t.concentrate('hunters_mark');
     t.damage(4);
     expect(t.last('concentration_save')).toMatchObject({ mode: 'advantage', dice: [3, 14], success: true, advantage: ['Bênção'] });
+  });
+});
+
+describe('HostSession: rests and Hit Point Dice (note 0050)', () => {
+  const fighter = dwarfFighter as { character: { baseScores: SessionCharacter['baseScores']; steps: SessionCharacter['steps'] } };
+  /** RNG que devolve os valores em ordem e depois 10. */
+  const queue = (values: number[]) => ({ roll: () => values.shift() ?? 10 });
+
+  /** Thorin (dwarf-fighter-5: 5d10 de vida, CON +3) da Ana, com token num mapa. */
+  function table(rolls: number[] = []) {
+    const session = setup({ rng: queue(rolls), itemProblems: () => [] });
+    session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10 } });
+    const mapId = Object.keys(session.state.maps)[0] ?? '';
+    session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Thorin' } });
+    const hero = Object.keys(session.state.characters)[0] ?? '';
+    session.handle(ANA.playerId, {
+      kind: 'character.update',
+      data: { characterId: hero, baseScores: fighter.character.baseScores ?? undefined, steps: CharacterSchema.shape.steps.parse(fighter.character.steps) },
+    });
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Thorin', position: { x: 100, y: 100 }, size: 'medium', characterId: hero } });
+    const thorin = Object.keys(session.state.tokens)[0] ?? '';
+    const character = () => session.state.characters[hero] as SessionCharacter;
+    return {
+      session,
+      hero,
+      thorin,
+      character,
+      start: (kind: 'short' | 'long', who = GM.playerId) => session.handle(who, { kind: 'rest.start', data: { kind, characterIds: [hero] } }),
+      finish: () => session.handle(GM.playerId, { kind: 'rest.finish', data: {} }),
+      spend: (die: 6 | 8 | 10 | 12 = 10) => session.handle(ANA.playerId, { kind: 'hit_dice.spend', data: { characterId: hero, die } }),
+      damage: (amount: number) => session.handle(GM.playerId, { kind: 'hp.change', data: { target: { characterId: hero }, change: { kind: 'damage', amount } } }),
+    };
+  }
+
+  it('only the GM starts a rest, outside combat and with at least 1 HP', () => {
+    const t = table();
+    expect(rejection(t.start('short', ANA.playerId))).toBe('not_allowed');
+    t.session.handle(GM.playerId, { kind: 'combat.start', data: { tokenIds: [t.thorin] } });
+    expect(rejection(t.start('short'))).toBe('rule_violation');
+    t.session.handle(GM.playerId, { kind: 'combat.end', data: {} });
+    t.damage(500);
+    expect(rejection(t.start('long'))).toBe('rule_violation');
+    t.session.handle(GM.playerId, { kind: 'death.set', data: { characterId: t.hero, deathSaves: { successes: 0, failures: 0, stable: false, dead: false } } });
+    t.session.handle(GM.playerId, { kind: 'hp.change', data: { target: { characterId: t.hero }, change: { kind: 'healing', amount: 1 } } });
+    expect(applied(t.start('short'))).toBe(true);
+    expect(t.session.state.rest).toEqual({ kind: 'short', characterIds: [t.hero] });
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'rest', event: 'started', rest: 'short', characters: [{ characterId: t.hero, name: 'Thorin' }] });
+    expect(rejection(t.start('long'))).toBe('rule_violation');
+    expect(SessionStateSchema.safeParse(t.session.state).success).toBe(true);
+  });
+
+  it('spends Hit Point Dice one by one in a Short Rest: the roll plus CON, at least 1', () => {
+    const t = table([7, 1, 4, 4, 4]);
+    expect(rejection(t.spend())).toBe('rule_violation');
+    t.damage(30);
+    t.start('short');
+    expect(applied(t.spend())).toBe(true);
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'hit_die', die: 10, roll: 7, conModifier: 3, healed: 10 });
+    expect(t.character().hp.damage).toBe(20);
+    expect(t.character().hitDiceSpent).toEqual({ '10': 1 });
+    t.spend();
+    expect(t.session.state.chat.filter((e) => e.kind === 'hit_die').at(-1)).toMatchObject({ roll: 1, healed: 4 });
+    expect(rejection(t.spend(8))).toBe('rule_violation');
+    t.spend();
+    t.spend();
+    t.spend();
+    expect(t.character().hitDiceSpent).toEqual({ '10': 5 });
+    expect(rejection(t.spend())).toBe('rule_violation');
+    // O descanso curto não devolve os Dados de Vida.
+    t.finish();
+    expect(t.session.state.rest).toBeNull();
+    expect(t.character().hitDiceSpent).toEqual({ '10': 5 });
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'rest', event: 'finished', rest: 'short' });
+  });
+
+  it('a Long Rest restores HP and every Hit Point Die and lowers Exhaustion by 1', () => {
+    const t = table([5]);
+    t.damage(25);
+    t.start('short');
+    t.spend();
+    t.finish();
+    t.session.handle(GM.playerId, { kind: 'exhaustion.set', data: { target: { characterId: t.hero }, level: 2 } });
+    t.start('long');
+    t.finish();
+    expect(t.character().hp.damage).toBe(0);
+    expect(t.character().hitDiceSpent).toEqual({});
+    expect(t.character().conditions.exhaustion).toBe(1);
+    const last = t.session.state.chat.at(-1);
+    expect(last).toMatchObject({ kind: 'rest', event: 'finished', rest: 'long' });
+    expect(last?.kind === 'rest' && last.notes[0]).toBe('Thorin: PV cheios (+17), 1 Dado(s) de Vida, Exaustão 2 → 1');
+  });
+
+  it('damage takes the character out of the rest; rolling Initiative interrupts it for everyone', () => {
+    const t = table();
+    t.start('long');
+    t.damage(3);
+    expect(t.session.state.rest).toBeNull();
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'rest', event: 'interrupted', notes: ['Sofreu dano: o descanso não vale'] });
+    expect(rejection(t.finish())).toBe('rule_violation');
+
+    t.start('short');
+    t.session.handle(GM.playerId, { kind: 'combat.start', data: { tokenIds: [t.thorin] } });
+    expect(t.session.state.rest).toBeNull();
+    expect(t.session.state.chat.find((e) => e.kind === 'rest' && e.event === 'interrupted' && e.notes.includes('Rolaram a iniciativa'))).toBeDefined();
+  });
+
+  it('the GM cancels a rest without benefits', () => {
+    const t = table();
+    t.damage(10);
+    t.start('long');
+    t.session.handle(GM.playerId, { kind: 'rest.cancel', data: {} });
+    expect(t.session.state.rest).toBeNull();
+    expect(t.character().hp.damage).toBe(10);
+    expect(rejection(t.session.handle(GM.playerId, { kind: 'rest.cancel', data: {} }))).toBe('rule_violation');
   });
 });

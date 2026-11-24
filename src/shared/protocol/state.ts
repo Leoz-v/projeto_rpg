@@ -1,7 +1,7 @@
 import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, EffectSchema, InventorySchema, SizeSchema, TriggerMomentSchema, WeaponMasterySchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_COMBATANTS, MAX_HIT_POINTS, MAX_INITIATIVE, MAX_SAVE_TARGETS, MAX_TURN_TRIGGER_ITEMS, MIN_INITIATIVE } from './constants';
-import { ChatTextSchema, ConcentrationSchema, ConditionStateSchema, DeathSavesSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
+import { ChatTextSchema, ConcentrationSchema, HitDiceSpentSchema, HitDieSchema, ConditionStateSchema, DeathSavesSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 
 /** `SessionState` (docs/network-protocol.md, seção 5). */
 
@@ -236,6 +236,27 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     targetTokenId: UuidSchema,
     targetName: NameSchema,
   }),
+  /** Descanso que começou, terminou ou foi interrompido (nota 0050). */
+  z.strictObject({
+    kind: z.literal('rest'),
+    ...entryBase,
+    event: z.enum(['started', 'finished', 'interrupted']),
+    rest: z.enum(['short', 'long']),
+    characters: z.array(z.strictObject({ characterId: UuidSchema, name: NameSchema })).max(MAX_COMBATANTS),
+    /** O que cada um recuperou, quem saiu do descanso e por quê. */
+    notes: LogList,
+  }),
+  /** Dado de Vida gasto no descanso curto, rolado pelo Host. */
+  z.strictObject({
+    kind: z.literal('hit_die'),
+    ...entryBase,
+    characterId: UuidSchema,
+    characterName: NameSchema,
+    die: HitDieSchema,
+    roll: z.int().min(1).max(12),
+    conModifier: z.int(),
+    healed: z.int().nonnegative(),
+  }),
   /** Concentração que começou, terminou ou resistiu ao dano sem salvaguarda (nota 0045). */
   z.strictObject({
     kind: z.literal('concentration'),
@@ -391,6 +412,13 @@ export const SessionAdjustmentSchema = z.strictObject({
 });
 export type SessionAdjustment = z.infer<typeof SessionAdjustmentSchema>;
 
+/** Descanso em andamento: o tipo e quem descansa (nota 0050). */
+export const SessionRestSchema = z.strictObject({
+  kind: z.enum(['short', 'long']),
+  characterIds: z.array(UuidSchema).min(1).max(MAX_COMBATANTS),
+});
+export type SessionRest = z.infer<typeof SessionRestSchema>;
+
 /** Valor de atributo rolado (3 a 18). */
 const RolledScoreSchema = z.int().min(3).max(18);
 
@@ -418,6 +446,8 @@ export const SessionCharacterSchema = z.strictObject({
   deathSaves: DeathSavesSchema,
   /** Magia em que se concentra, ou `null` (nota 0045). */
   concentration: ConcentrationSchema.nullable(),
+  /** Dados de Vida gastos por tamanho; o descanso longo devolve todos (nota 0050). */
+  hitDiceSpent: HitDiceSpentSchema,
 });
 export type SessionCharacter = z.infer<typeof SessionCharacterSchema>;
 
@@ -478,5 +508,7 @@ export const SessionStateSchema = z.strictObject({
   proposals: z.record(UuidSchema, DamageProposalSchema),
   /** Combate em andamento, ou `null`. */
   combat: CombatSchema.nullable(),
+  /** Descanso em andamento, ou `null` (nota 0050). */
+  rest: SessionRestSchema.nullable(),
 });
 export type SessionState = z.infer<typeof SessionStateSchema>;
