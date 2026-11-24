@@ -14,6 +14,7 @@ import { SaveEffectForm } from './SaveEffect';
 import { type Roller, RollToolbar, RollButton, useRoller } from './SheetRolls';
 import { DeathSavesPanel } from './DeathSaves';
 import { ConcentrationControl } from './Concentration';
+import { HitDiceControl } from './Rest';
 import { Inventory } from './Inventory';
 import { ABILITY_LABEL, CONDITION_LABEL, DAMAGE_LABEL, humanizeId, nameOf, SENSE_LABEL, SIZE_LABEL, signed, SKILL_LABEL } from './sheet-labels';
 
@@ -133,7 +134,7 @@ function Status({ sheet, showPending }: { sheet: DerivedSheet; showPending: bool
   );
 }
 
-function Vitals({ sheet, hp, roller, onSelect }: { sheet: DerivedSheet; hp: { damage: number; temp: number }; roller: Roller | undefined; onSelect: (d: Detail) => void }) {
+function Vitals({ sheet, hp, roller, onSelect, hitDice }: { sheet: DerivedSheet; hp: { damage: number; temp: number }; roller: Roller | undefined; onSelect: (d: Detail) => void; hitDice: ReactNode }) {
   const health = { current: currentHitPoints(sheet.hpMax.total, hp), max: sheet.hpMax.total, temp: hp.temp };
   const speed = sheet.speed;
   const extraSpeeds = (['fly', 'swim', 'climb', 'burrow'] as const).filter((k) => speed[k].total > 0);
@@ -189,7 +190,7 @@ function Vitals({ sheet, hp, roller, onSelect }: { sheet: DerivedSheet; hp: { da
       </div>
       <div>
         <dt>Dados de Vida</dt>
-        <dd>{sheet.hitDice.length > 0 ? sheet.hitDice.map((h) => `${h.count}d${h.die}`).join(' + ') : '—'}</dd>
+        <dd>{hitDice}</dd>
       </div>
     </dl>
   );
@@ -558,7 +559,13 @@ export function CharacterSheet({ view, characterId, onClose }: { view: TableView
                       .map((t) => ({ id: t.id, name: t.name }))}
                   />
                 )}
-                <Vitals sheet={load.view.sheet} hp={record.hp} roller={roller} onSelect={setDetail} />
+                <Vitals
+                  sheet={load.view.sheet}
+                  hp={record.hp}
+                  roller={roller}
+                  onSelect={setDetail}
+                  hitDice={<HitDiceControl character={record} hitDice={load.view.sheet.hitDice} state={view.state} canEdit={canEdit} />}
+                />
                 {canEdit && (
                   <HitPointsControl
                     target={{ characterId: record.id }}

@@ -70,6 +70,9 @@ const MIGRATIONS = [
   `ALTER TABLE characters ADD COLUMN death_saves TEXT NOT NULL DEFAULT '{"successes":0,"failures":0,"stable":false,"dead":false}';`,
   // Magia em que o personagem se concentra, em JSON validado ao carregar ('null' sem Concentração).
   `ALTER TABLE characters ADD COLUMN concentration TEXT NOT NULL DEFAULT 'null';`,
+  // Dados de Vida gastos do personagem e o descanso em andamento, em JSON validado ao carregar (nota 0050).
+  `ALTER TABLE characters ADD COLUMN hit_dice_spent TEXT NOT NULL DEFAULT '{}';
+   ALTER TABLE campaign ADD COLUMN rest TEXT;`,
 ] as const;
 
 export const CAMPAIGN_DB_SCHEMA_VERSION = MIGRATIONS.length;
@@ -81,7 +84,7 @@ export class CampaignDbError extends Error {
   }
 }
 
-const CampaignRow = z.object({ id: z.string(), name: z.string(), active_map_id: z.string().nullable(), combat: z.string().nullable() });
+const CampaignRow = z.object({ id: z.string(), name: z.string(), active_map_id: z.string().nullable(), combat: z.string().nullable(), rest: z.string().nullable() });
 const PlayerRow = z.object({ id: z.string(), display_name: z.string(), role: z.string() });
 const MapRow = z.object({ id: z.string(), name: z.string(), width: z.number(), height: z.number(), background: z.string().nullable(), cell_px: z.number().nullable() });
 const TokenRow = z.object({
@@ -99,7 +102,7 @@ const TokenRow = z.object({
   conditions: z.string(),
 });
 const ChatRow = z.object({ entry: z.string() });
-const CharacterRow = z.object({ id: z.string(), owner_id: z.string(), name: z.string(), build: z.string(), inventory: z.string(), adjustments: z.string(), hp: z.string(), conditions: z.string(), death_saves: z.string(), concentration: z.string() });
+const CharacterRow = z.object({ id: z.string(), owner_id: z.string(), name: z.string(), build: z.string(), inventory: z.string(), adjustments: z.string(), hp: z.string(), conditions: z.string(), death_saves: z.string(), concentration: z.string(), hit_dice_spent: z.string() });
 const CountRow = z.object({ n: z.number() });
 
 export class CampaignDb {
@@ -143,7 +146,7 @@ export class CampaignDb {
    * num estado carregado: as conexões são da sessão, não da campanha.
    */
   load(): SessionState {
-    const campaignRow = this.db.prepare('SELECT id, name, active_map_id, combat FROM campaign').get();
+    const campaignRow = this.db.prepare('SELECT id, name, active_map_id, combat, rest FROM campaign').get();
     if (!campaignRow) throw new CampaignDbError('Arquivo sem campanha');
     const campaign = CampaignRow.parse(campaignRow);
 
@@ -177,7 +180,7 @@ export class CampaignDb {
     );
     const characters = Object.fromEntries(
       this.db
-        .prepare('SELECT id, owner_id, name, build, inventory, adjustments, hp, conditions, death_saves, concentration FROM characters')
+        .prepare('SELECT id, owner_id, name, build, inventory, adjustments, hp, conditions, death_saves, concentration, hit_dice_spent FROM characters')
         .all()
         .map((row) => {
           const c = CharacterRow.parse(row);
@@ -188,7 +191,8 @@ export class CampaignDb {
           const conditions: unknown = JSON.parse(c.conditions);
           const deathSaves: unknown = JSON.parse(c.death_saves);
           const concentration: unknown = JSON.parse(c.concentration);
-          return [c.id, { id: c.id, ownerId: c.owner_id, name: c.name, ...(typeof build === 'object' ? build : {}), inventory, hp, adjustments, conditions, deathSaves, concentration }];
+          const hitDiceSpent: unknown = JSON.parse(c.hit_dice_spent);
+          return [c.id, { id: c.id, ownerId: c.owner_id, name: c.name, ...(typeof build === 'object' ? build : {}), inventory, hp, adjustments, conditions, deathSaves, concentration, hitDiceSpent }];
         }),
     );
     const chat = this.db
@@ -196,7 +200,7 @@ export class CampaignDb {
       .all()
       .map((row): unknown => JSON.parse(ChatRow.parse(row).entry));
 
-    const parsed = SessionStateSchema.safeParse({ campaign: { id: campaign.id, name: campaign.name }, players, chat, maps, activeMapId: campaign.active_map_id, tokens, characters, proposals: {}, combat: campaign.combat === null ? null : (JSON.parse(campaign.combat) as unknown) });
+    const parsed = SessionStateSchema.safeParse({ campaign: { id: campaign.id, name: campaign.name }, players, chat, maps, activeMapId: campaign.active_map_id, tokens, characters, proposals: {}, combat: campaign.combat === null ? null : (JSON.parse(campaign.combat) as unknown), rest: campaign.rest === null ? null : (JSON.parse(campaign.rest) as unknown) });
     if (!parsed.success) throw new CampaignDbError(`Arquivo da campanha inválido: ${parsed.error.issues[0]?.message ?? 'erro desconhecido'}`);
     return parsed.data;
   }
@@ -208,7 +212,7 @@ export class CampaignDb {
   save(state: SessionState): void {
     const { db } = this;
     transaction(db, () => {
-      db.prepare('UPDATE campaign SET name = ?, active_map_id = ?, combat = ?').run(state.campaign.name, state.activeMapId, state.combat === null ? null : JSON.stringify(state.combat));
+      db.prepare('UPDATE campaign SET name = ?, active_map_id = ?, combat = ?, rest = ?').run(state.campaign.name, state.activeMapId, state.combat === null ? null : JSON.stringify(state.combat), state.rest === null ? null : JSON.stringify(state.rest));
 
       const upsertPlayer = db.prepare(
         'INSERT INTO players (id, display_name, role) VALUES (?, ?, ?) ON CONFLICT (id) DO UPDATE SET display_name = excluded.display_name, role = excluded.role',
@@ -235,12 +239,12 @@ export class CampaignDb {
 
       this.removeMissing('characters', Object.keys(state.characters));
       const upsertCharacter = db.prepare(
-        `INSERT INTO characters (id, owner_id, name, build, inventory, adjustments, hp, conditions, death_saves, concentration) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO characters (id, owner_id, name, build, inventory, adjustments, hp, conditions, death_saves, concentration, hit_dice_spent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (id) DO UPDATE SET owner_id = excluded.owner_id, name = excluded.name, build = excluded.build, inventory = excluded.inventory,
-           adjustments = excluded.adjustments, hp = excluded.hp, conditions = excluded.conditions, death_saves = excluded.death_saves, concentration = excluded.concentration`,
+           adjustments = excluded.adjustments, hp = excluded.hp, conditions = excluded.conditions, death_saves = excluded.death_saves, concentration = excluded.concentration, hit_dice_spent = excluded.hit_dice_spent`,
       );
       for (const c of Object.values(state.characters)) {
-        upsertCharacter.run(c.id, c.ownerId, c.name, JSON.stringify({ baseScores: c.baseScores, rolledScores: c.rolledScores, steps: c.steps }), JSON.stringify(c.inventory), JSON.stringify(c.adjustments), JSON.stringify(c.hp), JSON.stringify(c.conditions), JSON.stringify(c.deathSaves), JSON.stringify(c.concentration));
+        upsertCharacter.run(c.id, c.ownerId, c.name, JSON.stringify({ baseScores: c.baseScores, rolledScores: c.rolledScores, steps: c.steps }), JSON.stringify(c.inventory), JSON.stringify(c.adjustments), JSON.stringify(c.hp), JSON.stringify(c.conditions), JSON.stringify(c.deathSaves), JSON.stringify(c.concentration), JSON.stringify(c.hitDiceSpent));
       }
 
       const saved = CountRow.parse(db.prepare('SELECT COUNT(*) AS n FROM chat').get()).n;

@@ -11,6 +11,7 @@ export { ABILITY_ROLL_DICE, ABILITY_ROLL_SIDES, type AbilityRollSet, rollAbility
 export { applyHitPointChange, clampHitPoints, currentHitPoints, type HitPointChange, isBloodied, type HitPointResult, type HitPointState } from './hit-points';
 export { DEATH_SAVE_DC, type DeathDamageEvent, deathAfterDamage, deathAfterHealing, type DeathSaveOutcome, type DeathSaveState, isDying, NO_DEATH_SAVES, resolveDeathSave } from './death';
 export { concentrationDc } from './concentration';
+export { availableHitDice, exhaustionAfterLongRest, type HitDiceSpent, hitDieHealing, MIN_HP_TO_REST } from './rest';
 export {
   d20StepNotes,
   type DamageGroup,

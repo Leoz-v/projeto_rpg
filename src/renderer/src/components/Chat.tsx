@@ -8,6 +8,7 @@ import { AttackRollBody, D20RollBody, DamageAppliedBody, DamageRollBody, Mastery
 import { CONDITION_LABEL } from './sheet-labels';
 import { DeathSaveBody, DeathStateBody } from './DeathSaves';
 import { ConcentrationBody, ConcentrationSaveBody } from './Concentration';
+import { HitDieBody, RestBody } from './Rest';
 
 /** Log da sessão (mensagens e rolagens) e campo de envio. */
 
@@ -170,6 +171,10 @@ function Entry({ entry, author, context }: { entry: ChatEntry; author: string; c
         </li>
       );
     }
+    case 'rest':
+      return <RestBody entry={entry} header={header} />;
+    case 'hit_die':
+      return <HitDieBody entry={entry} header={header} />;
     case 'concentration':
       return <ConcentrationBody entry={entry} header={header} />;
     case 'concentration_save':

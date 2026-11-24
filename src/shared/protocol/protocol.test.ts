@@ -28,6 +28,7 @@ const SHA ='9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08';
 const state: SessionState = {
   proposals: {},
   combat: null,
+  rest: null,
   campaign: { id: CAMPAIGN, name: 'A Mina Perdida' },
   players: {
     [PLAYER]: { displayName: 'Ana', role: 'player', connected: true },
@@ -89,6 +90,7 @@ const state: SessionState = {
       conditions: { active: [], exhaustion: 0 },
       deathSaves: { successes: 0, failures: 0, stable: false, dead: false },
       concentration: null,
+      hitDiceSpent: {},
     },
   },
 };
@@ -283,7 +285,7 @@ describe('intents', () => {
 describe('SessionState', () => {
   it('accepts the documented example and an empty table', () => {
     expect(ok(SessionStateSchema, state)).toBe(true);
-    expect(ok(SessionStateSchema, { campaign: state.campaign, players: {}, chat: [], maps: {}, activeMapId: null, tokens: {}, characters: {}, proposals: {}, combat: null })).toBe(true);
+    expect(ok(SessionStateSchema, { campaign: state.campaign, players: {}, chat: [], maps: {}, activeMapId: null, tokens: {}, characters: {}, proposals: {}, combat: null, rest: null })).toBe(true);
   });
 
   it('keeps conditions unique and exhaustion within 0..6', () => {
