@@ -11,7 +11,7 @@ Cada mudança de protocolo recusa quem está na versão antiga ("Atualize o app"
 
 ## Decisão
 
-- **Workflow `release.yml`:** uma tag `vX.Y.Z` gera os instaladores em Windows (NSIS), Linux (AppImage) e Mac (dmg) e os sobe para um **rascunho** de release, com o `latest.yml` (sha512 de cada arquivo).
+- **Workflow `release.yml`:** uma tag `vX.Y.Z` gera os instaladores em Windows (NSIS), Linux (AppImage) e Mac (dmg para Intel e Apple Silicon, desde a 0.3.0) e os sobe para um **rascunho** de release, com o `latest.yml` (sha512 de cada arquivo).
   - Antes do build: confere que a tag bate com a `version` do `package.json`, e roda typecheck, lint e testes.
   - Usa o `GITHUB_TOKEN` do próprio Actions; não há segredo novo.
   - O dono do repositório confere o rascunho e publica. Só uma release publicada chega aos apps, e ninguém recebe um build quebrado sem que alguém o tenha olhado.
