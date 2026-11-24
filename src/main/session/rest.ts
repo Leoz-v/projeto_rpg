@@ -1,4 +1,4 @@
-import { availableHitDice, currentHitPoints, exhaustionAfterLongRest, hitDieHealing, MIN_HP_TO_REST } from 'rules-engine';
+import { availableHitDice, currentHitPoints, exhaustionAfterLongRest, hitDieHealing, MIN_HP_TO_REST, spellSlotsAfterRest } from 'rules-engine';
 import { type IntentData, type PatchOp, type Role, type SessionCharacter, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation } from './context';
 import { changeCharacterHp } from './vitality';
@@ -36,18 +36,28 @@ export function finishRest(ctx: SessionContext, playerId: string): PatchOp[] {
     const character = ctx.current.characters[id];
     return character ? [character] : [];
   });
-  if (rest.kind === 'long') {
-    for (const character of characters) {
-      const result = longRest(ctx, playerId, character);
-      ops.push(...result.ops);
-      notes.push(`${character.name}: ${result.recovered.length > 0 ? result.recovered.join(', ') : 'nada a recuperar'}`);
+  for (const character of characters) {
+    const result = rest.kind === 'long' ? longRest(ctx, playerId, character) : { ops: [], recovered: [] };
+    // Espaços de magia: o longo devolve todos; o curto, os da Magia de Pacto (nota 0051).
+    const slots = spellSlotsAfterRest(character.spellSlotsSpent, rest.kind);
+    const slotsBack = spentSlots(character.spellSlotsSpent) - spentSlots(slots);
+    if (slotsBack > 0) {
+      result.ops.push({ op: 'replace', path: toPointer('characters', character.id, 'spellSlotsSpent'), value: slots });
+      result.recovered.push(`${slotsBack} espaço(s) de magia`);
     }
+    ops.push(...result.ops);
+    if (rest.kind === 'long' || result.recovered.length > 0) notes.push(`${character.name}: ${result.recovered.length > 0 ? result.recovered.join(', ') : 'nada a recuperar'}`);
   }
   return [
     { op: 'replace', path: '/rest', value: null },
     ...ops,
     ctx.appendChat({ kind: 'rest', ...ctx.entryBase(playerId), event: 'finished', rest: rest.kind, characters: characters.map((c) => ({ characterId: c.id, name: c.name })), notes: notes.slice(0, 50) }),
   ];
+}
+
+/** Quantos espaços de magia estão gastos, de todos os tipos. */
+function spentSlots(spent: SessionCharacter['spellSlotsSpent']): number {
+  return Object.values(spent.byLevel).reduce((sum: number, n) => sum + n, 0) + spent.pact;
 }
 
 function longRest(ctx: SessionContext, playerId: string, character: SessionCharacter): { ops: PatchOp[]; recovered: string[] } {

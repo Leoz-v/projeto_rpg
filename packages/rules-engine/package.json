@@ -10,7 +10,8 @@
     "./schemas": "./src/schemas/index.ts",
     "./space": "./src/engine/space.ts",
     "./hit-points": "./src/engine/hit-points.ts",
-    "./rest": "./src/engine/rest.ts"
+    "./rest": "./src/engine/rest.ts",
+    "./spell-slots": "./src/engine/spell-slots.ts"
   },
   "scripts": {
     "test": "vitest run",

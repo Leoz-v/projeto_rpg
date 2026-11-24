@@ -7,6 +7,8 @@ import { characterSheet } from '../character-sheet';
 import { HostSession, type IntentOutcome, type SessionDeps } from './executor';
 import dwarfFighter from '../../../packages/rules-engine/tests/fixtures/dwarf-fighter-5.json';
 import gnomeRanger from '../../../packages/rules-engine/tests/fixtures/gnome-ranger-6.json';
+import elfWizard from '../../../packages/rules-engine/tests/fixtures/elf-wizard-7.json';
+import goliathWarlock from '../../../packages/rules-engine/tests/fixtures/goliath-warlock-5.json';
 import type { SessionCharacter } from '../../shared/protocol';
 import { cryptoRng } from './rng';
 
@@ -272,7 +274,7 @@ describe('HostSession: characters', () => {
   it('creates an empty draft owned by whoever asked', () => {
     const session = setup();
     const id = create(session, ANA.playerId);
-    expect(session.state.characters[id]).toEqual({ id, ownerId: ANA.playerId, name: 'Thorin', baseScores: null, rolledScores: null, steps: [], inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] }, hp: { damage: 0, temp: 0 }, adjustments: [], conditions: { active: [], exhaustion: 0 }, deathSaves: { successes: 0, failures: 0, stable: false, dead: false }, concentration: null, hitDiceSpent: {} });
+    expect(session.state.characters[id]).toEqual({ id, ownerId: ANA.playerId, name: 'Thorin', baseScores: null, rolledScores: null, steps: [], inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] }, hp: { damage: 0, temp: 0 }, adjustments: [], conditions: { active: [], exhaustion: 0 }, deathSaves: { successes: 0, failures: 0, stable: false, dead: false }, concentration: null, hitDiceSpent: {}, spellSlotsSpent: { byLevel: {}, pact: 0 } });
     expect(SessionStateSchema.safeParse(session.state).success).toBe(true);
   });
 
@@ -1876,5 +1878,70 @@ describe('HostSession: rests and Hit Point Dice (note 0050)', () => {
     expect(t.session.state.rest).toBeNull();
     expect(t.character().hp.damage).toBe(10);
     expect(rejection(t.session.handle(GM.playerId, { kind: 'rest.cancel', data: {} }))).toBe('rule_violation');
+  });
+});
+
+describe('HostSession: spell slots (note 0051)', () => {
+  type Fixture = { character: { baseScores: SessionCharacter['baseScores']; steps: SessionCharacter['steps'] } };
+
+  /** Um conjurador de referência da Ana. */
+  function caster(fixture: Fixture) {
+    const session = setup({ itemProblems: () => [] });
+    session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Conjurador' } });
+    const hero = Object.keys(session.state.characters)[0] ?? '';
+    session.handle(ANA.playerId, {
+      kind: 'character.update',
+      data: { characterId: hero, baseScores: fixture.character.baseScores ?? undefined, steps: CharacterSchema.shape.steps.parse(fixture.character.steps) },
+    });
+    const sheet = characterSheet(session.state.characters[hero] as SessionCharacter, compendium).sheet;
+    if (!sheet) throw new Error('sem ficha');
+    const slot = (kind: 'spell_slot.spend' | 'spell_slot.restore', s: { level: number } | 'pact', who = ANA.playerId) =>
+      session.handle(who, { kind, data: { characterId: hero, slot: s } });
+    const rest = (kind: 'short' | 'long') => {
+      session.handle(GM.playerId, { kind: 'rest.start', data: { kind, characterIds: [hero] } });
+      session.handle(GM.playerId, { kind: 'rest.finish', data: {} });
+    };
+    return { session, hero, sheet, slot, rest, spent: () => (session.state.characters[hero] as SessionCharacter).spellSlotsSpent };
+  }
+
+  it('spends and restores slots of each level, as the sheet allows', () => {
+    const w = caster(elfWizard as Fixture);
+    const first = w.sheet.spellcasting.slots[0] ?? 0;
+    expect(first).toBeGreaterThan(0);
+    expect(applied(w.slot('spell_slot.spend', { level: 1 }))).toBe(true);
+    expect(w.spent()).toEqual({ byLevel: { '1': 1 }, pact: 0 });
+    expect(w.session.state.chat.at(-1)).toMatchObject({ kind: 'spell_slot', event: 'spent', slot: { level: 1 }, available: first - 1, total: first });
+    for (let i = 1; i < first; i++) w.slot('spell_slot.spend', { level: 1 });
+    expect(rejection(w.slot('spell_slot.spend', { level: 1 }))).toBe('rule_violation');
+    expect(rejection(w.slot('spell_slot.spend', { level: 9 }))).toBe('rule_violation');
+    expect(rejection(w.slot('spell_slot.spend', 'pact'))).toBe('rule_violation');
+    expect(rejection(w.slot('spell_slot.spend', { level: 2 }, BRUNO.playerId))).toBe('not_allowed');
+    w.slot('spell_slot.restore', { level: 1 });
+    expect(w.spent()).toEqual({ byLevel: { '1': first - 1 }, pact: 0 });
+    expect(rejection(w.slot('spell_slot.restore', { level: 2 }))).toBe('rule_violation');
+    expect(SessionStateSchema.safeParse(w.session.state).success).toBe(true);
+  });
+
+  it('a Long Rest restores every slot; a Short Rest does not', () => {
+    const w = caster(elfWizard as Fixture);
+    w.slot('spell_slot.spend', { level: 1 });
+    w.slot('spell_slot.spend', { level: 2 });
+    w.rest('short');
+    expect(w.spent()).toEqual({ byLevel: { '1': 1, '2': 1 }, pact: 0 });
+    w.rest('long');
+    expect(w.spent()).toEqual({ byLevel: {}, pact: 0 });
+    const last = w.session.state.chat.at(-1);
+    expect(last?.kind === 'rest' && last.notes.join(' ')).toContain('2 espaço(s) de magia');
+  });
+
+  it('Pact Magic slots come back on a Short Rest', () => {
+    const k = caster(goliathWarlock as Fixture);
+    const pact = k.sheet.spellcasting.pactSlots;
+    expect(pact?.count).toBeGreaterThan(0);
+    expect(applied(k.slot('spell_slot.spend', 'pact'))).toBe(true);
+    expect(k.session.state.chat.at(-1)).toMatchObject({ kind: 'spell_slot', slot: 'pact', total: pact?.count });
+    expect(rejection(k.slot('spell_slot.spend', { level: 1 }))).toBe('rule_violation');
+    k.rest('short');
+    expect(k.spent()).toEqual({ byLevel: {}, pact: 0 });
   });
 });

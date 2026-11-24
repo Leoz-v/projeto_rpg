@@ -1,6 +1,6 @@
 import { AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, DiceSchema, EffectSchema, IdSchema, SizeSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
-import { ChatTextSchema, CreatureTargetSchema, DeathSavesSchema, HitDieSchema, InstanceIdSchema, TurnEdgeSchema, LabelSchema, MAX_EXHAUSTION_LEVEL, RollAgainstSchema, TableConditionSchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
+import { ChatTextSchema, CreatureTargetSchema, DeathSavesSchema, HitDieSchema, SpellSlotRefSchema, InstanceIdSchema, TurnEdgeSchema, LabelSchema, MAX_EXHAUSTION_LEVEL, RollAgainstSchema, TableConditionSchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 import { MAX_ADJUSTMENT_EFFECTS, MAX_COINS, MAX_COMBATANTS, MAX_FORMULA_DICE, MAX_FORMULA_LENGTH, MAX_HIT_POINTS, MAX_ITEM_QUANTITY, MAX_SAVE_TARGETS } from './constants';
 import { InitiativeSchema, VisibilitySchema } from './state';
 
@@ -204,6 +204,8 @@ export const IntentSchema = z.discriminatedUnion('kind', [
   }),
   z.strictObject({ kind: z.literal('condition.remove'), data: z.strictObject({ target: CreatureTargetSchema, condition: TableConditionSchema }) }),
   z.strictObject({ kind: z.literal('exhaustion.set'), data: z.strictObject({ target: CreatureTargetSchema, level: z.int().min(0).max(MAX_EXHAUSTION_LEVEL) }) }),
+  z.strictObject({ kind: z.literal('spell_slot.spend'), data: z.strictObject({ characterId: UuidSchema, slot: SpellSlotRefSchema }) }),
+  z.strictObject({ kind: z.literal('spell_slot.restore'), data: z.strictObject({ characterId: UuidSchema, slot: SpellSlotRefSchema }) }),
   z.strictObject({ kind: z.literal('rest.start'), data: z.strictObject({ kind: z.enum(['short', 'long']), characterIds: z.array(UuidSchema).min(1).max(MAX_COMBATANTS).refine((ids) => new Set(ids).size === ids.length, { message: 'personagem repetido' }) }) }),
   z.strictObject({ kind: z.literal('rest.finish'), data: z.strictObject({}) }),
   z.strictObject({ kind: z.literal('rest.cancel'), data: z.strictObject({}) }),

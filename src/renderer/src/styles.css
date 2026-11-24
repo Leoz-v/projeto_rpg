@@ -2026,3 +2026,43 @@ button.small {
 .entry.rest-event.interrupted {
   border-left-color: var(--crit);
 }
+
+/* Espaços de magia (nota 0051) */
+
+.spell-slots ul {
+  list-style: none;
+  margin: 0.4rem 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.slot-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.slot-label {
+  min-width: 6.5rem;
+}
+
+/* Até 4 espaços por círculo: os botões ficam alinhados entre as linhas. */
+.slot-pips {
+  min-width: 5rem;
+}
+
+.slot-pips .pip {
+  color: var(--muted);
+  margin-right: 0.1rem;
+}
+
+.slot-pips .pip.on {
+  color: var(--accent);
+}
+
+.entry.slot-event {
+  border-left: 3px solid var(--accent);
+}

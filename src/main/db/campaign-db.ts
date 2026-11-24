@@ -73,6 +73,8 @@ const MIGRATIONS = [
   // Dados de Vida gastos do personagem e o descanso em andamento, em JSON validado ao carregar (nota 0050).
   `ALTER TABLE characters ADD COLUMN hit_dice_spent TEXT NOT NULL DEFAULT '{}';
    ALTER TABLE campaign ADD COLUMN rest TEXT;`,
+  // Espaços de magia gastos do personagem, em JSON validado ao carregar (nota 0051).
+  `ALTER TABLE characters ADD COLUMN spell_slots_spent TEXT NOT NULL DEFAULT '{"byLevel":{},"pact":0}';`,
 ] as const;
 
 export const CAMPAIGN_DB_SCHEMA_VERSION = MIGRATIONS.length;
@@ -102,7 +104,7 @@ const TokenRow = z.object({
   conditions: z.string(),
 });
 const ChatRow = z.object({ entry: z.string() });
-const CharacterRow = z.object({ id: z.string(), owner_id: z.string(), name: z.string(), build: z.string(), inventory: z.string(), adjustments: z.string(), hp: z.string(), conditions: z.string(), death_saves: z.string(), concentration: z.string(), hit_dice_spent: z.string() });
+const CharacterRow = z.object({ id: z.string(), owner_id: z.string(), name: z.string(), build: z.string(), inventory: z.string(), adjustments: z.string(), hp: z.string(), conditions: z.string(), death_saves: z.string(), concentration: z.string(), hit_dice_spent: z.string(), spell_slots_spent: z.string() });
 const CountRow = z.object({ n: z.number() });
 
 export class CampaignDb {
@@ -180,7 +182,7 @@ export class CampaignDb {
     );
     const characters = Object.fromEntries(
       this.db
-        .prepare('SELECT id, owner_id, name, build, inventory, adjustments, hp, conditions, death_saves, concentration, hit_dice_spent FROM characters')
+        .prepare('SELECT id, owner_id, name, build, inventory, adjustments, hp, conditions, death_saves, concentration, hit_dice_spent, spell_slots_spent FROM characters')
         .all()
         .map((row) => {
           const c = CharacterRow.parse(row);
@@ -192,7 +194,8 @@ export class CampaignDb {
           const deathSaves: unknown = JSON.parse(c.death_saves);
           const concentration: unknown = JSON.parse(c.concentration);
           const hitDiceSpent: unknown = JSON.parse(c.hit_dice_spent);
-          return [c.id, { id: c.id, ownerId: c.owner_id, name: c.name, ...(typeof build === 'object' ? build : {}), inventory, hp, adjustments, conditions, deathSaves, concentration, hitDiceSpent }];
+          const spellSlotsSpent: unknown = JSON.parse(c.spell_slots_spent);
+          return [c.id, { id: c.id, ownerId: c.owner_id, name: c.name, ...(typeof build === 'object' ? build : {}), inventory, hp, adjustments, conditions, deathSaves, concentration, hitDiceSpent, spellSlotsSpent }];
         }),
     );
     const chat = this.db
@@ -239,12 +242,12 @@ export class CampaignDb {
 
       this.removeMissing('characters', Object.keys(state.characters));
       const upsertCharacter = db.prepare(
-        `INSERT INTO characters (id, owner_id, name, build, inventory, adjustments, hp, conditions, death_saves, concentration, hit_dice_spent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO characters (id, owner_id, name, build, inventory, adjustments, hp, conditions, death_saves, concentration, hit_dice_spent, spell_slots_spent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (id) DO UPDATE SET owner_id = excluded.owner_id, name = excluded.name, build = excluded.build, inventory = excluded.inventory,
-           adjustments = excluded.adjustments, hp = excluded.hp, conditions = excluded.conditions, death_saves = excluded.death_saves, concentration = excluded.concentration, hit_dice_spent = excluded.hit_dice_spent`,
+           adjustments = excluded.adjustments, hp = excluded.hp, conditions = excluded.conditions, death_saves = excluded.death_saves, concentration = excluded.concentration, hit_dice_spent = excluded.hit_dice_spent, spell_slots_spent = excluded.spell_slots_spent`,
       );
       for (const c of Object.values(state.characters)) {
-        upsertCharacter.run(c.id, c.ownerId, c.name, JSON.stringify({ baseScores: c.baseScores, rolledScores: c.rolledScores, steps: c.steps }), JSON.stringify(c.inventory), JSON.stringify(c.adjustments), JSON.stringify(c.hp), JSON.stringify(c.conditions), JSON.stringify(c.deathSaves), JSON.stringify(c.concentration), JSON.stringify(c.hitDiceSpent));
+        upsertCharacter.run(c.id, c.ownerId, c.name, JSON.stringify({ baseScores: c.baseScores, rolledScores: c.rolledScores, steps: c.steps }), JSON.stringify(c.inventory), JSON.stringify(c.adjustments), JSON.stringify(c.hp), JSON.stringify(c.conditions), JSON.stringify(c.deathSaves), JSON.stringify(c.concentration), JSON.stringify(c.hitDiceSpent), JSON.stringify(c.spellSlotsSpent));
       }
 
       const saved = CountRow.parse(db.prepare('SELECT COUNT(*) AS n FROM chat').get()).n;

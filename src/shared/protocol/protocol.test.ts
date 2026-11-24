@@ -91,6 +91,7 @@ const state: SessionState = {
       deathSaves: { successes: 0, failures: 0, stable: false, dead: false },
       concentration: null,
       hitDiceSpent: {},
+      spellSlotsSpent: { byLevel: {}, pact: 0 },
     },
   },
 };
