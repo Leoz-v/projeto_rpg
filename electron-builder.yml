@@ -20,7 +20,9 @@ linux:
   target: AppImage
   category: Game
 mac:
-  target: dmg
+  target:
+    - target: dmg
+      arch: [x64, arm64]
   category: public.app-category.role-playing-games
 npmRebuild: true
 # Releases no GitHub (nota 0048): o workflow `release.yml` publica como rascunho;
