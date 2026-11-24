@@ -8,7 +8,7 @@ export { type D20RollInput, type D20RollResult, type D20Step, rollD20 } from './
 export { distanceFeet, FEET_PER_SQUARE, type Footprint, SPACE_FEET, spaceSquares } from './space';
 export { baseItemOptions, inventoryEntryProblems } from './items';
 export { ABILITY_ROLL_DICE, ABILITY_ROLL_SIDES, type AbilityRollSet, rollAbilityScores, usesRolledValues } from './ability-scores';
-export { applyHitPointChange, clampHitPoints, currentHitPoints, type HitPointChange, type HitPointResult, type HitPointState } from './hit-points';
+export { applyHitPointChange, clampHitPoints, currentHitPoints, type HitPointChange, isBloodied, type HitPointResult, type HitPointState } from './hit-points';
 export {
   d20StepNotes,
   type DamageGroup,

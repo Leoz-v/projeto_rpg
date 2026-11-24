@@ -23,11 +23,11 @@ Magias ficam fora: a resolução delas é toda da Fase 4.
 |---|---|---|
 | `structural` | A mecânica já existe em outro ponto do modelo: escolha, concessão ou conjuração no mesmo nível (ex.: "Expertise" é a escolha `expertise_1`). | 53 |
 | `automate` | Passivo e automatizável agora, estendendo o catálogo de efeitos. Fila abaixo. | 0 |
-| `phase_4` | Ação, reação, recurso, uso de item, ou efeito no momento da rolagem ou do dano contra um alvo (Sneak Attack, cargas, poções, Multiattack). | 442 |
-| `phase_5` | Depende do estado de combate: iniciativa, turnos, fúria ativa, concentração (Alert, Persistent Rage, Mindless Rage). | 13 |
-| `gm` | Exploração, percepção, narrativa ou efeito permanente que é ajuste do mestre (Bag of Holding, Manuals e Tomes, Spider Climb). | 94 |
+| `phase_4` | Ação, reação, recurso, uso de item, ou efeito no momento da rolagem ou do dano contra um alvo (Sneak Attack, cargas, poções, Multiattack). | 445 |
+| `phase_5` | Depende do estado de combate que ainda falta: concentração (Relentless Hunter). Os lembretes de iniciativa e de turno já saíram (nota 0043). | 1 |
+| `gm` | Exploração, percepção, narrativa ou efeito permanente que é ajuste do mestre (Bag of Holding, Manuals e Tomes, Spider Climb). | 95 |
 
-Total: 602 entradas.
+Total: 594 entradas.
 
 Uma entrada **parcial** (`<chave>#<aspecto>`) marca a parte pendente de um item, característica ou traço de monstro que já tem outros efeitos (ex.: `item:sun_blade#longsword_with_finesse`, `feature:subclass:champion/survivor#heroic_rally`).
 
@@ -77,3 +77,8 @@ Um PR por grupo. Em cada um: primeiro `docs/effects-spec.md`, depois o schema, o
   - Mithral Armor: o item base perde a exigência de FOR e a Desvantagem em Stealth.
   - Sun Blade: Longsword com Finesse, dano Radiant e proficiência também por Shortsword. O +1d8 contra Undead ficou como parcial da Fase 4.
   - Belt of Dwarvenkind: Darkvision 60 ft, Resistência a Veneno e vantagem contra Envenenado, só para quem não é anão. Duergar não é espécie do SRD.
+- **Lembretes e cura de turno** (nota 0043, Fase 5): efeitos `reminder` (momento `initiative`, `turn_start` ou `turn_end`, com o texto) e `turn_start_heal`. O Host publica cada um no chat no momento certo do combate.
+  - Na iniciativa: Persistent Rage, Superior Inspiration, Archdruid (Evergreen Wild Shape), Uncanny Metabolism, Perfect Focus, Thief's Reflexes (o segundo turno na rodada 1) e Initiative Swap (Alert; não aparece com Incapacitado).
+  - No início do turno: Heroic Warrior. No fim: Self-Restoration, só com Enfeitiçado, Amedrontado ou Envenenado.
+  - Heroic Rally (Survivor): cura automática de 5 + CON no início do turno, Sangrando e com pelo menos 1 PV.
+  - Ficaram como parciais da Fase 4 o Nature Magician do Archdruid e a duração de 10 minutos da Rage do Persistent Rage (dependem de recursos e do estado de Rage). Mindless Rage foi para a Fase 4 pelo mesmo motivo; o salto das Boots of Striding and Springing foi para o mestre (o Host não controla o movimento). A Relentless Hunter fica para a Concentração.

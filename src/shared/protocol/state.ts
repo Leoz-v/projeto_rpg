@@ -1,6 +1,6 @@
-import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, EffectSchema, InventorySchema, SizeSchema, WeaponMasterySchema } from 'rules-engine/schemas';
+import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, EffectSchema, InventorySchema, SizeSchema, TriggerMomentSchema, WeaponMasterySchema } from 'rules-engine/schemas';
 import { z } from 'zod';
-import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_COMBATANTS, MAX_HIT_POINTS, MAX_INITIATIVE, MAX_SAVE_TARGETS, MIN_INITIATIVE } from './constants';
+import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_COMBATANTS, MAX_HIT_POINTS, MAX_INITIATIVE, MAX_SAVE_TARGETS, MAX_TURN_TRIGGER_ITEMS, MIN_INITIATIVE } from './constants';
 import { ChatTextSchema, ConditionStateSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 
 /** `SessionState` (docs/network-protocol.md, seção 5). */
@@ -235,6 +235,27 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     sourceName: NameSchema,
     targetTokenId: UuidSchema,
     targetName: NameSchema,
+  }),
+  /** Lembretes e cura de um combatente num momento do combate (efeitos `reminder` e `turn_start_heal`, nota 0043). */
+  z.strictObject({
+    kind: z.literal('turn_trigger'),
+    ...entryBase,
+    on: TriggerMomentSchema,
+    tokenId: UuidSchema,
+    name: NameSchema,
+    items: z
+      .array(
+        z.strictObject({
+          /** A característica que gerou o item ("Heroic Rally (Champion)"). */
+          source: LabelSchema,
+          /** O lembrete (pt-BR); ausente na cura. */
+          text: z.string().min(1).max(500).optional(),
+          /** PV recuperados de fato pela cura do início do turno. */
+          healed: z.int().positive().optional(),
+        }),
+      )
+      .min(1)
+      .max(MAX_TURN_TRIGGER_ITEMS),
   }),
   /** Marco do combate: começou, rodada nova, terminou. */
   z.strictObject({

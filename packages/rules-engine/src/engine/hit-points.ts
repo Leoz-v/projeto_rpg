@@ -73,3 +73,11 @@ export function applyHitPointChange(max: number, before: HitPointState, change: 
     }
   }
 }
+
+/**
+ * Sangrando (*Bloodied*, SRD 5.2.1 Rules Glossary): com metade dos PV máximos
+ * ou menos. Com 0 PV a criatura também está Sangrando.
+ */
+export function isBloodied(max: number, state: HitPointState): boolean {
+  return currentHitPoints(max, state) * 2 <= max;
+}

@@ -26,7 +26,19 @@
         "feature": {
           "id": "initiative_swap",
           "name": "Initiative Swap",
-          "description": "Immediately after you roll Initiative, you can swap your Initiative with the Initiative of one willing ally in the same combat. You can't make this swap if you or the ally has the Incapacitated condition."
+          "description": "Immediately after you roll Initiative, you can swap your Initiative with the Initiative of one willing ally in the same combat. You can't make this swap if you or the ally has the Incapacitated condition.",
+          "effects": [
+            {
+              "type": "reminder",
+              "on": "initiative",
+              "note": "Pode trocar a sua iniciativa com a de um aliado disposto no combate (nenhum dos dois Incapacitado). O mestre troca pelo tracker.",
+              "when": {
+                "not": {
+                  "hasCondition": "incapacitated"
+                }
+              }
+            }
+          ]
         }
       }
     ]

@@ -2,7 +2,7 @@ import type { Ability, DamageType, Condition, Sense, Size, Skill, WeaponMastery 
 import type { Predicate } from '../schemas/predicate';
 import type { ChoiceOptions, Feature } from '../schemas/source';
 import type { SourceKindSchema } from '../schemas/character';
-import type { SpellUsesSchema } from '../schemas/effect';
+import type { SpellUsesSchema, TriggerMoment } from '../schemas/effect';
 import type { z } from 'zod';
 
 /** De onde veio um valor: fonte de construção, item, ajuste do mestre ou regra do motor. */
@@ -255,5 +255,12 @@ export interface DerivedSheet {
   feats: { featId: string; source: SourceLabel }[];
   features: SheetFeature[];
   conditions: { condition: Condition; source: SourceLabel }[];
-  exhaustion: number;
+  exhaustion: number;  /** Lembretes e curas que o Host aplica nos momentos do combate (`reminder`, `turn_start_heal`; nota 0043). */
+  triggers: SheetTrigger[];
 }
+
+/** Efeito de um momento do combate, como a ficha o resolve. */
+export type SheetTrigger =
+  | { kind: 'reminder'; on: TriggerMoment; text: string; source: SourceLabel }
+  /** Cura no início do turno, já com o modificador (mínimo 0). */
+  | { kind: 'heal'; on: 'turn_start'; amount: number; bloodiedOnly: boolean; source: SourceLabel };
