@@ -24,10 +24,10 @@ Tudo o que tem mecânica mas não tem efeito declarado:
 | `automate` | Passivo e automatizável agora, estendendo o catálogo de efeitos. Fila abaixo. | 0 |
 | `phase_4` | Ação, reação, recurso, uso de item, ou efeito no momento da rolagem ou do dano contra um alvo (Sneak Attack, cargas, poções, Multiattack). | 447 |
 | `phase_5` | Depende do estado de combate. Vazia desde a Concentração (nota 0045); conteúdo novo que dependa de turnos, iniciativa ou Concentração entra aqui. | 0 |
-| `phase_7` | Magias (nota 0054): cura e condições (PR 3) ou bônus e penalidades enquanto a magia dura (PR 4), e as partes pendentes de magias já estruturadas (a cura do Vampiric Touch). | 84 |
-| `gm` | Exploração, percepção, narrativa ou efeito permanente que é ajuste do mestre (Bag of Holding, Manuals e Tomes, Spider Climb), e 162 magias: 154 de utilidade e 8 com dano no texto que ficam com o mestre (invocações, Wish). | 257 |
+| `phase_7` | Magias (nota 0054): bônus e penalidades enquanto a magia dura (PR 4). | 40 |
+| `gm` | Exploração, percepção, narrativa ou efeito permanente que é ajuste do mestre (Bag of Holding, Manuals e Tomes, Spider Climb), e 175 entradas de magias: 154 de utilidade, 8 com dano e 12 com cura ou condição que ficam com o mestre (invocações, Wish, Mass Heal, Sleep), e a cura do Vampiric Touch. | 270 |
 
-Total: 840 entradas.
+Total: 809 entradas.
 
 Uma entrada **parcial** (`<chave>#<aspecto>`) marca a parte pendente de um item, característica ou traço de monstro que já tem outros efeitos (ex.: `item:sun_blade#longsword_with_finesse`, `feature:subclass:champion/survivor#heroic_rally`).
 

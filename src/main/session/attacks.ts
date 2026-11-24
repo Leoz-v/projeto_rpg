@@ -459,7 +459,7 @@ export function forceSave(ctx: SessionContext, playerId: string, role: Role, dat
   }
   const targets = data.targetTokenIds.map((id) => ctx.token(id));
   const against: RollAgainst | undefined = data.against ?? (effect.conditions[0] ? { condition: effect.conditions[0] } : undefined);
-  return rollSaves(ctx, playerId, { actorName, effect, targets, against, visibility: data.visibility });
+  return rollSaves(ctx, playerId, { actorName, effect, targets, against, visibility: data.visibility }).ops;
 }
 
 /** Um efeito com CD que os alvos precisam salvar: a regra comum a `save.force` e às magias (`spell.effect`). */
@@ -475,14 +475,24 @@ export interface SaveEffect {
 /**
  * Rola o dano uma vez e a salvaguarda de cada alvo, com as defesas dele; o
  * dano de cada um vira proposta para o mestre. Devolve a entrada `save_roll`
- * e as propostas.
+ * e as propostas, e quem falhou (para as condições das magias, nota 0058).
+ * `declared`: Vantagem ou Desvantagem dos alvos (Charm Person contra quem luta).
  */
 export function rollSaves(
   ctx: SessionContext,
   playerId: string,
-  options: { actorName: string; effect: SaveEffect; targets: Token[]; against: RollAgainst | undefined; visibility: Visibility; spellOf?: { entryId: string; part: number } },
-): PatchOp[] {
+  options: {
+    actorName: string;
+    effect: SaveEffect;
+    targets: Token[];
+    against: RollAgainst | undefined;
+    visibility: Visibility;
+    spellOf?: { entryId: string; part: number };
+    declared?: { advantage?: boolean | undefined; disadvantage?: boolean | undefined };
+  },
+): { ops: PatchOp[]; failed: Token[] } {
   const { actorName, effect, targets, against } = options;
+  const failed: Token[] = [];
   // Dano rolado uma vez para todos os alvos (SRD 5.2.1, "Damage against Multiple Targets").
   const groups = rollActionDamage(effect.damage, false, ctx.deps.rng);
   const rolled = groups.map((g) => ({ amount: g.total, type: g.type }));
@@ -490,8 +500,9 @@ export function rollSaves(
   const ops: PatchOp[] = [];
 
   const results = targets.map((target) => {
-    const save = saveOf(ctx, target, effect.ability, against);
+    const save = saveOf(ctx, target, effect.ability, against, options.declared);
     const result = resolveSave({ d20: save.input, dc: effect.dc, damage: rolled, onSuccess: effect.onSuccess, defenses: save.defenses }, ctx.deps.rng);
+    if (!result.success) failed.push(target);
     const immune = new Set(save.defenses.conditionImmunities.map((c) => c.condition));
     const conditionNotes = result.success
       ? []
@@ -538,15 +549,21 @@ export function rollSaves(
     ...(options.spellOf ? { spellOf: options.spellOf } : {}),
     results,
   };
-  return [ctx.appendChat(entry), ...ops];
+  return { ops: [ctx.appendChat(entry), ...ops], failed };
 }
 
 /** A salvaguarda de um token: a da ficha do personagem ligado ou a do bloco do monstro, com as defesas dele. */
-export function saveOf(ctx: SessionContext, token: Token, ability: Ability, against: RollAgainst | undefined): SheetD20 & { defenses: Defenses } {
+export function saveOf(
+  ctx: SessionContext,
+  token: Token,
+  ability: Ability,
+  against: RollAgainst | undefined,
+  declared: { advantage?: boolean | undefined; disadvantage?: boolean | undefined } = {},
+): SheetD20 & { defenses: Defenses } {
   if (token.characterId !== null) {
     const character = ctx.current.characters[token.characterId];
     const sheet = character ? ctx.deps.characterSheet(character) : undefined;
-    const roll = sheet ? sheetD20(sheet, { kind: 'save', ability }, {}, against) : undefined;
+    const roll = sheet ? sheetD20(sheet, { kind: 'save', ability }, declared, against) : undefined;
     if (!sheet || !roll) throw violation(`${token.name}: o personagem ainda não tem ficha`);
     return { ...roll, defenses: sheet.defenses };
   }
@@ -555,6 +572,6 @@ export function saveOf(ctx: SessionContext, token: Token, ability: Ability, agai
   const { defenses, reminders } = creatureDefenses(creature);
   const state = ctx.conditionsOf(token);
   // Bônus do bloco, com a Exaustão e as condições (Paralisado falha em FOR e DES).
-  const roll = creatureD20({ label: 'Salvaguarda do bloco', modifier: creatureSaveBonus(creature, ability) }, state, { kind: 'save', ability });
+  const roll = creatureD20({ label: 'Salvaguarda do bloco', modifier: creatureSaveBonus(creature, ability) }, state, { kind: 'save', ability }, declared);
   return { ...roll, reminders: [...roll.reminders, ...reminders], defenses: conditionDefenses(state.conditions, defenses) };
 }

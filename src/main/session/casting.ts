@@ -1,7 +1,8 @@
-import { applyDamage, availableSpellSlots, availableUses, CONDITION_NAME, type DamageType, type DerivedSheet, damageNotes, resolveAttack, resolveSpellParts, rollActionDamage, spellAttackD20, spellDamageWith } from 'rules-engine';
+import { applyDamage, availableSpellSlots, availableUses, type DamageType, type DerivedSheet, damageNotes, resolveAttack, resolveSpellParts, rollActionDamage, spellAttackD20, spellDamageWith } from 'rules-engine';
 import { type ChatEntry, type IntentData, type PatchOp, type Role, type SessionCharacter, type SpellEffectPart, type Token, toPointer } from '../../shared/protocol';
 import { attackCircumstances, autoCriticalNotes, rollSaves, targetOf, withCircumstances } from './attacks';
 import { type SessionContext, violation } from './context';
+import { applyConditionPart, applyHealing, ConditionLedger, conditionTiming, imposeConditions, type SpellLink } from './spell-effects';
 import { changeResource } from './resources';
 import { changeSpellSlot } from './spell-slots';
 import { concentrate } from './vitality';
@@ -108,7 +109,8 @@ const partLabel = (entry: CastEntry, part: SpellEffectPart): string => (part.lab
 /**
  * Usa uma parte de uma magia conjurada (`spell.effect`): o Host rola os
  * ataques, as salvaguardas ou o dano direto com a CD e o bônus gravados no
- * `spell_cast`, e o dano de cada alvo vira proposta para o mestre.
+ * `spell_cast`, e o dano de cada alvo vira proposta para o mestre. A cura e
+ * as condições (da falha, do acerto ou sem salvaguarda) entram direto (nota 0058).
  *
  * Magia instantânea: cada parte uma vez. Magia com Concentração: só enquanto
  * quem conjurou estiver concentrado nela. As demais (Fire Shield, Glyph of
@@ -125,29 +127,56 @@ export function useSpellEffect(ctx: SessionContext, playerId: string, role: Role
     throw violation('Esta parte da magia já foi usada');
   }
   if (entry.concentration && character.concentration?.spellId !== effect.spellId) throw violation(`${character.name} não está mais concentrado em ${entry.spellName}`);
-  if (part.kind !== 'attack' && (data.advantage !== undefined || data.disadvantage !== undefined)) throw violation('Vantagem e Desvantagem só valem nos ataques');
-  const damage = spellDamageWith(part.damage, data.damageType);
-  if (!damage) throw violation('Escolha o tipo de dano entre os da magia');
+  if (part.kind !== 'attack' && part.kind !== 'save' && (data.advantage !== undefined || data.disadvantage !== undefined)) {
+    throw violation('Vantagem e Desvantagem só valem nos ataques e nas salvaguardas');
+  }
+  if (data.condition !== undefined && !(part.kind === 'save' && part.conditionChoice)) throw violation('Esta parte não deixa a condição à escolha');
   const targets = data.targetTokenIds.map((id) => ctx.token(id));
   const spellOf: SpellOf = { entryId: entry.id, part: data.part };
   const label = partLabel(entry, part);
+  const link: SpellLink = { characterId: character.id, spellId: effect.spellId };
+  const declared = { advantage: data.advantage, disadvantage: data.disadvantage };
+
+  // Salvaguarda, cura e condição: alvos distintos, até `count` (sem ele, sem limite).
+  if (part.kind === 'save' || part.kind === 'heal' || part.kind === 'condition') {
+    if (new Set(data.targetTokenIds).size !== targets.length) throw violation('Alvo repetido');
+    if (part.count !== undefined && targets.length > part.count) throw violation(`${label}: até ${part.count} alvo(s) neste círculo`);
+  }
+  if (part.kind === 'heal') {
+    return applyHealing(ctx, playerId, { casterName: character.name, label, spellOf, healing: part.healing, temporary: part.temporary === true, endConditions: part.endConditions, targets });
+  }
+  if (part.kind === 'condition') {
+    return applyConditionPart(ctx, playerId, { casterName: character.name, label, spellOf, conditions: part.conditions, timing: conditionTiming(ctx, part.conditionsEnd, link), targets });
+  }
+  const damage = spellDamageWith(part.damage, data.damageType);
+  if (!damage) throw violation('Escolha o tipo de dano entre os da magia');
 
   if (part.kind === 'save') {
-    if (new Set(data.targetTokenIds).size !== targets.length) throw violation('Alvo repetido na salvaguarda');
-    const [condition] = part.onFailConditions;
-    return rollSaves(ctx, playerId, {
+    let conditions = part.onFailConditions;
+    if (part.conditionChoice) {
+      if (data.condition === undefined || !conditions.includes(data.condition)) throw violation('Escolha a condição entre as da magia');
+      conditions = [data.condition];
+    }
+    const [condition] = conditions;
+    const saves = rollSaves(ctx, playerId, {
       actorName: character.name,
-      effect: { name: label, ability: part.ability, dc: effect.saveDc, damage, onSuccess: part.onSuccess, conditions: part.onFailConditions },
+      effect: { name: label, ability: part.ability, dc: effect.saveDc, damage, onSuccess: part.onSuccess, conditions },
       // Salvaguarda contra magia: valem as Vantagens contra magias e contra a condição da falha.
       against: { source: 'spell', ...(condition ? { condition } : {}) },
       targets,
       visibility: 'public',
       spellOf,
+      declared,
     });
+    if (conditions.length === 0 || saves.failed.length === 0) return saves.ops;
+    // Na falha, as condições entram direto (nota 0058).
+    const timing = conditionTiming(ctx, part.conditionsEnd, link);
+    const ledger = new ConditionLedger(ctx);
+    return [...saves.ops, ...saves.failed.flatMap((target) => imposeConditions(ctx, playerId, ledger, target, conditions, timing, label).ops)];
   }
   if (targets.length > part.count) throw violation(`${label}: ${part.count} ${part.kind === 'attack' ? 'ataque(s)' : 'projétil(eis)'} neste círculo`);
   if (part.kind === 'damage') return directDamage(ctx, playerId, { character, label, spellOf, damage, targets });
-  return spellAttacks(ctx, playerId, { character, sheet, entry: { ...entry, effect }, part, label, spellOf, damage, targets, declared: { advantage: data.advantage, disadvantage: data.disadvantage } });
+  return spellAttacks(ctx, playerId, { character, sheet, entry: { ...entry, effect }, part, label, spellOf, damage, targets, declared, link });
 }
 
 /** Ataques de magia, um por alvo (pode repetir: dois raios no mesmo alvo), cada um com o próprio d20 e o próprio dano. */
@@ -164,9 +193,13 @@ function spellAttacks(
     damage: SpellDamage;
     targets: Token[];
     declared: { advantage?: boolean | undefined; disadvantage?: boolean | undefined };
+    link: SpellLink;
   },
 ): PatchOp[] {
   const { character, sheet, entry, part, label, spellOf, damage, targets, declared } = options;
+  const ledger = new ConditionLedger(ctx);
+  const timing = part.onHitConditions.length > 0 ? conditionTiming(ctx, part.conditionsEnd, options.link) : {};
+  const imposed: PatchOp[] = [];
   const { effect } = entry;
   const caster = { ability: effect.ability, saveDc: effect.saveDc, attack: { total: effect.attackBonus, parts: [{ label: 'Bônus de ataque de magia', value: effect.attackBonus }] } };
   const spent = new Set<string>();
@@ -189,8 +222,13 @@ function spellAttacks(
       },
       ctx.deps.rng,
     );
-    const immune = new Set(defender.defenses.conditionImmunities.map((c) => c.condition));
-    const conditionNotes = result.hit ? part.onHitConditions.map((c) => (immune.has(c) ? `Imune a ${CONDITION_NAME[c]}` : `No acerto: ${CONDITION_NAME[c]}`)) : [];
+    // No acerto, as condições entram direto (nota 0058).
+    let conditionNotes: string[] = [];
+    if (result.hit && part.onHitConditions.length > 0) {
+      const done = imposeConditions(ctx, playerId, ledger, target, part.onHitConditions, timing, label);
+      imposed.push(...done.ops);
+      conditionNotes = done.notes.map((n) => `No acerto: ${n}`);
+    }
     const entryId = ctx.deps.newId();
     let damageField: Extract<ChatEntry, { kind: 'attack_roll' }>['damage'];
     if (result.damage && result.damage.groups.length > 0) {
@@ -228,7 +266,7 @@ function spellAttacks(
   }
   const combat = ctx.current.combat;
   const combatOps: PatchOp[] = combat && spent.size > 0 ? [ctx.replaceCombat({ ...combat, effects: combat.effects.filter((e) => !spent.has(e.id)) })] : [];
-  return [...ops, ...proposals, ...combatOps];
+  return [...ops, ...proposals, ...combatOps, ...imposed];
 }
 
 /** Dano direto (Magic Missile): cada projétil rolado à parte contra o alvo dele, com as defesas, como proposta. */

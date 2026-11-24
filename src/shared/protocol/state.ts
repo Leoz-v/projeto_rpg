@@ -1,4 +1,4 @@
-import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, DiceSchema, EffectSchema, IdSchema, InventorySchema, SizeSchema, TriggerMomentSchema, WeaponMasterySchema } from 'rules-engine/schemas';
+import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, DiceSchema, EffectSchema, IdSchema, SpellConditionEndSchema, InventorySchema, SizeSchema, TriggerMomentSchema, WeaponMasterySchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_COMBATANTS, MAX_HIT_POINTS, MAX_INITIATIVE, MAX_SAVE_TARGETS, MAX_SPELL_PARTS, MAX_TURN_TRIGGER_ITEMS, MIN_INITIATIVE } from './constants';
 import { ChatTextSchema, ConcentrationSchema, HitDiceSpentSchema, HitDieSchema, SpellSlotRefSchema, SpellSlotsSpentSchema, ResourcesSpentSchema, ConditionStateSchema, DeathSavesSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
@@ -31,16 +31,54 @@ const DamageGroupSchema = z.strictObject({
   rolls: z.array(DieSchema).max(200),
   total: z.int(),
 });
-/** Uma parte da magia já calculada para quem conjurou (nota 0055): dados no círculo usado, ataques ou projéteis. */
-const spellPartBase = {
-  label: LabelSchema.optional(),
-  damage: z.array(z.strictObject({ dice: DiceSchema, type: z.union([DamageTypeSchema, z.array(DamageTypeSchema).min(2).max(13)]) })).max(10),
-  count: z.int().min(1).max(MAX_SAVE_TARGETS),
-};
+/**
+ * Uma parte da magia já calculada para quem conjurou (notas 0055 e 0056):
+ * dados no círculo usado. `count`: ataques ou projéteis (ataque, dano
+ * direto) ou o máximo de alvos (salvaguarda, cura, condição; sem ele, sem
+ * limite).
+ */
+const SpellEffectDamageSchema = z.array(z.strictObject({ dice: DiceSchema, type: z.union([DamageTypeSchema, z.array(DamageTypeSchema).min(2).max(13)]) })).max(10);
+const SpellEffectCountSchema = z.int().min(1).max(MAX_SAVE_TARGETS);
+const SpellEffectConditionsSchema = z.array(ConditionSchema).max(15);
 export const SpellEffectPartSchema = z.discriminatedUnion('kind', [
-  z.strictObject({ ...spellPartBase, kind: z.literal('attack'), attackKind: z.enum(['melee', 'ranged']), onMiss: z.literal('half').optional(), onHitConditions: z.array(ConditionSchema).max(15) }),
-  z.strictObject({ ...spellPartBase, kind: z.literal('save'), ability: AbilitySchema, onSuccess: z.enum(['half', 'none']), onFailConditions: z.array(ConditionSchema).max(15) }),
-  z.strictObject({ ...spellPartBase, kind: z.literal('damage') }),
+  z.strictObject({
+    label: LabelSchema.optional(),
+    kind: z.literal('attack'),
+    damage: SpellEffectDamageSchema,
+    count: SpellEffectCountSchema,
+    attackKind: z.enum(['melee', 'ranged']),
+    onMiss: z.literal('half').optional(),
+    onHitConditions: SpellEffectConditionsSchema,
+    conditionsEnd: SpellConditionEndSchema.optional(),
+  }),
+  z.strictObject({
+    label: LabelSchema.optional(),
+    kind: z.literal('save'),
+    damage: SpellEffectDamageSchema,
+    count: SpellEffectCountSchema.optional(),
+    ability: AbilitySchema,
+    onSuccess: z.enum(['half', 'none']),
+    onFailConditions: SpellEffectConditionsSchema,
+    conditionChoice: z.literal(true).optional(),
+    conditionsEnd: SpellConditionEndSchema.optional(),
+  }),
+  z.strictObject({ label: LabelSchema.optional(), kind: z.literal('damage'), damage: SpellEffectDamageSchema, count: SpellEffectCountSchema }),
+  z.strictObject({
+    label: LabelSchema.optional(),
+    kind: z.literal('heal'),
+    count: SpellEffectCountSchema.optional(),
+    /** Expressão de dados já calculada, ou `full` (todos os PV). */
+    healing: z.union([DiceSchema, z.literal('full')]),
+    temporary: z.literal(true).optional(),
+    endConditions: SpellEffectConditionsSchema,
+  }),
+  z.strictObject({
+    label: LabelSchema.optional(),
+    kind: z.literal('condition'),
+    count: SpellEffectCountSchema.optional(),
+    conditions: SpellEffectConditionsSchema.min(1),
+    conditionsEnd: SpellConditionEndSchema.optional(),
+  }),
 ]);
 export type SpellEffectPart = z.infer<typeof SpellEffectPartSchema>;
 /** Parte de magia usada por uma entrada (`spell.effect`): o `spell_cast` e o índice da parte. */
@@ -228,6 +266,26 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
           proposalId: UuidSchema.optional(),
         }),
       )
+      .min(1)
+      .max(MAX_SAVE_TARGETS),
+  }),
+  /**
+   * Cura ou condição sem salvaguarda de uma magia (`spell.effect`, nota 0056):
+   * a cura rolada uma vez para todos e, por alvo, o que mudou. As condições
+   * postas ou tiradas também vão em `condition_changed`.
+   */
+  z.strictObject({
+    kind: z.literal('spell_applied'),
+    ...entryBase,
+    spellOf: SpellOfSchema,
+    casterName: NameSchema,
+    label: LabelSchema,
+    /** A cura: os dados (ausentes em `full`), o total e se são PV temporários. */
+    healing: z
+      .strictObject({ dice: z.string().min(1).max(100).optional(), rolls: z.array(DieSchema).max(200), total: z.int().nonnegative(), full: z.boolean(), temporary: z.boolean() })
+      .optional(),
+    results: z
+      .array(z.strictObject({ targetTokenId: UuidSchema, targetName: NameSchema, notes: LogList }))
       .min(1)
       .max(MAX_SAVE_TARGETS),
   }),

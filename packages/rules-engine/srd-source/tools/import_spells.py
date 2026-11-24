@@ -71,7 +71,31 @@ def check_resolution(spell, parts, quotes, upgrade):
     for q in quotes:
         if q not in flat:
             found.append(f"{who}: citação não encontrada: '{q}'")
+    END_TEXT = {"spell": ("until the spell ends", "for the duration"), "caster_turn_start": ("until the start of your next turn",),
+                "caster_turn_end": ("until the end of your next turn",)}
     for part in parts:
+        conditions = part.get("onHitConditions", []) + part.get("onFailConditions", []) + part.get("conditions", []) + part.get("endConditions", [])
+        for c in conditions:
+            if c.capitalize() not in flat:
+                found.append(f"{who}: condição {c} fora do texto")
+        if "conditionsEnd" in part and not any(t in flat for t in END_TEXT[part["conditionsEnd"]]):
+            found.append(f"{who}: duração {part['conditionsEnd']} das condições fora do texto")
+        if part["kind"] == "heal":
+            h = part["healing"]
+            if h == "full":
+                if "regains all its Hit Points" not in flat:
+                    found.append(f"{who}: cura de todos os PV fora do texto")
+            else:
+                if re.match(r"\d+(?:d\d+)?", h["dice"]).group(0) not in flat:
+                    found.append(f"{who}: cura {h['dice']} fora do texto")
+                if "perSlot" in h and f"by {h['perSlot']}" not in upcast and f"{h['perSlot']} additional" not in upcast:
+                    found.append(f"{who}: escala da cura {h['perSlot']} fora de 'Using a Higher-Level Spell Slot'")
+                if h.get("addModifier") and "plus your spellcasting ability modifier" not in flat:
+                    found.append(f"{who}: modificador de conjuração fora do texto")
+            if ("Temporary Hit Points" in flat) != bool(part.get("temporary")):
+                found.append(f"{who}: PV temporários divergem do texto")
+        if part["kind"] == "save" and not part.get("damage") and part["onSuccess"] != "none":
+            found.append(f"{who}: salvaguarda sem dano com metade no sucesso")
         for d in part.get("damage", []):
             base = re.match(r"\d+(?:d\d+)?", d["dice"]).group(0)
             if base not in flat:
@@ -92,6 +116,8 @@ def check_resolution(spell, parts, quotes, upgrade):
         if spell["level"] == 0 and any("perSlot" in d for d in part.get("damage", [])):
             found.append(f"{who}: truque com escala por círculo")
     damaging = any(p.get("damage") for p in parts)
+    if spell["level"] == 0 and any(p["kind"] == "heal" and p["healing"] != "full" and "perSlot" in p["healing"] for p in parts):
+        found.append(f"{who}: truque com escala por círculo")
     if spell["level"] == 0 and damaging and (upgrade is None or "Cantrip Upgrade." not in flat):
         found.append(f"{who}: truque de dano sem a melhoria (Cantrip Upgrade)")
     if upgrade is not None and spell["level"] != 0:

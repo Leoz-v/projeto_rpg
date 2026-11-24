@@ -14,7 +14,7 @@ Scripts de desenvolvimento para gerar dados do compêndio a partir de `../SRD_CC
 
 | Script | Gera | Conferência |
 |---|---|---|
-| `import_spells.py` | `src/srd/data/spells.json` (339 magias; 95 com resolução, curada em `spell_resolution.py`) | classes do cabeçalho de cada magia contra as listas de magias dos capítulos de classe; cada parte da resolução contra o texto (dado base, tipo, atributo da salvaguarda, tipo de ataque, escala por círculo, melhoria do truque, citações de apoio) |
+| `import_spells.py` | `src/srd/data/spells.json` (339 magias; 125 com resolução, curada em `spell_resolution.py`) | classes do cabeçalho de cada magia contra as listas de magias dos capítulos de classe; cada parte da resolução contra o texto (dado base, tipo, atributo da salvaguarda, tipo de ataque, escala por círculo, melhoria do truque, cura e PV temporários, condições e até quando duram, citações de apoio) |
 | `import_gear.py` | `src/srd/data/tools.json` (37) e `gear.json` (91) | linhas da tabela contra as descrições (preço), peso dos pacotes contra a soma do conteúdo, itens fabricados e conteúdo dos pacotes existem, proficiências em ferramenta citadas existem |
 | `import_magic_items.py` | `src/srd/data/magic-items.json` (258) | variantes transcritas contra as linhas das tabelas (com raridade), itens base existem, cada efeito curado tem o seu trecho de apoio na descrição |
 | `automation_backlog.py` | `tests/srd/automation-backlog.json` (backlog da Fase 1.5) | toda exceção listada existe no compêndio e ainda não tem efeito (magias: ainda sem resolução); toda mecânica tem entradas; o teste `automation-backlog.test.ts` confere a classificação de novo, em TypeScript |

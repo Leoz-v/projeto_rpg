@@ -153,7 +153,22 @@
       "druid",
       "ranger"
     ],
-    "description": "Target a Beast that you can see within range. The target must succeed on a Wisdom saving throw or have the Charmed condition for the duration. If you or one of your allies deals damage to the target, the spells ends.\nUsing a Higher-Level Spell Slot. You can target one additional Beast for each spell slot level above 1."
+    "description": "Target a Beast that you can see within range. The target must succeed on a Wisdom saving throw or have the Charmed condition for the duration. If you or one of your allies deals damage to the target, the spells ends.\nUsing a Higher-Level Spell Slot. You can target one additional Beast for each spell slot level above 1.",
+    "resolution": [
+      {
+        "kind": "save",
+        "count": {
+          "base": 1,
+          "perSlot": 1
+        },
+        "ability": "wis",
+        "onSuccess": "none",
+        "onFailConditions": [
+          "charmed"
+        ],
+        "conditionsEnd": "spell"
+      }
+    ]
   },
   {
     "id": "animal_messenger",
@@ -348,7 +363,8 @@
         "onSuccess": "none",
         "onFailConditions": [
           "grappled"
-        ]
+        ],
+        "conditionsEnd": "spell"
       },
       {
         "kind": "damage",
@@ -678,7 +694,8 @@
         "onSuccess": "none",
         "onFailConditions": [
           "restrained"
-        ]
+        ],
+        "conditionsEnd": "spell"
       }
     ]
   },
@@ -785,7 +802,24 @@
       "sorcerer",
       "wizard"
     ],
-    "description": "One creature that you can see within range must succeed on a Constitution saving throw, or it has the Blinded or Deafened condition (your choice) for the duration. At the end of each of its turns, the target repeats the save, ending the spell on itself on a success.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 2."
+    "description": "One creature that you can see within range must succeed on a Constitution saving throw, or it has the Blinded or Deafened condition (your choice) for the duration. At the end of each of its turns, the target repeats the save, ending the spell on itself on a success.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 2.",
+    "resolution": [
+      {
+        "kind": "save",
+        "count": {
+          "base": 1,
+          "perSlot": 1
+        },
+        "ability": "con",
+        "onSuccess": "none",
+        "onFailConditions": [
+          "blinded",
+          "deafened"
+        ],
+        "conditionChoice": true,
+        "conditionsEnd": "spell"
+      }
+    ]
   },
   {
     "id": "blink",
@@ -958,7 +992,22 @@
       "warlock",
       "wizard"
     ],
-    "description": "One creature you can see within range makes a Wisdom saving throw. It does so with Advantage if you or your allies are fighting it. On a failed save, the target has the Charmed condition until the spell ends or until you or your allies damage it. The Charmed creature is Friendly to you. When the spell ends, the target knows it was Charmed by you.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 4."
+    "description": "One creature you can see within range makes a Wisdom saving throw. It does so with Advantage if you or your allies are fighting it. On a failed save, the target has the Charmed condition until the spell ends or until you or your allies damage it. The Charmed creature is Friendly to you. When the spell ends, the target knows it was Charmed by you.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 4.",
+    "resolution": [
+      {
+        "kind": "save",
+        "count": {
+          "base": 1,
+          "perSlot": 1
+        },
+        "ability": "wis",
+        "onSuccess": "none",
+        "onFailConditions": [
+          "charmed"
+        ],
+        "conditionsEnd": "spell"
+      }
+    ]
   },
   {
     "id": "charm_person",
@@ -979,7 +1028,22 @@
       "warlock",
       "wizard"
     ],
-    "description": "One Humanoid you can see within range makes a Wisdom saving throw. It does so with Advantage if you or your allies are fighting it. On a failed save, the target has the Charmed condition until the spell ends or until you or your allies damage it. The Charmed creature is Friendly to you. When the spell ends, the target knows it was Charmed by you.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1."
+    "description": "One Humanoid you can see within range makes a Wisdom saving throw. It does so with Advantage if you or your allies are fighting it. On a failed save, the target has the Charmed condition until the spell ends or until you or your allies damage it. The Charmed creature is Friendly to you. When the spell ends, the target knows it was Charmed by you.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1.",
+    "resolution": [
+      {
+        "kind": "save",
+        "count": {
+          "base": 1,
+          "perSlot": 1
+        },
+        "ability": "wis",
+        "onSuccess": "none",
+        "onFailConditions": [
+          "charmed"
+        ],
+        "conditionsEnd": "spell"
+      }
+    ]
   },
   {
     "id": "chill_touch",
@@ -1177,7 +1241,18 @@
       "sorcerer",
       "wizard"
     ],
-    "description": "You launch a dazzling array of flashing, colorful light. Each creature in a 15-foot Cone originating from you must succeed on a Constitution saving throw or have the Blinded condition until the end of your next turn."
+    "description": "You launch a dazzling array of flashing, colorful light. Each creature in a 15-foot Cone originating from you must succeed on a Constitution saving throw or have the Blinded condition until the end of your next turn.",
+    "resolution": [
+      {
+        "kind": "save",
+        "ability": "con",
+        "onSuccess": "none",
+        "onFailConditions": [
+          "blinded"
+        ],
+        "conditionsEnd": "caster_turn_end"
+      }
+    ]
   },
   {
     "id": "command",
@@ -1384,6 +1459,15 @@
     "description": "You conjure a spirit from the Upper Planes, which manifests as a pillar of light in a 10-foot-radius, 40-foot-high Cylinder centered on a point within range. For each creature you can see in the Cylinder, choose which of these lights shines on it:\nHealing Light. The target regains Hit Points equal to 4d12 plus your spellcasting ability modifier.\nSearing Light. The target makes a Dexterity saving throw, taking 6d12 Radiant damage on a failed save or half as much damage on a successful one.\nUntil the spell ends, Bright Light fills the Cylinder, and when you move on your turn, you can also move the Cylinder up to 30 feet.\nWhenever the Cylinder moves into the space of a creature you can see and whenever a creature you can see enters the Cylinder or ends its turn there, you can bathe it in one of the lights. A creature can be affected by this spell only once per turn.\nUsing a Higher-Level Spell Slot. The healing and damage increase by 1d12 for each spell slot level above 7.",
     "resolution": [
       {
+        "kind": "heal",
+        "label": "Healing Light",
+        "healing": {
+          "dice": "4d12",
+          "perSlot": "1d12",
+          "addModifier": true
+        }
+      },
+      {
         "kind": "save",
         "label": "Searing Light",
         "damage": [
@@ -1435,7 +1519,8 @@
         "onSuccess": "none",
         "onFailConditions": [
           "restrained"
-        ]
+        ],
+        "conditionsEnd": "spell"
       }
     ]
   },
@@ -1470,7 +1555,8 @@
         "attackKind": "melee",
         "onHitConditions": [
           "frightened"
-        ]
+        ],
+        "conditionsEnd": "caster_turn_start"
       }
     ]
   },
@@ -1787,7 +1873,17 @@
       "paladin",
       "ranger"
     ],
-    "description": "A creature you touch regains a number of Hit Points equal to 2d8 plus your spellcasting ability modifier.\nUsing a Higher-Level Spell Slot. The healing increases by 2d8 for each spell slot level above 1."
+    "description": "A creature you touch regains a number of Hit Points equal to 2d8 plus your spellcasting ability modifier.\nUsing a Higher-Level Spell Slot. The healing increases by 2d8 for each spell slot level above 1.",
+    "resolution": [
+      {
+        "kind": "heal",
+        "healing": {
+          "dice": "2d8",
+          "perSlot": "2d8",
+          "addModifier": true
+        }
+      }
+    ]
   },
   {
     "id": "dancing_lights",
@@ -2294,7 +2390,18 @@
       "ranger",
       "sorcerer"
     ],
-    "description": "One Beast you can see within range must succeed on a Wisdom saving throw or have the Charmed condition for the duration. The target has Advantage on the save if you or your allies are fighting it. Whenever the target takes damage, it repeats the save, ending the spell on itself on a success.\nYou have a telepathic link with the Charmed target while the two of you are on the same plane of existence. On your turn, you can use this link to issue commands to the target (no action required), such as \"Attack that creature,\" \"Move over there,\" or \"Fetch that object.\" The target does its best to obey on its turn. If it completes an order and doesn't receive further direction from you, it acts and moves as it likes, focusing on protecting itself.\nYou can command the target to take a Reaction but must take your own Reaction to do so.\nUsing a Higher-Level Spell Slot. Your Concentration can last longer with a spell slot of level 5 (up to 10 minutes), 6 (up to 1 hour), or 7+ (up to 8 hours)."
+    "description": "One Beast you can see within range must succeed on a Wisdom saving throw or have the Charmed condition for the duration. The target has Advantage on the save if you or your allies are fighting it. Whenever the target takes damage, it repeats the save, ending the spell on itself on a success.\nYou have a telepathic link with the Charmed target while the two of you are on the same plane of existence. On your turn, you can use this link to issue commands to the target (no action required), such as \"Attack that creature,\" \"Move over there,\" or \"Fetch that object.\" The target does its best to obey on its turn. If it completes an order and doesn't receive further direction from you, it acts and moves as it likes, focusing on protecting itself.\nYou can command the target to take a Reaction but must take your own Reaction to do so.\nUsing a Higher-Level Spell Slot. Your Concentration can last longer with a spell slot of level 5 (up to 10 minutes), 6 (up to 1 hour), or 7+ (up to 8 hours).",
+    "resolution": [
+      {
+        "kind": "save",
+        "ability": "wis",
+        "onSuccess": "none",
+        "onFailConditions": [
+          "charmed"
+        ],
+        "conditionsEnd": "spell"
+      }
+    ]
   },
   {
     "id": "dominate_monster",
@@ -2315,7 +2422,18 @@
       "warlock",
       "wizard"
     ],
-    "description": "One creature you can see within range must succeed on a Wisdom saving throw or have the Charmed condition for the duration. The target has Advantage on the save if you or your allies are fighting it. Whenever the target takes damage, it repeats the save, ending the spell on itself on a success.\nYou have a telepathic link with the Charmed target while the two of you are on the same plane of existence. On your turn, you can use this link to issue commands to the target (no action required), such as \"Attack that creature,\" \"Move over there,\" or \"Fetch that object.\" The target does its best to obey on its turn. If it completes an order and doesn't receive further direction from you, it acts and moves as it likes, focusing on protecting itself.\nYou can command the target to take a Reaction but must take your own Reaction to do so.\nUsing a Higher-Level Spell Slot. Your Concentration can last longer with a level 9 spell slot (up to 8 hours)."
+    "description": "One creature you can see within range must succeed on a Wisdom saving throw or have the Charmed condition for the duration. The target has Advantage on the save if you or your allies are fighting it. Whenever the target takes damage, it repeats the save, ending the spell on itself on a success.\nYou have a telepathic link with the Charmed target while the two of you are on the same plane of existence. On your turn, you can use this link to issue commands to the target (no action required), such as \"Attack that creature,\" \"Move over there,\" or \"Fetch that object.\" The target does its best to obey on its turn. If it completes an order and doesn't receive further direction from you, it acts and moves as it likes, focusing on protecting itself.\nYou can command the target to take a Reaction but must take your own Reaction to do so.\nUsing a Higher-Level Spell Slot. Your Concentration can last longer with a level 9 spell slot (up to 8 hours).",
+    "resolution": [
+      {
+        "kind": "save",
+        "ability": "wis",
+        "onSuccess": "none",
+        "onFailConditions": [
+          "charmed"
+        ],
+        "conditionsEnd": "spell"
+      }
+    ]
   },
   {
     "id": "dominate_person",
@@ -2335,7 +2453,18 @@
       "sorcerer",
       "wizard"
     ],
-    "description": "One Humanoid you can see within range must succeed on a Wisdom saving throw or have the Charmed condition for the duration. The target has Advantage on the save if you or your allies are fighting it. Whenever the target takes damage, it repeats the save, ending the spell on itself on a success.\nYou have a telepathic link with the Charmed target while the two of you are on the same plane of existence. On your turn, you can use this link to issue commands to the target (no action required), such as \"Attack that creature,\" \"Move over there,\" or \"Fetch that object.\" The target does its best to obey on its turn. If it completes an order and doesn't receive further direction from you, it acts and moves as it likes, focusing on protecting itself.\nYou can command the target to take a Reaction but must take your own Reaction to do so.\nUsing a Higher-Level Spell Slot. Your Concentration can last longer with a spell slot of level 6 (up to 10 minutes), 7 (up to 1 hour), or 8+ (up to 8 hours)."
+    "description": "One Humanoid you can see within range must succeed on a Wisdom saving throw or have the Charmed condition for the duration. The target has Advantage on the save if you or your allies are fighting it. Whenever the target takes damage, it repeats the save, ending the spell on itself on a success.\nYou have a telepathic link with the Charmed target while the two of you are on the same plane of existence. On your turn, you can use this link to issue commands to the target (no action required), such as \"Attack that creature,\" \"Move over there,\" or \"Fetch that object.\" The target does its best to obey on its turn. If it completes an order and doesn't receive further direction from you, it acts and moves as it likes, focusing on protecting itself.\nYou can command the target to take a Reaction but must take your own Reaction to do so.\nUsing a Higher-Level Spell Slot. Your Concentration can last longer with a spell slot of level 6 (up to 10 minutes), 7 (up to 1 hour), or 8+ (up to 8 hours).",
+    "resolution": [
+      {
+        "kind": "save",
+        "ability": "wis",
+        "onSuccess": "none",
+        "onFailConditions": [
+          "charmed"
+        ],
+        "conditionsEnd": "spell"
+      }
+    ]
   },
   {
     "id": "dragons_breath",
@@ -2583,7 +2712,8 @@
         "onSuccess": "none",
         "onFailConditions": [
           "restrained"
-        ]
+        ],
+        "conditionsEnd": "spell"
       },
       {
         "kind": "damage",
@@ -2615,7 +2745,18 @@
       "druid",
       "ranger"
     ],
-    "description": "Grasping plants sprout from the ground in a 20-foot square within range. For the duration, these plants turn the ground in the area into Difficult Terrain. They disappear when the spell ends.\nEach creature (other than you) in the area when you cast the spell must succeed on a Strength saving throw or have the Restrained condition until the spell ends. A Restrained creature can take an action to make a Strength (Athletics) check against your spell save DC. On a success, it frees itself from the grasping plants and is no longer Restrained by them."
+    "description": "Grasping plants sprout from the ground in a 20-foot square within range. For the duration, these plants turn the ground in the area into Difficult Terrain. They disappear when the spell ends.\nEach creature (other than you) in the area when you cast the spell must succeed on a Strength saving throw or have the Restrained condition until the spell ends. A Restrained creature can take an action to make a Strength (Athletics) check against your spell save DC. On a success, it frees itself from the grasping plants and is no longer Restrained by them.",
+    "resolution": [
+      {
+        "kind": "save",
+        "ability": "str",
+        "onSuccess": "none",
+        "onFailConditions": [
+          "restrained"
+        ],
+        "conditionsEnd": "spell"
+      }
+    ]
   },
   {
     "id": "enthrall",
@@ -2782,7 +2923,17 @@
       "sorcerer",
       "wizard"
     ],
-    "description": "You gain 2d4 + 4 Temporary Hit Points. Using a Higher-Level Spell Slot. You gain 5 additional Temporary Hit Points for each spell slot level above 1."
+    "description": "You gain 2d4 + 4 Temporary Hit Points. Using a Higher-Level Spell Slot. You gain 5 additional Temporary Hit Points for each spell slot level above 1.",
+    "resolution": [
+      {
+        "kind": "heal",
+        "healing": {
+          "dice": "2d4+4",
+          "perSlot": "5"
+        },
+        "temporary": true
+      }
+    ]
   },
   {
     "id": "fear",
@@ -2804,7 +2955,18 @@
       "warlock",
       "wizard"
     ],
-    "description": "Each creature in a 30-foot Cone must succeed on a Wisdom saving throw or drop whatever it is holding and have the Frightened condition for the duration.\nA Frightened creature takes the Dash action and moves away from you by the safest route on each of its turns unless there is nowhere to move. If the creature ends its turn in a space where it doesn't have line of sight to you, the creature makes a Wisdom saving throw. On a successful save, the spell ends on that creature."
+    "description": "Each creature in a 30-foot Cone must succeed on a Wisdom saving throw or drop whatever it is holding and have the Frightened condition for the duration.\nA Frightened creature takes the Dash action and moves away from you by the safest route on each of its turns unless there is nowhere to move. If the creature ends its turn in a space where it doesn't have line of sight to you, the creature makes a Wisdom saving throw. On a successful save, the spell ends on that creature.",
+    "resolution": [
+      {
+        "kind": "save",
+        "ability": "wis",
+        "onSuccess": "none",
+        "onFailConditions": [
+          "frightened"
+        ],
+        "conditionsEnd": "spell"
+      }
+    ]
   },
   {
     "id": "feather_fall",
@@ -3190,7 +3352,18 @@
       "sorcerer",
       "wizard"
     ],
-    "description": "You attempt to turn one creature that you can see within range into stone. The target makes a Constitution saving throw. On a failed save, it has the Restrained condition for the duration. On a successful save, its Speed is 0 until the start of your next turn. Constructs automatically succeed on the save.\nA Restrained target makes another Constitution saving throw at the end of each of its turns. If it successfully saves against this spell three times, the spell ends. If it fails its saves three times, it is turned to stone and has the Petrified condition for the duration. The successes and failures needn't be consecutive; keep track of both until the target collects three of a kind.\nIf you maintain your Concentration on this spell for the entire possible duration, the target is Petrified until the condition is ended by Greater Restoration or similar magic."
+    "description": "You attempt to turn one creature that you can see within range into stone. The target makes a Constitution saving throw. On a failed save, it has the Restrained condition for the duration. On a successful save, its Speed is 0 until the start of your next turn. Constructs automatically succeed on the save.\nA Restrained target makes another Constitution saving throw at the end of each of its turns. If it successfully saves against this spell three times, the spell ends. If it fails its saves three times, it is turned to stone and has the Petrified condition for the duration. The successes and failures needn't be consecutive; keep track of both until the target collects three of a kind.\nIf you maintain your Concentration on this spell for the entire possible duration, the target is Petrified until the condition is ended by Greater Restoration or similar magic.",
+    "resolution": [
+      {
+        "kind": "save",
+        "ability": "con",
+        "onSuccess": "none",
+        "onFailConditions": [
+          "restrained"
+        ],
+        "conditionsEnd": "spell"
+      }
+    ]
   },
   {
     "id": "floating_disk",
@@ -3452,7 +3625,8 @@
         "onSuccess": "none",
         "onFailConditions": [
           "charmed"
-        ]
+        ],
+        "conditionsEnd": "spell"
       },
       {
         "kind": "damage",
@@ -3620,7 +3794,17 @@
       "sorcerer",
       "wizard"
     ],
-    "description": "Nonflammable grease covers the ground in a 10foot square centered on a point within range and turns it into Difficult Terrain for the duration.\nWhen the grease appears, each creature standing in its area must succeed on a Dexterity saving throw or have the Prone condition. A creature that enters the area or ends its turn there must also succeed on that save or fall Prone."
+    "description": "Nonflammable grease covers the ground in a 10foot square centered on a point within range and turns it into Difficult Terrain for the duration.\nWhen the grease appears, each creature standing in its area must succeed on a Dexterity saving throw or have the Prone condition. A creature that enters the area or ends its turn there must also succeed on that save or fall Prone.",
+    "resolution": [
+      {
+        "kind": "save",
+        "ability": "dex",
+        "onSuccess": "none",
+        "onFailConditions": [
+          "prone"
+        ]
+      }
+    ]
   },
   {
     "id": "greater_invisibility",
@@ -3640,7 +3824,16 @@
       "sorcerer",
       "wizard"
     ],
-    "description": "A creature you touch has the Invisible condition until the spell ends."
+    "description": "A creature you touch has the Invisible condition until the spell ends.",
+    "resolution": [
+      {
+        "kind": "condition",
+        "conditions": [
+          "invisible"
+        ],
+        "conditionsEnd": "spell"
+      }
+    ]
   },
   {
     "id": "greater_restoration",
@@ -3876,7 +4069,21 @@
       "cleric",
       "druid"
     ],
-    "description": "Choose a creature that you can see within range. Positive energy washes through the target, restoring 70 Hit Points. This spell also ends the Blinded, Deafened, and Poisoned conditions on the target.\nUsing a Higher-Level Spell Slot. The healing increases by 10 for each spell slot level above 6."
+    "description": "Choose a creature that you can see within range. Positive energy washes through the target, restoring 70 Hit Points. This spell also ends the Blinded, Deafened, and Poisoned conditions on the target.\nUsing a Higher-Level Spell Slot. The healing increases by 10 for each spell slot level above 6.",
+    "resolution": [
+      {
+        "kind": "heal",
+        "healing": {
+          "dice": "70",
+          "perSlot": "10"
+        },
+        "endConditions": [
+          "blinded",
+          "deafened",
+          "poisoned"
+        ]
+      }
+    ]
   },
   {
     "id": "healing_word",
@@ -3895,7 +4102,17 @@
       "cleric",
       "druid"
     ],
-    "description": "A creature of your choice that you can see within range regains Hit Points equal to 2d4 plus your spellcasting ability modifier.\nUsing a Higher-Level Spell Slot. The healing increases by 2d4 for each spell slot level above 1."
+    "description": "A creature of your choice that you can see within range regains Hit Points equal to 2d4 plus your spellcasting ability modifier.\nUsing a Higher-Level Spell Slot. The healing increases by 2d4 for each spell slot level above 1.",
+    "resolution": [
+      {
+        "kind": "heal",
+        "healing": {
+          "dice": "2d4",
+          "perSlot": "2d4",
+          "addModifier": true
+        }
+      }
+    ]
   },
   {
     "id": "heat_metal",
@@ -4037,7 +4254,23 @@
       "warlock",
       "wizard"
     ],
-    "description": "One creature of your choice that you can see within range makes a Wisdom saving throw. On a failed save, it has the Prone and Incapacitated conditions for the duration. During that time, it laughs uncontrollably if it's capable of laughter, and it can't end the Prone condition on itself.\nAt the end of each of its turns and each time it takes damage, it makes another Wisdom saving throw. The target has Advantage on the save if the save is triggered by damage. On a successful save, the spell ends.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1."
+    "description": "One creature of your choice that you can see within range makes a Wisdom saving throw. On a failed save, it has the Prone and Incapacitated conditions for the duration. During that time, it laughs uncontrollably if it's capable of laughter, and it can't end the Prone condition on itself.\nAt the end of each of its turns and each time it takes damage, it makes another Wisdom saving throw. The target has Advantage on the save if the save is triggered by damage. On a successful save, the spell ends.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1.",
+    "resolution": [
+      {
+        "kind": "save",
+        "count": {
+          "base": 1,
+          "perSlot": 1
+        },
+        "ability": "wis",
+        "onSuccess": "none",
+        "onFailConditions": [
+          "prone",
+          "incapacitated"
+        ],
+        "conditionsEnd": "spell"
+      }
+    ]
   },
   {
     "id": "hold_monster",
@@ -4059,7 +4292,22 @@
       "warlock",
       "wizard"
     ],
-    "description": "Choose a creature that you can see within range. The target must succeed on a Wisdom saving throw or have the Paralyzed condition for the duration. At the end of each of its turns, the target repeats the save, ending the spell on itself on a success.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 5."
+    "description": "Choose a creature that you can see within range. The target must succeed on a Wisdom saving throw or have the Paralyzed condition for the duration. At the end of each of its turns, the target repeats the save, ending the spell on itself on a success.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 5.",
+    "resolution": [
+      {
+        "kind": "save",
+        "count": {
+          "base": 1,
+          "perSlot": 1
+        },
+        "ability": "wis",
+        "onSuccess": "none",
+        "onFailConditions": [
+          "paralyzed"
+        ],
+        "conditionsEnd": "spell"
+      }
+    ]
   },
   {
     "id": "hold_person",
@@ -4083,7 +4331,22 @@
       "warlock",
       "wizard"
     ],
-    "description": "Choose a Humanoid that you can see within range. The target must succeed on a Wisdom saving throw or have the Paralyzed condition for the duration. At the end of each of its turns, the target repeats the save, ending the spell on itself on a success.\nUsing a Higher-Level Spell Slot. You can target one additional Humanoid for each spell slot level above 2."
+    "description": "Choose a Humanoid that you can see within range. The target must succeed on a Wisdom saving throw or have the Paralyzed condition for the duration. At the end of each of its turns, the target repeats the save, ending the spell on itself on a success.\nUsing a Higher-Level Spell Slot. You can target one additional Humanoid for each spell slot level above 2.",
+    "resolution": [
+      {
+        "kind": "save",
+        "count": {
+          "base": 1,
+          "perSlot": 1
+        },
+        "ability": "wis",
+        "onSuccess": "none",
+        "onFailConditions": [
+          "paralyzed"
+        ],
+        "conditionsEnd": "spell"
+      }
+    ]
   },
   {
     "id": "holy_aura",
@@ -4142,7 +4405,19 @@
       "warlock",
       "wizard"
     ],
-    "description": "You create a twisting pattern of colors in a 30-foot Cube within range. The pattern appears for a moment and vanishes. Each creature in the area who can see the pattern must succeed on a Wisdom saving throw or have the Charmed condition for the duration. While Charmed, the creature has the Incapacitated condition and a Speed of 0.\nThe spell ends for an affected creature if it takes any damage or if someone else uses an action to shake the creature out of its stupor."
+    "description": "You create a twisting pattern of colors in a 30-foot Cube within range. The pattern appears for a moment and vanishes. Each creature in the area who can see the pattern must succeed on a Wisdom saving throw or have the Charmed condition for the duration. While Charmed, the creature has the Incapacitated condition and a Speed of 0.\nThe spell ends for an affected creature if it takes any damage or if someone else uses an action to shake the creature out of its stupor.",
+    "resolution": [
+      {
+        "kind": "save",
+        "ability": "wis",
+        "onSuccess": "none",
+        "onFailConditions": [
+          "charmed",
+          "incapacitated"
+        ],
+        "conditionsEnd": "spell"
+      }
+    ]
   },
   {
     "id": "ice_knife",
@@ -4423,7 +4698,18 @@
       "bard",
       "wizard"
     ],
-    "description": "One creature that you can see within range must make a Wisdom saving throw. On a successful save, the target dances comically until the end of its next turn, during which it must spend all its movement to dance in place.\nOn a failed save, the target has the Charmed condition for the duration. While Charmed, the target dances comically, must use all its movement to dance in place, and has Disadvantage on Dexterity saving throws and attack rolls, and other creatures have Advantage on attack rolls against it. On each of its turns, the target can take an action to collect itself and repeat the save, ending the spell on itself on a success."
+    "description": "One creature that you can see within range must make a Wisdom saving throw. On a successful save, the target dances comically until the end of its next turn, during which it must spend all its movement to dance in place.\nOn a failed save, the target has the Charmed condition for the duration. While Charmed, the target dances comically, must use all its movement to dance in place, and has Disadvantage on Dexterity saving throws and attack rolls, and other creatures have Advantage on attack rolls against it. On each of its turns, the target can take an action to collect itself and repeat the save, ending the spell on itself on a success.",
+    "resolution": [
+      {
+        "kind": "save",
+        "ability": "wis",
+        "onSuccess": "none",
+        "onFailConditions": [
+          "charmed"
+        ],
+        "conditionsEnd": "spell"
+      }
+    ]
   },
   {
     "id": "invisibility",
@@ -4445,7 +4731,20 @@
       "warlock",
       "wizard"
     ],
-    "description": "A creature you touch has the Invisible condition until the spell ends. The spell ends early immediately after the target makes an attack roll, deals damage, or casts a spell.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 2."
+    "description": "A creature you touch has the Invisible condition until the spell ends. The spell ends early immediately after the target makes an attack roll, deals damage, or casts a spell.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 2.",
+    "resolution": [
+      {
+        "kind": "condition",
+        "count": {
+          "base": 1,
+          "perSlot": 1
+        },
+        "conditions": [
+          "invisible"
+        ],
+        "conditionsEnd": "spell"
+      }
+    ]
   },
   {
     "id": "jump",
@@ -4901,7 +5200,20 @@
       "cleric",
       "druid"
     ],
-    "description": "A wave of healing energy washes out from a point you can see within range. Choose up to six creatures in a 30-foot-radius Sphere centered on that point. Each target regains Hit Points equal to 5d8 plus your spellcasting ability modifier.\nUsing a Higher-Level Spell Slot. The healing increases by 1d8 for each spell slot level above 5."
+    "description": "A wave of healing energy washes out from a point you can see within range. Choose up to six creatures in a 30-foot-radius Sphere centered on that point. Each target regains Hit Points equal to 5d8 plus your spellcasting ability modifier.\nUsing a Higher-Level Spell Slot. The healing increases by 1d8 for each spell slot level above 5.",
+    "resolution": [
+      {
+        "kind": "heal",
+        "count": {
+          "base": 6
+        },
+        "healing": {
+          "dice": "5d8",
+          "perSlot": "1d8",
+          "addModifier": true
+        }
+      }
+    ]
   },
   {
     "id": "mass_heal",
@@ -4936,7 +5248,20 @@
       "bard",
       "cleric"
     ],
-    "description": "Up to six creatures of your choice that you can see within range regain Hit Points equal to 2d4 plus your spellcasting ability modifier.\nUsing a Higher-Level Spell Slot. The healing increases by 1d4 for each spell slot level above 3."
+    "description": "Up to six creatures of your choice that you can see within range regain Hit Points equal to 2d4 plus your spellcasting ability modifier.\nUsing a Higher-Level Spell Slot. The healing increases by 1d4 for each spell slot level above 3.",
+    "resolution": [
+      {
+        "kind": "heal",
+        "count": {
+          "base": 6
+        },
+        "healing": {
+          "dice": "2d4",
+          "perSlot": "1d4",
+          "addModifier": true
+        }
+      }
+    ]
   },
   {
     "id": "mass_suggestion",
@@ -4956,7 +5281,21 @@
       "sorcerer",
       "wizard"
     ],
-    "description": "You suggest a course of activity--described in no more than 25 words--to twelve or fewer creatures you can see within range that can hear and understand you. The suggestion must sound achievable and not involve anything that would obviously deal damage to any of the targets or their allies. For example, you could say, \"Walk to the village down that road, and help the villagers there harvest crops until sunset.\" Or you could say, \"Now is not the time for violence. Drop your weapons, and dance! Stop in an hour.\"\nEach target must succeed on a Wisdom saving throw or have the Charmed condition for the duration or until you or your allies deal damage to the target. Each Charmed target pursues the suggestion to the best of its ability. The suggested activity can continue for the entire duration, but if the suggested activity can be completed in a shorter time, the spell ends for a target upon completing it.\nUsing a Higher-Level Spell Slot. The duration is longer with a spell slot of level 7 (10 days), 8 (30 days), or 9 (366 days)."
+    "description": "You suggest a course of activity--described in no more than 25 words--to twelve or fewer creatures you can see within range that can hear and understand you. The suggestion must sound achievable and not involve anything that would obviously deal damage to any of the targets or their allies. For example, you could say, \"Walk to the village down that road, and help the villagers there harvest crops until sunset.\" Or you could say, \"Now is not the time for violence. Drop your weapons, and dance! Stop in an hour.\"\nEach target must succeed on a Wisdom saving throw or have the Charmed condition for the duration or until you or your allies deal damage to the target. Each Charmed target pursues the suggestion to the best of its ability. The suggested activity can continue for the entire duration, but if the suggested activity can be completed in a shorter time, the spell ends for a target upon completing it.\nUsing a Higher-Level Spell Slot. The duration is longer with a spell slot of level 7 (10 days), 8 (30 days), or 9 (366 days).",
+    "resolution": [
+      {
+        "kind": "save",
+        "count": {
+          "base": 12
+        },
+        "ability": "wis",
+        "onSuccess": "none",
+        "onFailConditions": [
+          "charmed"
+        ],
+        "conditionsEnd": "spell"
+      }
+    ]
   },
   {
     "id": "maze",
@@ -5631,7 +5970,20 @@
       "bard",
       "cleric"
     ],
-    "description": "A wave of healing energy washes over one creature you can see within range. The target regains all its Hit Points. If the creature has the Charmed, Frightened, Paralyzed, Poisoned, or Stunned condition, the condition ends. If the creature has the Prone condition, it can use its Reaction to stand up."
+    "description": "A wave of healing energy washes over one creature you can see within range. The target regains all its Hit Points. If the creature has the Charmed, Frightened, Paralyzed, Poisoned, or Stunned condition, the condition ends. If the creature has the Prone condition, it can use its Reaction to stand up.",
+    "resolution": [
+      {
+        "kind": "heal",
+        "healing": "full",
+        "endConditions": [
+          "charmed",
+          "frightened",
+          "paralyzed",
+          "poisoned",
+          "stunned"
+        ]
+      }
+    ]
   },
   {
     "id": "power_word_kill",
@@ -5701,7 +6053,19 @@
       "cleric",
       "paladin"
     ],
-    "description": "Up to five creatures of your choice who remain within range for the spell's entire casting gain the benefits of a Short Rest and also regain 2d8 Hit Points. A creature can't be affected by this spell again until that creature finishes a Long Rest.\nUsing a Higher-Level Spell Slot. The healing increases by 1d8 for each spell slot level above 2."
+    "description": "Up to five creatures of your choice who remain within range for the spell's entire casting gain the benefits of a Short Rest and also regain 2d8 Hit Points. A creature can't be affected by this spell again until that creature finishes a Long Rest.\nUsing a Higher-Level Spell Slot. The healing increases by 1d8 for each spell slot level above 2.",
+    "resolution": [
+      {
+        "kind": "heal",
+        "count": {
+          "base": 5
+        },
+        "healing": {
+          "dice": "2d8",
+          "perSlot": "1d8"
+        }
+      }
+    ]
   },
   {
     "id": "prestidigitation",
@@ -6099,7 +6463,15 @@
       "cleric",
       "druid"
     ],
-    "description": "A creature you touch regains 4d8 + 15 Hit Points. For the duration, the target regains 1 Hit Point at the start of each of its turns, and any severed body parts regrow after 2 minutes."
+    "description": "A creature you touch regains 4d8 + 15 Hit Points. For the duration, the target regains 1 Hit Point at the start of each of its turns, and any severed body parts regrow after 2 minutes.",
+    "resolution": [
+      {
+        "kind": "heal",
+        "healing": {
+          "dice": "4d8+15"
+        }
+      }
+    ]
   },
   {
     "id": "ray_of_sickness",
@@ -6131,7 +6503,8 @@
         "attackKind": "ranged",
         "onHitConditions": [
           "poisoned"
-        ]
+        ],
+        "conditionsEnd": "caster_turn_end"
       }
     ]
   },
@@ -7187,7 +7560,8 @@
         "onSuccess": "none",
         "onFailConditions": [
           "deafened"
-        ]
+        ],
+        "conditionsEnd": "spell"
       },
       {
         "kind": "damage",
@@ -7253,7 +7627,18 @@
       "warlock",
       "wizard"
     ],
-    "description": "You suggest a course of activity--described in no more than 25 words--to one creature you can see within range that can hear and understand you. The suggestion must sound achievable and not involve anything that would obviously deal damage to the target or its allies. For example, you could say, \"Fetch the key to the cult's treasure vault, and give the key to me.\" Or you could say, \"Stop fighting, leave this library peacefully, and don't return.\"\nThe target must succeed on a Wisdom saving throw or have the Charmed condition for the duration or until you or your allies deal damage to the target. The Charmed target pursues the suggestion to the best of its ability. The suggested activity can continue for the entire duration, but if the suggested activity can be completed in a shorter time, the spell ends for the target upon completing it."
+    "description": "You suggest a course of activity--described in no more than 25 words--to one creature you can see within range that can hear and understand you. The suggestion must sound achievable and not involve anything that would obviously deal damage to the target or its allies. For example, you could say, \"Fetch the key to the cult's treasure vault, and give the key to me.\" Or you could say, \"Stop fighting, leave this library peacefully, and don't return.\"\nThe target must succeed on a Wisdom saving throw or have the Charmed condition for the duration or until you or your allies deal damage to the target. The Charmed target pursues the suggestion to the best of its ability. The suggested activity can continue for the entire duration, but if the suggested activity can be completed in a shorter time, the spell ends for the target upon completing it.",
+    "resolution": [
+      {
+        "kind": "save",
+        "ability": "wis",
+        "onSuccess": "none",
+        "onFailConditions": [
+          "charmed"
+        ],
+        "conditionsEnd": "spell"
+      }
+    ]
   },
   {
     "id": "summon_dragon",
@@ -7308,7 +7693,8 @@
         "onSuccess": "half",
         "onFailConditions": [
           "blinded"
-        ]
+        ],
+        "conditionsEnd": "caster_turn_start"
       }
     ]
   },
@@ -8169,7 +8555,8 @@
         "onSuccess": "none",
         "onFailConditions": [
           "restrained"
-        ]
+        ],
+        "conditionsEnd": "spell"
       },
       {
         "kind": "damage",
@@ -8214,7 +8601,8 @@
         "onSuccess": "half",
         "onFailConditions": [
           "frightened"
-        ]
+        ],
+        "conditionsEnd": "spell"
       },
       {
         "kind": "save",

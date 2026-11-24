@@ -2389,10 +2389,6 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:animal_friendship": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
     "spell:animal_messenger": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
@@ -2418,8 +2414,8 @@
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
     "spell:antipathy_sympathy": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+      "category": "gm",
+      "reason": "Salvaguarda quando uma criatura do tipo escolhido se aproxima, por dias: o mestre conduz."
     },
     "spell:arcane_eye": {
       "category": "gm",
@@ -2473,10 +2469,6 @@
       "category": "phase_7",
       "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
     },
-    "spell:blindness_deafness": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
     "spell:blink": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
@@ -2489,14 +2481,6 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:charm_monster": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
-    "spell:charm_person": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
     "spell:clairvoyance": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
@@ -2504,10 +2488,6 @@
     "spell:clone": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
-    },
-    "spell:color_spray": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
     },
     "spell:command": {
       "category": "gm",
@@ -2532,10 +2512,6 @@
     "spell:confusion": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
-    },
-    "spell:conjure_celestial#healing_light": {
-      "category": "phase_7",
-      "reason": "Healing Light (4d12 + modificador): cura, Fase 7, PR 3."
     },
     "spell:conjure_minor_elementals": {
       "category": "phase_7",
@@ -2576,10 +2552,6 @@
     "spell:creation": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
-    },
-    "spell:cure_wounds": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
     },
     "spell:dancing_lights": {
       "category": "gm",
@@ -2642,20 +2614,8 @@
       "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
     },
     "spell:divine_word": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
-    "spell:dominate_beast": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
-    "spell:dominate_monster": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
-    "spell:dominate_person": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+      "category": "gm",
+      "reason": "Efeito pelos PV atuais de cada alvo e banimento por tipo de criatura: o mestre aplica."
     },
     "spell:dream": {
       "category": "gm",
@@ -2677,10 +2637,6 @@
       "category": "phase_7",
       "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
     },
-    "spell:entangle": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
     "spell:enthrall": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
@@ -2694,8 +2650,8 @@
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
     "spell:eyebite": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+      "category": "gm",
+      "reason": "Três efeitos à escolha e um alvo novo a cada turno: o mestre conduz."
     },
     "spell:fabricate": {
       "category": "gm",
@@ -2704,14 +2660,6 @@
     "spell:faerie_fire": {
       "category": "phase_7",
       "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
-    },
-    "spell:false_life": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
-    "spell:fear": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
     },
     "spell:feather_fall": {
       "category": "gm",
@@ -2732,10 +2680,6 @@
     "spell:find_traps": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
-    },
-    "spell:flesh_to_stone": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
     },
     "spell:floating_disk": {
       "category": "gm",
@@ -2789,17 +2733,9 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:grease": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
-    "spell:greater_invisibility": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
     "spell:greater_restoration": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+      "category": "gm",
+      "reason": "Um entre vários efeitos (Exaustão, condição, maldição, redução de atributo ou de PV máximos): o mestre aplica."
     },
     "spell:guardian_of_faith": {
       "category": "gm",
@@ -2829,14 +2765,6 @@
       "category": "phase_7",
       "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
     },
-    "spell:heal": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
-    "spell:healing_word": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
     "spell:heroes_feast": {
       "category": "phase_7",
       "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
@@ -2849,18 +2777,6 @@
       "category": "phase_7",
       "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
     },
-    "spell:hideous_laughter": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
-    "spell:hold_monster": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
-    "spell:hold_person": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
     "spell:holy_aura": {
       "category": "phase_7",
       "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
@@ -2868,10 +2784,6 @@
     "spell:hunters_mark": {
       "category": "phase_7",
       "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
-    },
-    "spell:hypnotic_pattern": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
     },
     "spell:identify": {
       "category": "gm",
@@ -2889,14 +2801,6 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:invisibility": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
-    "spell:irresistible_dance": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
     "spell:jump": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
@@ -2910,8 +2814,8 @@
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
     "spell:lesser_restoration": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+      "category": "gm",
+      "reason": "Quem conjura escolhe a condição que termina: o mestre (ou o dono do token) a remove."
     },
     "spell:levitate": {
       "category": "gm",
@@ -2969,21 +2873,9 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:mass_cure_wounds": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
     "spell:mass_heal": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
-    "spell:mass_healing_word": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
-    "spell:mass_suggestion": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+      "category": "gm",
+      "reason": "700 PV divididos à escolha de quem conjura entre os alvos: o mestre aplica a cura de cada um no painel de PV."
     },
     "spell:maze": {
       "category": "gm",
@@ -3065,17 +2957,9 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:power_word_heal": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
     "spell:power_word_stun": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
-    "spell:prayer_of_healing": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+      "category": "gm",
+      "reason": "Sem salvaguarda: depende dos PV atuais do alvo (150 ou menos), que o mestre confere."
     },
     "spell:prestidigitation": {
       "category": "gm",
@@ -3120,10 +3004,6 @@
     "spell:ray_of_enfeeblement": {
       "category": "phase_7",
       "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
-    },
-    "spell:regenerate": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
     },
     "spell:reincarnate": {
       "category": "gm",
@@ -3214,20 +3094,20 @@
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
     "spell:sleep": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+      "category": "gm",
+      "reason": "Duas salvaguardas em sequência (Incapacitado até o fim do turno do alvo, depois Inconsciente): o mestre conduz."
     },
     "spell:sleet_storm": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+      "category": "gm",
+      "reason": "Área com salvaguarda a cada turno, que derruba e quebra a Concentração: o mestre conduz."
     },
     "spell:slow": {
       "category": "phase_7",
       "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
     },
     "spell:spare_the_dying": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+      "category": "gm",
+      "reason": "Estabiliza uma criatura com 0 PV: o mestre marca Estável nas Salvaguardas contra a Morte."
     },
     "spell:speak_with_animals": {
       "category": "gm",
@@ -3246,8 +3126,8 @@
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
     "spell:stinking_cloud": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+      "category": "gm",
+      "reason": "Salvaguarda no início de cada turno na nuvem, Envenenado só até o fim daquele turno: o mestre conduz."
     },
     "spell:stone_shape": {
       "category": "gm",
@@ -3257,17 +3137,13 @@
       "category": "phase_7",
       "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
     },
-    "spell:suggestion": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
-    },
     "spell:summon_dragon": {
       "category": "gm",
       "reason": "Invocação com bloco de estatísticas próprio: as ações da criatura são das ações de monstro (extra futuro)."
     },
     "spell:telekinesis": {
-      "category": "phase_7",
-      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+      "category": "gm",
+      "reason": "Move criaturas ou objetos a cada turno, com Impedido até o fim do próximo turno: o mestre conduz."
     },
     "spell:telepathic_bond": {
       "category": "gm",
@@ -3322,8 +3198,8 @@
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
     "spell:vampiric_touch#healing": {
-      "category": "phase_7",
-      "reason": "Quem conjura recupera metade do dano Necrotic causado: cura, Fase 7, PR 3."
+      "category": "gm",
+      "reason": "Quem conjura recupera metade do dano Necrotic causado: o mestre aplica a cura depois do dano."
     },
     "spell:wall_of_force": {
       "category": "gm",

@@ -1,6 +1,8 @@
-"""Curadoria da resolução das magias de dano (Fase 7, nota 0054), usada por `import_spells.py`.
+"""Curadoria da resolução das magias (Fase 7, notas 0054 e 0056), usada por `import_spells.py`.
 
-Cada magia lista as suas partes (`resolution`): ataque de magia, salvaguarda ou dano direto. Uma magia
+Cada magia lista as suas partes (`resolution`): ataque de magia, salvaguarda, dano direto, cura ou
+condição sem salvaguarda. As condições dizem até quando duram (`end`): "spell" (até a magia acabar),
+"caster_turn_start" ou "caster_turn_end" (até o início ou o fim do próximo turno de quem conjura). Uma magia
 com mais de uma parte (Ice Knife: o fragmento e a explosão) dá um nome a cada uma. O importador confere
 cada parte contra o texto: o dado base aparece na descrição, o atributo da salvaguarda aparece como
 "<Atributo> saving throw", a escala por círculo aparece em "Using a Higher-Level Spell Slot" e o truque
@@ -34,22 +36,52 @@ def _base(kind, damage, label, count):
     return p
 
 
-def atk(attack_kind, *damage, label=None, count=None, on_hit=(), on_miss=None):
+def atk(attack_kind, *damage, label=None, count=None, on_hit=(), on_miss=None, end=None):
     p = _base("attack", damage, label, count)
     p["attackKind"] = attack_kind
     if on_miss:
         p["onMiss"] = on_miss
     if on_hit:
         p["onHitConditions"] = list(on_hit)
+    if end:
+        p["conditionsEnd"] = end
     return p
 
 
-def sv(ability, *damage, label=None, success="half", on_fail=(), count=None):
+def sv(ability, *damage, label=None, success="half", on_fail=(), count=None, end=None, choice=False):
+    """Salvaguarda; `choice`: quem conjura escolhe uma das condições da falha."""
     p = _base("save", damage, label, count)
     p["ability"] = ability
     p["onSuccess"] = success
     if on_fail:
         p["onFailConditions"] = list(on_fail)
+    if choice:
+        p["conditionChoice"] = True
+    if end:
+        p["conditionsEnd"] = end
+    return p
+
+
+def heal(dice, per=None, mod=False, temp=False, ends=(), count=None, label=None):
+    """Cura (ou PV temporários) direto nos alvos; `dice="full"`: todos os PV. `ends`: condições que a cura termina."""
+    p = _base("heal", (), label, count)
+    if dice == "full":
+        p["healing"] = "full"
+    else:
+        p["healing"] = {"dice": dice, **({"perSlot": per} if per else {}), **({"addModifier": True} if mod else {})}
+    if temp:
+        p["temporary"] = True
+    if ends:
+        p["endConditions"] = list(ends)
+    return p
+
+
+def cond(*conditions, label=None, count=None, end=None):
+    """Condição sem salvaguarda (Invisibility)."""
+    p = _base("condition", (), label, count)
+    p["conditions"] = list(conditions)
+    if end:
+        p["conditionsEnd"] = end
     return p
 
 
@@ -65,7 +97,7 @@ RESOLUTION = {
                    ["On a miss, the arrow splashes the target with acid for half as much of the initial damage only",
                     "2d4 Acid damage at the end of its next turn"], None),
     "Arcane Hand": ([atk("melee", dmg("5d8", "force", "2d8"), label="Clenched Fist"),
-                     sv("dex", label="Grasping Hand", success="none", on_fail=["grappled"]),
+                     sv("dex", label="Grasping Hand", success="none", on_fail=["grappled"], end="spell"),
                      auto(dmg("4d6", "bludgeoning", "2d6", mod=True), label="Grasping Hand (esmagar)")],
                     ["Make a melee spell attack. On a hit, the target takes 5d8 Force damage",
                      "the target has the Grappled condition", "Bludgeoning damage to the target equal to 4d6 plus your spellcasting ability modifier",
@@ -75,7 +107,7 @@ RESOLUTION = {
     "Chill Touch": ([atk("melee", dmg("1d10", "necrotic"))], ["make a melee spell attack"], "damage"),
     "Chromatic Orb": ([atk("ranged", dmg("3d8", ["acid", "cold", "fire", "lightning", "poison", "thunder"], "1d8"))],
                       ["Choose Acid, Cold, Fire, Lightning, Poison, or Thunder", "make a ranged spell attack"], None),
-    "Conjure Fey": ([atk("melee", dmg("3d12", "psychic", "1d12", mod=True), on_hit=["frightened"])],
+    "Conjure Fey": ([atk("melee", dmg("3d12", "psychic", "1d12", mod=True), on_hit=["frightened"], end="caster_turn_start")],
                     ["make one melee spell attack", "Psychic damage equal to 3d12 plus your spellcasting ability modifier, and the target has the Frightened condition"],
                     None),
     "Eldritch Blast": ([atk("ranged", dmg("1d10", "force"), count=(1,))],
@@ -91,7 +123,7 @@ RESOLUTION = {
     "Poison Spray": ([atk("ranged", dmg("1d12", "poison"))], ["Make a ranged spell attack"], "damage"),
     "Produce Flame": ([atk("ranged", dmg("1d8", "fire"))], ["Make a ranged spell attack"], "damage"),
     "Ray of Frost": ([atk("ranged", dmg("1d8", "cold"))], ["Make a ranged spell attack"], "damage"),
-    "Ray of Sickness": ([atk("ranged", dmg("2d8", "poison", "1d8"), on_hit=["poisoned"])],
+    "Ray of Sickness": ([atk("ranged", dmg("2d8", "poison", "1d8"), on_hit=["poisoned"], end="caster_turn_end")],
                         ["Make a ranged spell attack", "has the Poisoned condition"], None),
     "Scorching Ray": ([atk("ranged", dmg("2d6", "fire"), count=(3, 1))],
                       ["You hurl three fiery rays", "Make a ranged spell attack for each ray", "You create one additional ray for each spell slot level above 2"],
@@ -107,7 +139,7 @@ RESOLUTION = {
     # --- Salvaguardas -------------------------------------------------------------------------------------------
     "Acid Splash": ([sv("dex", dmg("1d6", "acid"), success="none")], ["must succeed on a Dexterity saving throw or take 1d6 Acid damage"], "damage"),
     "Befuddlement": ([sv("int", dmg("10d12", "psychic"))], ["On a successful save, the target takes half as much damage only"], None),
-    "Black Tentacles": ([sv("str", dmg("3d6", "bludgeoning"), success="none", on_fail=["restrained"])],
+    "Black Tentacles": ([sv("str", dmg("3d6", "bludgeoning"), success="none", on_fail=["restrained"], end="spell")],
                         ["On a failed save, it takes 3d6 Bludgeoning damage, and it has the Restrained condition"], None),
     "Blade Barrier": ([sv("dex", dmg("6d10", "force"))], ["taking 6d10 Force damage on a failed save or half as much damage on a successful one"], None),
     "Blight": ([sv("con", dmg("8d8", "necrotic", "1d8"))], ["taking 8d8 Necrotic damage on a failed save or half as much damage on a successful one"], None),
@@ -119,9 +151,10 @@ RESOLUTION = {
     "Cloudkill": ([sv("con", dmg("5d8", "poison", "1d8"))], ["taking 5d8 Poison damage on a failed save or half as much damage on a successful one"], None),
     "Cone of Cold": ([sv("con", dmg("8d8", "cold", "1d8"))], ["taking 8d8 Cold damage on a failed save or half as much damage on a successful one"], None),
     "Conjure Animals": ([sv("dex", dmg("3d10", "slashing", "1d10"), success="none")], ["On a failed save, the creature takes 3d10 Slashing damage"], None),
-    "Conjure Celestial": ([sv("dex", dmg("6d12", "radiant", "1d12"), label="Searing Light")],
-                          ["taking 6d12 Radiant damage on a failed save or half as much damage on a successful one"], None),
-    "Conjure Elemental": ([sv("dex", dmg("8d8", ["lightning", "thunder", "fire", "cold"], "1d8"), success="none", on_fail=["restrained"])],
+    "Conjure Celestial": ([heal("4d12", "1d12", mod=True, label="Healing Light"), sv("dex", dmg("6d12", "radiant", "1d12"), label="Searing Light")],
+                          ["The target regains Hit Points equal to 4d12 plus your spellcasting ability modifier",
+                           "taking 6d12 Radiant damage on a failed save or half as much damage on a successful one"], None),
+    "Conjure Elemental": ([sv("dex", dmg("8d8", ["lightning", "thunder", "fire", "cold"], "1d8"), success="none", on_fail=["restrained"], end="spell")],
                           ["air (Lightning), earth (Thunder), fire (Fire), or water (Cold)", "On failed save, the target takes 8d8 damage of the spirit's type, and the target has the Restrained condition"],
                           None),
     "Conjure Woodland Beings": ([sv("wis", dmg("5d8", "force", "1d8"))],
@@ -182,7 +215,7 @@ RESOLUTION = {
     "Shatter": ([sv("con", dmg("3d8", "thunder", "1d8"))], ["taking 3d8 Thunder damage on a failed save or half as much damage on a successful one"], None),
     "Spirit Guardians": ([sv("wis", dmg("3d8", ["radiant", "necrotic"], "1d8"))],
                          ["3d8 Radiant damage (if you are good or neutral) or 3d8 Necrotic damage (if you are evil)", "the creature takes half as much damage"], None),
-    "Storm of Vengeance": ([sv("con", dmg("2d6", "thunder"), success="none", on_fail=["deafened"]),
+    "Storm of Vengeance": ([sv("con", dmg("2d6", "thunder"), success="none", on_fail=["deafened"], end="spell"),
                             auto(dmg("4d6", "acid"), label="Turno 2"),
                             sv("dex", dmg("10d6", "lightning"), label="Turno 3"),
                             auto(dmg("2d6", "bludgeoning"), label="Turno 4"),
@@ -190,7 +223,7 @@ RESOLUTION = {
                            ["must succeed on a Constitution saving throw or take 2d6 Thunder damage and have the Deafened condition",
                             "takes 4d6 Acid damage", "taking 10d6 Lightning damage on a failed save or half as much damage on a successful one",
                             "takes 2d6 Bludgeoning damage", "takes 1d6 Cold damage"], None),
-    "Sunbeam": ([sv("con", dmg("6d8", "radiant"), on_fail=["blinded"])],
+    "Sunbeam": ([sv("con", dmg("6d8", "radiant"), on_fail=["blinded"], end="caster_turn_start")],
                 ["takes 6d8 Radiant damage and has the Blinded condition", "On a successful save, it takes half as much damage only"], None),
     "Sunburst": ([sv("con", dmg("12d6", "radiant"), on_fail=["blinded"])],
                  ["takes 12d6 Radiant damage and has the Blinded condition", "On a successful save, it takes half as much damage only"], None),
@@ -219,18 +252,18 @@ RESOLUTION = {
     "Wall of Thorns": ([sv("dex", dmg("7d8", "piercing", "1d8")), sv("dex", dmg("7d8", "slashing", "1d8"), label="Atravessar")],
                        ["taking 7d8 Piercing damage on a failed save or half as much damage on a successful one",
                         "taking 7d8 Slashing damage on a failed save or half as much damage on a successful one", "Both types of damage increase by 1d8"], None),
-    "Web": ([sv("dex", label="Teia", success="none", on_fail=["restrained"]), auto(dmg("2d4", "fire"), label="Teia em chamas")],
+    "Web": ([sv("dex", label="Teia", success="none", on_fail=["restrained"], end="spell"), auto(dmg("2d4", "fire"), label="Teia em chamas")],
             ["must succeed on a Dexterity saving throw or have the Restrained condition", "dealing 2d4 Fire damage"], None),
-    "Weird": ([sv("wis", dmg("10d10", "psychic"), on_fail=["frightened"]), sv("wis", dmg("5d10", "psychic"), label="Fim do turno do alvo", success="none")],
+    "Weird": ([sv("wis", dmg("10d10", "psychic"), on_fail=["frightened"], end="spell"), sv("wis", dmg("5d10", "psychic"), label="Fim do turno do alvo", success="none")],
               ["a target takes 10d10 Psychic damage and has the Frightened condition", "On a successful save, a target takes half as much damage only",
                "On a failed save, it takes 5d10 Psychic damage"], None),
     "Wind Wall": ([sv("str", dmg("4d8", "bludgeoning"))], ["taking 4d8 Bludgeoning damage on a failed save or half as much damage on a successful one"], None),
     "Phantasmal Force": ([sv("int", success="none"), auto(dmg("2d8", "psychic"), label="Dano do fantasma")],
                          ["The target makes an Intelligence saving throw", "such a phantasm can deal 2d8 Psychic damage to the target"], None),
-    "Geas": ([sv("wis", success="none", on_fail=["charmed"]), auto(dmg("5d10", "psychic"), label="Desobedecer")],
+    "Geas": ([sv("wis", success="none", on_fail=["charmed"], end="spell"), auto(dmg("5d10", "psychic"), label="Desobedecer")],
              ["must succeed on a Wisdom saving throw or have the Charmed condition", "takes 5d10 Psychic damage if it acts in a manner directly counter to your command"],
              None),
-    "Ensnaring Strike": ([sv("str", success="none", on_fail=["restrained"]), auto(dmg("1d6", "piercing", "1d6"), label="Início do turno do alvo")],
+    "Ensnaring Strike": ([sv("str", success="none", on_fail=["restrained"], end="spell"), auto(dmg("1d6", "piercing", "1d6"), label="Início do turno do alvo")],
                          ["On a failed save, the target has the Restrained condition", "the target takes 1d6 Piercing damage at the start of each of its turns"], None),
 
     # --- Dano direto (sem ataque nem salvaguarda) ---------------------------------------------------------------
@@ -252,4 +285,72 @@ RESOLUTION = {
     "Meld into Stone": ([auto(dmg("6d6", "force"), label="Pedra danificada"), auto(dmg("50", "force"), label="Pedra destruída")],
                         ["expels you and deals 6d6 Force damage to you", "expels you and deals 50 Force damage to you"], None),
     "Teleport": ([auto(dmg("3d10", "force"), label="Acidente")], ["Each teleporting creature (or the target object) takes 3d10 Force damage"], None),
+
+    # --- Cura (Fase 7, PR 3, nota 0056) ---------------------------------------------------------------------------
+    "Cure Wounds": ([heal("2d8", "2d8", mod=True)], ["regains a number of Hit Points equal to 2d8 plus your spellcasting ability modifier"], None),
+    "Healing Word": ([heal("2d4", "2d4", mod=True)], ["regains Hit Points equal to 2d4 plus your spellcasting ability modifier"], None),
+    "Mass Cure Wounds": ([heal("5d8", "1d8", mod=True, count=(6,))],
+                         ["Choose up to six creatures", "Each target regains Hit Points equal to 5d8 plus your spellcasting ability modifier"], None),
+    "Mass Healing Word": ([heal("2d4", "1d4", mod=True, count=(6,))],
+                          ["Up to six creatures of your choice", "regain Hit Points equal to 2d4 plus your spellcasting ability modifier"], None),
+    "Prayer of Healing": ([heal("2d8", "1d8", count=(5,))], ["Up to five creatures of your choice", "also regain 2d8 Hit Points"], None),
+    "Heal": ([heal("70", "10", ends=["blinded", "deafened", "poisoned"])],
+             ["restoring 70 Hit Points", "This spell also ends the Blinded, Deafened, and Poisoned conditions on the target"], None),
+    "Power Word Heal": ([heal("full", ends=["charmed", "frightened", "paralyzed", "poisoned", "stunned"])],
+                        ["The target regains all its Hit Points", "If the creature has the Charmed, Frightened, Paralyzed, Poisoned, or Stunned condition, the condition ends"],
+                        None),
+    "Regenerate": ([heal("4d8+15")], ["A creature you touch regains 4d8 + 15 Hit Points"], None),
+    "False Life": ([heal("2d4+4", "5", temp=True)], ["You gain 2d4 + 4 Temporary Hit Points", "You gain 5 additional Temporary Hit Points for each spell slot level above 1"], None),
+
+    # --- Condição por salvaguarda ou sem ela (Fase 7, PR 3, nota 0056) ------------------------------------------
+    "Animal Friendship": ([sv("wis", success="none", on_fail=["charmed"], count=(1, 1), end="spell")],
+                          ["must succeed on a Wisdom saving throw or have the Charmed condition for the duration",
+                           "You can target one additional Beast for each spell slot level above 1"], None),
+    "Blindness/Deafness": ([sv("con", success="none", on_fail=["blinded", "deafened"], choice=True, count=(1, 1), end="spell")],
+                           ["it has the Blinded or Deafened condition (your choice) for the duration",
+                            "You can target one additional creature for each spell slot level above 2"], None),
+    "Charm Monster": ([sv("wis", success="none", on_fail=["charmed"], count=(1, 1), end="spell")],
+                      ["On a failed save, the target has the Charmed condition until the spell ends",
+                       "You can target one additional creature for each spell slot level above 4"], None),
+    "Charm Person": ([sv("wis", success="none", on_fail=["charmed"], count=(1, 1), end="spell")],
+                     ["On a failed save, the target has the Charmed condition until the spell ends",
+                      "You can target one additional creature for each spell slot level above 1"], None),
+    "Color Spray": ([sv("con", success="none", on_fail=["blinded"], end="caster_turn_end")],
+                    ["must succeed on a Constitution saving throw or have the Blinded condition until the end of your next turn"], None),
+    "Dominate Beast": ([sv("wis", success="none", on_fail=["charmed"], end="spell")],
+                       ["must succeed on a Wisdom saving throw or have the Charmed condition for the duration"], None),
+    "Dominate Monster": ([sv("wis", success="none", on_fail=["charmed"], end="spell")],
+                         ["must succeed on a Wisdom saving throw or have the Charmed condition for the duration"], None),
+    "Dominate Person": ([sv("wis", success="none", on_fail=["charmed"], end="spell")],
+                        ["must succeed on a Wisdom saving throw or have the Charmed condition for the duration"], None),
+    "Entangle": ([sv("str", success="none", on_fail=["restrained"], end="spell")],
+                 ["must succeed on a Strength saving throw or have the Restrained condition until the spell ends"], None),
+    "Fear": ([sv("wis", success="none", on_fail=["frightened"], end="spell")],
+             ["must succeed on a Wisdom saving throw or drop whatever it is holding and have the Frightened condition for the duration"], None),
+    "Flesh to Stone": ([sv("con", success="none", on_fail=["restrained"], end="spell")],
+                       ["On a failed save, it has the Restrained condition for the duration"], None),
+    "Grease": ([sv("dex", success="none", on_fail=["prone"])], ["must succeed on a Dexterity saving throw or have the Prone condition"], None),
+    "Hideous Laughter": ([sv("wis", success="none", on_fail=["prone", "incapacitated"], count=(1, 1), end="spell")],
+                         ["On a failed save, it has the Prone and Incapacitated conditions for the duration",
+                          "You can target one additional creature for each spell slot level above 1"], None),
+    "Hold Monster": ([sv("wis", success="none", on_fail=["paralyzed"], count=(1, 1), end="spell")],
+                     ["must succeed on a Wisdom saving throw or have the Paralyzed condition for the duration",
+                      "You can target one additional creature for each spell slot level above 5"], None),
+    "Hold Person": ([sv("wis", success="none", on_fail=["paralyzed"], count=(1, 1), end="spell")],
+                    ["must succeed on a Wisdom saving throw or have the Paralyzed condition for the duration",
+                     "You can target one additional Humanoid for each spell slot level above 2"], None),
+    "Hypnotic Pattern": ([sv("wis", success="none", on_fail=["charmed", "incapacitated"], end="spell")],
+                         ["must succeed on a Wisdom saving throw or have the Charmed condition for the duration",
+                          "While Charmed, the creature has the Incapacitated condition"], None),
+    "Irresistible Dance": ([sv("wis", success="none", on_fail=["charmed"], end="spell")],
+                           ["On a failed save, the target has the Charmed condition for the duration"], None),
+    "Suggestion": ([sv("wis", success="none", on_fail=["charmed"], end="spell")],
+                   ["must succeed on a Wisdom saving throw or have the Charmed condition for the duration"], None),
+    "Mass Suggestion": ([sv("wis", success="none", on_fail=["charmed"], count=(12,), end="spell")],
+                        ["to twelve or fewer creatures", "Each target must succeed on a Wisdom saving throw or have the Charmed condition for the duration"],
+                        None),
+    "Invisibility": ([cond("invisible", count=(1, 1), end="spell")],
+                     ["A creature you touch has the Invisible condition until the spell ends",
+                      "You can target one additional creature for each spell slot level above 2"], None),
+    "Greater Invisibility": ([cond("invisible", end="spell")], ["A creature you touch has the Invisible condition until the spell ends"], None),
 }
