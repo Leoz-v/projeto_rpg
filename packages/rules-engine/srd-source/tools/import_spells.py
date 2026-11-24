@@ -7,10 +7,13 @@ Uso (a partir da raiz do repositório):
 
 Sem argumentos, lê `srd-source/SRD_CC_v5.2.1.pdf` e grava `src/srd/data/spells.json`.
 Sai com código 1 se a conferência encontrar problemas (o JSON é gravado mesmo assim, para inspeção).
-Ver docs/decisions/0007-importacao-das-magias.md.
+Ver docs/decisions/0007-importacao-das-magias.md; a resolução das magias de dano (curada em
+`spell_resolution.py`) é da nota 0054.
 """
 import json, re, subprocess, sys
 from pathlib import Path
+
+from spell_resolution import RESOLUTION
 
 sys.stdout.reconfigure(encoding="utf-8")
 HERE = Path(__file__).resolve().parent
@@ -56,6 +59,47 @@ def clean(raw):
 HEADER = re.compile(r"^(?:Level ([1-9]) (" + "|".join(SCHOOLS) + r")|(" + "|".join(SCHOOLS) + r") Cantrip) \(([^)]+)\)$")
 # O SRD às vezes escreve "Component:" no singular.
 FIELDS = re.compile(r"^Casting Time: (.+?) Range: (.+?) Components?: (.+?) Duration: (.+)$")
+
+ABILITY_NAMES = {"str": "Strength", "dex": "Dexterity", "con": "Constitution", "int": "Intelligence", "wis": "Wisdom", "cha": "Charisma"}
+
+
+def check_resolution(spell, parts, quotes, upgrade):
+    """Confere a resolução curada contra o texto da magia; devolve a lista de problemas."""
+    who, found = spell["name"], []
+    flat = " ".join(spell["description"].split())
+    upcast = flat.split("Using a Higher-Level Spell Slot.", 1)[1] if "Using a Higher-Level Spell Slot." in flat else ""
+    for q in quotes:
+        if q not in flat:
+            found.append(f"{who}: citação não encontrada: '{q}'")
+    for part in parts:
+        for d in part.get("damage", []):
+            base = re.match(r"\d+(?:d\d+)?", d["dice"]).group(0)
+            if base not in flat:
+                found.append(f"{who}: dado base {base} fora do texto")
+            for t in d["type"] if isinstance(d["type"], list) else [d["type"]]:
+                if t.capitalize() not in flat:
+                    found.append(f"{who}: tipo {t} fora do texto")
+            if "perSlot" in d and f"by {d['perSlot']}" not in upcast:
+                found.append(f"{who}: escala {d['perSlot']} fora de 'Using a Higher-Level Spell Slot'")
+            if d.get("addModifier") and "plus your spellcasting ability modifier" not in flat:
+                found.append(f"{who}: modificador de conjuração fora do texto")
+        if part.get("count", {}).get("perSlot") and not upcast:
+            found.append(f"{who}: quantidade por círculo sem 'Using a Higher-Level Spell Slot'")
+        if part["kind"] == "save" and f"{ABILITY_NAMES[part['ability']]} saving throw" not in flat:
+            found.append(f"{who}: salvaguarda de {part['ability']} fora do texto")
+        if part["kind"] == "attack" and f"{part['attackKind']} spell attack" not in flat.lower():
+            found.append(f"{who}: ataque de magia {part['attackKind']} fora do texto")
+        if spell["level"] == 0 and any("perSlot" in d for d in part.get("damage", [])):
+            found.append(f"{who}: truque com escala por círculo")
+    damaging = any(p.get("damage") for p in parts)
+    if spell["level"] == 0 and damaging and (upgrade is None or "Cantrip Upgrade." not in flat):
+        found.append(f"{who}: truque de dano sem a melhoria (Cantrip Upgrade)")
+    if upgrade is not None and spell["level"] != 0:
+        found.append(f"{who}: melhoria de truque numa magia de círculo {spell['level']}")
+    if len(parts) > 1 and sum(1 for p in parts if "label" not in p) > 1:
+        found.append(f"{who}: mais de uma parte sem nome")
+    return found
+
 
 def snake(name):
     return re.sub(r"[^a-z0-9]+", "_", name.lower().replace("'", "")).strip("_")
@@ -108,6 +152,12 @@ for n, h in enumerate(starts):
         spell["ritual"] = True
     spell["classes"] = classes
     spell["description"] = description
+    if name in RESOLUTION:
+        parts, quotes, upgrade = RESOLUTION[name]
+        problems.extend(check_resolution(spell, parts, quotes, upgrade))
+        if upgrade:
+            spell["cantripUpgrade"] = upgrade
+        spell["resolution"] = parts
     spells.append(spell)
 
 # --- Conferência contra as listas de magias das classes -------------------------
@@ -142,6 +192,9 @@ for cls, (first, last) in LIST_PAGES.items():
             continue
         problems.append(f"{cls}: '{nm}' está na lista mas não declara a classe")
 
+for nm in sorted(set(RESOLUTION) - {s["name"] for s in spells}):
+    problems.append(f"resolução curada para magia inexistente: {nm}")
+
 ids = [s["id"] for s in spells]
 dups = {i for i in ids if ids.count(i) > 1}
 if dups:
@@ -154,6 +207,7 @@ per_level = {lv: sum(1 for s in spells if s["level"] == lv) for lv in range(10)}
 per_class = {c: sum(1 for s in spells if c.lower() in s["classes"]) for c in CLASSES}
 print("magias:", len(spells), "por nível:", per_level)
 print("por classe:", per_class)
+print("com resolução:", sum(1 for s in spells if "resolution" in s))
 print("problemas:", len(problems))
 for p in problems:
     print(" -", p)

@@ -2376,6 +2376,990 @@
     "monster_trait:wishes": {
       "category": "gm",
       "reason": "Exploração ou narrativa: o mestre decide."
+    },
+    "spell:aid": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:alarm": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:alter_self": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:animal_friendship": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:animal_messenger": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:animal_shapes": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:animate_dead": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:animate_objects": {
+      "category": "gm",
+      "reason": "Invocação com bloco de estatísticas próprio: as ações da criatura são das ações de monstro (extra futuro)."
+    },
+    "spell:antilife_shell": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:antimagic_field": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:antipathy_sympathy": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:arcane_eye": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:arcane_lock": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:arcanists_magic_aura": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:astral_projection": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:augury": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:aura_of_life": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:awaken": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:bane": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:banishment": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:barkskin": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:beacon_of_hope": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:bestow_curse": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:bless": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:blindness_deafness": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:blink": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:blur": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:calm_emotions": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:charm_monster": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:charm_person": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:clairvoyance": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:clone": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:color_spray": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:command": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:commune": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:commune_with_nature": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:comprehend_languages": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:compulsion": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:confusion": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:conjure_celestial#healing_light": {
+      "category": "phase_7",
+      "reason": "Healing Light (4d12 + modificador): cura, Fase 7, PR 3."
+    },
+    "spell:conjure_minor_elementals": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:contact_other_plane": {
+      "category": "gm",
+      "reason": "Salvaguarda de quem conjura contra CD 15 fixa, com resultado narrativo: o mestre conduz."
+    },
+    "spell:contingency": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:continual_flame": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:control_weather": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:counterspell": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:create_food_and_water": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:create_or_destroy_water": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:create_undead": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:creation": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:cure_wounds": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:dancing_lights": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:darkness": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:darkvision": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:daylight": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:death_ward": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:demiplane": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:detect_evil_and_good": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:detect_magic": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:detect_poison_and_disease": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:detect_thoughts": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:disguise_self": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:dispel_evil_and_good": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:dispel_magic": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:divination": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:divine_favor": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:divine_word": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:dominate_beast": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:dominate_monster": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:dominate_person": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:dream": {
+      "category": "gm",
+      "reason": "O dano vem ao acordar, fora de combate e depois de um descanso sem benefício: o mestre aplica."
+    },
+    "spell:druidcraft": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:elementalism": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:enhance_ability": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:enlarge_reduce": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:entangle": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:enthrall": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:etherealness": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:expeditious_retreat": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:eyebite": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:fabricate": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:faerie_fire": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:false_life": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:fear": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:feather_fall": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:find_familiar": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:find_steed": {
+      "category": "gm",
+      "reason": "Invocação com bloco de estatísticas próprio: as ações da criatura são das ações de monstro (extra futuro)."
+    },
+    "spell:find_the_path": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:find_traps": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:flesh_to_stone": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:floating_disk": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:fly": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:fog_cloud": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:forcecage": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:foresight": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:freedom_of_movement": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:gaseous_form": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:gate": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:gentle_repose": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:giant_insect": {
+      "category": "gm",
+      "reason": "Invocação com bloco de estatísticas próprio: as ações da criatura são das ações de monstro (extra futuro)."
+    },
+    "spell:glibness": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:globe_of_invulnerability": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:goodberry": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:grease": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:greater_invisibility": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:greater_restoration": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:guardian_of_faith": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:guards_and_wards": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:guidance": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:gust_of_wind": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:hallow": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:hallucinatory_terrain": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:haste": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:heal": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:healing_word": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:heroes_feast": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:heroism": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:hex": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:hideous_laughter": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:hold_monster": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:hold_person": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:holy_aura": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:hunters_mark": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:hypnotic_pattern": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:identify": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:illusory_script": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:imprisonment": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:instant_summons": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:invisibility": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:irresistible_dance": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:jump": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:knock": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:legend_lore": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:lesser_restoration": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:levitate": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:light": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:locate_animals_or_plants": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:locate_creature": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:locate_object": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:longstrider": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:mage_armor": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:mage_hand": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:magic_circle": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:magic_jar": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:magic_mouth": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:magic_weapon": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:magnificent_mansion": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:major_image": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:mass_cure_wounds": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:mass_heal": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:mass_healing_word": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:mass_suggestion": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:maze": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:mending": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:message": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:mind_blank": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:minor_illusion": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:mirage_arcane": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:mirror_image": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:mislead": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:misty_step": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:modify_memory": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:move_earth": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:nondetection": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:pass_without_trace": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:passwall": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:phantom_steed": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:planar_ally": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:planar_binding": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:plane_shift": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:plant_growth": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:polymorph": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:power_word_heal": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:power_word_stun": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:prayer_of_healing": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:prestidigitation": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:prismatic_wall": {
+      "category": "gm",
+      "reason": "Muralha de sete camadas atravessadas uma a uma: o mestre conduz (as cores repetem as do Prismatic Spray)."
+    },
+    "spell:private_sanctum": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:programmed_illusion": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:project_image": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:protection_from_energy": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:protection_from_evil_and_good": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:protection_from_poison": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:purify_food_and_drink": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:raise_dead": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:ray_of_enfeeblement": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:regenerate": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:reincarnate": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:remove_curse": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:resilient_sphere": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:resistance": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:resurrection": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:reverse_gravity": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:revivify": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:rope_trick": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:sanctuary": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:scrying": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:secret_chest": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:see_invisibility": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:seeming": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:sending": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:sequester": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:shapechange": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:shield": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:shield_of_faith": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:shillelagh": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:silence": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:silent_image": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:simulacrum": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:sleep": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:sleet_storm": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:slow": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:spare_the_dying": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:speak_with_animals": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:speak_with_dead": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:speak_with_plants": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:spider_climb": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:stinking_cloud": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:stone_shape": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:stoneskin": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:suggestion": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:summon_dragon": {
+      "category": "gm",
+      "reason": "Invocação com bloco de estatísticas próprio: as ações da criatura são das ações de monstro (extra futuro)."
+    },
+    "spell:telekinesis": {
+      "category": "phase_7",
+      "reason": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054)."
+    },
+    "spell:telepathic_bond": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:teleportation_circle": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:thaumaturgy": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:time_stop": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:tiny_hut": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:tongues": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:transport_via_plants": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:tree_stride": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:true_polymorph": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:true_resurrection": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:true_seeing": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:true_strike": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:unseen_servant": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:vampiric_touch#healing": {
+      "category": "phase_7",
+      "reason": "Quem conjura recupera metade do dano Necrotic causado: cura, Fase 7, PR 3."
+    },
+    "spell:wall_of_force": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:wall_of_stone": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:warding_bond": {
+      "category": "phase_7",
+      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    },
+    "spell:water_breathing": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:water_walk": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:wind_walk": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:wish": {
+      "category": "gm",
+      "reason": "Efeitos à escolha e consequência do esforço decididos pelo mestre."
+    },
+    "spell:word_of_recall": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
+    },
+    "spell:zone_of_truth": {
+      "category": "gm",
+      "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     }
   }
 }

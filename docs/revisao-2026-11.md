@@ -80,4 +80,6 @@ Limitações sem certificado pago: aviso do SmartScreen na primeira instalação
 | 3 | Release pelo GitHub Actions e atualização automática | ✅ nota 0048 |
 | 4 | Dividir o executor | ✅ nota 0049 |
 | 5 | Fase 6 — Recursos e descansos (descansos, espaços de magia, recursos de classe, conjurar) | ✅ notas 0050 a 0053 (descansos, espaços de magia, recursos, conjurar) |
-| 6 | Ferramentas de mapa e extras | |
+| 6 | Fase 7 — Magias estruturadas (dano, cura e condições, efeitos temporários) | em andamento (nota 0054) |
+| 7 | Ferramentas de mapa | reservado para outro contribuidor ([issue #59](https://github.com/Leoz-v/projeto_rpg/issues/59)) |
+| 8 | Extras | |

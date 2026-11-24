@@ -22,7 +22,7 @@ A Wizards pede que nenhuma outra atribuição a ela seja incluída além dessa. 
 
 O texto é extraído com `pdftotext` (poppler, com `-enc UTF-8` no Windows): `pdftotext -f <página> -l <página> SRD_CC_v5.2.1.pdf -` para ler na ordem das colunas e `-layout` para tabelas. As tabelas do PDF são blocos de coluna separados, então a transcrição para JSON é feita à mão a partir do texto extraído e conferida pelos testes em `tests/srd/` (contagens e valores de referência por página). Ver `docs/decisions/0004-importacao-do-srd.md`.
 
-As **magias** seguem um formato regular e foram importadas por parser automático, que lê o cabeçalho de cada entrada e confere as classes contra as listas de magias dos capítulos de classe. Ver `docs/decisions/0007-importacao-das-magias.md`.
+As **magias** seguem um formato regular e foram importadas por parser automático, que lê o cabeçalho de cada entrada e confere as classes contra as listas de magias dos capítulos de classe. Ver `docs/decisions/0007-importacao-das-magias.md`. A resolução das magias de dano (ataque, salvaguarda, dano por círculo) é curada em `tools/spell_resolution.py` e conferida contra o texto de cada magia (nota 0054).
 
 Os **monstros** também vêm de parser automático, que confere os números redundantes de cada bloco (XP, PV, modificadores, Percepção passiva, dano médio). Ver `docs/decisions/0012-importacao-dos-monstros.md`.
 

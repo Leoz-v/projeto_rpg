@@ -11,7 +11,7 @@ import backlog from './automation-backlog.json';
 
 type Entry = { category: string; reason: string; mechanics?: string[] };
 const entries = backlog.entries as Record<string, Entry>;
-const CATEGORIES = new Set(['structural', 'automate', 'phase_4', 'phase_5', 'gm', 'none']);
+const CATEGORIES = new Set(['structural', 'automate', 'phase_4', 'phase_5', 'phase_7', 'gm', 'none']);
 const snake = (name: string): string => name.toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 
 const srd = loadSrdCompendium();
@@ -70,19 +70,26 @@ const actionKeys = new Set(
   srd.creatures.flatMap((c) => c.actions.filter((a) => a.kind === 'text').map((a) => `monster_action:${snake(a.name.split(' (')[0] ?? a.name)}`)),
 );
 
+/** Magias sem resolução estruturada (nota 0054) e as que já têm. */
+const spellKeys = new Set(srd.spells.filter((s) => s.resolution.length === 0).map((s) => `spell:${s.id}`));
+const structuredSpells = new Set(srd.spells.filter((s) => s.resolution.length > 0).map((s) => `spell:${s.id}`));
+
 describe('automation backlog (Fase 1.5)', () => {
-  it('classifies every feature, magic item, monster trait and text action without effects', () => {
-    const required = [...features.keys(), ...itemKeys, ...traitKeys, ...actionKeys];
+  it('classifies every feature, magic item, monster trait, text action and spell without effects', () => {
+    const required = [...features.keys(), ...itemKeys, ...traitKeys, ...actionKeys, ...spellKeys];
     expect(required.length).toBeGreaterThan(500);
     expect(required.filter((k) => !(k in entries))).toEqual([]);
   });
 
   it('lists only things that still lack effects (automated entries leave the backlog)', () => {
-    const known = new Set([...features.keys(), ...itemKeys, ...variantKeys, ...traitKeys, ...actionKeys]);
+    const known = new Set([...features.keys(), ...itemKeys, ...variantKeys, ...traitKeys, ...actionKeys, ...spellKeys]);
     // Entradas parciais (`<chave>#<aspecto>`): a fonte já tem efeitos e guarda uma parte pendente.
     const isPartial = (k: string): boolean => {
       const base = k.split('#')[0] ?? k;
-      return k.includes('#') && (magic.some((i) => `item:${i.id}` === base) || featuresWithEffects.has(base) || traitsWithEffects.has(base));
+      return (
+        k.includes('#') &&
+        (magic.some((i) => `item:${i.id}` === base) || featuresWithEffects.has(base) || traitsWithEffects.has(base) || structuredSpells.has(base))
+      );
     };
     expect(Object.keys(entries).filter((k) => !known.has(k) && !isPartial(k))).toEqual([]);
   });
