@@ -4,6 +4,7 @@ import type { GameMap } from '../../../shared/protocol';
 import { conditionLabels, timedEffectLabels, tokenConditions } from '../canvas/conditions';
 import { tokenHealth } from '../canvas/health';
 import type { MapStageHandle } from '../canvas/MapStage';
+import { DEFAULT_RULER_OPTIONS, type RulerOptions } from '../canvas/ruler';
 import {
   DEFAULT_INTERIOR_DEPTH_FEET,
   gridFromMapDocument,
@@ -13,12 +14,14 @@ import {
 import { AssetManager } from '../canvas3d/render/assetManager';
 import { LightingManager } from '../canvas3d/render/lightingSystem';
 import { LiquidRenderer } from '../canvas3d/render/liquidRenderer';
+import { RulerTool3d } from '../canvas3d/render/rulerTool3d';
 import { type CameraViewMode, SceneManager } from '../canvas3d/render/sceneManager';
 import { TerrainRenderer } from '../canvas3d/render/terrainRenderer';
 import { cameraTargetToWorld2d } from '../canvas3d/render/tokenGeometry3d';
 import { TokenRenderer3d } from '../canvas3d/render/tokenRenderer3d';
-import { TILE_SIZE_FEET, TILE_SIZE_METERS } from '../canvas3d/terrain/constants';
+import { METERS_PER_FOOT } from '../canvas3d/terrain/constants';
 import { sendIntent } from '../store/table';
+import { RulerOptionsBar } from './RulerControls';
 
 /**
  * Visualização 3D da mesa (somente leitura do terreno): usada por jogadores e
@@ -45,12 +48,11 @@ interface ActiveViewer {
   interiorRenderer: TerrainRenderer;
   assets: AssetManager;
   tokens3d: TokenRenderer3d;
+  ruler3d: RulerTool3d;
   width: number;
   length: number;
   destroy: () => void;
 }
-
-const METERS_PER_FOOT = TILE_SIZE_METERS / TILE_SIZE_FEET;
 
 export function Map3DView({ view, map, maxima, selectedId, onSelect, onStage, isGm, onEditMap }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -60,6 +62,8 @@ export function Map3DView({ view, map, maxima, selectedId, onSelect, onStage, is
   const [error, setError] = useState<string | null>(null);
   const [camMode, setCamMode] = useState<CameraViewMode>('perspective');
   const [gridVisible, setGridVisible] = useState(true);
+  const [rulerActive, setRulerActive] = useState(false);
+  const [rulerOptions, setRulerOptions] = useState<RulerOptions>({ ...DEFAULT_RULER_OPTIONS });
 
   const latest = useRef({ onSelect, onStage });
   useLayoutEffect(() => {
@@ -149,6 +153,7 @@ export function Map3DView({ view, map, maxima, selectedId, onSelect, onStage, is
 
       scene.configureForMap(surfaceGrid.width, surfaceGrid.length);
 
+      const ruler3d = new RulerTool3d(scene, surfaceRenderer, surfaceGrid);
       const tokens3d = new TokenRenderer3d(scene, surfaceGrid, {
         onSelect: (id) => {
           latest.current.onSelect(id);
@@ -165,6 +170,7 @@ export function Map3DView({ view, map, maxima, selectedId, onSelect, onStage, is
         assets.tickAnimations(ticker);
         lighting.tick(ticker.deltaMS / 1000, assets.animationsActive);
         tokens3d.tick();
+        ruler3d.tick();
       });
 
       active = {
@@ -173,9 +179,11 @@ export function Map3DView({ view, map, maxima, selectedId, onSelect, onStage, is
         interiorRenderer,
         assets,
         tokens3d,
+        ruler3d,
         width: surfaceGrid.width,
         length: surfaceGrid.length,
         destroy: () => {
+          ruler3d.destroy();
           tokens3d.destroy();
           assets.destroy();
           scene.destroy();
@@ -231,11 +239,40 @@ export function Map3DView({ view, map, maxima, selectedId, onSelect, onStage, is
     });
   }, [viewer, map, state.tokens, state.characters, state.combat, maxima, info.role, info.playerId, selectedId]);
 
+  useEffect(() => {
+    if (!viewer) return;
+    viewer.tokens3d.setInteractionEnabled(!rulerActive);
+    viewer.ruler3d.setActive(rulerActive);
+  }, [viewer, rulerActive]);
+
+  useEffect(() => {
+    viewer?.ruler3d.setOptions(rulerOptions);
+  }, [viewer, rulerOptions]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent): void => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+        return;
+      }
+      if (e.code === 'KeyR' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setRulerActive((prev) => !prev);
+      } else if (e.code === 'Escape') {
+        setRulerActive(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, []);
+
   const setCamera = (mode: CameraViewMode): void => {
     const v = viewerRef.current;
     if (!v) return;
     v.scene.setCameraViewMode(mode);
-    v.scene.setLeftButtonAction('pan');
+    v.scene.setLeftButtonAction(rulerActive ? 'none' : 'pan');
     setCamMode(mode);
   };
 
@@ -288,6 +325,17 @@ export function Map3DView({ view, map, maxima, selectedId, onSelect, onStage, is
             Topo
           </button>
         </div>
+        <button
+          type="button"
+          className={rulerActive ? 'active' : ''}
+          aria-pressed={rulerActive}
+          title="Medir distância ou área de impacto (R)"
+          onClick={() => {
+            setRulerActive((prev) => !prev);
+          }}
+        >
+          Régua
+        </button>
         <button type="button" className={gridVisible ? 'active' : ''} onClick={toggleGrid}>
           Grid
         </button>
@@ -306,6 +354,7 @@ export function Map3DView({ view, map, maxima, selectedId, onSelect, onStage, is
           </button>
         )}
       </div>
+      {rulerActive && <RulerOptionsBar options={rulerOptions} onChange={setRulerOptions} />}
       {loading && <p className="map-empty hint">Carregando mapa 3D…</p>}
       {error && (
         <p className="map-error error" role="alert">

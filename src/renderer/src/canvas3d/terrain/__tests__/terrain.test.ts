@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { FEET_PER_SQUARE } from 'rules-engine/space';
 import {
   HEIGHT_UNITS_PER_TILE,
+  METERS_PER_FOOT,
   TILE_SIZE_FEET,
   TILE_SIZE_METERS,
   feetToHeightUnits,
@@ -102,11 +104,12 @@ import {
 } from '../../tools/shapeFitter';
 
 describe('D&D 5ft / 1.5m scale constants', () => {
-  it('maps 1 tile edge to 1.5 m and 5 ft with 128 internal height units', () => {
+  it('maps 1 tile edge to 1.5 m and FEET_PER_SQUARE (5 ft) with 128 internal height units', () => {
     expect(TILE_SIZE_METERS).toBe(1.5);
-    expect(TILE_SIZE_FEET).toBe(5);
+    expect(TILE_SIZE_FEET).toBe(FEET_PER_SQUARE);
+    expect(METERS_PER_FOOT).toBeCloseTo(TILE_SIZE_METERS / FEET_PER_SQUARE, 6);
     expect(heightUnitsToMeters(HEIGHT_UNITS_PER_TILE)).toBeCloseTo(1.5, 6);
-    expect(heightUnitsToFeet(HEIGHT_UNITS_PER_TILE)).toBeCloseTo(5, 6);
+    expect(heightUnitsToFeet(HEIGHT_UNITS_PER_TILE)).toBeCloseTo(FEET_PER_SQUARE, 6);
     expect(feetToHeightUnits(10)).toBe(256);
   });
 });

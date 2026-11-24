@@ -607,24 +607,91 @@ export class TerrainRenderer {
     start: { x: number; y: number; z: number } | null,
     end: { x: number; y: number; z: number } | null
   ): void {
-    if (!start || !end) {
+    this.setRulerPath(start && end ? [start, end] : null);
+  }
+
+  /** Renders a multi-segment 3D measurement polyline (curves/waypoints) with drop ticks. */
+  setRulerPath(points: readonly { x: number; y: number; z: number }[] | null): void {
+    if (!points || points.length < 2) {
       if (this.rulerMesh) this.rulerMesh.visible = false;
       return;
     }
 
     const lift = 0.25;
-    const positions = new Float32Array([
-      start.x, start.y + lift, start.z, end.x, end.y + lift, end.z,
-      // Vertical drop ticks at both ends
-      start.x, start.y, start.z, start.x, start.y + lift * 2, start.z,
-      end.x, end.y, end.z, end.x, end.y + lift * 2, end.z,
-    ]);
-    const colors = new Float32Array([
+    const positions: number[] = [];
+    const colors: number[] = [];
+
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1]!;
+      const b = points[i]!;
+      positions.push(a.x, a.y + lift, a.z, b.x, b.y + lift, b.z);
+      colors.push(1.0, 0.85, 0.15, 1, 1.0, 0.85, 0.15, 1);
+    }
+
+    for (let i = 0; i < points.length; i++) {
+      const p = points[i]!;
+      const isFirst = i === 0;
+      const isLast = i === points.length - 1;
+      const tickTop = isFirst || isLast ? lift * 2 : lift * 1.6;
+      const r = isFirst ? 0.2 : 1.0;
+      const g = isFirst ? 0.95 : isLast ? 0.45 : 0.85;
+      const b = isFirst ? 1.0 : isLast ? 0.2 : 0.15;
+      positions.push(p.x, p.y, p.z, p.x, p.y + tickTop, p.z);
+      colors.push(r, g, b, 1, r, g, b, 1);
+    }
+
+    this.applyRulerGeometry(new Float32Array(positions), new Float32Array(colors));
+  }
+
+  /** Renders a terrain-hugging 3D impact radius circle + radius line from center to edge. */
+  setRulerRadius(
+    center: { x: number; y: number; z: number } | null,
+    edge: { x: number; y: number; z: number } | null,
+    radiusMeters: number
+  ): void {
+    if (!center || !edge || radiusMeters <= 0) {
+      if (this.rulerMesh) this.rulerMesh.visible = false;
+      return;
+    }
+
+    const lift = 0.25;
+    const segments = 48;
+    const positions: number[] = [];
+    const colors: number[] = [];
+
+    const sampleY = (wx: number, wz: number): number => {
+      const tx = Math.max(0, Math.min(this.grid.width, wx / TILE_SIZE_METERS));
+      const tz = Math.max(0, Math.min(this.grid.length, wz / TILE_SIZE_METERS));
+      return this.grid.sampleHeightAtTileCoord(tx, tz) * METERS_PER_HEIGHT_UNIT + lift;
+    };
+
+    for (let i = 0; i < segments; i++) {
+      const a0 = (i / segments) * Math.PI * 2;
+      const a1 = ((i + 1) / segments) * Math.PI * 2;
+      const x0 = center.x + Math.cos(a0) * radiusMeters;
+      const z0 = center.z + Math.sin(a0) * radiusMeters;
+      const x1 = center.x + Math.cos(a1) * radiusMeters;
+      const z1 = center.z + Math.sin(a1) * radiusMeters;
+      positions.push(x0, sampleY(x0, z0), z0, x1, sampleY(x1, z1), z1);
+      colors.push(1.0, 0.48, 0.22, 1, 1.0, 0.48, 0.22, 1);
+    }
+
+    // Radius line from center to edge + drop ticks
+    positions.push(
+      center.x, center.y + lift, center.z, edge.x, edge.y + lift, edge.z,
+      center.x, center.y, center.z, center.x, center.y + lift * 2, center.z,
+      edge.x, edge.y, edge.z, edge.x, edge.y + lift * 2, edge.z,
+    );
+    colors.push(
       1.0, 0.85, 0.15, 1, 1.0, 0.85, 0.15, 1,
       0.2, 0.95, 1.0, 1, 0.2, 0.95, 1.0, 1,
       1.0, 0.45, 0.2, 1, 1.0, 0.45, 0.2, 1,
-    ]);
+    );
 
+    this.applyRulerGeometry(new Float32Array(positions), new Float32Array(colors));
+  }
+
+  private applyRulerGeometry(positions: Float32Array, colors: Float32Array): void {
     const geometry = new Geometry3D({
       positions,
       colors,

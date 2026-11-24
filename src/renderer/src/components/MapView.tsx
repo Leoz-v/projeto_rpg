@@ -4,8 +4,10 @@ import type { GameMap } from '../../../shared/protocol';
 import { tokenHealth } from '../canvas/health';
 import { conditionLabels, timedEffectLabels, tokenConditions } from '../canvas/conditions';
 import { MapStage, type MapStageHandle } from '../canvas/MapStage';
+import { DEFAULT_RULER_OPTIONS, type RulerOptions } from '../canvas/ruler';
 import { sendIntent } from '../store/table';
 import { Map3DView } from './Map3DView';
+import { RulerOptionsBar } from './RulerControls';
 
 /**
  * O mapa ativo: liga o `MapStage` (PixiJS 2D) ou o `Map3DView` (PixiJS 3D) ao
@@ -41,6 +43,8 @@ function Map2DView({ view, selectedId, onSelect, onStage }: Omit<Props, 'onEdit3
   const host = useRef<HTMLDivElement>(null);
   const [stage, setStage] = useState<MapStage | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [rulerActive, setRulerActive] = useState(false);
+  const [rulerOptions, setRulerOptions] = useState<RulerOptions>({ ...DEFAULT_RULER_OPTIONS });
   // O palco é criado uma vez; os callbacks leem sempre a versão atual.
   const latest = useRef({ onSelect, onStage });
   useLayoutEffect(() => {
@@ -95,9 +99,55 @@ function Map2DView({ view, selectedId, onSelect, onStage }: Omit<Props, 'onEdit3
     });
   }, [stage, map, state.tokens, state.characters, state.combat, maxima, info.role, info.playerId, selectedId]);
 
+  useEffect(() => {
+    stage?.setRulerMode(rulerActive && map !== null);
+  }, [stage, rulerActive, map]);
+
+  useEffect(() => {
+    stage?.setRulerOptions(rulerOptions);
+  }, [stage, rulerOptions]);
+
+  useEffect(() => {
+    if (!map) return;
+    const onKeyDown = (e: KeyboardEvent): void => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+        return;
+      }
+      if (e.code === 'KeyR' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setRulerActive((prev) => !prev);
+      } else if (e.code === 'Escape') {
+        setRulerActive(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [map]);
+
   return (
     <section className="map" aria-label="Mapa">
       <div ref={host} className="map-canvas" />
+      {map && (
+        <>
+          <div className="map3d-hud" role="toolbar" aria-label="Ferramentas do mapa">
+            <button
+              type="button"
+              className={rulerActive ? 'active' : ''}
+              aria-pressed={rulerActive}
+              title="Medir distância ou área de impacto (R)"
+              onClick={() => {
+                setRulerActive((prev) => !prev);
+              }}
+            >
+              Régua
+            </button>
+          </div>
+          {rulerActive && <RulerOptionsBar options={rulerOptions} onChange={setRulerOptions} />}
+        </>
+      )}
       {!map && <p className="map-empty hint">{info.role === 'gm' ? 'Crie um mapa no painel ao lado para começar.' : 'O mestre ainda não mostrou um mapa.'}</p>}
       {error && (
         <p className="map-error error" role="alert">

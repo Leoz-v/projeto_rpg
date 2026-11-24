@@ -49,7 +49,9 @@ import {
   type LiquidSurface,
 } from '../terrain/liquidSurface';
 import { DEFAULT_OVERLAY_ID, DEFAULT_UNDERLAY_ID, VOID_OVERLAY_ID } from '../terrain/materials';
+import { formatRulerLabel, measureRuler } from '../../canvas/ruler';
 import {
+  METERS_PER_FOOT,
   METERS_PER_HEIGHT_UNIT,
   TILE_SIZE_FEET,
   TILE_SIZE_METERS,
@@ -326,7 +328,7 @@ export class ToolController {
 
   /** World-space Y offset (meters) of the Interior layer below Surface y = 0. */
   get interiorOffsetY(): number {
-    return -(this.interiorDepthFeet * TILE_SIZE_METERS) / TILE_SIZE_FEET;
+    return -this.interiorDepthFeet * METERS_PER_FOOT;
   }
 
   /** World-space Y offset (meters) of the currently active layer. */
@@ -1648,23 +1650,18 @@ export class ToolController {
     };
     this.renderer.setRulerLine(this.measureStart, end);
 
-    const dxTiles = Math.abs(hit.tileX - this.measureStart.tx);
-    const dzTiles = Math.abs(hit.tileZ - this.measureStart.tz);
-    const gridSquares = Math.max(dxTiles, dzTiles);
-    const gridFeet = gridSquares * TILE_SIZE_FEET;
-    const gridMeters = gridSquares * TILE_SIZE_METERS;
-    const elevDeltaFeet = Math.round(heightUnitsToFeet(endH - this.measureStart.hUnits));
-    const elevSign = elevDeltaFeet > 0 ? `+${elevDeltaFeet}` : `${elevDeltaFeet}`;
+    const measurement = measureRuler(
+      { x: this.measureStart.tx, y: this.measureStart.tz },
+      { x: hit.tileX, y: hit.tileZ },
+      heightUnitsToFeet(endH - this.measureStart.hUnits),
+    );
 
     const mid = {
       x: (this.measureStart.x + end.x) * 0.5,
       y: Math.max(this.measureStart.y, end.y) + this.activeLayerOffsetY + 0.75,
       z: (this.measureStart.z + end.z) * 0.5,
     };
-    this.scene.setRulerLabel(
-      mid,
-      `${gridFeet} ft (${gridMeters.toFixed(1)} m) · ${gridSquares} sq · Δh ${elevSign} ft`
-    );
+    this.scene.setRulerLabel(mid, formatRulerLabel(measurement));
   }
 
   private updatePreview(hit: TerrainPickHit | null, ray: Ray3 | null = this.lastHoverRay): void {

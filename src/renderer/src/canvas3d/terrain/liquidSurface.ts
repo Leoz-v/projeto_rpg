@@ -8,7 +8,7 @@
  */
 
 import type { MapLayerId } from '../map/mapDocument';
-import { TILE_SIZE_FEET, TILE_SIZE_METERS } from './constants';
+import { METERS_PER_FOOT, TILE_SIZE_METERS } from './constants';
 import type { Ray3 } from './raycast';
 
 export type LiquidPresetId =
@@ -170,11 +170,11 @@ const CONNECTION_LEVEL_EPS = 0.15;
 const MIN_SHARED_SPAN = 0.05;
 
 export function feetToWorldMeters(feet: number): number {
-  return (feet / TILE_SIZE_FEET) * TILE_SIZE_METERS;
+  return feet * METERS_PER_FOOT;
 }
 
 export function worldMetersToFeet(meters: number): number {
-  return (meters / TILE_SIZE_METERS) * TILE_SIZE_FEET;
+  return meters / METERS_PER_FOOT;
 }
 
 export function quantizeStep(value: number, step: number): number {

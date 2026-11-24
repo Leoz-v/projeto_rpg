@@ -1,10 +1,20 @@
 // O PixiJS gera código de shader com `new Function`, que a CSP da tela bloqueia; este módulo troca por versões prontas.
 import 'pixi.js/unsafe-eval';
 import { Application, Container, type FederatedPointerEvent, Graphics, ImageSource, Sprite, Text, Texture } from 'pixi.js';
+import type { GridCell } from 'rules-engine/space';
 import { type GameMap, type Point, type Token, WORLD_UNITS_PER_CELL } from '../../../shared/protocol';
-import { type Camera, fitMap, placeToken, screenToWorld, tokenSide, zoomAt } from './geometry';
+import { type Camera, fitMap, placeToken, screenToWorld, tokenSide, worldToScreen, zoomAt } from './geometry';
 import { type Health, healthColor } from './health';
 import { backgroundWorldSize } from './map-grid';
+import {
+  DEFAULT_RULER_OPTIONS,
+  formatRulerLabel,
+  gridCellCenterWorld,
+  measureRulerPath,
+  measureRulerRadius,
+  type RulerOptions,
+  worldToGridCell,
+} from './ruler';
 
 /**
  * O mapa em PixiJS v8, desacoplado do React (CLAUDE.md): a tela entrega a
@@ -49,6 +59,11 @@ const COLORS = {
   active: 0x5fd38d,
   condition: 0xffd166,
   label: 0xe8e6ef,
+  rulerLine: 0xffd166,
+  rulerStart: 0x38bdf8,
+  rulerEnd: 0xff7849,
+  rulerArea: 0xff7849,
+  rulerBadgeBg: 0x0f131a,
 };
 
 const ZOOM_SPEED = 0.0015;
@@ -103,6 +118,10 @@ export class MapStage {
   private readonly backgroundLayer = new Container();
   private readonly gridLayer = new Graphics();
   private readonly tokenLayer = new Container();
+  private readonly rulerLayer = new Graphics();
+  private readonly rulerHud = new Container();
+  private readonly rulerBadgeBg = new Graphics();
+  private readonly rulerBadgeText: Text;
   private readonly views = new Map<string, TokenView>();
   private readonly textures = new Map<string, Promise<Texture | null>>();
   private camera: Camera = { x: 0, y: 0, zoom: 1 };
@@ -110,18 +129,36 @@ export class MapStage {
   private shownMapKey = '';
   private drag: { id: string; offset: Point } | undefined;
   private pan: { from: Point; camera: Camera } | undefined;
+  private rulerMode = false;
+  private rulerOptions: RulerOptions = { ...DEFAULT_RULER_OPTIONS };
+  private rulerDragging = false;
+  private rulerPoints: GridCell[] = [];
   private destroyed = false;
 
   private constructor(
     private readonly app: Application,
     private readonly events: MapStageEvents,
   ) {
-    this.world.addChild(this.backgroundLayer, this.gridLayer, this.tokenLayer);
-    app.stage.addChild(this.world);
+    this.world.addChild(this.backgroundLayer, this.gridLayer, this.tokenLayer, this.rulerLayer);
+    this.rulerBadgeText = new Text({
+      text: '',
+      style: {
+        fill: COLORS.rulerLine,
+        fontSize: 13,
+        fontWeight: '700',
+        fontFamily: 'system-ui, sans-serif',
+      },
+      resolution: 2,
+    });
+    this.rulerBadgeText.anchor.set(0.5, 0.5);
+    this.rulerHud.addChild(this.rulerBadgeBg, this.rulerBadgeText);
+    this.rulerHud.visible = false;
+    this.rulerHud.eventMode = 'none';
+    app.stage.addChild(this.world, this.rulerHud);
     app.stage.eventMode = 'static';
     app.stage.hitArea = app.screen;
     app.stage.on('pointerdown', (e) => {
-      this.startPan(e);
+      this.stageDown(e);
     });
     app.stage.on('globalpointermove', (e) => {
       this.pointerMove(e);
@@ -166,10 +203,48 @@ export class MapStage {
     if (mapKey !== this.shownMapKey) {
       const changedMap = map?.id !== this.shownMapKey.split(':')[0];
       this.shownMapKey = mapKey;
+      if (changedMap) this.clearRuler();
       this.drawMap(map);
       if (map && changedMap) this.setCamera(fitMap(map, this.app.screen));
     }
     this.syncTokens();
+  }
+
+  /** Ativa ou desativa a ferramenta local de régua (sem `Intent`). */
+  setRulerMode(active: boolean): void {
+    if (this.destroyed) return;
+    this.rulerMode = active;
+    this.app.canvas.style.cursor = active ? 'crosshair' : '';
+    if (active) {
+      this.drag = undefined;
+      this.pan = undefined;
+    } else {
+      this.clearRuler();
+    }
+    for (const [id, view] of this.views) {
+      const token = this.scene.tokens.find((t) => t.id === id);
+      view.container.cursor = active ? 'crosshair' : token && this.scene.canDrag(token) ? 'grab' : 'pointer';
+    }
+  }
+
+  /** Atualiza modo (linha/raio) e unidade (`ft`/`m`) da régua. */
+  setRulerOptions(options: RulerOptions): void {
+    if (this.destroyed) return;
+    const shapeChanged = this.rulerOptions.shape !== options.shape;
+    this.rulerOptions = { ...options };
+    if (shapeChanged) {
+      this.clearRuler();
+    } else if (this.rulerPoints.length >= 2) {
+      this.renderRuler();
+    }
+  }
+
+  /** Limpa a medição atual da régua. */
+  clearRuler(): void {
+    this.rulerDragging = false;
+    this.rulerPoints = [];
+    this.rulerLayer.clear();
+    this.rulerHud.visible = false;
   }
 
   /** O Host recusou o movimento: o token volta para onde o estado diz. */
@@ -183,6 +258,104 @@ export class MapStage {
     this.camera = camera;
     this.world.position.set(camera.x, camera.y);
     this.world.scale.set(camera.zoom);
+    this.positionRulerHud();
+  }
+
+  private renderRuler(): void {
+    this.rulerLayer.clear();
+    const firstCell = this.rulerPoints[0];
+    const lastCell = this.rulerPoints[this.rulerPoints.length - 1];
+    if (this.rulerPoints.length < 2 || !firstCell || !lastCell) {
+      this.rulerHud.visible = false;
+      return;
+    }
+
+    const centers = this.rulerPoints.map(gridCellCenterWorld);
+    const first = gridCellCenterWorld(firstCell);
+    const last = gridCellCenterWorld(lastCell);
+    const measurement =
+      this.rulerOptions.shape === 'radius'
+        ? measureRulerRadius(firstCell, lastCell)
+        : measureRulerPath(this.rulerPoints);
+
+    if (this.rulerOptions.shape === 'radius') {
+      const radiusWorld =
+        measurement.squares > 0 ? measurement.squares * WORLD_UNITS_PER_CELL : WORLD_UNITS_PER_CELL * 0.5;
+      this.rulerLayer
+        .circle(first.x, first.y, radiusWorld)
+        .fill({ color: COLORS.rulerArea, alpha: 0.18 })
+        .stroke({ width: 6, color: COLORS.rulerEnd, alpha: 0.9 });
+      if (measurement.squares > 0) {
+        this.rulerLayer
+          .moveTo(first.x, first.y)
+          .lineTo(last.x, last.y)
+          .stroke({ width: 10, color: COLORS.outline, alpha: 0.7, cap: 'round' });
+        this.rulerLayer
+          .moveTo(first.x, first.y)
+          .lineTo(last.x, last.y)
+          .stroke({ width: 5, color: COLORS.rulerLine, alpha: 0.95, cap: 'round' });
+      }
+      this.rulerLayer
+        .circle(first.x, first.y, 12)
+        .fill(COLORS.rulerStart)
+        .stroke({ width: 4, color: COLORS.outline });
+      if (measurement.squares > 0) {
+        this.rulerLayer
+          .circle(last.x, last.y, 10)
+          .fill(COLORS.rulerEnd)
+          .stroke({ width: 4, color: COLORS.outline });
+      }
+    } else {
+      const hasLength = centers.some((p, i) => {
+        const prev = centers[i - 1];
+        return prev !== undefined && (p.x !== prev.x || p.y !== prev.y);
+      });
+      if (hasLength) {
+        this.rulerLayer.moveTo(first.x, first.y);
+        for (const pt of centers.slice(1)) {
+          this.rulerLayer.lineTo(pt.x, pt.y);
+        }
+        this.rulerLayer.stroke({ width: 12, color: COLORS.outline, alpha: 0.75, cap: 'round', join: 'round' });
+
+        this.rulerLayer.moveTo(first.x, first.y);
+        for (const pt of centers.slice(1)) {
+          this.rulerLayer.lineTo(pt.x, pt.y);
+        }
+        this.rulerLayer.stroke({ width: 6, color: COLORS.rulerLine, alpha: 0.95, cap: 'round', join: 'round' });
+      }
+      for (let i = 0; i < centers.length; i += 1) {
+        const pt = centers[i];
+        if (!pt) continue;
+        const isFirst = i === 0;
+        const isLast = i === centers.length - 1;
+        const fill = isFirst ? COLORS.rulerStart : isLast ? COLORS.rulerEnd : COLORS.rulerLine;
+        const r = isFirst || isLast ? 12 : 9;
+        this.rulerLayer.circle(pt.x, pt.y, r).fill(fill).stroke({ width: 4, color: COLORS.outline });
+      }
+    }
+
+    this.rulerBadgeText.text = formatRulerLabel(measurement, this.rulerOptions.unit);
+    const padX = 10;
+    const padY = 5;
+    const w = this.rulerBadgeText.width + padX * 2;
+    const h = this.rulerBadgeText.height + padY * 2;
+    this.rulerBadgeBg
+      .clear()
+      .roundRect(-w / 2, -h / 2, w, h, 6)
+      .fill({ color: COLORS.rulerBadgeBg, alpha: 0.9 })
+      .stroke({ width: 1.5, color: COLORS.rulerLine, alpha: 0.8 });
+    this.rulerHud.visible = true;
+    this.positionRulerHud();
+  }
+
+  private positionRulerHud(): void {
+    const prevCell = this.rulerPoints[this.rulerPoints.length - 2];
+    const currCell = this.rulerPoints[this.rulerPoints.length - 1];
+    if (!prevCell || !currCell || !this.rulerHud.visible) return;
+    const prev = gridCellCenterWorld(prevCell);
+    const curr = gridCellCenterWorld(currCell);
+    const midScreen = worldToScreen(this.camera, { x: (prev.x + curr.x) / 2, y: (prev.y + curr.y) / 2 });
+    this.rulerHud.position.set(midScreen.x, midScreen.y - 22);
   }
 
   private drawMap(map: GameMap | null): void {
@@ -249,7 +422,7 @@ export class MapStage {
       view.turn.visible = this.scene.activeId === token.id;
       drawHealthBar(view.bar, tokenSide(token.size), this.scene.health(token));
       if (this.drag?.id !== token.id) {
-        view.container.cursor = this.scene.canDrag(token) ? 'grab' : 'pointer';
+        view.container.cursor = this.rulerMode ? 'crosshair' : this.scene.canDrag(token) ? 'grab' : 'pointer';
         // Quem está sendo arrastado fica onde o ponteiro está, até soltar.
         view.container.position.set(token.position.x, token.position.y);
       }
@@ -316,6 +489,8 @@ export class MapStage {
   }
 
   private tokenDown(id: string, e: FederatedPointerEvent): void {
+    // Em modo régua, o clique sobre o token inicia a medição na célula dele.
+    if (this.rulerMode) return;
     // O clique no token não vira arrasto da câmera.
     e.stopPropagation();
     // Permissão conferida na hora (a cena pode ter mudado desde que o token foi desenhado).
@@ -331,12 +506,38 @@ export class MapStage {
     this.events.onSelect(id);
   }
 
-  private startPan(e: FederatedPointerEvent): void {
+  private stageDown(e: FederatedPointerEvent): void {
+    if (this.rulerMode) {
+      if (e.button === 0 && this.scene.map) {
+        const cell = worldToGridCell(screenToWorld(this.camera, e.global), this.scene.map);
+        if (this.rulerOptions.shape === 'line' && e.shiftKey && this.rulerPoints.length >= 2) {
+          this.rulerPoints = [...this.rulerPoints, cell];
+        } else {
+          this.rulerPoints = [cell, cell];
+        }
+        this.rulerDragging = true;
+        this.renderRuler();
+        return;
+      }
+      if (e.button === 1) {
+        this.pan = { from: { x: e.global.x, y: e.global.y }, camera: this.camera };
+      }
+      return;
+    }
     this.events.onSelect(null);
     this.pan = { from: { x: e.global.x, y: e.global.y }, camera: this.camera };
   }
 
   private pointerMove(e: FederatedPointerEvent): void {
+    if (this.rulerDragging && this.rulerPoints.length >= 2 && this.scene.map) {
+      const cell = worldToGridCell(screenToWorld(this.camera, e.global), this.scene.map);
+      const last = this.rulerPoints[this.rulerPoints.length - 1];
+      if (!last || cell.x !== last.x || cell.y !== last.y) {
+        this.rulerPoints = [...this.rulerPoints.slice(0, -1), cell];
+        this.renderRuler();
+      }
+      return;
+    }
     if (this.drag) {
       const world = screenToWorld(this.camera, e.global);
       this.views.get(this.drag.id)?.container.position.set(world.x - this.drag.offset.x, world.y - this.drag.offset.y);
@@ -349,6 +550,7 @@ export class MapStage {
   }
 
   private pointerUp(): void {
+    this.rulerDragging = false;
     this.pan = undefined;
     const drag = this.drag;
     if (!drag) return;
