@@ -137,6 +137,15 @@ export interface Spellcasting {
   keepConcentration: string[];
   /** Magias que o personagem pode conjurar e como (nota 0053). */
   castable: CastableSpell[];
+  /** Vantagem, Desvantagem e regras do d20 dos ataques de magia; o bônus vem de quem conjura (nota 0055). */
+  attackRoll: RollState;
+}
+
+/** De onde vem a magia conjurável: o atributo, a CD e o bônus de ataque (classe ou magia concedida). */
+export interface SpellCaster {
+  ability: Ability;
+  saveDc: number;
+  attack: Stat;
 }
 
 /** Uma magia conjurável: o círculo (0 = truque), as tags e as formas de conjurar. */
@@ -149,6 +158,8 @@ export interface CastableSpell {
   slots: boolean;
   /** Sem espaço: truque, concedida à vontade, ou concedida com usos por descanso (o recurso que ela gasta). */
   free?: 'cantrip' | 'at_will' | { resourceId: string } | undefined;
+  /** Atributos com que pode ser conjurada (uma magia pode vir de duas classes), sem repetir; a de maior CD primeiro. */
+  casters: SpellCaster[];
 }
 
 /** Classe em que o personagem pode ganhar o próximo nível. `problems` vazio = pode. */

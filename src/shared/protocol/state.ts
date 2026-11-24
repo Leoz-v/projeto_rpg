@@ -1,6 +1,6 @@
-import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, EffectSchema, InventorySchema, SizeSchema, TriggerMomentSchema, WeaponMasterySchema } from 'rules-engine/schemas';
+import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, DiceSchema, EffectSchema, IdSchema, InventorySchema, SizeSchema, TriggerMomentSchema, WeaponMasterySchema } from 'rules-engine/schemas';
 import { z } from 'zod';
-import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_COMBATANTS, MAX_HIT_POINTS, MAX_INITIATIVE, MAX_SAVE_TARGETS, MAX_TURN_TRIGGER_ITEMS, MIN_INITIATIVE } from './constants';
+import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_COMBATANTS, MAX_HIT_POINTS, MAX_INITIATIVE, MAX_SAVE_TARGETS, MAX_SPELL_PARTS, MAX_TURN_TRIGGER_ITEMS, MIN_INITIATIVE } from './constants';
 import { ChatTextSchema, ConcentrationSchema, HitDiceSpentSchema, HitDieSchema, SpellSlotRefSchema, SpellSlotsSpentSchema, ResourcesSpentSchema, ConditionStateSchema, DeathSavesSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 
 /** `SessionState` (docs/network-protocol.md, seção 5). */
@@ -31,6 +31,20 @@ const DamageGroupSchema = z.strictObject({
   rolls: z.array(DieSchema).max(200),
   total: z.int(),
 });
+/** Uma parte da magia já calculada para quem conjurou (nota 0055): dados no círculo usado, ataques ou projéteis. */
+const spellPartBase = {
+  label: LabelSchema.optional(),
+  damage: z.array(z.strictObject({ dice: DiceSchema, type: z.union([DamageTypeSchema, z.array(DamageTypeSchema).min(2).max(13)]) })).max(10),
+  count: z.int().min(1).max(MAX_SAVE_TARGETS),
+};
+export const SpellEffectPartSchema = z.discriminatedUnion('kind', [
+  z.strictObject({ ...spellPartBase, kind: z.literal('attack'), attackKind: z.enum(['melee', 'ranged']), onMiss: z.literal('half').optional(), onHitConditions: z.array(ConditionSchema).max(15) }),
+  z.strictObject({ ...spellPartBase, kind: z.literal('save'), ability: AbilitySchema, onSuccess: z.enum(['half', 'none']), onFailConditions: z.array(ConditionSchema).max(15) }),
+  z.strictObject({ ...spellPartBase, kind: z.literal('damage') }),
+]);
+export type SpellEffectPart = z.infer<typeof SpellEffectPartSchema>;
+/** Parte de magia usada por uma entrada (`spell.effect`): o `spell_cast` e o índice da parte. */
+const SpellOfSchema = z.strictObject({ entryId: UuidSchema, part: z.int().min(0).max(MAX_SPELL_PARTS - 1) });
 /** O d20 de uma rolagem, no log. */
 const d20Fields = {
   mode: z.enum(['normal', 'advantage', 'disadvantage']),
@@ -133,6 +147,8 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     mastery: z.strictObject({ property: WeaponMasterySchema, action: MasteryActionSchema.optional(), notes: LogList }).optional(),
     /** Segundo ataque do Cleave: o `attack_roll` de origem. */
     masteryOf: UuidSchema.optional(),
+    /** Ataque de magia (`spell.effect`): o `spell_cast` e a parte. */
+    spellOf: SpellOfSchema.optional(),
   }),
   /** Salvaguarda forçada (`save.force`): a CD, o dano rolado uma vez e o resultado de cada alvo. */
   z.strictObject({
@@ -151,6 +167,8 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     conditions: z.array(ConditionSchema).max(15),
     /** Salvaguarda do Topple: o `attack_roll` de origem. */
     masteryOf: UuidSchema.optional(),
+    /** Salvaguarda de magia (`spell.effect`): o `spell_cast` e a parte. */
+    spellOf: SpellOfSchema.optional(),
     results: z
       .array(
         z.strictObject({
@@ -190,6 +208,28 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     total: z.int().nonnegative(),
     defenses: LogList,
     proposalId: UuidSchema.optional(),
+  }),
+  /** Dano de magia sem ataque nem salvaguarda (`spell.effect`, Magic Missile): cada projétil rolado e depois das defesas do alvo. */
+  z.strictObject({
+    kind: z.literal('spell_damage'),
+    ...entryBase,
+    spellOf: SpellOfSchema,
+    casterName: NameSchema,
+    label: LabelSchema,
+    visibility: VisibilitySchema,
+    results: z
+      .array(
+        z.strictObject({
+          targetTokenId: UuidSchema,
+          targetName: NameSchema,
+          groups: z.array(DamageGroupSchema).min(1).max(20),
+          total: z.int().nonnegative(),
+          defenses: LogList,
+          proposalId: UuidSchema.optional(),
+        }),
+      )
+      .min(1)
+      .max(MAX_SAVE_TARGETS),
   }),
   /** Iniciativa rolada pelo Host (`combat.start`, `combat.add`): o resultado de cada token. */
   z.strictObject({
@@ -253,6 +293,19 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     description: z.string().min(1).max(6000),
     /** O que a conjuração gastou ("Espaço de 3º círculo (1/3)", "Misty Step (0/1)"). */
     notes: LogList,
+    /**
+     * Magia estruturada (nota 0055): quem conjurou e as partes calculadas no
+     * círculo usado, para `spell.effect`. Ausente nas magias só de texto.
+     */
+    effect: z
+      .strictObject({
+        spellId: IdSchema,
+        ability: AbilitySchema,
+        saveDc: z.int().min(1).max(40),
+        attackBonus: z.int().min(-20).max(40),
+        parts: z.array(SpellEffectPartSchema).min(1).max(MAX_SPELL_PARTS),
+      })
+      .optional(),
   }),
   /** Recurso gasto ou recuperado (nota 0052). */
   z.strictObject({
@@ -501,7 +554,7 @@ export type SessionCharacter = z.infer<typeof SessionCharacterSchema>;
 /** Dano proposto por um ataque, esperando o mestre aplicar ou descartar. Só o mestre vê. */
 export const DamageProposalSchema = z.strictObject({
   id: UuidSchema,
-  /** Entrada `attack_roll`, `save_roll` ou `mastery_damage` que gerou a proposta. */
+  /** Entrada `attack_roll`, `save_roll`, `mastery_damage` ou `spell_damage` que gerou a proposta. */
   entryId: UuidSchema,
   targetTokenId: UuidSchema,
   targetName: NameSchema,

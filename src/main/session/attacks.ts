@@ -1,5 +1,5 @@
 import { type Ability, applyDamage, applyHitPointChange, attackedConditions, cleaveDamageBonus, conditionDefenses, creatureD20, type Condition, CONDITION_NAME, creatureDefenses, creatureSaveBonus, d20Mode, d20StepNotes, damageNotes, type DamageType, type Defenses, grazeDamage, MASTERY_NAME, masteryOutcome, nextTurnRound, resolveAttack, resolveSave, rollActionDamage, type RollAgainst, rollD20, rollWeaponDamage, sheetD20, type SheetD20, TIMED_MASTERY_UNTIL, timedMastery, timedMasteryNote, toppleDc } from 'rules-engine';
-import { type ChatEntry, type TimedEffect, type IntentData, type PatchOp, type Role, type SessionState, type Token, toPointer } from '../../shared/protocol';
+import { type ChatEntry, type TimedEffect, type IntentData, type PatchOp, type Role, type SessionState, type Token, toPointer, type Visibility } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
 import { timedEffectEntry } from './combat';
 import { changeCharacterHp } from './vitality';
@@ -79,6 +79,61 @@ export function targetOf(ctx: SessionContext, token: Token): { ac: number; defen
   return { ac: creature.ac, defenses: conditionDefenses(ctx.conditionsOf(token).conditions, defenses), reminders };
 }
 
+/** O que pesa num ataque além da ficha do atacante: as condições do alvo e os efeitos de maestria do combate. */
+export interface AttackCircumstances {
+  advantage: string[];
+  disadvantage: string[];
+  reminders: string[];
+  /** Condições do alvo que tornam o acerto crítico (Paralisado, Inconsciente a até 5 ft). */
+  autoCritical: string[];
+  /** Efeitos temporários gastos neste ataque (Sap, Vex). */
+  used: Set<string>;
+}
+
+/**
+ * Condições do alvo (Vantagem contra Impedido, Caído pela distância, crítico
+ * automático contra Paralisado a até 5 ft) e efeitos temporários das
+ * maestrias: Sap pesa no próximo ataque do alvo; Vex ajuda o próximo do
+ * atacante contra ele. Os dois se gastam no ataque.
+ */
+export function attackCircumstances(ctx: SessionContext, attackerToken: Token | undefined, target: Token, spent: ReadonlySet<string> = new Set()): AttackCircumstances {
+  const against = attackedConditions(ctx.conditionsOf(target).conditions, ctx.distanceBetween(attackerToken, target));
+  const result: AttackCircumstances = {
+    advantage: against.advantage.map((s) => s.name),
+    disadvantage: against.disadvantage.map((s) => s.name),
+    reminders: against.reminders,
+    autoCritical: against.autoCritical.map((s) => s.name),
+    used: new Set(),
+  };
+  const combat = ctx.current.combat;
+  if (combat && attackerToken) {
+    // `spent`: já gastos por um ataque anterior da mesma ação (os raios do Scorching Ray).
+    for (const effect of combat.effects.filter((e) => !spent.has(e.id))) {
+      const source = ctx.current.tokens[effect.sourceTokenId]?.name ?? 'Token removido';
+      if (effect.kind === 'sap' && effect.targetTokenId === attackerToken.id) {
+        result.disadvantage.push(`Sap (${source})`);
+        result.used.add(effect.id);
+      } else if (effect.kind === 'vex' && effect.sourceTokenId === attackerToken.id && effect.targetTokenId === target.id) {
+        result.advantage.push('Vex');
+        result.used.add(effect.id);
+      }
+    }
+  }
+  return result;
+}
+
+/** O d20 do atacante com as circunstâncias do alvo e do combate (Vantagem e Desvantagem se anulam). */
+export function withCircumstances(d20: SheetD20, around: AttackCircumstances): SheetD20 {
+  const advantage = [...d20.advantage, ...around.advantage];
+  const disadvantage = [...d20.disadvantage, ...around.disadvantage];
+  return { ...d20, input: { ...d20.input, mode: d20Mode(advantage.length > 0, disadvantage.length > 0) }, advantage, disadvantage, reminders: [...d20.reminders, ...around.reminders] };
+}
+
+/** Nota do crítico que veio da condição do alvo, não do 20 natural. */
+export function autoCriticalNotes(result: { critical: boolean; roll: { critical: boolean } }, autoCritical: readonly string[]): string[] {
+  return result.critical && !result.roll.critical ? [`Acerto Crítico: alvo ${autoCritical.join(', ')} a até 5 ft`] : [];
+}
+
 /**
  * Ataque contra um token: o Host rola contra a CA do alvo e, no acerto,
  * rola o dano e aplica as defesas do alvo com o motor. O dano vira uma
@@ -143,33 +198,15 @@ export function makeAttack(ctx: SessionContext, playerId: string, role: Role, da
     rollDamage = (critical) => ({ groups: rollActionDamage(action.damage, critical, ctx.deps.rng), bonus: 0 });
   }
   const defender = targetOf(ctx, target);
-  // Condições do alvo: Vantagem contra Impedido, Caído pela distância, crítico automático contra Paralisado a até 5 ft.
-  const against = attackedConditions(ctx.conditionsOf(target).conditions, ctx.distanceBetween(attackerToken, target));
-  // Efeitos temporários das maestrias: Sap pesa no próximo ataque do alvo; Vex ajuda o próximo do atacante contra ele. Gastam-se aqui.
-  const combat = ctx.current.combat;
-  const used = new Set<string>();
-  const fromEffects = { advantage: [] as string[], disadvantage: [] as string[] };
-  if (combat && attackerToken) {
-    for (const effect of combat.effects) {
-      const source = ctx.current.tokens[effect.sourceTokenId]?.name ?? 'Token removido';
-      if (effect.kind === 'sap' && effect.targetTokenId === attackerToken.id) {
-        fromEffects.disadvantage.push(`Sap (${source})`);
-        used.add(effect.id);
-      } else if (effect.kind === 'vex' && effect.sourceTokenId === attackerToken.id && effect.targetTokenId === target.id) {
-        fromEffects.advantage.push('Vex');
-        used.add(effect.id);
-      }
-    }
-  }
-  const advantage = [...d20.advantage, ...against.advantage.map((s) => s.name), ...fromEffects.advantage];
-  const disadvantage = [...d20.disadvantage, ...against.disadvantage.map((s) => s.name), ...fromEffects.disadvantage];
-  d20 = { ...d20, input: { ...d20.input, mode: d20Mode(advantage.length > 0, disadvantage.length > 0) }, advantage, disadvantage, reminders: [...d20.reminders, ...against.reminders] };
+  const around = attackCircumstances(ctx, attackerToken, target);
+  const used = around.used;
+  d20 = withCircumstances(d20, around);
   const result = resolveAttack(
-    { d20: d20.input, targetAc: defender.ac, rollDamage, defenses: defender.defenses, autoCritical: against.autoCritical.length > 0 },
+    { d20: d20.input, targetAc: defender.ac, rollDamage, defenses: defender.defenses, autoCritical: around.autoCritical.length > 0 },
     ctx.deps.rng,
   );
-  const autoCriticalNote =
-    result.critical && !result.roll.critical ? [`Acerto Crítico: alvo ${against.autoCritical.map((s) => s.name).join(', ')} a até 5 ft`] : [];
+  const autoCriticalNote = autoCriticalNotes(result, around.autoCritical);
+  const combat = ctx.current.combat;
   const damaged = (result.damage?.applied.total ?? 0) > 0;
   let mastery = weapon?.mastery(result.hit, damaged);
   // Com combate e o atacante nele, Sap, Vex e Slow viram efeitos temporários de verdade (até o próximo turno do atacante).
@@ -406,7 +443,7 @@ export function applyProposal(ctx: SessionContext, playerId: string, proposalId:
  */
 export function forceSave(ctx: SessionContext, playerId: string, role: Role, data: IntentData<'save.force'>): PatchOp[] {
   let actorName: string;
-  let effect: { name: string; ability: Ability; dc: number; damage: { dice: string; type: DamageType }[]; onSuccess: 'half' | 'none'; conditions: Condition[] };
+  let effect: SaveEffect;
   if ('tokenId' in data.source) {
     const token = ctx.token(data.source.tokenId);
     if (role !== 'gm' && !token.ownerIds.includes(playerId)) throw notAllowed('Você não controla este token');
@@ -422,7 +459,30 @@ export function forceSave(ctx: SessionContext, playerId: string, role: Role, dat
   }
   const targets = data.targetTokenIds.map((id) => ctx.token(id));
   const against: RollAgainst | undefined = data.against ?? (effect.conditions[0] ? { condition: effect.conditions[0] } : undefined);
+  return rollSaves(ctx, playerId, { actorName, effect, targets, against, visibility: data.visibility });
+}
 
+/** Um efeito com CD que os alvos precisam salvar: a regra comum a `save.force` e às magias (`spell.effect`). */
+export interface SaveEffect {
+  name: string;
+  ability: Ability;
+  dc: number;
+  damage: { dice: string; type: DamageType }[];
+  onSuccess: 'half' | 'none';
+  conditions: Condition[];
+}
+
+/**
+ * Rola o dano uma vez e a salvaguarda de cada alvo, com as defesas dele; o
+ * dano de cada um vira proposta para o mestre. Devolve a entrada `save_roll`
+ * e as propostas.
+ */
+export function rollSaves(
+  ctx: SessionContext,
+  playerId: string,
+  options: { actorName: string; effect: SaveEffect; targets: Token[]; against: RollAgainst | undefined; visibility: Visibility; spellOf?: { entryId: string; part: number } },
+): PatchOp[] {
+  const { actorName, effect, targets, against } = options;
   // Dano rolado uma vez para todos os alvos (SRD 5.2.1, "Damage against Multiple Targets").
   const groups = rollActionDamage(effect.damage, false, ctx.deps.rng);
   const rolled = groups.map((g) => ({ amount: g.total, type: g.type }));
@@ -472,9 +532,10 @@ export function forceSave(ctx: SessionContext, playerId: string, role: Role, dat
     ability: effect.ability,
     dc: effect.dc,
     onSuccess: effect.onSuccess,
-    visibility: data.visibility,
+    visibility: options.visibility,
     ...(groups.length > 0 ? { damage: { groups, total: rolled.reduce((sum, d) => sum + d.amount, 0) } } : {}),
     conditions: effect.conditions,
+    ...(options.spellOf ? { spellOf: options.spellOf } : {}),
     results,
   };
   return [ctx.appendChat(entry), ...ops];

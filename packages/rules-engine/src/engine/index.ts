@@ -11,7 +11,7 @@ export { ABILITY_ROLL_DICE, ABILITY_ROLL_SIDES, type AbilityRollSet, rollAbility
 export { applyHitPointChange, clampHitPoints, currentHitPoints, type HitPointChange, isBloodied, type HitPointResult, type HitPointState } from './hit-points';
 export { DEATH_SAVE_DC, type DeathDamageEvent, deathAfterDamage, deathAfterHealing, type DeathSaveOutcome, type DeathSaveState, isDying, NO_DEATH_SAVES, resolveDeathSave } from './death';
 export { concentrationDc } from './concentration';
-export { addDice, addFlat, cantripTier, multiplyDice, type ResolvedSpellDamage, type ResolvedSpellPart, resolveSpellParts, type SpellCastOptions } from './spells';
+export { addDice, addFlat, cantripTier, multiplyDice, type ResolvedSpellDamage, type ResolvedSpellPart, resolveSpellParts, type SpellCastOptions, spellDamageWith } from './spells';
 export { availableHitDice, exhaustionAfterLongRest, type HitDiceSpent, hitDieHealing, MIN_HP_TO_REST } from './rest';
 export { availableSpellSlots, NO_SPELL_SLOTS_SPENT, type SlotPool, type SpellSlotsSpent, spellSlotsAfterRest } from './spell-slots';
 export { availableUses, type ResourceRechargeRule, type ResourcesSpent, resourcesAfterRest } from './resources';
@@ -28,6 +28,7 @@ export {
   type SheetD20,
   sheetD20,
   type SheetRollTarget,
+  spellAttackD20,
   type WeaponDamageRoll,
 } from './sheet-roll';
 export {

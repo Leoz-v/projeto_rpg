@@ -1,7 +1,7 @@
 import { AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, DiceSchema, EffectSchema, IdSchema, SizeSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { ChatTextSchema, CreatureTargetSchema, DeathSavesSchema, HitDieSchema, SpellSlotRefSchema, InstanceIdSchema, TurnEdgeSchema, LabelSchema, MAX_EXHAUSTION_LEVEL, RollAgainstSchema, TableConditionSchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
-import { MAX_ADJUSTMENT_EFFECTS, MAX_COINS, MAX_COMBATANTS, MAX_FORMULA_DICE, MAX_FORMULA_LENGTH, MAX_HIT_POINTS, MAX_ITEM_QUANTITY, MAX_SAVE_TARGETS } from './constants';
+import { MAX_ADJUSTMENT_EFFECTS, MAX_COINS, MAX_COMBATANTS, MAX_FORMULA_DICE, MAX_FORMULA_LENGTH, MAX_HIT_POINTS, MAX_ITEM_QUANTITY, MAX_SAVE_TARGETS, MAX_SPELL_PARTS } from './constants';
 import { InitiativeSchema, VisibilitySchema } from './state';
 
 /** Catálogo de `Intent` (docs/network-protocol.md, seção 3). */
@@ -204,7 +204,32 @@ export const IntentSchema = z.discriminatedUnion('kind', [
   }),
   z.strictObject({ kind: z.literal('condition.remove'), data: z.strictObject({ target: CreatureTargetSchema, condition: TableConditionSchema }) }),
   z.strictObject({ kind: z.literal('exhaustion.set'), data: z.strictObject({ target: CreatureTargetSchema, level: z.int().min(0).max(MAX_EXHAUSTION_LEVEL) }) }),
-  z.strictObject({ kind: z.literal('spell.cast'), data: z.strictObject({ characterId: UuidSchema, spellId: IdSchema, using: z.union([z.strictObject({ slot: SpellSlotRefSchema }), z.literal('free'), z.literal('ritual')]) }) }),
+  z.strictObject({
+    kind: z.literal('spell.cast'),
+    data: z.strictObject({
+      characterId: UuidSchema,
+      spellId: IdSchema,
+      using: z.union([z.strictObject({ slot: SpellSlotRefSchema }), z.literal('free'), z.literal('ritual')]),
+      /** Atributo de conjuração, se a magia vem de mais de uma fonte (sem isso, o de maior CD). */
+      ability: AbilitySchema.optional(),
+    }),
+  }),
+  z.strictObject({
+    kind: z.literal('spell.effect'),
+    data: z.strictObject({
+      /** O `spell_cast` com a magia estruturada. */
+      entryId: UuidSchema,
+      /** Índice da parte em `effect.parts`. */
+      part: z.int().min(0).max(MAX_SPELL_PARTS - 1),
+      /** Ataque e dano direto: um alvo por ataque ou projétil (pode repetir). Salvaguarda: alvos distintos. */
+      targetTokenIds: z.array(UuidSchema).min(1).max(MAX_SAVE_TARGETS),
+      /** Tipo escolhido, quando a parte deixa a escolha para quem conjura (Chromatic Orb). */
+      damageType: DamageTypeSchema.optional(),
+      /** Ataque: Vantagem ou Desvantagem declarada. */
+      advantage: z.boolean().optional(),
+      disadvantage: z.boolean().optional(),
+    }),
+  }),
   z.strictObject({ kind: z.literal('resource.spend'), data: z.strictObject({ characterId: UuidSchema, resourceId: IdSchema, amount: z.int().min(1).max(100).optional() }) }),
   z.strictObject({ kind: z.literal('resource.restore'), data: z.strictObject({ characterId: UuidSchema, resourceId: IdSchema, amount: z.int().min(1).max(100).optional() }) }),
   z.strictObject({ kind: z.literal('spell_slot.spend'), data: z.strictObject({ characterId: UuidSchema, slot: SpellSlotRefSchema }) }),

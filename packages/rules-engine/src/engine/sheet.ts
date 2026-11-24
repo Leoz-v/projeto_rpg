@@ -825,10 +825,15 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
   // --- Magias conjuráveis (nota 0053) -----------------------------------------
 
   const castableMap = new Map<string, CastableSpell>();
-  const addCastable = (spellId: string, slots: boolean, free: CastableSpell['free']): void => {
+  const addCastable = (spellId: string, slots: boolean, free: CastableSpell['free'], ability: Ability): void => {
     const spell = find(compendium.spells, spellId);
     if (!spell) return;
     const known = castableMap.get(spellId);
+    const casters = known?.casters ?? [];
+    if (!casters.some((c) => c.ability === ability)) {
+      casters.push({ ability, saveDc: spellDc(ability).total, attack: spellAttack(ability) });
+      casters.sort((a, b) => b.saveDc - a.saveDc || b.attack.total - a.attack.total);
+    }
     castableMap.set(spellId, {
       spellId,
       level: spell.level,
@@ -836,19 +841,22 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       concentration: spell.concentration,
       slots: (known?.slots ?? false) || (slots && spell.level > 0),
       free: known?.free ?? free,
+      casters,
     });
   };
   for (const c of casterClasses) {
-    for (const id of c.cantrips) addCastable(id, false, 'cantrip');
-    for (const id of c.spells) addCastable(id, true, undefined);
+    for (const id of c.cantrips) addCastable(id, false, 'cantrip', c.ability);
+    for (const id of c.spells) addCastable(id, true, undefined, c.ability);
   }
   for (const g of granted) {
     const spellLevel = find(compendium.spells, g.spellId)?.level ?? 0;
-    if (g.uses === 'at_will' || spellLevel === 0) addCastable(g.spellId, false, spellLevel === 0 ? 'cantrip' : 'at_will');
-    else if (g.uses === 'slot') addCastable(g.spellId, true, undefined);
-    else addCastable(g.spellId, g.uses.slots === true, { resourceId: `spell_${g.spellId}` });
+    if (g.uses === 'at_will' || spellLevel === 0) addCastable(g.spellId, false, spellLevel === 0 ? 'cantrip' : 'at_will', g.ability);
+    else if (g.uses === 'slot') addCastable(g.spellId, true, undefined, g.ability);
+    else addCastable(g.spellId, g.uses.slots === true, { resourceId: `spell_${g.spellId}` }, g.ability);
   }
   const castable = [...castableMap.values()];
+  // Ataque de magia: as Vantagens e Desvantagens de `attack.spell` e `attack.all`, e as condições de quem conjura.
+  const spellAttackRoll = rollState(['attack.spell', 'attack.all'], { attack: { kind: 'spell', properties: [] } }, [], [], { kind: 'attack' });
 
   // --- Concentração (nota 0045) ---------------------------------------------
 
@@ -886,7 +894,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     proficiencies,
     weaponMasteries,
     attacks,
-    spellcasting: { classes: casterClasses, slots: spellSlots(casterLevel), pactSlots, granted, canCast: armorTrained, concentration: concentrationSpells, keepConcentration, castable },
+    spellcasting: { classes: casterClasses, slots: spellSlots(casterLevel), pactSlots, granted, canCast: armorTrained, concentration: concentrationSpells, keepConcentration, castable, attackRoll: spellAttackRoll },
     feats: build.feats,
     features: build.features,
     conditions,

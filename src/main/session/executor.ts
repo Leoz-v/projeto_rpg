@@ -9,7 +9,7 @@ import { changeConditions } from './conditions';
 import { cancelRest, finishRest, spendHitDie, startRest } from './rest';
 import { changeSpellSlot } from './spell-slots';
 import { changeResource } from './resources';
-import { castSpell } from './casting';
+import { castSpell, useSpellEffect } from './casting';
 import { createMap, createToken, moveToken, roll } from './map-tokens';
 import { changeHp, concentrate, concentrationBreaks, deathStateEntry, endConcentration, inCombat, rollDeathSave } from './vitality';
 
@@ -197,6 +197,8 @@ export class HostSession extends SessionContext {
       }
       case 'spell.cast':
         return castSpell(this, playerId, role, intent.data);
+      case 'spell.effect':
+        return useSpellEffect(this, playerId, role, intent.data);
       case 'resource.spend':
       case 'resource.restore':
         return changeResource(this, playerId, role, intent);

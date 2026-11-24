@@ -89,12 +89,16 @@ export interface ResolvedSpellDamage {
   type: DamageType | DamageType[];
 }
 
-/** Uma parte da magia com os dados e a quantidade já calculados para quem conjura. */
-export type ResolvedSpellPart = Omit<SpellPart, 'damage' | 'count'> & {
-  damage: ResolvedSpellDamage[];
-  /** Ataques ou projéteis (1 sem `count`). */
-  count: number;
-};
+/** Uma parte da magia com os dados e a quantidade já calculados para quem conjura (mantém o `kind` discriminado). */
+export type ResolvedSpellPart = SpellPart extends infer P
+  ? P extends SpellPart
+    ? Omit<P, 'damage' | 'count'> & {
+        damage: ResolvedSpellDamage[];
+        /** Ataques ou projéteis (1 sem `count`). */
+        count: number;
+      }
+    : never
+  : never;
 
 export function resolveSpellParts(spell: Spell, options: SpellCastOptions): ResolvedSpellPart[] {
   const above = spell.level === 0 ? 0 : Math.max(0, (options.slotLevel ?? spell.level) - spell.level);
@@ -110,4 +114,19 @@ export function resolveSpellParts(spell: Spell, options: SpellCastOptions): Reso
     const base = (count?.base ?? 1) + (count?.perSlot ?? 0) * above;
     return { ...rest, damage: resolved, count: spell.cantripUpgrade === 'count' ? base * tier : base };
   });
+}
+
+/**
+ * Os danos de uma parte com o tipo já decidido: quem conjura escolhe entre os
+ * tipos da lista (Chromatic Orb). `undefined` se a parte pede a escolha e ela
+ * falta ou não está na lista; uma escolha numa parte sem lista é ignorada.
+ */
+export function spellDamageWith(damage: readonly ResolvedSpellDamage[], chosen: DamageType | undefined): { dice: string; type: DamageType }[] | undefined {
+  const result: { dice: string; type: DamageType }[] = [];
+  for (const d of damage) {
+    if (typeof d.type === 'string') result.push({ dice: d.dice, type: d.type });
+    else if (chosen !== undefined && d.type.includes(chosen)) result.push({ dice: d.dice, type: chosen });
+    else return undefined;
+  }
+  return result;
 }
