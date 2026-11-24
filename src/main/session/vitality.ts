@@ -176,7 +176,7 @@ export function concentrate(ctx: SessionContext, playerId: string, role: Role, c
   if (effectiveConditions(character.conditions.active.map((c) => c.condition)).has('incapacitated')) throw violation(`${character.name} está Incapacitado`);
   if (!sheet.spellcasting.concentration.includes(spellId)) throw violation('Esta magia não está na ficha ou não exige Concentração');
   if (character.concentration?.spellId === spellId) throw violation(`${character.name} já está concentrado nesta magia`);
-  const name = (ctx.deps.spellName(spellId) ?? spellId).slice(0, 100);
+  const name = (ctx.deps.spell(spellId)?.name ?? spellId).slice(0, 100);
   return [
     ...(character.concentration ? endConcentration(ctx, playerId, character, 'replaced') : []),
     { op: 'replace', path: toPointer('characters', character.id, 'concentration'), value: { spellId, name } },

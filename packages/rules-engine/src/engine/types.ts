@@ -135,6 +135,20 @@ export interface Spellcasting {
   concentration: string[];
   /** Magias cuja Concentração o dano não quebra (`keep_concentration`). */
   keepConcentration: string[];
+  /** Magias que o personagem pode conjurar e como (nota 0053). */
+  castable: CastableSpell[];
+}
+
+/** Uma magia conjurável: o círculo (0 = truque), as tags e as formas de conjurar. */
+export interface CastableSpell {
+  spellId: string;
+  level: number;
+  ritual: boolean;
+  concentration: boolean;
+  /** Pode usar um espaço de magia (magia de classe, ou concedida que aceita espaços). */
+  slots: boolean;
+  /** Sem espaço: truque, concedida à vontade, ou concedida com usos por descanso (o recurso que ela gasta). */
+  free?: 'cantrip' | 'at_will' | { resourceId: string } | undefined;
 }
 
 /** Classe em que o personagem pode ganhar o próximo nível. `problems` vazio = pode. */

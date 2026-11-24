@@ -17,6 +17,7 @@ import { ConcentrationControl } from './Concentration';
 import { HitDiceControl } from './Rest';
 import { SpellSlotsControl } from './SpellSlots';
 import { ResourcesControl } from './Resources';
+import { CastSpellForm } from './Casting';
 import { Inventory } from './Inventory';
 import { ABILITY_LABEL, CONDITION_LABEL, DAMAGE_LABEL, humanizeId, nameOf, SENSE_LABEL, SIZE_LABEL, signed, SKILL_LABEL } from './sheet-labels';
 
@@ -357,7 +358,7 @@ function Attacks({ sheet, roller, onSelect }: { sheet: DerivedSheet; roller: Rol
   );
 }
 
-function Spellcasting({ sheet, names, onSelect, slots }: { sheet: DerivedSheet; names: Record<string, string>; onSelect: (d: Detail) => void; slots: ReactNode }) {
+function Spellcasting({ sheet, names, onSelect, slots, cast }: { sheet: DerivedSheet; names: Record<string, string>; onSelect: (d: Detail) => void; slots: ReactNode; cast: ReactNode }) {
   const { classes, granted } = sheet.spellcasting;
   if (classes.length === 0 && granted.length === 0) return null;
   return (
@@ -374,6 +375,7 @@ function Spellcasting({ sheet, names, onSelect, slots }: { sheet: DerivedSheet; 
         </div>
       ))}
       {slots}
+      {cast}
       {granted.length > 0 && (
         <p className="hint">
           Concedidas: {granted.map((g) => `${nameOf(g.spellId, names)} (${g.source.name})`).join(', ')}
@@ -597,6 +599,7 @@ export function CharacterSheet({ view, characterId, onClose }: { view: TableView
                       names={load.view.names}
                       onSelect={setDetail}
                       slots={<SpellSlotsControl character={record} spellcasting={load.view.sheet.spellcasting} canEdit={canEdit} />}
+                      cast={canEdit ? <CastSpellForm character={record} sheet={load.view.sheet} names={load.view.names} /> : null}
                     />
                     <Traits sheet={load.view.sheet} names={load.view.names} onSelect={setDetail} />
                   </div>

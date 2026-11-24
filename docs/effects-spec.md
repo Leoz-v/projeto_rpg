@@ -379,6 +379,7 @@ Regra que muda o resultado de um Teste d20 (ataque, salvaguarda ou teste de atri
 - `recharge`: `long_rest` (o descanso longo devolve todos), `short_rest` (o curto ou o longo devolvem todos) ou `short_rest_one` (o curto devolve 1, o longo todos).
 - **Mesmo `id` de várias fontes:** vale o maior `max` e a recarga mais generosa (`short_rest` > `short_rest_one` > `long_rest`); o nome é o da primeira fonte.
 - A ficha lista os recursos em `resources`, já resolvidos. Usar o recurso (o que ele faz) continua com o jogador e o mestre; o motor só conta os usos.
+- **Magias concedidas com usos por descanso** (`grant_spell` com `uses: { per, count }`, seção 3.6) viram recursos automáticos, com id `spell_<id da magia>`, o nome da magia e a recarga do `per` (`long_rest`, ou `short_rest` para `short_rest`). Conjurar sem espaço gasta deles (nota 0053).
 
 ## 4. Ordem de cálculo da ficha
 

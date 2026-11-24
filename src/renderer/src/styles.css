@@ -2097,3 +2097,32 @@ button.small {
 input.resource-amount {
   width: 4.5rem;
 }
+
+/* Conjurar (nota 0053) */
+
+.cast-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.4rem 0;
+}
+
+.cast-form select {
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.entry.spell-cast {
+  border-left: 3px solid var(--accent);
+}
+
+.entry.spell-cast details {
+  margin-top: 0.3rem;
+}
+
+.spell-text {
+  white-space: pre-wrap;
+  font-size: 0.9rem;
+}

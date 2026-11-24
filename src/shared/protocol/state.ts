@@ -236,6 +236,24 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     targetTokenId: UuidSchema,
     targetName: NameSchema,
   }),
+  /** Magia conjurada (nota 0053), com o texto para a mesa ler. */
+  z.strictObject({
+    kind: z.literal('spell_cast'),
+    ...entryBase,
+    characterId: UuidSchema,
+    characterName: NameSchema,
+    spellName: NameSchema,
+    /** Círculo da magia (0 = truque). */
+    level: z.int().min(0).max(9),
+    using: z.union([z.strictObject({ slot: SpellSlotRefSchema }), z.literal('free'), z.literal('ritual')]),
+    castingTime: LabelSchema,
+    range: LabelSchema,
+    duration: LabelSchema,
+    concentration: z.boolean(),
+    description: z.string().min(1).max(6000),
+    /** O que a conjuração gastou ("Espaço de 3º círculo (1/3)", "Misty Step (0/1)"). */
+    notes: LogList,
+  }),
   /** Recurso gasto ou recuperado (nota 0052). */
   z.strictObject({
     kind: z.literal('resource'),

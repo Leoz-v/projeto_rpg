@@ -33,7 +33,7 @@ function setup(overrides: Partial<SessionDeps> = {}): HostSession {
     characterSheet: (c) => characterSheet(c, compendium).sheet ?? undefined,
     monsterHpMax: (id) => (id === 'goblin' ? 7 : undefined),
     creature: (id) => compendium.creatures.find((c) => c.id === id),
-    spellName: (id) => compendium.spells.find((s) => s.id === id)?.name,
+    spell: (id) => compendium.spells.find((s) => s.id === id),
     assetExists: (sha) => sha === KNOWN_IMAGE,
     ...overrides,
   });
@@ -365,7 +365,7 @@ describe('HostSession: characters', () => {
   it('restores saved characters', () => {
     const first = setup();
     const id = create(first, ANA.playerId);
-    const restored = new HostSession(CAMPAIGN, GM, { rng: cryptoRng, now: Date.now, newId: randomUUID, monsterExists: () => false, assetExists: () => false, pruneSteps: (s) => s, itemProblems: () => [], characterSheet: () => undefined, monsterHpMax: () => undefined, creature: () => undefined, spellName: () => undefined }, first.state);
+    const restored = new HostSession(CAMPAIGN, GM, { rng: cryptoRng, now: Date.now, newId: randomUUID, monsterExists: () => false, assetExists: () => false, pruneSteps: (s) => s, itemProblems: () => [], characterSheet: () => undefined, monsterHpMax: () => undefined, creature: () => undefined, spell: () => undefined }, first.state);
     expect(restored.state.characters[id]?.name).toBe('Thorin');
   });
 });
@@ -2007,5 +2007,84 @@ describe('HostSession: class and species resources (note 0052)', () => {
     expect(p.spent()).toEqual({ lay_on_hands: 12 });
     p.rest('long');
     expect(p.spent()).toEqual({});
+  });
+});
+
+describe('HostSession: casting spells (note 0053)', () => {
+  type Fixture = { character: { baseScores: SessionCharacter['baseScores']; steps: SessionCharacter['steps'] } };
+
+  function wizard() {
+    const session = setup({ itemProblems: () => [] });
+    session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Elara' } });
+    const id = Object.keys(session.state.characters)[0] ?? '';
+    const fixture = elfWizard as Fixture;
+    session.handle(ANA.playerId, {
+      kind: 'character.update',
+      data: { characterId: id, baseScores: fixture.character.baseScores ?? undefined, steps: CharacterSchema.shape.steps.parse(fixture.character.steps) },
+    });
+    const cast = (spellId: string, using: { slot: { level: number } | 'pact' } | 'free' | 'ritual', who = ANA.playerId) =>
+      session.handle(who, { kind: 'spell.cast', data: { characterId: id, spellId, using } });
+    const character = () => session.state.characters[id] as SessionCharacter;
+    return { session, id, cast, character, last: (kind: string) => [...session.state.chat].reverse().find((e) => e.kind === kind) };
+  }
+
+  it('casts a cantrip for free and a leveled spell with a slot, the cost in the same chat entry', () => {
+    const w = wizard();
+    expect(applied(w.cast('fire_bolt', 'free'))).toBe(true);
+    expect(w.session.state.chat.at(-1)).toMatchObject({ kind: 'spell_cast', spellName: 'Fire Bolt', level: 0, using: 'free', concentration: false, notes: [] });
+    expect(w.character().spellSlotsSpent).toEqual({ byLevel: {}, pact: 0 });
+    expect(applied(w.cast('magic_missile', { slot: { level: 1 } }))).toBe(true);
+    expect(w.character().spellSlotsSpent).toEqual({ byLevel: { '1': 1 }, pact: 0 });
+    expect(w.session.state.chat.at(-1)).toMatchObject({ kind: 'spell_cast', spellName: 'Magic Missile', using: { slot: { level: 1 } }, notes: ['Espaço de 1º círculo: 3/4'] });
+    expect(w.session.state.chat.some((e) => e.kind === 'spell_slot')).toBe(false);
+    // Em círculo maior.
+    w.cast('magic_missile', { slot: { level: 2 } });
+    expect(w.last('spell_cast')).toMatchObject({ notes: ['Espaço de 2º círculo: 2/3', 'Conjurada em círculo maior (2º)'] });
+    expect(SessionStateSchema.safeParse(w.session.state).success).toBe(true);
+  });
+
+  it('refuses the wrong way to cast, a slot too low and unknown spells', () => {
+    const w = wizard();
+    expect(rejection(w.cast('magic_missile', 'free'))).toBe('rule_violation');
+    expect(rejection(w.cast('fire_bolt', { slot: { level: 1 } }))).toBe('rule_violation');
+    expect(rejection(w.cast('fly', { slot: { level: 2 } }))).toBe('rule_violation');
+    expect(rejection(w.cast('fire_bolt', 'ritual'))).toBe('rule_violation');
+    expect(rejection(w.cast('cure_wounds', { slot: { level: 1 } }))).toBe('rule_violation');
+    expect(rejection(w.cast('fire_bolt', 'free', BRUNO.playerId))).toBe('not_allowed');
+    expect(w.session.state.chat).toEqual([]);
+  });
+
+  it('a Concentration spell becomes the Concentration; casting it again keeps it', () => {
+    const w = wizard();
+    w.cast('fly', { slot: { level: 3 } });
+    expect(w.character().concentration).toEqual({ spellId: 'fly', name: 'Fly' });
+    expect(w.last('concentration')).toMatchObject({ event: 'started', spellName: 'Fly' });
+    w.cast('fly', { slot: { level: 3 } });
+    expect(w.session.state.chat.filter((e) => e.kind === 'concentration')).toHaveLength(1);
+    w.cast('greater_invisibility', { slot: { level: 4 } });
+    expect(w.character().concentration?.spellId).toBe('greater_invisibility');
+    expect(w.session.state.chat.filter((e) => e.kind === 'concentration').at(-2)).toMatchObject({ event: 'ended', reason: 'replaced' });
+  });
+
+  it('a spell granted once per Long Rest is cast for free from its use, and rituals need no slot', () => {
+    const w = wizard();
+    expect(applied(w.cast('misty_step', 'free'))).toBe(true);
+    expect(w.character().resourcesSpent).toEqual({ spell_misty_step: 1 });
+    expect(w.last('spell_cast')).toMatchObject({ notes: ['Uso de Misty Step: 0/1'] });
+    expect(rejection(w.cast('misty_step', 'free'))).toBe('rule_violation');
+    // Também pelo grimório, com espaço.
+    expect(applied(w.cast('misty_step', { slot: { level: 2 } }))).toBe(true);
+    expect(applied(w.cast('detect_magic', 'ritual'))).toBe(true);
+    expect(w.last('spell_cast')).toMatchObject({ using: 'ritual', notes: ['Ritual: sem espaço, 10 minutos a mais'] });
+  });
+
+  it('casting a spell other than a cantrip interrupts the rest of the caster', () => {
+    const w = wizard();
+    w.session.handle(GM.playerId, { kind: 'rest.start', data: { kind: 'short', characterIds: [w.id] } });
+    w.cast('fire_bolt', 'free');
+    expect(w.session.state.rest).not.toBeNull();
+    w.cast('magic_missile', { slot: { level: 1 } });
+    expect(w.session.state.rest).toBeNull();
+    expect(w.last('rest')).toMatchObject({ event: 'interrupted', notes: ['Conjurou uma magia: o descanso não vale'] });
   });
 });
