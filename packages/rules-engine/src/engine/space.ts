@@ -34,6 +34,12 @@ export interface Footprint {
   size: Size;
 }
 
+/** Coordenada de uma célula inteira no grid (0-based). */
+export interface GridCell {
+  x: number;
+  y: number;
+}
+
 /**
  * Distância entre duas criaturas em pés, contando os quadrados entre os
  * espaços delas, com a diagonal valendo 5 ft (SRD 5.2.1, grid): vizinhas
@@ -45,4 +51,14 @@ export function distanceFeet(a: Footprint, b: Footprint): number {
   const gapX = Math.max(0, b.x - (a.x + sideA), a.x - (b.x + sideB));
   const gapY = Math.max(0, b.y - (a.y + sideA), a.y - (b.y + sideB));
   return (Math.ceil(Math.max(gapX, gapY)) + 1) * FEET_PER_SQUARE;
+}
+
+/**
+ * Distância entre duas células do grid em pés, usando a mesma regra de
+ * `distanceFeet` (diagonal = 5 ft, SRD 5.2.1): a própria célula mede 0 ft;
+ * células vizinhas (inclusive na diagonal) medem 5 ft.
+ */
+export function cellDistanceFeet(from: GridCell, to: GridCell): number {
+  if (from.x === to.x && from.y === to.y) return 0;
+  return distanceFeet({ x: from.x, y: from.y, size: 'medium' }, { x: to.x, y: to.y, size: 'medium' });
 }

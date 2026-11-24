@@ -41,6 +41,7 @@ function Map2DView({ view, selectedId, onSelect, onStage }: Omit<Props, 'onEdit3
   const host = useRef<HTMLDivElement>(null);
   const [stage, setStage] = useState<MapStage | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [rulerActive, setRulerActive] = useState(false);
   // O palco é criado uma vez; os callbacks leem sempre a versão atual.
   const latest = useRef({ onSelect, onStage });
   useLayoutEffect(() => {
@@ -95,9 +96,48 @@ function Map2DView({ view, selectedId, onSelect, onStage }: Omit<Props, 'onEdit3
     });
   }, [stage, map, state.tokens, state.characters, state.combat, maxima, info.role, info.playerId, selectedId]);
 
+  useEffect(() => {
+    stage?.setRulerMode(rulerActive && map !== null);
+  }, [stage, rulerActive, map]);
+
+  useEffect(() => {
+    if (!map) return;
+    const onKeyDown = (e: KeyboardEvent): void => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+        return;
+      }
+      if (e.code === 'KeyR' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setRulerActive((prev) => !prev);
+      } else if (e.code === 'Escape') {
+        setRulerActive(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [map]);
+
   return (
     <section className="map" aria-label="Mapa">
       <div ref={host} className="map-canvas" />
+      {map && (
+        <div className="map3d-hud" role="toolbar" aria-label="Ferramentas do mapa">
+          <button
+            type="button"
+            className={rulerActive ? 'active' : ''}
+            aria-pressed={rulerActive}
+            title="Medir distância em pés (R)"
+            onClick={() => {
+              setRulerActive((prev) => !prev);
+            }}
+          >
+            Régua
+          </button>
+        </div>
+      )}
       {!map && <p className="map-empty hint">{info.role === 'gm' ? 'Crie um mapa no painel ao lado para começar.' : 'O mestre ainda não mostrou um mapa.'}</p>}
       {error && (
         <p className="map-error error" role="alert">

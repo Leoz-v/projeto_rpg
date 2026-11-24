@@ -21,8 +21,8 @@ import {
 import { Assets, Texture, type Ticker } from 'pixi.js';
 import type { MapLayerId, SerializedProp } from '../map/mapDocument';
 import {
+  METERS_PER_FOOT,
   METERS_PER_HEIGHT_UNIT,
-  TILE_SIZE_FEET,
   TILE_SIZE_METERS,
 } from '../terrain/constants';
 import type { TerrainGrid } from '../terrain/terrainGrid';
@@ -128,8 +128,6 @@ interface ModelMetrics {
   localSizeY: number;
   localSizeZ: number;
 }
-
-const METERS_PER_FOOT = TILE_SIZE_METERS / TILE_SIZE_FEET;
 
 export class AssetManager {
   private readonly propsRoot: Container3D;

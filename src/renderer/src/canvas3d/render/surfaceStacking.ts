@@ -13,7 +13,7 @@
  *    exact horizontal center, while smaller props sit cleanly wherever aimed on the top face.
  */
 
-import { METERS_PER_HEIGHT_UNIT, TILE_SIZE_FEET, TILE_SIZE_METERS } from '../terrain/constants';
+import { METERS_PER_FOOT, METERS_PER_HEIGHT_UNIT, TILE_SIZE_METERS } from '../terrain/constants';
 import type { Ray3 } from '../terrain/raycast';
 import type { TerrainGrid } from '../terrain/terrainGrid';
 import { getRotatedFootprint, type WorldLabAssetEntry } from './modelScalePolicy';
@@ -49,8 +49,6 @@ export interface StackSnapResult {
     readonly y: number;
   };
 }
-
-const METERS_PER_FOOT = TILE_SIZE_METERS / TILE_SIZE_FEET;
 
 export function isStackSupportCandidate(entry: WorldLabAssetEntry): boolean {
   if (entry.category === 'fx') return false;

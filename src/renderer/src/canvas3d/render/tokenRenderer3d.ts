@@ -198,6 +198,7 @@ export class TokenRenderer3d {
 
   private drag: { tokenId: string; moved: boolean } | null = null;
   private downClient: { x: number; y: number } | null = null;
+  private interactionEnabled = true;
   private lastViewMode: CameraViewMode;
   private destroyed = false;
 
@@ -229,6 +230,16 @@ export class TokenRenderer3d {
 
     this.lastViewMode = this.sceneMgr.viewMode;
     this.attachPointerListeners();
+  }
+
+  /** Habilita ou pausa a seleção e o arrasto de tokens (ex.: durante o uso da régua). */
+  setInteractionEnabled(enabled: boolean): void {
+    this.interactionEnabled = enabled;
+    if (!enabled && this.drag) {
+      const id = this.drag.tokenId;
+      this.drag = null;
+      this.revert(id);
+    }
   }
 
   /** Sincroniza os tokens 3D e a HUD com o estado atual da mesa. */
@@ -564,7 +575,7 @@ export class TokenRenderer3d {
     canvas.addEventListener(
       'pointerdown',
       (e) => {
-        if (e.button !== 0) return;
+        if (!this.interactionEnabled || e.button !== 0) return;
         this.downClient = { x: e.clientX, y: e.clientY };
         const ray = this.sceneMgr.clientPointToRay(e.clientX, e.clientY);
         const visibleTokens = Array.from(this.entries.values(), (entry) => entry.token);
@@ -608,7 +619,7 @@ export class TokenRenderer3d {
       this.downClient = null;
 
       if (!activeDrag) {
-        if (down && e.button === 0 && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5) {
+        if (this.interactionEnabled && down && e.button === 0 && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5) {
           const ray = this.sceneMgr.clientPointToRay(e.clientX, e.clientY);
           const visibleTokens = Array.from(this.entries.values(), (entry) => entry.token);
           if (!pickToken3d(ray, visibleTokens, this.grid, this.sceneMgr.viewMode)) {

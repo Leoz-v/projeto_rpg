@@ -1,9 +1,11 @@
+import { FEET_PER_SQUARE } from 'rules-engine/space';
+
 /**
  * D&D 5e / 2024 spatial scale constants adapted from WorldLab.
  *
  * WorldLab uses 128 engine units per tile (~1 m).
  * In this D&D prototype:
- *   - 1 tile edge = 1.5 meters = 5 feet (standard tactical battlemap cell).
+ *   - 1 tile edge = 1.5 meters = `FEET_PER_SQUARE` (5 feet, from `rules-engine/space`).
  *   - Internal integer height units keep WorldLab's 128-unit granularity per tile
  *     so all WorldLab sculpt math, slope thresholds, and rock-facet normals port 1:1.
  *   - Converting internal height units -> world meters: height * (TILE_SIZE_METERS / HEIGHT_UNITS_PER_TILE).
@@ -11,7 +13,8 @@
  */
 
 export const TILE_SIZE_METERS = 1.5;
-export const TILE_SIZE_FEET = 5;
+export const TILE_SIZE_FEET = FEET_PER_SQUARE;
+export const METERS_PER_FOOT = TILE_SIZE_METERS / TILE_SIZE_FEET;
 export const HEIGHT_UNITS_PER_TILE = 128;
 export const METERS_PER_HEIGHT_UNIT = TILE_SIZE_METERS / HEIGHT_UNITS_PER_TILE;
 export const FEET_PER_HEIGHT_UNIT = TILE_SIZE_FEET / HEIGHT_UNITS_PER_TILE;
