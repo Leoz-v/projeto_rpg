@@ -30,18 +30,18 @@ export interface FogViewer {
 }
 
 const RGBA_CLEAR = [0, 0, 0, 0] as const;
-/** Névoa opaca para jogadores (manual ou nunca explorada). */
-const RGBA_PLAYER_OPAQUE = [10, 9, 18, 255] as const;
-/** Véu semitransparente para células lembradas fora da visão atual. */
-const RGBA_PLAYER_EXPLORED = [10, 9, 18, 145] as const;
-/** Névoa manual vista pelo mestre (semitransparente em índigo para distinguir da automática). */
+/** Névoa opaca (invisível/preto) para células nunca vistas ou sob névoa manual. */
+const RGBA_PLAYER_OPAQUE = [8, 7, 14, 255] as const;
+/** Véu escuro (semitransparente) para células já vistas antes, fora da visão atual. */
+const RGBA_PLAYER_EXPLORED = [8, 7, 14, 145] as const;
+/** Névoa manual vista pelo mestre no modo geral (semitransparente em índigo para o mestre continuar vendo o mapa). */
 const RGBA_GM_MANUAL = [22, 16, 52, 155] as const;
-/** Área fora da visão de todos os jogadores vista pelo mestre (véu leve). */
-const RGBA_GM_AUTO = [10, 9, 18, 70] as const;
-/** Névoa manual na pré-visualização de token do mestre (quase opaca em índigo). */
-const RGBA_GM_PREVIEW_MANUAL = [22, 16, 52, 225] as const;
-/** Área não vista na pré-visualização de token do mestre (quase opaca para orientar o mestre). */
-const RGBA_GM_PREVIEW_UNSEEN = [10, 9, 18, 225] as const;
+/** Área fora da visão de todos os jogadores vista pelo mestre no modo geral (véu leve). */
+const RGBA_GM_AUTO = [8, 7, 14, 70] as const;
+/** Névoa manual na pré-visualização de token do mestre (100% opaca, igual ao jogador). */
+const RGBA_GM_PREVIEW_MANUAL = [16, 12, 34, 255] as const;
+/** Área não vista na pré-visualização de token do mestre (100% opaca, igual ao jogador). */
+const RGBA_GM_PREVIEW_UNSEEN = [8, 7, 14, 255] as const;
 
 function writePixel(data: Uint8ClampedArray, offset: number, rgba: readonly [number, number, number, number]): void {
   data[offset] = rgba[0];

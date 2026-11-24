@@ -162,14 +162,19 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
       scene.configureForMap(surfaceGrid.width, surfaceGrid.length);
 
       const ruler3d = new RulerTool3d(scene, surfaceRenderer, surfaceGrid);
-      const fog3d = new FogLayer3d(scene, surfaceGrid, {
-        onFogPaint: (mapId, mode, cells) => {
-          void sendIntent({ kind: 'fog.manual.paint', data: { mapId, mode, cells } }).then(setError);
+      const fog3d = new FogLayer3d(
+        scene,
+        surfaceGrid,
+        {
+          onFogPaint: (mapId, mode, cells) => {
+            void sendIntent({ kind: 'fog.manual.paint', data: { mapId, mode, cells } }).then(setError);
+          },
+          onFogRect: (mapId, mode, from, to) => {
+            void sendIntent({ kind: 'fog.manual.rect', data: { mapId, mode, from, to } }).then(setError);
+          },
         },
-        onFogRect: (mapId, mode, from, to) => {
-          void sendIntent({ kind: 'fog.manual.rect', data: { mapId, mode, from, to } }).then(setError);
-        },
-      });
+        assets,
+      );
       const tokens3d = new TokenRenderer3d(scene, surfaceGrid, {
         onSelect: (id) => {
           latest.current.onSelect(id);
@@ -220,6 +225,7 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
       }
       if (isCancelled()) return;
 
+      fog3d.syncPropVisibility();
       lighting.syncLightSources(surfaceGrid, assets.getPlacedForLayer('surface'), 0);
       scene.fitSunShadows();
       setLoading(false);

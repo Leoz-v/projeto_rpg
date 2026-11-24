@@ -5,6 +5,7 @@ import { fillFogImageData, fogSignature, type FogTool, type FogViewer } from '..
 import { METERS_PER_HEIGHT_UNIT, TILE_SIZE_METERS } from '../terrain/constants';
 import { pickTerrain } from '../terrain/raycast';
 import type { TerrainGrid } from '../terrain/terrainGrid';
+import type { AssetManager } from './assetManager';
 import type { SceneManager } from './sceneManager';
 
 /**
@@ -73,12 +74,14 @@ export class FogLayer3d {
   private shownKey = '';
   private brush: { mapId: string; mode: FogMode; cells: Map<string, FogCell> } | undefined;
   private rect: { mapId: string; mode: FogMode; from: FogCell; to: FogCell } | undefined;
+  private lastFogRgba: Uint8ClampedArray | undefined;
   private destroyed = false;
 
   constructor(
     private readonly sceneMgr: SceneManager,
     private readonly grid: TerrainGrid,
     private readonly events: FogLayer3dEvents,
+    private readonly assets?: AssetManager,
   ) {
     this.fogCanvas = document.createElement('canvas');
     this.fogCanvas.width = grid.width;
@@ -143,6 +146,8 @@ export class FogLayer3d {
     if (this.map && this.map.width === width && this.map.height === height) {
       fillFogImageData(imageData.data, this.map, this.tokens, this.viewer);
     }
+    this.lastFogRgba = new Uint8ClampedArray(imageData.data);
+    this.syncPropVisibility();
 
     // Sobrepõe pré-visualização da ferramenta ativa (pincel ou retângulo) diretamente na textura.
     if (this.brush) {
@@ -165,6 +170,26 @@ export class FogLayer3d {
 
     ctx2d.putImageData(imageData, 0, 0);
     this.fogTexture.source.update();
+  }
+
+  /** Oculta objetos/paredes 3D em células 100% cobertas pela névoa (nunca vistas ou névoa manual). */
+  syncPropVisibility(): void {
+    if (!this.assets || this.destroyed) return;
+    const rgba = this.lastFogRgba;
+    const width = this.grid.width;
+    const height = this.grid.length;
+    for (const layer of ['surface', 'interior'] as const) {
+      for (const prop of this.assets.getPlacedForLayer(layer)) {
+        let hidden = false;
+        if (rgba) {
+          const col = Math.min(width - 1, Math.max(0, Math.floor(prop.tileX)));
+          const row = Math.min(height - 1, Math.max(0, Math.floor(prop.tileZ)));
+          hidden = (rgba[(row * width + col) * 4 + 3] ?? 0) >= 255;
+        }
+        prop.model.visible = !hidden;
+        if (prop.shadowDisc) prop.shadowDisc.visible = !hidden;
+      }
+    }
   }
 
   private paintPreviewPixel(
