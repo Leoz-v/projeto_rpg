@@ -314,6 +314,30 @@ const ConditionEffectSchema = z.discriminatedUnion('condition', [
   z.strictObject({ type: z.literal('condition'), condition: ConditionSchema.exclude(['exhaustion']), ...common }),
 ]);
 
+// --- reminder (3.21), turn_start_heal (3.22) --------------------------------
+
+/** Momento do combate em que o Host publica um lembrete (nota 0043). */
+export const TriggerMomentSchema = z.enum(['initiative', 'turn_start', 'turn_end']);
+export type TriggerMoment = z.infer<typeof TriggerMomentSchema>;
+
+const ReminderSchema = z.strictObject({
+  type: z.literal('reminder'),
+  on: TriggerMomentSchema,
+  ...common,
+  /** O texto do lembrete (pt-BR): obrigatório neste tipo. */
+  note: z.string().min(1),
+});
+
+const TurnStartHealSchema = z.strictObject({
+  type: z.literal('turn_start_heal'),
+  value: z.int().min(0).max(100),
+  /** Soma o modificador do atributo. */
+  ability: Ability.optional(),
+  /** Só Sangrando (metade dos PV ou menos) e com pelo menos 1 PV. */
+  bloodiedOnly: z.boolean(),
+  ...common,
+});
+
 // --- União -------------------------------------------------------------------
 
 export const EffectSchema = z.discriminatedUnion('type', [
@@ -341,6 +365,8 @@ export const EffectSchema = z.discriminatedUnion('type', [
   HalfProficiencySchema,
   GrantSpeedSchema,
   AttackAbilitySchema,
+  ReminderSchema,
+  TurnStartHealSchema,
 ]);
 export type Effect = z.infer<typeof EffectSchema>;
 export type EffectType = Effect['type'];

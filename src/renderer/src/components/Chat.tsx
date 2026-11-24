@@ -167,6 +167,25 @@ function Entry({ entry, author, context }: { entry: ChatEntry; author: string; c
         </li>
       );
     }
+    case 'turn_trigger': {
+      const moment = { initiative: 'Iniciativa', turn_start: 'Início do turno', turn_end: 'Fim do turno' }[entry.on];
+      return (
+        <li className="entry turn-trigger">
+          <p>
+            <strong>
+              {moment} de {entry.name}
+            </strong>
+          </p>
+          <ul className="turn-trigger-items">
+            {entry.items.map((item, i) => (
+              <li key={i}>
+                <span className="roll-label">{item.source}:</span> {item.healed !== undefined ? `recupera ${item.healed} PV` : item.text}
+              </li>
+            ))}
+          </ul>
+        </li>
+      );
+    }
     case 'combat_event':
       return (
         <li className="entry combat-event">

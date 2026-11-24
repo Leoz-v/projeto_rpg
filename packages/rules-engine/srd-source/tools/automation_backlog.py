@@ -54,10 +54,9 @@ FEATURE = {
         "class:warlock/pact_magic",
     ],
     "automate": {},
+    # Lembretes de iniciativa e de turno (`reminder`, nota 0043) já saíram; fica a Concentração (Fase 5, PR 5).
     "phase_5": [
-        "feat:alert/initiative_swap", "class:barbarian/persistent_rage", "class:bard/superior_inspiration", "class:monk/uncanny_metabolism",
-        "class:monk/perfect_focus", "class:druid/archdruid", "class:ranger/relentless_hunter", "subclass:thief/thiefs_reflexes",
-        "subclass:champion/heroic_warrior", "class:monk/self_restoration", "subclass:berserker/mindless_rage",
+        "class:ranger/relentless_hunter",
     ],
     "gm": [
         "species:elf/trance", "species:halfling/halfling_nimbleness", "species:halfling/naturally_stealthy", "species:gnome/clockwork_device",
@@ -65,6 +64,11 @@ FEATURE = {
         "subclass:hunter/hunters_lore", "class:druid/beast_spells", "feat:boon_of_the_night_spirit/shadowy_form",
         "class:warlock/investment_of_the_chain_master",
     ],
+}
+# Motivos específicos, no lugar do motivo da categoria.
+FEATURE_REASON_OVERRIDE = {
+    "class:ranger/relentless_hunter": "Concentração em Hunter's Mark que o dano não quebra (Concentração, Fase 5).",
+    "subclass:berserker/mindless_rage": "Imunidade enquanto a Fúria está ativa: depende do estado de Rage, que é recurso e ação (como Rage).",
 }
 FEATURE_REASONS = {
     "structural": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte.",
@@ -150,7 +154,7 @@ for fid in dict.fromkeys(features):
         put(key, "automate", "Passivo: vale sempre que a característica está ativa.", FEATURE["automate"][fid])
     else:
         cat = next((c for c in ("structural", "phase_5", "gm") if fid in FEATURE[c]), "phase_4")
-        put(key, cat, FEATURE_REASONS[cat])
+        put(key, cat, FEATURE_REASON_OVERRIDE.get(fid, FEATURE_REASONS[cat]))
 
 # Itens mágicos sem efeito.
 for it in load("magic-items.json"):
@@ -167,10 +171,12 @@ for it in load("magic-items.json"):
 # Valor: (categoria, motivo, mecânica só para `automate`).
 PARTIAL = {
     "item:sun_blade#undead_damage": ("phase_4", "+1d8 Radiant ao acertar um Undead: dano que depende do alvo (resolução do ataque).", None),
-    "item:boots_of_striding_and_springing#jump": ("phase_5", "Salto de 30 ft gastando 10 ft de movimento, uma vez por turno (movimento no turno).",
+    "item:boots_of_striding_and_springing#jump": ("gm", "Salto de 30 ft gastando 10 ft de movimento, uma vez por turno: o movimento não é controlado pelo Host.",
                                                   None),
-    "feature:subclass:champion/survivor#heroic_rally": ("phase_5", "Heroic Rally: recupera PV no início de cada turno se estiver Bloodied (turnos de combate).",
-                                                        None),
+    "feature:class:druid/archdruid#nature_magician": ("phase_4", "Nature Magician: converte usos de Wild Shape num espaço de magia (recurso). Longevity é narrativa.",
+                                                      None),
+    "feature:class:barbarian/persistent_rage#rage_duration": ("phase_4", "Rage dura 10 minutos sem precisar ser estendida: depende do estado de Rage (recurso e ação).",
+                                                              None),
     "monster_trait:greater_magic_resistance#spell_attacks_miss": ("phase_4", "Ataques de magia erram a criatura automaticamente (resolução do ataque).",
                                                                   None),
 }

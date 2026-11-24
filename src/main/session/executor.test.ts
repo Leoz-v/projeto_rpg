@@ -1370,3 +1370,125 @@ describe('HostSession: turn-bound durations and timed masteries', () => {
   });
 });
 
+
+describe('HostSession: turn and initiative reminders (note 0043)', () => {
+  const sequence = (values: number[]) => {
+    let i = 0;
+    return { roll: () => values[i++ % values.length] ?? 1 };
+  };
+  const fighter = dwarfFighter as { character: { baseScores: SessionCharacter['baseScores']; steps: SessionCharacter['steps'] } };
+
+  /** Thorin (com os efeitos num ajuste do mestre) e um Goblin Warrior; Thorin rola 19 com Vantagem e vem primeiro. */
+  function table(effects: unknown[]) {
+    const session = setup({
+      rng: sequence([19, 19, 5, 3]),
+      itemProblems: () => [],
+      monsterExists: (id) => compendium.creatures.some((c) => c.id === id),
+      monsterHpMax: (id) => compendium.creatures.find((c) => c.id === id)?.hp.average,
+    });
+    session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10 } });
+    const mapId = Object.keys(session.state.maps)[0] ?? '';
+    session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Thorin' } });
+    const hero = Object.keys(session.state.characters)[0] ?? '';
+    session.handle(ANA.playerId, {
+      kind: 'character.update',
+      data: { characterId: hero, baseScores: fighter.character.baseScores ?? undefined, steps: CharacterSchema.shape.steps.parse(fighter.character.steps) },
+    });
+    const add = session.handle(GM.playerId, { kind: 'adjustment.add', data: { characterId: hero, name: 'Bênção', effects: effects as never } });
+    if (!applied(add)) throw new Error('ajuste recusado');
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Thorin', position: { x: 100, y: 100 }, size: 'medium', characterId: hero } });
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Goblin', position: { x: 300, y: 100 }, size: 'small', monsterId: 'goblin_warrior' } });
+    const id = (name: string) => Object.values(session.state.tokens).find((t) => t.name === name)?.id ?? '';
+    const thorin = id('Thorin');
+    const goblin = id('Goblin');
+    const max = characterSheet(session.state.characters[hero] as SessionCharacter, compendium).sheet?.hpMax.total ?? 0;
+    return {
+      session,
+      hero,
+      thorin,
+      goblin,
+      max,
+      start: (tokenIds = [thorin, goblin]) => session.handle(GM.playerId, { kind: 'combat.start', data: { tokenIds } }),
+      next: () => session.handle(GM.playerId, { kind: 'combat.next', data: {} }),
+      damage: (amount: number) => session.handle(GM.playerId, { kind: 'hp.change', data: { target: { characterId: hero }, change: { kind: 'damage', amount } } }),
+      triggers: () => session.state.chat.filter((e) => e.kind === 'turn_trigger'),
+    };
+  }
+
+  it('posts the initiative reminders after the initiative roll, and the turn start ones for the first combatant', () => {
+    const t = table([
+      { type: 'reminder', on: 'initiative', note: 'Recupera os usos.' },
+      { type: 'reminder', on: 'turn_start', note: 'Pode se dar Inspiração.' },
+    ]);
+    expect(applied(t.start())).toBe(true);
+    const kinds = t.session.state.chat.map((e) => e.kind);
+    expect(kinds.indexOf('turn_trigger')).toBeGreaterThan(kinds.indexOf('initiative_roll'));
+    expect(t.triggers()).toEqual([
+      expect.objectContaining({ on: 'initiative', tokenId: t.thorin, name: 'Thorin', items: [{ source: 'Bênção', text: 'Recupera os usos.' }] }),
+      expect.objectContaining({ on: 'turn_start', tokenId: t.thorin, items: [{ source: 'Bênção', text: 'Pode se dar Inspiração.' }] }),
+    ]);
+    // Goblin (sem ficha) não tem lembretes; a vez dele não gera nada.
+    t.next();
+    expect(t.triggers()).toHaveLength(2);
+    // Rodada 2, vez do Thorin: o lembrete do início do turno volta; o da iniciativa, não.
+    t.next();
+    expect(t.triggers().map((e) => e.on)).toEqual(['initiative', 'turn_start', 'turn_start']);
+    expect(SessionStateSchema.safeParse(t.session.state).success).toBe(true);
+  });
+
+  it('posts the initiative reminders of tokens added to a combat in progress', () => {
+    const t = table([{ type: 'reminder', on: 'initiative', note: 'Pode trocar a iniciativa.' }]);
+    t.start([t.goblin]);
+    expect(t.triggers()).toEqual([]);
+    t.session.handle(GM.playerId, { kind: 'combat.add', data: { tokenIds: [t.thorin] } });
+    expect(t.triggers()).toEqual([expect.objectContaining({ on: 'initiative', tokenId: t.thorin })]);
+  });
+
+  it('Heroic Rally: heals 5 + CON at the start of the turn while Bloodied with at least 1 HP', () => {
+    const t = table([{ type: 'turn_start_heal', value: 5, ability: 'con', bloodiedOnly: true }]);
+    // Não está Sangrando: nada.
+    t.damage(1);
+    t.start();
+    expect(t.triggers()).toEqual([]);
+    expect(t.session.state.characters[t.hero]?.hp.damage).toBe(1);
+    // Sangrando: CON 16 (+3), recupera 8 no próximo turno dele.
+    const half = Math.ceil(t.max / 2);
+    t.damage(half);
+    t.next();
+    t.next();
+    expect(t.session.state.characters[t.hero]?.hp.damage).toBe(1 + half - 8);
+    expect(t.triggers()).toEqual([expect.objectContaining({ on: 'turn_start', tokenId: t.thorin, items: [{ source: 'Bênção', healed: 8 }] })]);
+  });
+
+  it('Heroic Rally: no healing at 0 HP, and only the hit points actually regained', () => {
+    const t = table([{ type: 'turn_start_heal', value: 5, ability: 'con', bloodiedOnly: false }]);
+    t.damage(3);
+    t.start();
+    expect(t.session.state.characters[t.hero]?.hp.damage).toBe(0);
+    expect(t.triggers()).toEqual([expect.objectContaining({ items: [{ source: 'Bênção', healed: 3 }] })]);
+
+    const dying = table([{ type: 'turn_start_heal', value: 5, ability: 'con', bloodiedOnly: true }]);
+    dying.damage(dying.max);
+    dying.start();
+    expect(dying.session.state.characters[dying.hero]?.hp.damage).toBe(dying.max);
+    expect(dying.triggers()).toEqual([]);
+  });
+
+  it('turn end reminders see the state after the durations that just ended', () => {
+    const effects = [{ type: 'reminder', on: 'turn_end', note: 'Pode encerrar Envenenado.', when: { hasCondition: 'poisoned' } }];
+    const t = table(effects);
+    t.start();
+    t.next();
+    // Na vez do Goblin, Envenenado até o fim do próximo turno do Thorin: termina junto, sem lembrete.
+    t.session.handle(GM.playerId, { kind: 'condition.add', data: { target: { characterId: t.hero }, condition: 'poisoned', until: { at: 'turn_end', tokenId: t.thorin } } });
+    t.next();
+    t.next();
+    expect(t.session.state.characters[t.hero]?.conditions.active).toEqual([]);
+    expect(t.triggers()).toEqual([]);
+    // Envenenado sem duração: o lembrete aparece no fim do turno.
+    t.session.handle(GM.playerId, { kind: 'condition.add', data: { target: { characterId: t.hero }, condition: 'poisoned' } });
+    t.next();
+    t.next();
+    expect(t.triggers()).toEqual([expect.objectContaining({ on: 'turn_end', tokenId: t.thorin, items: [{ source: 'Bênção', text: 'Pode encerrar Envenenado.' }] })]);
+  });
+});

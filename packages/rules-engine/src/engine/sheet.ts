@@ -34,6 +34,7 @@ import type {
   ClassSpellcasting,
   Contribution,
   DerivedSheet,
+  SheetTrigger,
   GrantedSpell,
   InventoryLine,
   Issue,
@@ -770,6 +771,21 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     };
   });
 
+  // --- Momentos do combate (nota 0043) -------------------------------------
+
+  const triggers: SheetTrigger[] = [
+    ...effectsOf('reminder').map((e): SheetTrigger => ({ kind: 'reminder', on: e.effect.on, text: e.effect.note, source: namedSource(e) })),
+    ...effectsOf('turn_start_heal').map(
+      (e): SheetTrigger => ({
+        kind: 'heal',
+        on: 'turn_start',
+        amount: Math.max(0, e.effect.value + (e.effect.ability ? mod(e.effect.ability) : 0)),
+        bloodiedOnly: e.effect.bloodiedOnly,
+        source: namedSource(e),
+      }),
+    ),
+  ];
+
   const errors = issues.filter((i) => i.severity === 'error');
   return {
     complete: build.pending.length === 0 && errors.length === 0,
@@ -803,5 +819,6 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     features: build.features,
     conditions,
     exhaustion,
+    triggers,
   };
 }

@@ -31,6 +31,8 @@ export const MAX_ADJUSTMENT_EFFECTS = 20;
 export const MAX_HIT_POINTS = 100_000;
 /** Alvos de uma salvaguarda forçada (`save.force`). */
 export const MAX_SAVE_TARGETS = 20;
+/** Itens de uma entrada `turn_trigger` (lembretes e cura de um combatente num momento). */
+export const MAX_TURN_TRIGGER_ITEMS = 20;
 /** Combatentes num combate. */
 export const MAX_COMBATANTS = 50;
 /** Faixa da iniciativa (rolada ou definida pelo mestre). */

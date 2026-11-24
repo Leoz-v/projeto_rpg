@@ -213,6 +213,8 @@ describe('SRD curation (Phase 1.5, d20 rules)', () => {
     expect(featureIn(levelGrants(byId(srd.subclasses, 'champion').levels, 18), 'survivor')?.effects).toEqual([
       { type: 'advantage', target: 'death_save' },
       { type: 'd20_rule', rule: 'count_as_20', min: 18, target: 'death_save' },
+      // Heroic Rally (nota 0043).
+      { type: 'turn_start_heal', value: 5, ability: 'con', bloodiedOnly: true },
     ]);
     expect(featureIn(byId(srd.feats, 'great_weapon_fighting').grants, 'great_weapon_fighting')?.effects).toEqual([
       { type: 'damage_die_minimum', min: 3, when: { all: [{ attackKind: 'melee' }, { twoHanded: true }] } },

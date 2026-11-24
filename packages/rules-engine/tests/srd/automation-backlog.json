@@ -21,9 +21,9 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:class:barbarian/persistent_rage": {
-      "category": "phase_5",
-      "reason": "Depende do estado de combate (iniciativa, turnos, fúria ativa, concentração, condições)."
+    "feature:class:barbarian/persistent_rage#rage_duration": {
+      "category": "phase_4",
+      "reason": "Rage dura 10 minutos sem precisar ser estendida: depende do estado de Rage (recurso e ação)."
     },
     "feature:class:barbarian/primal_champion": {
       "category": "structural",
@@ -73,10 +73,6 @@
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
-    "feature:class:bard/superior_inspiration": {
-      "category": "phase_5",
-      "reason": "Depende do estado de combate (iniciativa, turnos, fúria ativa, concentração, condições)."
-    },
     "feature:class:cleric/blessed_strikes": {
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
@@ -113,9 +109,9 @@
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
-    "feature:class:druid/archdruid": {
-      "category": "phase_5",
-      "reason": "Depende do estado de combate (iniciativa, turnos, fúria ativa, concentração, condições)."
+    "feature:class:druid/archdruid#nature_magician": {
+      "category": "phase_4",
+      "reason": "Nature Magician: converte usos de Wild Shape num espaço de magia (recurso). Longevity é narrativa."
     },
     "feature:class:druid/beast_spells": {
       "category": "gm",
@@ -229,14 +225,6 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:class:monk/perfect_focus": {
-      "category": "phase_5",
-      "reason": "Depende do estado de combate (iniciativa, turnos, fúria ativa, concentração, condições)."
-    },
-    "feature:class:monk/self_restoration": {
-      "category": "phase_5",
-      "reason": "Depende do estado de combate (iniciativa, turnos, fúria ativa, concentração, condições)."
-    },
     "feature:class:monk/slow_fall": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
@@ -248,10 +236,6 @@
     "feature:class:monk/superior_defense": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:class:monk/uncanny_metabolism": {
-      "category": "phase_5",
-      "reason": "Depende do estado de combate (iniciativa, turnos, fúria ativa, concentração, condições)."
     },
     "feature:class:paladin/abjure_foes": {
       "category": "phase_4",
@@ -315,7 +299,7 @@
     },
     "feature:class:ranger/relentless_hunter": {
       "category": "phase_5",
-      "reason": "Depende do estado de combate (iniciativa, turnos, fúria ativa, concentração, condições)."
+      "reason": "Concentração em Hunter's Mark que o dano não quebra (Concentração, Fase 5)."
     },
     "feature:class:ranger/spellcasting": {
       "category": "structural",
@@ -545,10 +529,6 @@
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
-    "feature:feat:alert/initiative_swap": {
-      "category": "phase_5",
-      "reason": "Depende do estado de combate (iniciativa, turnos, fúria ativa, concentração, condições)."
-    },
     "feature:feat:boon_of_combat_prowess/peerless_aim": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
@@ -714,20 +694,12 @@
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
     "feature:subclass:berserker/mindless_rage": {
-      "category": "phase_5",
-      "reason": "Depende do estado de combate (iniciativa, turnos, fúria ativa, concentração, condições)."
+      "category": "phase_4",
+      "reason": "Imunidade enquanto a Fúria está ativa: depende do estado de Rage, que é recurso e ação (como Rage)."
     },
     "feature:subclass:berserker/retaliation": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:subclass:champion/heroic_warrior": {
-      "category": "phase_5",
-      "reason": "Depende do estado de combate (iniciativa, turnos, fúria ativa, concentração, condições)."
-    },
-    "feature:subclass:champion/survivor#heroic_rally": {
-      "category": "phase_5",
-      "reason": "Heroic Rally: recupera PV no início de cada turno se estiver Bloodied (turnos de combate)."
     },
     "feature:subclass:circle_of_the_land/circle_of_the_land_spells": {
       "category": "structural",
@@ -893,10 +865,6 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:subclass:thief/thiefs_reflexes": {
-      "category": "phase_5",
-      "reason": "Depende do estado de combate (iniciativa, turnos, fúria ativa, concentração, condições)."
-    },
     "feature:subclass:warrior_of_the_open_hand/fleet_step": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
@@ -978,8 +946,8 @@
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
     "item:boots_of_striding_and_springing#jump": {
-      "category": "phase_5",
-      "reason": "Salto de 30 ft gastando 10 ft de movimento, uma vez por turno (movimento no turno)."
+      "category": "gm",
+      "reason": "Salto de 30 ft gastando 10 ft de movimento, uma vez por turno: o movimento não é controlado pelo Host."
     },
     "item:bowl_of_commanding_water_elementals": {
       "category": "phase_4",

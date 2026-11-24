@@ -1530,7 +1530,14 @@
             "feature": {
               "id": "persistent_rage",
               "name": "Persistent Rage",
-              "description": "When you roll Initiative, you can regain all expended uses of Rage; once you do so, you can't again until you finish a Long Rest. Your Rage now lasts for 10 minutes without needing to be extended; it ends early if you have the Unconscious condition or don Heavy armor."
+              "description": "When you roll Initiative, you can regain all expended uses of Rage; once you do so, you can't again until you finish a Long Rest. Your Rage now lasts for 10 minutes without needing to be extended; it ends early if you have the Unconscious condition or don Heavy armor.",
+              "effects": [
+                {
+                  "type": "reminder",
+                  "on": "initiative",
+                  "note": "Pode recuperar todos os usos de Rage gastos (uma vez por Descanso Longo)."
+                }
+              ]
             }
           }
         ]
@@ -2253,7 +2260,14 @@
             "feature": {
               "id": "superior_inspiration",
               "name": "Superior Inspiration",
-              "description": "When you roll Initiative, you regain expended uses of Bardic Inspiration until you have two if you have fewer than that."
+              "description": "When you roll Initiative, you regain expended uses of Bardic Inspiration until you have two if you have fewer than that.",
+              "effects": [
+                {
+                  "type": "reminder",
+                  "on": "initiative",
+                  "note": "Recupera usos de Bardic Inspiration até ter 2, se tiver menos."
+                }
+              ]
             }
           },
           {
@@ -3336,7 +3350,14 @@
             "feature": {
               "id": "archdruid",
               "name": "Archdruid",
-              "description": "Evergreen Wild Shape: whenever you roll Initiative and have no uses of Wild Shape left, you regain one expended use of it. Nature Magician: you can convert uses of Wild Shape into a single spell slot (each use contributes 2 spell levels); once per Long Rest. Longevity: for every ten years that pass, your body ages only one year."
+              "description": "Evergreen Wild Shape: whenever you roll Initiative and have no uses of Wild Shape left, you regain one expended use of it. Nature Magician: you can convert uses of Wild Shape into a single spell slot (each use contributes 2 spell levels); once per Long Rest. Longevity: for every ten years that pass, your body ages only one year.",
+              "effects": [
+                {
+                  "type": "reminder",
+                  "on": "initiative",
+                  "note": "Evergreen Wild Shape: sem usos de Wild Shape, recupera 1."
+                }
+              ]
             }
           }
         ]
@@ -3559,7 +3580,14 @@
             "feature": {
               "id": "uncanny_metabolism",
               "name": "Uncanny Metabolism",
-              "description": "When you roll Initiative, you can regain all expended Focus Points. When you do so, roll your Martial Arts die, and regain a number of Hit Points equal to your Monk level plus the number rolled. Once you use this feature, you can't use it again until you finish a Long Rest."
+              "description": "When you roll Initiative, you can regain all expended Focus Points. When you do so, roll your Martial Arts die, and regain a number of Hit Points equal to your Monk level plus the number rolled. Once you use this feature, you can't use it again until you finish a Long Rest.",
+              "effects": [
+                {
+                  "type": "reminder",
+                  "on": "initiative",
+                  "note": "Pode recuperar todos os Focus Points gastos e PV iguais ao nível de Monge + o dado de Martial Arts (uma vez por Descanso Longo)."
+                }
+              ]
             }
           }
         ]
@@ -3732,7 +3760,27 @@
             "feature": {
               "id": "self_restoration",
               "name": "Self-Restoration",
-              "description": "You can remove one of the following conditions from yourself at the end of each of your turns: Charmed, Frightened, or Poisoned. In addition, forgoing food and drink doesn't give you levels of Exhaustion."
+              "description": "You can remove one of the following conditions from yourself at the end of each of your turns: Charmed, Frightened, or Poisoned. In addition, forgoing food and drink doesn't give you levels of Exhaustion.",
+              "effects": [
+                {
+                  "type": "reminder",
+                  "on": "turn_end",
+                  "note": "Pode encerrar em você Enfeitiçado, Amedrontado ou Envenenado (uma delas).",
+                  "when": {
+                    "any": [
+                      {
+                        "hasCondition": "charmed"
+                      },
+                      {
+                        "hasCondition": "frightened"
+                      },
+                      {
+                        "hasCondition": "poisoned"
+                      }
+                    ]
+                  }
+                }
+              ]
             }
           },
           {
@@ -3872,7 +3920,14 @@
             "feature": {
               "id": "perfect_focus",
               "name": "Perfect Focus",
-              "description": "When you roll Initiative and don't use Uncanny Metabolism, you regain expended Focus Points until you have 4 if you have 3 or fewer."
+              "description": "When you roll Initiative and don't use Uncanny Metabolism, you regain expended Focus Points until you have 4 if you have 3 or fewer.",
+              "effects": [
+                {
+                  "type": "reminder",
+                  "on": "initiative",
+                  "note": "Sem usar Uncanny Metabolism, recupera Focus Points até ter 4, se tiver 3 ou menos."
+                }
+              ]
             }
           }
         ]

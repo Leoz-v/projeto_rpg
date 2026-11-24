@@ -65,7 +65,14 @@
             "feature": {
               "id": "heroic_warrior",
               "name": "Heroic Warrior",
-              "description": "During combat, you can give yourself Heroic Inspiration whenever you start your turn without it."
+              "description": "During combat, you can give yourself Heroic Inspiration whenever you start your turn without it.",
+              "effects": [
+                {
+                  "type": "reminder",
+                  "on": "turn_start",
+                  "note": "Sem Heroic Inspiration, pode se dar Heroic Inspiration."
+                }
+              ]
             }
           }
         ]
@@ -108,6 +115,12 @@
                   "rule": "count_as_20",
                   "min": 18,
                   "target": "death_save"
+                },
+                {
+                  "type": "turn_start_heal",
+                  "value": 5,
+                  "ability": "con",
+                  "bloodiedOnly": true
                 }
               ]
             }
@@ -1543,7 +1556,14 @@
             "feature": {
               "id": "thiefs_reflexes",
               "name": "Thief's Reflexes",
-              "description": "You can take two turns during the first round of any combat. You take your first turn at your normal Initiative and your second turn at your Initiative minus 10."
+              "description": "You can take two turns during the first round of any combat. You take your first turn at your normal Initiative and your second turn at your Initiative minus 10.",
+              "effects": [
+                {
+                  "type": "reminder",
+                  "on": "initiative",
+                  "note": "Na primeira rodada do combate, tem dois turnos: o primeiro na sua iniciativa e o segundo na iniciativa − 10."
+                }
+              ]
             }
           }
         ]

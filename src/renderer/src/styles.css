@@ -1830,3 +1830,18 @@ button.small {
 .entry.condition-event {
   border-left: 3px solid var(--crit);
 }
+
+/* Lembretes e cura de turno (nota 0043) */
+
+.entry.turn-trigger {
+  border-left: 3px solid var(--accent);
+}
+
+.turn-trigger-items {
+  margin: 0.25rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.turn-trigger-items li {
+  overflow-wrap: anywhere;
+}

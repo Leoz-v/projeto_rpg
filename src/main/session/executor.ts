@@ -12,6 +12,7 @@ import {
   type Creature,
   creatureDefenses,
   creatureSaveBonus,
+  currentHitPoints,
   type D20RollInput,
   d20Mode,
   d20StepNotes,
@@ -23,6 +24,7 @@ import {
   effectiveConditions,
   expiresAt,
   grazeDamage,
+  isBloodied,
   MASTERY_NAME,
   masteryOutcome,
   nextTurn,
@@ -46,6 +48,7 @@ import {
   timedMastery,
   timedMasteryNote,
   toppleDc,
+  type TriggerMoment,
   type TurnExpiry,
   turnAfterRemoval,
   usesRolledValues,
@@ -71,6 +74,7 @@ import {
   type SessionState,
   type Token,
   MAX_ADJUSTMENTS,
+  MAX_TURN_TRIGGER_ITEMS,
   MAX_COMBATANTS,
   MAX_EXHAUSTION_LEVEL,
   MAX_INITIATIVE,
@@ -1041,10 +1045,13 @@ export class HostSession {
     if (this.current.combat) throw violation('Já há um combate em andamento');
     const { combatants, entry } = this.rollInitiatives(data);
     const order = this.ordered(combatants, undefined);
+    const first = order.combatants[order.turn]?.tokenId;
     return [
       this.replaceCombat({ round: 1, turn: order.turn, combatants: order.combatants, effects: [] }),
       this.appendChat({ kind: 'combat_event', ...this.entryBase(playerId), event: 'started', round: 1 }),
       this.appendChat({ kind: 'initiative_roll', ...this.entryBase(playerId), results: entry }),
+      ...data.tokenIds.flatMap((tokenId) => this.triggers(playerId, this.current, 'initiative', tokenId)),
+      ...(first !== undefined ? this.triggers(playerId, this.current, 'turn_start', first) : []),
     ];
   }
 
@@ -1057,6 +1064,7 @@ export class HostSession {
     return [
       this.replaceCombat({ ...combat, turn: order.turn, combatants: order.combatants }),
       this.appendChat({ kind: 'initiative_roll', ...this.entryBase(playerId), results: entry }),
+      ...data.tokenIds.flatMap((tokenId) => this.triggers(playerId, this.current, 'initiative', tokenId)),
     ];
   }
 
@@ -1110,10 +1118,50 @@ export class HostSession {
       ...(started !== undefined ? [{ at: 'turn_start' as const, tokenId: started, round: position.round }] : []),
     ];
     const expired = this.expire(combat, (until) => events.some((e) => expiresAt(until, e)), playerId);
+    // Lembretes e cura com o estado depois das durações encerradas (nota 0043).
+    const after = expired.ops.length > 0 ? applyPatch(this.current, expired.ops) : this.current;
     return [
       ...(position.newRound ? [this.appendChat({ kind: 'combat_event', ...this.entryBase(playerId), event: 'round', round: position.round })] : []),
       ...expired.ops,
+      ...(ended !== undefined ? this.triggers(playerId, after, 'turn_end', ended) : []),
+      ...(started !== undefined ? this.triggers(playerId, after, 'turn_start', started) : []),
       this.replaceCombat({ ...combat, round: position.round, turn: position.turn, effects: expired.effects }),
+    ];
+  }
+
+  /**
+   * Lembretes (`reminder`) e cura do início do turno (`turn_start_heal`) da
+   * ficha do personagem ligado ao token, no momento `on`, avaliados em `state`
+   * (nota 0043). A cura entra nos PV do personagem; tudo vai numa entrada
+   * `turn_trigger`, só se houver algo a dizer. Tokens sem personagem ou sem
+   * ficha não têm lembretes.
+   */
+  private triggers(playerId: string, state: SessionState, on: TriggerMoment, tokenId: string): PatchOp[] {
+    const token = state.tokens[tokenId];
+    const character = token && token.characterId !== null ? state.characters[token.characterId] : undefined;
+    if (!token || !character) return [];
+    const sheet = this.deps.characterSheet(character);
+    if (!sheet) return [];
+    const max = sheet.hpMax.total;
+    let hp = character.hp;
+    const items: Extract<ChatEntry, { kind: 'turn_trigger' }>['items'] = [];
+    for (const trigger of sheet.triggers) {
+      if (trigger.on !== on) continue;
+      if (trigger.kind === 'reminder') {
+        items.push({ source: trigger.source.name.slice(0, 100), text: trigger.text.slice(0, 500) });
+        continue;
+      }
+      // Heroic Rally: Sangrando e com pelo menos 1 PV (com 0 PV, a criatura está morrendo).
+      if (trigger.bloodiedOnly && (currentHitPoints(max, hp) < 1 || !isBloodied(max, hp))) continue;
+      const result = applyHitPointChange(max, hp, { kind: 'healing', amount: trigger.amount });
+      if (result.hpChange <= 0) continue;
+      hp = result.state;
+      items.push({ source: trigger.source.name.slice(0, 100), healed: result.hpChange });
+    }
+    if (items.length === 0) return [];
+    return [
+      ...(hp !== character.hp ? [{ op: 'replace' as const, path: toPointer('characters', character.id, 'hp'), value: hp }] : []),
+      this.appendChat({ kind: 'turn_trigger', ...this.entryBase(playerId), on, tokenId, name: token.name, items: items.slice(0, MAX_TURN_TRIGGER_ITEMS) }),
     ];
   }
 

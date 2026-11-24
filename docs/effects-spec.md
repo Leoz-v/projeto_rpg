@@ -330,6 +330,30 @@ Regra que muda o resultado de um Teste d20 (ataque, salvaguarda ou teste de atri
 - Arma: `addProperties` (propriedades a mais), `damageType` (troca o tipo do dano da arma) e `proficiencyWith` (proficiente se tiver proficiência com alguma destas armas, além da própria arma base). Ex.: Sun Blade, "functions as a Longsword with the Finesse property. If you are proficient with Longswords or Shortswords, you are proficient with the Sun Blade [...] deals Radiant damage instead of Slashing damage".
 - Pelo menos um campo. O id da arma (predicado `weaponId`) continua sendo o do item base.
 
+### 3.21 `reminder`
+
+```json
+{ "type": "reminder", "on": "initiative", "note": "Recupera até 2 usos de Inspiração de Bardo." }
+{ "type": "reminder", "on": "turn_end", "note": "Pode encerrar Enfeitiçado, Amedrontado ou Envenenado em você.", "when": { "any": [{ "hasCondition": "charmed" }, { "hasCondition": "frightened" }, { "hasCondition": "poisoned" }] } }
+```
+
+- Lembrete que o Host publica no chat num momento do combate (nota 0043). O motor não aplica nada: é para o que depende de um recurso ou de uma escolha que a mesa não controla (usos de Fúria, Pontos de Foco, Inspiração Heroica, trocar de iniciativa).
+- `on`: `initiative` (logo depois de a criatura rolar a iniciativa, em `combat.start` ou `combat.add`), `turn_start` (no início do turno dela) ou `turn_end` (no fim do turno dela).
+- `note` é **obrigatório** aqui: é o texto do lembrete (pt-BR).
+- O `when` é avaliado com o estado da criatura naquele momento (condições, armadura); predicados de rolagem ficam desconhecidos, e o lembrete não aparece.
+- A ficha lista os lembretes ativos em `triggers`.
+
+### 3.22 `turn_start_heal`
+
+```json
+{ "type": "turn_start_heal", "value": 5, "ability": "con", "bloodiedOnly": true }
+```
+
+- No início de cada turno da criatura em combate, o Host aplica a cura de `value` + o modificador de `ability` (se houver), no mínimo 0, e registra no chat (Heroic Rally: "regain Hit Points equal to 5 plus your Constitution modifier").
+- `bloodiedOnly: true`: só se a criatura estiver Sangrando (*Bloodied*: metade dos PV máximos ou menos) **e** com pelo menos 1 PV. Com 0 PV, nunca cura (a criatura está morrendo).
+- A cura segue as regras de PV (`engine/hit-points.ts`): não passa do máximo e não mexe nos PV temporários. O mestre corrige pelos PV, se precisar.
+- O `when` é avaliado como no `reminder`.
+
 ## 4. Ordem de cálculo da ficha
 
 1. Valores base dos atributos (lista de escolhas: ASIs do antecedente e de talentos e aumentos fixos de classe, como Primal Champion).
