@@ -111,18 +111,9 @@ MONSTER_REASONS = {
 
 
 # --- Magias (Fase 7, nota 0054) -------------------------------------------------------------------------------
-# As magias de dano têm resolução estruturada (`srd-source/tools/spell_resolution.py`). As demais ficam aqui:
+# As magias de dano, cura e condição têm resolução estruturada (`srd-source/tools/spell_resolution.py`, notas 0054
+# e 0056). As demais ficam aqui:
 SPELL = {
-    # PR 3: cura, Pontos de Vida temporários, estabilizar, salvaguardas que só aplicam condição, remover condição.
-    "heal_conditions": [
-        "cure_wounds", "healing_word", "mass_cure_wounds", "mass_healing_word", "prayer_of_healing", "heal", "mass_heal",
-        "power_word_heal", "regenerate", "false_life", "spare_the_dying", "lesser_restoration", "greater_restoration",
-        "animal_friendship", "blindness_deafness", "charm_monster", "charm_person", "color_spray", "dominate_beast",
-        "dominate_monster", "dominate_person", "entangle", "eyebite", "fear", "flesh_to_stone", "grease", "hideous_laughter",
-        "hold_monster", "hold_person", "hypnotic_pattern", "irresistible_dance", "power_word_stun", "sleep", "sleet_storm",
-        "stinking_cloud", "suggestion", "mass_suggestion", "divine_word", "telekinesis", "antipathy_sympathy", "invisibility",
-        "greater_invisibility",
-    ],
     # PR 4: bônus e penalidades com número na ficha ou na rolagem, enquanto a magia dura.
     "temporary_effects": [
         "aid", "bane", "barkskin", "beacon_of_hope", "bless", "blur", "divine_favor", "enhance_ability", "enlarge_reduce",
@@ -134,12 +125,23 @@ SPELL = {
     ],
 }
 SPELL_REASONS = {
-    "heal_conditions": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054).",
     "temporary_effects": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054).",
     "gm": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide.",
 }
-# Magias com dano no texto que ficam sem resolução estruturada, com o motivo.
+# Magias com dano, cura ou condição no texto que ficam sem resolução estruturada, com o motivo.
 SPELL_REASON_OVERRIDE = {
+    "mass_heal": "700 PV divididos à escolha de quem conjura entre os alvos: o mestre aplica a cura de cada um no painel de PV.",
+    "spare_the_dying": "Estabiliza uma criatura com 0 PV: o mestre marca Estável nas Salvaguardas contra a Morte.",
+    "lesser_restoration": "Quem conjura escolhe a condição que termina: o mestre (ou o dono do token) a remove.",
+    "greater_restoration": "Um entre vários efeitos (Exaustão, condição, maldição, redução de atributo ou de PV máximos): o mestre aplica.",
+    "eyebite": "Três efeitos à escolha e um alvo novo a cada turno: o mestre conduz.",
+    "power_word_stun": "Sem salvaguarda: depende dos PV atuais do alvo (150 ou menos), que o mestre confere.",
+    "sleep": "Duas salvaguardas em sequência (Incapacitado até o fim do turno do alvo, depois Inconsciente): o mestre conduz.",
+    "sleet_storm": "Área com salvaguarda a cada turno, que derruba e quebra a Concentração: o mestre conduz.",
+    "stinking_cloud": "Salvaguarda no início de cada turno na nuvem, Envenenado só até o fim daquele turno: o mestre conduz.",
+    "divine_word": "Efeito pelos PV atuais de cada alvo e banimento por tipo de criatura: o mestre aplica.",
+    "telekinesis": "Move criaturas ou objetos a cada turno, com Impedido até o fim do próximo turno: o mestre conduz.",
+    "antipathy_sympathy": "Salvaguarda quando uma criatura do tipo escolhido se aproxima, por dias: o mestre conduz.",
     "animate_objects": "Invocação com bloco de estatísticas próprio: as ações da criatura são das ações de monstro (extra futuro).",
     "find_steed": "Invocação com bloco de estatísticas próprio: as ações da criatura são das ações de monstro (extra futuro).",
     "giant_insect": "Invocação com bloco de estatísticas próprio: as ações da criatura são das ações de monstro (extra futuro).",
@@ -151,8 +153,7 @@ SPELL_REASON_OVERRIDE = {
 }
 # Partes pendentes de magias que já têm resolução estruturada.
 SPELL_PARTIAL = {
-    "spell:vampiric_touch#healing": "Quem conjura recupera metade do dano Necrotic causado: cura, Fase 7, PR 3.",
-    "spell:conjure_celestial#healing_light": "Healing Light (4d12 + modificador): cura, Fase 7, PR 3.",
+    "spell:vampiric_touch#healing": ("gm", "Quem conjura recupera metade do dano Necrotic causado: o mestre aplica a cura depois do dano."),
 }
 
 
@@ -271,8 +272,8 @@ for sp in spells:
         put(key, "phase_7", SPELL_REASONS[group])
     else:
         put(key, "gm", SPELL_REASONS["gm"])
-for key, reason in SPELL_PARTIAL.items():
-    put(key, "phase_7", reason)
+for key, (category, reason) in SPELL_PARTIAL.items():
+    put(key, category, reason)
 
 # Conferência: toda exceção listada aqui precisa existir no compêndio (curadoria não fica órfã).
 magic_ids = {i["id"] for i in load("magic-items.json")}

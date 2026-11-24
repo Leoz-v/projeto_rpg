@@ -1,6 +1,7 @@
 import { applyHitPointChange, clampHitPoints, currentHitPoints, d20StepNotes, type DerivedSheet, effectiveConditions, deathAfterDamage, deathAfterHealing, type DeathSaveState, type HitPointChange, type HitPointResult, resolveDeathSave, concentrationDc, rollD20, sheetD20 } from 'rules-engine';
 import { type ChatEntry, type ConditionState, type IntentData, type PatchOp, type Role, type SessionCharacter, type SessionState, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
+import { liftSpellConditions } from './spell-effects';
 
 /** Pontos de vida, Salvaguardas contra a Morte (nota 0044) e Concentração (nota 0045). Funções do executor da sessão (`HostSession`), sobre o `SessionContext`. */
 
@@ -192,6 +193,7 @@ export function endConcentration(
   notes: string[] = [],
 ): PatchOp[] {
   if (!character.concentration) return [];
+  const { spellId, name } = character.concentration;
   return [
     { op: 'replace', path: toPointer('characters', character.id, 'concentration'), value: null },
     ctx.appendChat({
@@ -204,14 +206,18 @@ export function endConcentration(
       reason,
       notes,
     }),
+    // As condições que a magia pôs caem junto (Hold Person, nota 0057).
+    ...liftSpellConditions(ctx, playerId, { characterId: character.id, spellId }, name, character.conditions),
   ];
 }
 
 /** A Concentração termina se o personagem morreu ou está Incapacitado (ou com o que o inclui). */
 export function concentrationBreaks(ctx: SessionContext, playerId: string, character: SessionCharacter, conditions: ConditionState, deathSaves: DeathSaveState): PatchOp[] {
   if (!character.concentration) return [];
-  if (deathSaves.dead) return endConcentration(ctx, playerId, character, 'dead');
-  if (effectiveConditions(conditions.active.map((c) => c.condition)).has('incapacitated')) return endConcentration(ctx, playerId, character, 'incapacitated');
+  // As condições novas (a mesma ação pode tê-las mudado) valem para o que cai junto com a magia.
+  const current = { ...character, conditions };
+  if (deathSaves.dead) return endConcentration(ctx, playerId, current, 'dead');
+  if (effectiveConditions(conditions.active.map((c) => c.condition)).has('incapacitated')) return endConcentration(ctx, playerId, current, 'incapacitated');
   return [];
 }
 

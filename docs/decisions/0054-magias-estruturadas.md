@@ -21,7 +21,7 @@ Levantamento das 339 magias:
 
 1. Schema, motor e curadoria das magias de dano (este PR).
 2. "Conjurar" com alvos: o Host rola o ataque ou as salvaguardas pela magia estruturada, e o dano vira proposta para o mestre, como nos ataques e salvaguardas da Fase 4 (nota 0055).
-3. Cura e salvaguardas que só aplicam condição. A cura entra direto nos PV do alvo (decisão do usuário: é benéfica, quem rola é o Host e o mestre ainda corrige os PV). A condição de uma magia com Concentração cai junto com ela (Hold Person).
+3. Cura e salvaguardas que só aplicam condição. A cura entra direto nos PV do alvo (decisão do usuário: é benéfica, quem rola é o Host e o mestre ainda corrige os PV). A condição de uma magia com Concentração cai junto com ela (Hold Person). Nota 0057.
 4. Bônus e penalidades temporários (Bless, Shield of Faith, Mage Armor, Bane, Haste) como efeitos ligados à duração ou à Concentração.
 
 As ferramentas de mapa ficaram reservadas para outro contribuidor ([issue #59](https://github.com/Leoz-v/projeto_rpg/issues/59)).

@@ -238,7 +238,9 @@ export const IntentSchema = z.discriminatedUnion('kind', [
       targetTokenIds: z.array(UuidSchema).min(1).max(MAX_SAVE_TARGETS),
       /** Tipo escolhido, quando a parte deixa a escolha para quem conjura (Chromatic Orb). */
       damageType: DamageTypeSchema.optional(),
-      /** Ataque: Vantagem ou Desvantagem declarada. */
+      /** Condição escolhida, quando a salvaguarda deixa a escolha (Blindness/Deafness). */
+      condition: TableConditionSchema.optional(),
+      /** Ataque: Vantagem ou Desvantagem de quem ataca. Salvaguarda: dos alvos (Charm Person contra quem está lutando). */
       advantage: z.boolean().optional(),
       disadvantage: z.boolean().optional(),
     }),

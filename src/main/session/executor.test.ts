@@ -2193,7 +2193,6 @@ describe('HostSession: structured spell effects (note 0055)', () => {
     const a = arena([3, 3, 3, 3, 3, 3, 3, 3, 3, 5, 18]);
     const { entryId } = a.cast('fireball', { slot: { level: 4 } });
     expect(rejection(a.use(entryId, [a.goblin1, a.goblin1]))).toBe('rule_violation');
-    expect(rejection(a.use(entryId, [a.goblin1], { advantage: true }))).toBe('rule_violation');
     expect(applied(a.use(entryId, [a.goblin1, a.goblin2]))).toBe(true);
     const save = a.session.state.chat.at(-1);
     expect(save).toMatchObject({ kind: 'save_roll', actorName: 'Elara', label: 'Fireball', ability: 'dex', dc: 15, spellOf: { entryId, part: 0 } });
@@ -2238,5 +2237,108 @@ describe('HostSession: structured spell effects (note 0055)', () => {
     expect(applied(a.use(entryId, [a.goblin1], {}, GM.playerId))).toBe(true);
     const light = a.cast('light', 'free');
     expect(rejection(a.use(light.entryId, [a.goblin1]))).toBe('rule_violation');
+  });
+});
+
+describe('HostSession: spell healing and conditions (note 0057)', () => {
+  type Fixture = { character: { baseScores: SessionCharacter['baseScores']; steps: SessionCharacter['steps'] } };
+  const sequence = (values: number[]) => {
+    let i = 0;
+    return { roll: () => values[i++ % values.length] ?? 1 };
+  };
+
+  /** Morg (bruxo golias 5: Hold Person, Charm Person, Invisibility; Cure Wounds pelo Magic Initiate) e dois Goblin Warriors. */
+  function table(rolls: number[]) {
+    const session = setup({
+      rng: sequence(rolls),
+      itemProblems: () => [],
+      monsterExists: (id) => compendium.creatures.some((c) => c.id === id),
+      monsterHpMax: (id) => compendium.creatures.find((c) => c.id === id)?.hp.average,
+    });
+    session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10 } });
+    const mapId = Object.keys(session.state.maps)[0] ?? '';
+    session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Morg' } });
+    const id = Object.keys(session.state.characters)[0] ?? '';
+    const fixture = goliathWarlock as Fixture;
+    const steps = CharacterSchema.shape.steps.parse(JSON.parse(JSON.stringify(fixture.character.steps).replace('"bless"', '"cure_wounds"')));
+    session.handle(ANA.playerId, { kind: 'character.update', data: { characterId: id, baseScores: fixture.character.baseScores ?? undefined, steps } });
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Morg', position: { x: 0, y: 0 }, size: 'medium', characterId: id, ownerIds: [ANA.playerId] } });
+    for (const name of ['Goblin 1', 'Goblin 2']) {
+      session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name, position: { x: 600, y: 0 }, size: 'small', monsterId: 'goblin_warrior' } });
+    }
+    const token = (name: string) => Object.values(session.state.tokens).find((t) => t.name === name)?.id ?? '';
+    const cast = (spellId: string, using: { slot: 'pact' } | 'free') => {
+      const outcome = session.handle(ANA.playerId, { kind: 'spell.cast', data: { characterId: id, spellId, using } });
+      return { outcome, entryId: [...session.state.chat].reverse().find((e) => e.kind === 'spell_cast')?.id ?? '' };
+    };
+    const use = (entryId: string, targetTokenIds: string[], extra: { condition?: 'paralyzed'; advantage?: boolean } = {}) =>
+      session.handle(ANA.playerId, { kind: 'spell.effect', data: { entryId, part: 0, targetTokenIds, ...extra } });
+    const conditionsOf = (tokenId: string) => session.state.tokens[tokenId]?.conditions.active ?? [];
+    const character = () => session.state.characters[id] as SessionCharacter;
+    return { session, id, cast, use, conditionsOf, character, morg: token('Morg'), goblin1: token('Goblin 1'), goblin2: token('Goblin 2') };
+  }
+
+  it('Hold Person paralyzes on a failed save, up to the targets of the slot, and the condition ends with the Concentration', () => {
+    // Espaço de Pacto de 3º: 2 alvos. Os goblins tiram 2 e 2: falham.
+    const t = table([2, 2]);
+    const { entryId } = t.cast('hold_person', { slot: 'pact' });
+    expect(t.session.state.chat.find((e) => e.id === entryId)).toMatchObject({ effect: { parts: [{ kind: 'save', ability: 'wis', count: 2, conditionsEnd: 'spell' }] } });
+    expect(rejection(t.use(entryId, [t.goblin1, t.goblin2, t.morg]))).toBe('rule_violation');
+    expect(rejection(t.use(entryId, [t.goblin1], { condition: 'paralyzed' }))).toBe('rule_violation');
+    expect(applied(t.use(entryId, [t.goblin1, t.goblin2]))).toBe(true);
+    const link = { characterId: t.id, spellId: 'hold_person' };
+    expect(t.conditionsOf(t.goblin1)).toEqual([{ condition: 'paralyzed', spell: link }]);
+    expect(t.conditionsOf(t.goblin2)).toEqual([{ condition: 'paralyzed', spell: link }]);
+    expect(t.session.state.chat.filter((e) => e.kind === 'condition_changed')).toHaveLength(2);
+    expect(applied(t.session.handle(ANA.playerId, { kind: 'concentration.end', data: { characterId: t.id } }))).toBe(true);
+    expect(t.conditionsOf(t.goblin1)).toEqual([]);
+    expect(t.conditionsOf(t.goblin2)).toEqual([]);
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'condition_changed', targetName: 'Goblin 2', change: { kind: 'removed', condition: 'paralyzed' }, notes: ['Fim de Hold Person'] });
+    expect(SessionStateSchema.safeParse(t.session.state).success).toBe(true);
+  });
+
+  it('a successful save imposes nothing; a condition the target already has is not linked again', () => {
+    const t = table([20, 2]);
+    const { entryId } = t.cast('hold_person', { slot: 'pact' });
+    t.session.handle(GM.playerId, { kind: 'condition.add', data: { target: { tokenId: t.goblin2 }, condition: 'paralyzed' } });
+    t.use(entryId, [t.goblin1, t.goblin2]);
+    expect(t.conditionsOf(t.goblin1)).toEqual([]);
+    expect(t.conditionsOf(t.goblin2)).toEqual([{ condition: 'paralyzed' }]);
+  });
+
+  it('Invisibility needs no save; casting another Concentration spell ends it', () => {
+    const t = table([2]);
+    const { entryId } = t.cast('invisibility', { slot: 'pact' });
+    expect(applied(t.use(entryId, [t.morg]))).toBe(true);
+    expect(t.session.state.chat.at(-2)).toMatchObject({ kind: 'spell_applied', label: 'Invisibility', results: [{ targetName: 'Morg', notes: ['Invisível'] }] });
+    expect(t.character().conditions.active).toEqual([{ condition: 'invisible', spell: { characterId: t.id, spellId: 'invisibility' } }]);
+    t.cast('hold_person', { slot: 'pact' });
+    expect(t.character().conditions.active).toEqual([]);
+  });
+
+  it('Cure Wounds heals the target directly, rolled by the Host', () => {
+    const t = table([4, 5]);
+    t.session.handle(GM.playerId, { kind: 'hp.change', data: { target: { characterId: t.id }, change: { kind: 'damage', amount: 20 } } });
+    const { entryId } = t.cast('cure_wounds', 'free');
+    expect(applied(t.use(entryId, [t.morg]))).toBe(true);
+    const entry = t.session.state.chat.find((e) => e.kind === 'spell_applied');
+    if (entry?.kind !== 'spell_applied') throw new Error('sem cura');
+    expect(entry.healing).toMatchObject({ rolls: [{ sides: 8, value: 4 }, { sides: 8, value: 5 }], full: false, temporary: false });
+    const healed = entry.healing?.total ?? 0;
+    expect(healed).toBeGreaterThanOrEqual(9);
+    expect(t.character().hp.damage).toBe(20 - healed);
+    expect(entry.results).toEqual([{ targetTokenId: t.morg, targetName: 'Morg', notes: [`+${healed} PV`] }]);
+    expect(Object.keys(t.session.state.proposals)).toHaveLength(0);
+  });
+
+  it('healing a monster token changes its own hit points; a dead character is skipped with a note', () => {
+    const t = table([3, 3]);
+    t.session.handle(GM.playerId, { kind: 'hp.change', data: { target: { tokenId: t.goblin1 }, change: { kind: 'damage', amount: 5 } } });
+    t.session.handle(GM.playerId, { kind: 'death.set', data: { characterId: t.id, deathSaves: { successes: 0, failures: 3, stable: false, dead: true } } });
+    const { entryId } = t.cast('cure_wounds', 'free');
+    expect(applied(t.use(entryId, [t.goblin1, t.morg]))).toBe(true);
+    expect(t.session.state.tokens[t.goblin1]?.hp?.damage).toBe(0);
+    const entry = t.session.state.chat.find((e) => e.kind === 'spell_applied');
+    expect(entry).toMatchObject({ results: [{ targetName: 'Goblin 1' }, { targetName: 'Morg', notes: ['Morto: o mestre o revive antes de curar'] }] });
   });
 });

@@ -243,4 +243,15 @@ describe('SpellSchema', () => {
     expect(SpellSchema.safeParse(light).success).toBe(true);
     expect(SpellSchema.safeParse({ ...light, level: 10 }).success).toBe(false);
   });
+
+  it('rejects inconsistent healing and condition parts (note 0056)', () => {
+    const base = { id: 'x', name: 'X', level: 1, school: 'evocation', castingTime: 'Action', range: '60 feet', components: { verbal: true, somatic: false }, duration: '1 minute', description: 'x' };
+    const parse = (part: object) => SpellSchema.safeParse({ ...base, resolution: [part] }).success;
+    expect(parse({ kind: 'heal', healing: { dice: '2d8', addModifier: true } })).toBe(true);
+    expect(parse({ kind: 'heal', healing: 'full', temporary: true })).toBe(false);
+    expect(parse({ kind: 'save', ability: 'con', onSuccess: 'none', onFailConditions: ['blinded'], conditionChoice: true })).toBe(false);
+    expect(parse({ kind: 'save', ability: 'con', onSuccess: 'half', conditionsEnd: 'spell' })).toBe(false);
+    expect(parse({ kind: 'condition', conditions: ['invisible'], conditionsEnd: 'spell' })).toBe(true);
+    expect(parse({ kind: 'condition', conditions: [] })).toBe(false);
+  });
 });

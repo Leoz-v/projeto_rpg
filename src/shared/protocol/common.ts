@@ -1,4 +1,4 @@
-import { AbilitySchema, ConditionSchema, SkillSchema } from 'rules-engine/schemas';
+import { AbilitySchema, ConditionSchema, IdSchema, SkillSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { MAX_CELL_PX, MAX_MAP_CELLS } from './constants';
 
@@ -33,9 +33,12 @@ export const TurnExpirySchema = z.strictObject({ at: TurnEdgeSchema, tokenId: Uu
 export type TurnExpiryValue = z.infer<typeof TurnExpirySchema>;
 
 /** Condições ativas de uma criatura na mesa e o nível de Exaustão. */
+/** Condição imposta por uma magia (nota 0056): quem conjurou e a magia; com Concentração, cai quando ela acaba. */
+export const ConditionSpellSchema = z.strictObject({ characterId: UuidSchema, spellId: IdSchema });
+
 export const ConditionStateSchema = z.strictObject({
   active: z
-    .array(z.strictObject({ condition: TableConditionSchema, until: TurnExpirySchema.optional() }))
+    .array(z.strictObject({ condition: TableConditionSchema, until: TurnExpirySchema.optional(), spell: ConditionSpellSchema.optional() }))
     .max(TableConditionSchema.options.length)
     .refine((list) => new Set(list.map((c) => c.condition)).size === list.length, { message: 'condição repetida' }),
   exhaustion: z.int().min(0).max(MAX_EXHAUSTION_LEVEL),

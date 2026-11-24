@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { addDice, addFlat, cantripTier, multiplyDice, resolveSpellParts, spellDamageWith } from '../../src/engine/spells';
 import { loadSrdCompendium } from '../../src/srd';
+import type { ResolvedSpellPart } from '../../src/engine/spells';
+
+const damageOf = (part: ResolvedSpellPart | undefined) => (part && 'damage' in part ? part.damage : []);
 
 /** Resolução das magias de dano (nota 0054). */
 const srd = loadSrdCompendium();
@@ -49,20 +52,21 @@ describe('cantrip tiers (SRD: levels 5, 11 and 17)', () => {
 describe('resolveSpellParts', () => {
   it('Fireball: 8d6 Fire, Dexterity save for half, +1d6 per slot above 3', () => {
     const at3 = resolveSpellParts(spell('fireball'), { characterLevel: 5, modifier: 4 });
-    expect(at3).toEqual([{ kind: 'save', ability: 'dex', onSuccess: 'half', onFailConditions: [], damage: [{ dice: '8d6', type: 'fire' }], count: 1 }]);
-    expect(resolveSpellParts(spell('fireball'), { slotLevel: 5, characterLevel: 9, modifier: 4 })[0]?.damage).toEqual([{ dice: '10d6', type: 'fire' }]);
+    // Salvaguarda sem `count`: quantos alvos a mesa marcar.
+    expect(at3).toEqual([{ kind: 'save', ability: 'dex', onSuccess: 'half', onFailConditions: [], damage: [{ dice: '8d6', type: 'fire' }] }]);
+    expect(damageOf(resolveSpellParts(spell('fireball'), { slotLevel: 5, characterLevel: 9, modifier: 4 })[0])).toEqual([{ dice: '10d6', type: 'fire' }]);
   });
 
   it('a slot below the spell level does not shrink the damage', () => {
-    expect(resolveSpellParts(spell('fireball'), { slotLevel: 1, characterLevel: 5, modifier: 4 })[0]?.damage[0]?.dice).toBe('8d6');
+    expect(damageOf(resolveSpellParts(spell('fireball'), { slotLevel: 1, characterLevel: 5, modifier: 4 })[0])[0]?.dice).toBe('8d6');
   });
 
   it('Fire Bolt grows with the character level, not the slot', () => {
     const at = (characterLevel: number) => resolveSpellParts(spell('fire_bolt'), { slotLevel: 9, characterLevel, modifier: 5 })[0];
     expect(at(1)).toMatchObject({ kind: 'attack', attackKind: 'ranged', count: 1, damage: [{ dice: '1d10', type: 'fire' }] });
-    expect(at(5)?.damage[0]?.dice).toBe('2d10');
-    expect(at(11)?.damage[0]?.dice).toBe('3d10');
-    expect(at(17)?.damage[0]?.dice).toBe('4d10');
+    expect(damageOf(at(5))[0]?.dice).toBe('2d10');
+    expect(damageOf(at(11))[0]?.dice).toBe('3d10');
+    expect(damageOf(at(17))[0]?.dice).toBe('4d10');
   });
 
   it('Eldritch Blast creates more beams instead of more dice', () => {
@@ -85,13 +89,13 @@ describe('resolveSpellParts', () => {
   });
 
   it('Spiritual Weapon adds the spellcasting modifier and scales per slot', () => {
-    expect(resolveSpellParts(spell('spiritual_weapon'), { slotLevel: 4, characterLevel: 7, modifier: 4 })[0]?.damage).toEqual([
+    expect(damageOf(resolveSpellParts(spell('spiritual_weapon'), { slotLevel: 4, characterLevel: 7, modifier: 4 })[0])).toEqual([
       { dice: '3d8+4', type: 'force' },
     ]);
   });
 
   it('Ice Storm scales only the Bludgeoning part', () => {
-    expect(resolveSpellParts(spell('ice_storm'), { slotLevel: 6, characterLevel: 11, modifier: 4 })[0]?.damage).toEqual([
+    expect(damageOf(resolveSpellParts(spell('ice_storm'), { slotLevel: 6, characterLevel: 11, modifier: 4 })[0])).toEqual([
       { dice: '4d10', type: 'bludgeoning' },
       { dice: '4d6', type: 'cold' },
     ]);
@@ -107,7 +111,7 @@ describe('resolveSpellParts', () => {
   });
 
   it('Chromatic Orb leaves the damage type for the caster to choose', () => {
-    expect(resolveSpellParts(spell('chromatic_orb'), { characterLevel: 1, modifier: 3 })[0]?.damage[0]?.type).toEqual([
+    expect(damageOf(resolveSpellParts(spell('chromatic_orb'), { characterLevel: 1, modifier: 3 })[0])[0]?.type).toEqual([
       'acid',
       'cold',
       'fire',
@@ -128,6 +132,29 @@ describe('resolveSpellParts', () => {
     expect(resolveSpellParts(spell('ray_of_sickness'), { characterLevel: 1, modifier: 3 })[0]).toMatchObject({ onHitConditions: ['poisoned'] });
   });
 
+  it('healing scales per slot and adds the modifier; Heal scales a flat amount', () => {
+    expect(resolveSpellParts(spell('cure_wounds'), { slotLevel: 3, characterLevel: 5, modifier: 3 })).toEqual([{ kind: 'heal', healing: '6d8+3', endConditions: [] }]);
+    expect(resolveSpellParts(spell('heal'), { slotLevel: 8, characterLevel: 15, modifier: 5 })[0]).toMatchObject({
+      healing: '90',
+      endConditions: ['blinded', 'deafened', 'poisoned'],
+    });
+    expect(resolveSpellParts(spell('false_life'), { slotLevel: 2, characterLevel: 3, modifier: 3 })[0]).toMatchObject({ healing: '2d4+9', temporary: true });
+    expect(resolveSpellParts(spell('power_word_heal'), { characterLevel: 17, modifier: 5 })[0]).toMatchObject({ healing: 'full' });
+    expect(resolveSpellParts(spell('mass_cure_wounds'), { characterLevel: 9, modifier: 4 })[0]).toMatchObject({ healing: '5d8+4', count: 6 });
+  });
+
+  it('condition saves: no damage, the targets per slot and how long the condition lasts', () => {
+    expect(resolveSpellParts(spell('hold_person'), { slotLevel: 4, characterLevel: 7, modifier: 4 })).toEqual([
+      { kind: 'save', ability: 'wis', onSuccess: 'none', onFailConditions: ['paralyzed'], conditionsEnd: 'spell', damage: [], count: 3 },
+    ]);
+    expect(resolveSpellParts(spell('blindness_deafness'), { characterLevel: 3, modifier: 3 })[0]).toMatchObject({ conditionChoice: true, onFailConditions: ['blinded', 'deafened'] });
+    expect(resolveSpellParts(spell('color_spray'), { characterLevel: 1, modifier: 3 })[0]).toMatchObject({ conditionsEnd: 'caster_turn_end' });
+    expect(resolveSpellParts(spell('grease'), { characterLevel: 1, modifier: 3 })[0]).not.toHaveProperty('conditionsEnd');
+    expect(resolveSpellParts(spell('invisibility'), { slotLevel: 3, characterLevel: 5, modifier: 3 })).toEqual([
+      { kind: 'condition', conditions: ['invisible'], conditionsEnd: 'spell', count: 2 },
+    ]);
+  });
+
   it('a text-only spell has no parts', () => {
     expect(resolveSpellParts(spell('light'), { characterLevel: 1, modifier: 3 })).toEqual([]);
   });
@@ -135,7 +162,7 @@ describe('resolveSpellParts', () => {
 
 describe('spellDamageWith', () => {
   it('keeps fixed types and requires a choice from the list', () => {
-    const orb = resolveSpellParts(spell('chromatic_orb'), { characterLevel: 1, modifier: 3 })[0]?.damage ?? [];
+    const orb = damageOf(resolveSpellParts(spell('chromatic_orb'), { characterLevel: 1, modifier: 3 })[0]);
     expect(spellDamageWith(orb, 'fire')).toEqual([{ dice: '3d8', type: 'fire' }]);
     expect(spellDamageWith(orb, undefined)).toBeUndefined();
     expect(spellDamageWith(orb, 'radiant')).toBeUndefined();
@@ -146,12 +173,12 @@ describe('spellDamageWith', () => {
 describe('spells with structured resolution in the SRD compendium', () => {
   const structured = srd.spells.filter((s) => s.resolution.length > 0);
 
-  it('covers the damage spells (95 of 339)', () => {
-    expect(structured).toHaveLength(95);
+  it('covers the damage, healing and condition spells (125 of 339)', () => {
+    expect(structured).toHaveLength(125);
   });
 
   it('every damaging cantrip upgrades with the character level', () => {
-    const cantrips = structured.filter((s) => s.level === 0 && s.resolution.some((p) => p.damage.length > 0));
+    const cantrips = structured.filter((s) => s.level === 0 && s.resolution.some((p) => 'damage' in p && p.damage.length > 0));
     expect(cantrips.length).toBeGreaterThan(10);
     expect(cantrips.filter((s) => !s.cantripUpgrade).map((s) => s.id)).toEqual([]);
   });

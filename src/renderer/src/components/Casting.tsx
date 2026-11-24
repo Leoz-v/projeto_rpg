@@ -3,7 +3,7 @@ import type { DerivedSheet } from 'rules-engine';
 import { availableUses } from 'rules-engine/resources';
 import type { Ability, DamageType } from 'rules-engine/schemas';
 import { availableSpellSlots } from 'rules-engine/spell-slots';
-import type { ChatEntry, IntentData, SessionCharacter, SessionState, SpellEffectPart } from '../../../shared/protocol';
+import type { ChatEntry, IntentData, SessionCharacter, SessionState, SpellEffectPart, TableCondition } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
 import type { ChatViewer } from './Chat';
 import { TargetChecklist } from './SaveEffect';
@@ -132,38 +132,58 @@ const usingLabel = (entry: Extract<ChatEntry, { kind: 'spell_cast' }>): string =
 
 type CastEntry = Extract<ChatEntry, { kind: 'spell_cast' }>;
 type SpellDamageEntry = Extract<ChatEntry, { kind: 'spell_damage' }>;
+type SpellAppliedEntry = Extract<ChatEntry, { kind: 'spell_applied' }>;
+
+const END_LABEL = { spell: 'até a magia acabar', caster_turn_start: 'até o início do próximo turno de quem conjurou', caster_turn_end: 'até o fim do próximo turno de quem conjurou' } as const;
+
+/** Ataque e dano direto: um alvo por ataque ou projétil (pode repetir). Os demais: alvos distintos, até `count`. */
+const pickPerSlot = (part: SpellEffectPart): part is Extract<SpellEffectPart, { kind: 'attack' | 'damage' }> => part.kind === 'attack' || part.kind === 'damage';
 
 const typeLabel = (type: DamageType | DamageType[]): string => (typeof type === 'string' ? DAMAGE_LABEL[type] : type.map((t) => DAMAGE_LABEL[t]).join(' ou ')).toLowerCase();
 
-/** Resumo de uma parte: "Ataque à distância · 2d10 fogo", "Salvaguarda de Destreza CD 15 (metade no sucesso) · 8d6 fogo". */
+/** Resumo de uma parte: "ataque à distância +7 · 2d10 fogo", "salvaguarda de Sabedoria CD 13 · na falha: Paralisado (até a magia acabar)", "cura 2d8+3". */
 function partSummary(part: SpellEffectPart, effect: NonNullable<CastEntry['effect']>): string {
+  const targets = part.count !== undefined && !pickPerSlot(part) ? ` (até ${part.count} alvo${part.count > 1 ? 's' : ''})` : '';
+  if (part.kind === 'heal') {
+    const amount = part.healing === 'full' ? 'todos os PV' : part.healing;
+    const ends = part.endConditions.length > 0 ? ` · termina ${part.endConditions.map((c) => CONDITION_LABEL[c]).join(', ')}` : '';
+    return `${part.temporary ? 'PV temporários' : 'cura'} ${amount}${targets}${ends}`;
+  }
+  const conditions = part.kind === 'attack' ? part.onHitConditions : part.kind === 'save' ? part.onFailConditions : part.kind === 'condition' ? part.conditions : [];
+  const end = 'conditionsEnd' in part && part.conditionsEnd ? ` (${END_LABEL[part.conditionsEnd]})` : '';
+  const conditionText = conditions.map((c) => CONDITION_LABEL[c]).join(part.kind === 'save' && part.conditionChoice ? ' ou ' : ', ');
+  if (part.kind === 'condition') return `${conditionText}${end}${targets}`;
   const damage = part.damage.map((d) => `${d.dice} ${typeLabel(d.type)}`).join(' + ');
-  const count = part.count > 1 ? `${part.count}× ` : '';
+  const count = pickPerSlot(part) && part.count > 1 ? `${part.count}× ` : '';
   let how: string;
   if (part.kind === 'attack') {
     how = `${count}ataque ${part.attackKind === 'melee' ? 'corpo a corpo' : 'à distância'} ${signed(effect.attackBonus)}${part.onMiss ? ' (metade no erro)' : ''}`;
   } else if (part.kind === 'save') {
-    how = `salvaguarda de ${ABILITY_LABEL[part.ability].long} CD ${effect.saveDc} (${part.onSuccess === 'half' ? 'metade no sucesso' : 'nada no sucesso'})`;
+    const success = part.damage.length === 0 ? '' : part.onSuccess === 'half' ? ' (metade no sucesso)' : ' (nada no sucesso)';
+    how = `salvaguarda de ${ABILITY_LABEL[part.ability].long} CD ${effect.saveDc}${success}${targets}`;
   } else {
     how = `${count}dano direto`;
   }
-  const conditions = part.kind === 'attack' ? part.onHitConditions : part.kind === 'save' ? part.onFailConditions : [];
-  const extra = conditions.length > 0 ? ` · ${part.kind === 'attack' ? 'no acerto' : 'na falha'}: ${conditions.map((c) => CONDITION_LABEL[c]).join(', ')}` : '';
+  const extra = conditions.length > 0 ? ` · ${part.kind === 'attack' ? 'no acerto' : 'na falha'}: ${conditionText}${end}` : '';
   return `${how}${damage ? ` · ${damage}` : ''}${extra}`;
 }
 
-/** Alvos e opções de uma parte: um alvo por ataque ou projétil (pode repetir), ou vários alvos numa salvaguarda. */
+/** Alvos e opções de uma parte: um alvo por ataque ou projétil (pode repetir), ou alvos distintos (salvaguarda, cura, condição). */
 function SpellPartForm({ entry, part, index, targets }: { entry: CastEntry; part: SpellEffectPart; index: number; targets: { id: string; name: string }[] }) {
-  const slots = part.kind === 'save' ? 0 : part.count;
+  const slots = pickPerSlot(part) ? part.count : 0;
   const [picks, setPicks] = useState<string[]>(() => Array.from({ length: slots }, () => ''));
   const [selected, setSelected] = useState<string[]>([]);
-  const choices = part.damage.flatMap((d) => (typeof d.type === 'string' ? [] : d.type));
+  const choices = 'damage' in part ? part.damage.flatMap((d) => (typeof d.type === 'string' ? [] : d.type)) : [];
+  const conditionChoices = part.kind === 'save' && part.conditionChoice ? part.onFailConditions.filter((c): c is TableCondition => c !== 'exhaustion') : [];
   const [damageType, setDamageType] = useState<DamageType | ''>('');
+  const [condition, setCondition] = useState<TableCondition | ''>('');
   const [mode, setMode] = useState<'normal' | 'advantage' | 'disadvantage'>('normal');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const chosen = part.kind === 'save' ? selected : picks.filter((p) => p !== '');
-  const ready = chosen.length > 0 && (choices.length === 0 || damageType !== '');
+  const chosen = pickPerSlot(part) ? picks.filter((p) => p !== '') : selected;
+  const limit = !pickPerSlot(part) ? part.count : undefined;
+  const ready =
+    chosen.length > 0 && (limit === undefined || chosen.length <= limit) && (choices.length === 0 || damageType !== '') && (conditionChoices.length === 0 || condition !== '');
   const send = (): void => {
     setBusy(true);
     void sendIntent({
@@ -173,18 +193,22 @@ function SpellPartForm({ entry, part, index, targets }: { entry: CastEntry; part
         part: index,
         targetTokenIds: chosen,
         ...(damageType !== '' ? { damageType } : {}),
-        ...(part.kind === 'attack' && mode !== 'normal' ? { [mode]: true } : {}),
+        ...(condition !== '' ? { condition } : {}),
+        ...((part.kind === 'attack' || part.kind === 'save') && mode !== 'normal' ? { [mode]: true } : {}),
       },
     }).then((refused) => {
       setBusy(false);
       setError(refused);
     });
   };
-  const verb = part.kind === 'attack' ? 'Atacar' : part.kind === 'save' ? 'Forçar salvaguarda' : 'Causar dano';
+  const verb = { attack: 'Atacar', save: 'Forçar salvaguarda', damage: 'Causar dano', heal: part.kind === 'heal' && part.temporary ? 'Dar PV temporários' : 'Curar', condition: 'Aplicar' }[part.kind];
   return (
     <div className="spell-part-form">
-      {part.kind === 'save' ? (
-        <TargetChecklist targets={targets} selected={selected} onChange={setSelected} />
+      {!pickPerSlot(part) ? (
+        <>
+          <TargetChecklist targets={targets} selected={selected} onChange={setSelected} />
+          {limit !== undefined && chosen.length > limit && <p className="hint">No máximo {limit} alvo(s) neste círculo.</p>}
+        </>
       ) : (
         <div className="row">
           {picks.map((value, i) => (
@@ -217,11 +241,25 @@ function SpellPartForm({ entry, part, index, targets }: { entry: CastEntry; part
             ))}
           </select>
         )}
-        {part.kind === 'attack' && (
-          <select aria-label="Vantagem ou Desvantagem" value={mode} onChange={(e) => { setMode(e.target.value === 'advantage' ? 'advantage' : e.target.value === 'disadvantage' ? 'disadvantage' : 'normal'); }}>
+        {conditionChoices.length > 0 && (
+          <select aria-label="Condição" value={condition} onChange={(e) => { setCondition(conditionChoices.find((c) => c === e.target.value) ?? ''); }}>
+            <option value="">condição…</option>
+            {conditionChoices.map((c) => (
+              <option key={c} value={c}>
+                {CONDITION_LABEL[c]}
+              </option>
+            ))}
+          </select>
+        )}
+        {(part.kind === 'attack' || part.kind === 'save') && (
+          <select
+            aria-label={part.kind === 'attack' ? 'Vantagem ou Desvantagem no ataque' : 'Vantagem ou Desvantagem dos alvos'}
+            value={mode}
+            onChange={(e) => { setMode(e.target.value === 'advantage' ? 'advantage' : e.target.value === 'disadvantage' ? 'disadvantage' : 'normal'); }}
+          >
             <option value="normal">normal</option>
-            <option value="advantage">com Vantagem</option>
-            <option value="disadvantage">com Desvantagem</option>
+            <option value="advantage">{part.kind === 'attack' ? 'com Vantagem' : 'alvos com Vantagem'}</option>
+            <option value="disadvantage">{part.kind === 'attack' ? 'com Desvantagem' : 'alvos com Desvantagem'}</option>
           </select>
         )}
         <button type="button" className="secondary small" disabled={busy || !ready} onClick={send}>
@@ -244,8 +282,9 @@ function SpellEffect({ entry, state, viewer }: { entry: CastEntry; state: Sessio
   const used = new Set(state.chat.flatMap((e) => ('spellOf' in e && e.spellOf?.entryId === entry.id ? [e.spellOf.part] : [])));
   const once = entry.duration === 'Instantaneous';
   const mapId = state.activeMapId;
+  // Todos os tokens do mapa, inclusive o de quem conjurou (cura e Invisibility em si mesmo).
   const targets = Object.values(state.tokens)
-    .filter((t) => t.mapId === mapId && t.characterId !== entry.characterId)
+    .filter((t) => t.mapId === mapId)
     .map((t) => ({ id: t.id, name: t.name }));
   return (
     <ul className="spell-parts">
@@ -271,6 +310,43 @@ function SpellEffect({ entry, state, viewer }: { entry: CastEntry; state: Sessio
         );
       })}
     </ul>
+  );
+}
+
+/** Cura ou condição de magia aplicada direto: a cura rolada e o que mudou em cada alvo. */
+export function SpellAppliedBody({ entry, header }: { entry: SpellAppliedEntry; header: ReactNode }) {
+  const { healing } = entry;
+  return (
+    <li className="entry roll spell-applied">
+      {header}
+      <p>
+        <span className="roll-label">{entry.casterName}</span> · {entry.label}
+      </p>
+      {healing && (
+        <p className="roll-result">
+          {healing.full ? (
+            <span className="hint">todos os PV</span>
+          ) : (
+            <>
+              {healing.dice && <code>{healing.dice}</code>}
+              {healing.rolls.map((r, i) => (
+                <span key={i} className="die">
+                  {r.value}
+                </span>
+              ))}
+              <span className="total">
+                = {healing.total} {healing.temporary ? 'PV temporários' : 'de cura'}
+              </span>
+            </>
+          )}
+        </p>
+      )}
+      {entry.results.map((r) => (
+        <p key={r.targetTokenId} className="hint">
+          {r.targetName}: {r.notes.join(' · ') || 'nada mudou'}
+        </p>
+      ))}
+    </li>
   );
 }
 

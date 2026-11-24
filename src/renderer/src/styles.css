@@ -2193,6 +2193,10 @@ input.resource-amount {
   font-size: 0.9rem;
 }
 
+.entry.spell-applied {
+  border-left: 3px solid var(--accent);
+}
+
 .spell-parts {
   list-style: none;
   margin: 0.3rem 0 0;

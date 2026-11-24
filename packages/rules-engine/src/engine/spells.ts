@@ -1,8 +1,10 @@
 import type { DamageType } from '../schemas/common';
 import type { Spell, SpellPart } from '../schemas/spell';
 
+type PartOf<K extends SpellPart['kind']> = Extract<SpellPart, { kind: K }>;
+
 /**
- * Resolução das magias de dano (nota 0054): a parte estruturada da magia
+ * Resolução das magias (notas 0054 e 0056): a parte estruturada da magia
  * (`resolution`) vira dados concretos para um conjurador e um espaço. O
  * motor só calcula a expressão; quem rola, contra quais alvos e com qual
  * bônus de ataque ou CD é a mesa (Fase 7, PR 2).
@@ -89,30 +91,51 @@ export interface ResolvedSpellDamage {
   type: DamageType | DamageType[];
 }
 
-/** Uma parte da magia com os dados e a quantidade já calculados para quem conjura (mantém o `kind` discriminado). */
-export type ResolvedSpellPart = SpellPart extends infer P
-  ? P extends SpellPart
-    ? Omit<P, 'damage' | 'count'> & {
-        damage: ResolvedSpellDamage[];
-        /** Ataques ou projéteis (1 sem `count`). */
-        count: number;
-      }
-    : never
-  : never;
+/**
+ * Uma parte da magia com os dados e a quantidade já calculados para quem
+ * conjura. Ataque e dano direto: `count` ataques ou projéteis (1 sem
+ * `count`). Salvaguarda, cura e condição: `count` é o máximo de alvos, e sem
+ * ele não há limite. A cura vem como expressão de dados ou `full`.
+ */
+export type ResolvedSpellPart =
+  | (Omit<PartOf<'attack'>, 'damage' | 'count'> & { damage: ResolvedSpellDamage[]; count: number })
+  | (Omit<PartOf<'damage'>, 'damage' | 'count'> & { damage: ResolvedSpellDamage[]; count: number })
+  | (Omit<PartOf<'save'>, 'damage' | 'count'> & { damage: ResolvedSpellDamage[]; count?: number | undefined })
+  | (Omit<PartOf<'heal'>, 'healing' | 'count'> & { /** Expressão de dados, ou `full` (todos os PV). */ healing: string; count?: number | undefined })
+  | (Omit<PartOf<'condition'>, 'count'> & { count?: number | undefined });
 
 export function resolveSpellParts(spell: Spell, options: SpellCastOptions): ResolvedSpellPart[] {
   const above = spell.level === 0 ? 0 : Math.max(0, (options.slotLevel ?? spell.level) - spell.level);
   const tier = spell.level === 0 ? cantripTier(options.characterLevel) : 1;
-  return spell.resolution.map((part) => {
-    const { damage, count, ...rest } = part;
-    const resolved = damage.map((d) => {
-      let dice = d.perSlot ? addDice(d.dice, d.perSlot, above) : d.dice;
-      if (spell.cantripUpgrade === 'damage') dice = multiplyDice(dice, tier);
-      if (d.addModifier) dice = addFlat(dice, options.modifier);
-      return { dice, type: d.type };
-    });
+  const amount = (d: { dice: string; perSlot?: string | undefined; addModifier?: true | undefined }): string => {
+    let dice = d.perSlot ? addDice(d.dice, d.perSlot, above) : d.dice;
+    if (spell.cantripUpgrade === 'damage') dice = multiplyDice(dice, tier);
+    return d.addModifier ? addFlat(dice, options.modifier) : dice;
+  };
+  const total = (count: SpellPart['count']): number => {
     const base = (count?.base ?? 1) + (count?.perSlot ?? 0) * above;
-    return { ...rest, damage: resolved, count: spell.cantripUpgrade === 'count' ? base * tier : base };
+    return spell.cantripUpgrade === 'count' ? base * tier : base;
+  };
+  return spell.resolution.map((part): ResolvedSpellPart => {
+    switch (part.kind) {
+      case 'attack':
+      case 'damage': {
+        const { damage, count, ...rest } = part;
+        return { ...rest, damage: damage.map((d) => ({ dice: amount(d), type: d.type })), count: total(count) };
+      }
+      case 'save': {
+        const { damage, count, ...rest } = part;
+        return { ...rest, damage: damage.map((d) => ({ dice: amount(d), type: d.type })), ...(count ? { count: total(count) } : {}) };
+      }
+      case 'heal': {
+        const { healing, count, ...rest } = part;
+        return { ...rest, healing: healing === 'full' ? 'full' : amount(healing), ...(count ? { count: total(count) } : {}) };
+      }
+      case 'condition': {
+        const { count, ...rest } = part;
+        return { ...rest, ...(count ? { count: total(count) } : {}) };
+      }
+    }
   });
 }
 
