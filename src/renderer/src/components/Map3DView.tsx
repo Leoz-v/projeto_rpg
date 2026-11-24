@@ -23,6 +23,7 @@ import { cameraTargetToWorld2d } from '../canvas3d/render/tokenGeometry3d';
 import { TokenRenderer3d } from '../canvas3d/render/tokenRenderer3d';
 import { METERS_PER_FOOT } from '../canvas3d/terrain/constants';
 import { sendIntent } from '../store/table';
+import { FogHudControls } from './FogHudControls';
 import { RulerOptionsBar } from './RulerControls';
 
 /**
@@ -69,6 +70,8 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
   const [gridVisible, setGridVisible] = useState(true);
   const [rulerActive, setRulerActive] = useState(false);
   const [rulerOptions, setRulerOptions] = useState<RulerOptions>({ ...DEFAULT_RULER_OPTIONS });
+  const [fogHudOpen, setFogHudOpen] = useState(false);
+  const [previewTokenVision, setPreviewTokenVision] = useState(true);
 
   const latest = useRef({ onSelect, onStage });
   useLayoutEffect(() => {
@@ -238,10 +241,12 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
   }, [sceneHash, map.name]);
 
   const { state, info } = view;
+  const selectedToken = selectedId !== null ? (state.tokens[selectedId] ?? null) : null;
+  const showFogHud = isGm && (fogHudOpen || fogTool !== 'none');
 
   useEffect(() => {
     const tokens = Object.values(state.tokens);
-    const viewerInfo = { role: info.role, playerId: info.playerId };
+    const viewerInfo = { role: info.role, playerId: info.playerId, previewTokenId: isGm && previewTokenVision ? selectedId : null };
     viewer?.tokens3d.setScene({
       map,
       tokens,
@@ -257,7 +262,7 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
       fogTool: isGm ? fogTool : 'none',
     });
     viewer?.fog3d.setScene(map, tokens, viewerInfo);
-  }, [viewer, map, state.tokens, state.characters, state.combat, maxima, info.role, info.playerId, selectedId, isGm, fogTool]);
+  }, [viewer, map, state.tokens, state.characters, state.combat, maxima, info.role, info.playerId, selectedId, isGm, previewTokenVision, fogTool]);
 
   useEffect(() => {
     if (!viewer) return;
@@ -362,13 +367,35 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
           onClick={() => {
             setRulerActive((prev) => {
               const next = !prev;
-              if (next) onFogTool('none');
+              if (next) {
+                onFogTool('none');
+                setFogHudOpen(false);
+              }
               return next;
             });
           }}
         >
           Régua
         </button>
+        {isGm && (
+          <button
+            type="button"
+            className={showFogHud ? 'active' : ''}
+            aria-pressed={showFogHud}
+            title="Controles de névoa de guerra manual e automática"
+            onClick={() => {
+              if (showFogHud) {
+                setFogHudOpen(false);
+                onFogTool('none');
+              } else {
+                setRulerActive(false);
+                setFogHudOpen(true);
+              }
+            }}
+          >
+            Névoa
+          </button>
+        )}
         <button type="button" className={gridVisible ? 'active' : ''} onClick={toggleGrid}>
           Grid
         </button>
@@ -388,6 +415,17 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
         )}
       </div>
       {rulerActive && <RulerOptionsBar options={rulerOptions} onChange={setRulerOptions} />}
+      {showFogHud && (
+        <FogHudControls
+          map={map}
+          fogTool={fogTool}
+          onFogTool={onFogTool}
+          selectedToken={selectedToken}
+          previewTokenVision={previewTokenVision}
+          onPreviewTokenVision={setPreviewTokenVision}
+          onError={setError}
+        />
+      )}
       {loading && <p className="map-empty hint">Carregando mapa 3D…</p>}
       {error && (
         <p className="map-error error" role="alert">

@@ -63,6 +63,14 @@ describe('fog-render', () => {
     expect(pixelAlpha(gmData, 6, 0, 0)).toBe(0);
     expect(pixelAlpha(gmData, 6, 1, 0)).toBeGreaterThan(0);
     expect(pixelAlpha(gmData, 6, 1, 0)).toBeLessThan(255);
+
+    // GM selecting a token previews that token's live vision + explored unlocked map
+    const gmPreview = new Uint8ClampedArray(6 * 1 * 4);
+    fillFogImageData(gmPreview, map, [hero], { role: 'gm', playerId: 'gm', previewTokenId: hero.id });
+    expect(pixelAlpha(gmPreview, 6, 0, 0)).toBe(0); // live vision
+    expect(pixelAlpha(gmPreview, 6, 4, 0)).toBe(145); // explored dimmed shroud
+    expect(pixelAlpha(gmPreview, 6, 5, 0)).toBeGreaterThan(145); // unseen cell is darker than explored
+    expect(pixelAlpha(gmPreview, 6, 1, 0)).toBeGreaterThan(145); // manual fog blocks vision
   });
 
   it('converts and clamps world coordinates to fog cells', () => {

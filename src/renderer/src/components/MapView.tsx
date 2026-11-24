@@ -7,6 +7,7 @@ import { conditionLabels, timedEffectLabels, tokenConditions } from '../canvas/c
 import { MapStage, type MapStageHandle } from '../canvas/MapStage';
 import { DEFAULT_RULER_OPTIONS, type RulerOptions } from '../canvas/ruler';
 import { sendIntent } from '../store/table';
+import { FogHudControls } from './FogHudControls';
 import { Map3DView } from './Map3DView';
 import { RulerOptionsBar } from './RulerControls';
 
@@ -48,6 +49,8 @@ function Map2DView({ view, selectedId, fogTool, onFogTool, onSelect, onStage }: 
   const [error, setError] = useState<string | null>(null);
   const [rulerActive, setRulerActive] = useState(false);
   const [rulerOptions, setRulerOptions] = useState<RulerOptions>({ ...DEFAULT_RULER_OPTIONS });
+  const [fogHudOpen, setFogHudOpen] = useState(false);
+  const [previewTokenVision, setPreviewTokenVision] = useState(true);
   // O palco é criado uma vez; os callbacks leem sempre a versão atual.
   const latest = useRef({ onSelect, onStage });
   useLayoutEffect(() => {
@@ -95,20 +98,23 @@ function Map2DView({ view, selectedId, fogTool, onFogTool, onSelect, onStage }: 
   const { state, info } = view;
   const map = state.activeMapId !== null ? (state.maps[state.activeMapId] ?? null) : null;
   const maxima = useHpMaxima(state.characters);
+  const isGm = info.role === 'gm';
+  const selectedToken = selectedId !== null ? (state.tokens[selectedId] ?? null) : null;
+  const showFogHud = isGm && (fogHudOpen || fogTool !== 'none');
 
   useEffect(() => {
     stage?.setScene({
       map,
       tokens: Object.values(state.tokens),
-      canDrag: (token) => info.role === 'gm' || token.ownerIds.includes(info.playerId),
+      canDrag: (token) => isGm || token.ownerIds.includes(info.playerId),
       selectedId,
       activeId: state.combat?.combatants[state.combat.turn]?.tokenId ?? null,
       conditions: (token) => [...conditionLabels(tokenConditions(token, state.characters)), ...timedEffectLabels(token, { combat: state.combat, tokens: state.tokens })],
       health: (token) => tokenHealth(token, state.characters, maxima),
-      viewer: { role: info.role, playerId: info.playerId },
-      fogTool: info.role === 'gm' ? fogTool : 'none',
+      viewer: { role: info.role, playerId: info.playerId, previewTokenId: isGm && previewTokenVision ? selectedId : null },
+      fogTool: isGm ? fogTool : 'none',
     });
-  }, [stage, map, state.tokens, state.characters, state.combat, maxima, info.role, info.playerId, selectedId, fogTool]);
+  }, [stage, map, state.tokens, state.characters, state.combat, maxima, info.role, info.playerId, isGm, selectedId, previewTokenVision, fogTool]);
 
   useEffect(() => {
     stage?.setRulerMode(rulerActive && fogTool === 'none' && map !== null);
@@ -152,15 +158,48 @@ function Map2DView({ view, selectedId, fogTool, onFogTool, onSelect, onStage }: 
               onClick={() => {
                 setRulerActive((prev) => {
                   const next = !prev;
-                  if (next) onFogTool('none');
+                  if (next) {
+                    onFogTool('none');
+                    setFogHudOpen(false);
+                  }
                   return next;
                 });
               }}
             >
               Régua
             </button>
+            {isGm && (
+              <button
+                type="button"
+                className={showFogHud ? 'active' : ''}
+                aria-pressed={showFogHud}
+                title="Controles de névoa de guerra manual e automática"
+                onClick={() => {
+                  if (showFogHud) {
+                    setFogHudOpen(false);
+                    onFogTool('none');
+                  } else {
+                    setRulerActive(false);
+                    setFogHudOpen(true);
+                  }
+                }}
+              >
+                Névoa
+              </button>
+            )}
           </div>
           {rulerActive && <RulerOptionsBar options={rulerOptions} onChange={setRulerOptions} />}
+          {showFogHud && (
+            <FogHudControls
+              map={map}
+              fogTool={fogTool}
+              onFogTool={onFogTool}
+              selectedToken={selectedToken}
+              previewTokenVision={previewTokenVision}
+              onPreviewTokenVision={setPreviewTokenVision}
+              onError={setError}
+            />
+          )}
         </>
       )}
       {!map && <p className="map-empty hint">{info.role === 'gm' ? 'Crie um mapa no painel ao lado para começar.' : 'O mestre ainda não mostrou um mapa.'}</p>}

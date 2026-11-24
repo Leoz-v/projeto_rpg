@@ -1,18 +1,21 @@
 import {
   computeAllPlayersVision,
   computePlayerVision,
+  computeTokenVision,
   decodeFogBits,
+  emptyFogBits,
   type FogCell,
   type GameMap,
   getFogCell,
   type Point,
   type Role,
   type Token,
+  unionFogBits,
   WORLD_UNITS_PER_CELL,
 } from '../../../shared/protocol';
 
 /**
- * Renderização da névoa de guerra (nota 0056), desacoplada do PixiJS:
+ * Renderização da névoa de guerra (nota 0059), desacoplada do PixiJS:
  * preenche um buffer RGBA de 1 pixel por célula (`width × height`) para ser
  * desenhado com `scaleMode: 'nearest'` sobre o mapa.
  */
@@ -22,6 +25,8 @@ export type FogTool = 'none' | 'brush-cover' | 'brush-reveal' | 'rect-cover' | '
 export interface FogViewer {
   role: Role;
   playerId: string;
+  /** Quando o mestre seleciona um token, pré-visualiza a visão e o mapa desbloqueado daquele token. */
+  previewTokenId?: string | null;
 }
 
 const RGBA_CLEAR = [0, 0, 0, 0] as const;
@@ -33,6 +38,10 @@ const RGBA_PLAYER_EXPLORED = [10, 9, 18, 145] as const;
 const RGBA_GM_MANUAL = [22, 16, 52, 155] as const;
 /** Área fora da visão de todos os jogadores vista pelo mestre (véu leve). */
 const RGBA_GM_AUTO = [10, 9, 18, 70] as const;
+/** Névoa manual na pré-visualização de token do mestre (quase opaca em índigo). */
+const RGBA_GM_PREVIEW_MANUAL = [22, 16, 52, 225] as const;
+/** Área não vista na pré-visualização de token do mestre (quase opaca para orientar o mestre). */
+const RGBA_GM_PREVIEW_UNSEEN = [10, 9, 18, 225] as const;
 
 function writePixel(data: Uint8ClampedArray, offset: number, rgba: readonly [number, number, number, number]): void {
   data[offset] = rgba[0];
@@ -47,6 +56,48 @@ export function fillFogImageData(data: Uint8ClampedArray, map: GameMap, tokens: 
   const manual = decodeFogBits(fog.manual, width, height);
 
   if (viewer.role === 'gm') {
+    const previewToken =
+      viewer.previewTokenId !== undefined && viewer.previewTokenId !== null
+        ? tokens.find((t) => t.id === viewer.previewTokenId && t.mapId === map.id)
+        : undefined;
+
+    if (previewToken) {
+      const vision = fog.autoEnabled ? computeTokenVision(map, previewToken, fog.visionFeet) : null;
+      let explored: Uint8Array | null = null;
+      if (fog.autoEnabled && fog.rememberExplored && previewToken.ownerIds.length > 0) {
+        let merged = emptyFogBits(width, height);
+        let hasAny = false;
+        for (const ownerId of previewToken.ownerIds) {
+          const encoded = fog.explored[ownerId];
+          if (encoded !== undefined) {
+            merged = unionFogBits(merged, decodeFogBits(encoded, width, height));
+            hasAny = true;
+          }
+        }
+        if (hasAny) explored = merged;
+      }
+
+      for (let row = 0; row < height; row++) {
+        for (let col = 0; col < width; col++) {
+          const offset = (row * width + col) * 4;
+          if (getFogCell(manual, width, col, row)) {
+            writePixel(data, offset, RGBA_GM_PREVIEW_MANUAL);
+          } else if (vision) {
+            if (getFogCell(vision, width, col, row)) {
+              writePixel(data, offset, RGBA_CLEAR);
+            } else if (explored && getFogCell(explored, width, col, row)) {
+              writePixel(data, offset, RGBA_PLAYER_EXPLORED);
+            } else {
+              writePixel(data, offset, RGBA_GM_PREVIEW_UNSEEN);
+            }
+          } else {
+            writePixel(data, offset, RGBA_CLEAR);
+          }
+        }
+      }
+      return;
+    }
+
     const anyVision = fog.autoEnabled ? computeAllPlayersVision(map, tokens) : null;
     for (let row = 0; row < height; row++) {
       for (let col = 0; col < width; col++) {
@@ -106,22 +157,36 @@ export function clampFogCell(world: Point, map: Pick<GameMap, 'width' | 'height'
 export function fogSignature(map: GameMap | null, tokens: readonly Token[], viewer: FogViewer): string {
   if (!map) return '';
   const { fog } = map;
+  const previewId = viewer.role === 'gm' ? (viewer.previewTokenId ?? '') : '';
+  const previewToken = previewId ? tokens.find((t) => t.id === previewId && t.mapId === map.id) : undefined;
+  const exploredPart =
+    viewer.role === 'gm'
+      ? previewToken
+        ? previewToken.ownerIds.map((id) => `${id}:${fog.explored[id] ?? ''}`).join(',')
+        : ''
+      : (fog.explored[viewer.playerId] ?? '');
+
   const parts = [
     map.id,
     `${map.width}x${map.height}`,
     viewer.role,
     viewer.playerId,
+    previewId,
     fog.manual,
     fog.autoEnabled ? '1' : '0',
     String(fog.visionFeet),
     fog.rememberExplored ? '1' : '0',
-    viewer.role === 'gm' ? '' : (fog.explored[viewer.playerId] ?? ''),
+    exploredPart,
   ];
   if (fog.autoEnabled) {
-    for (const t of tokens) {
-      if (t.mapId !== map.id) continue;
-      if (viewer.role === 'gm' ? t.ownerIds.length === 0 : !t.ownerIds.includes(viewer.playerId)) continue;
-      parts.push(`${t.id}:${t.position.x},${t.position.y}:${t.size}:${t.visionFeet ?? ''}`);
+    if (previewToken) {
+      parts.push(`${previewToken.id}:${previewToken.position.x},${previewToken.position.y}:${previewToken.size}:${previewToken.visionFeet ?? ''}`);
+    } else {
+      for (const t of tokens) {
+        if (t.mapId !== map.id) continue;
+        if (viewer.role === 'gm' ? t.ownerIds.length === 0 : !t.ownerIds.includes(viewer.playerId)) continue;
+        parts.push(`${t.id}:${t.position.x},${t.position.y}:${t.size}:${t.visionFeet ?? ''}`);
+      }
     }
   }
   return parts.join('|');

@@ -499,6 +499,74 @@ button.link.danger:focus-visible {
   padding: 0 0.2rem;
 }
 
+.fog-popover {
+  position: absolute;
+  top: 3.45rem;
+  right: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.45rem 0.6rem;
+  background: rgba(15, 19, 26, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  backdrop-filter: blur(6px);
+  z-index: 10;
+  max-width: calc(100% - 1.5rem);
+}
+
+.fog-popover-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.fog-popover button {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.76rem;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.fog-popover .map3d-hud-group button {
+  border: none;
+  border-radius: 0;
+}
+
+.fog-popover button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.fog-popover button.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.fog-popover button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.fog-hud-vision {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.fog-hud-vision input {
+  width: 3.4rem;
+  padding: 0.12rem 0.3rem;
+  font-size: 0.76rem;
+  text-align: right;
+}
+
 /* Painel do mestre */
 
 .panel ul {
