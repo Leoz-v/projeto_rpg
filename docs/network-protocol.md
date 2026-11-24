@@ -313,7 +313,10 @@ Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do
   - **`condition.add`:** põe a condição; já presente, `rule_violation`. Alvo imune à condição (ficha do personagem ou bloco do monstro): o jogador é recusado com `rule_violation`; o mestre aplica mesmo assim (override), e o log registra a imunidade.
   - **`condition.remove`:** tira a condição; ausente, `rule_violation`.
   - **`exhaustion.set`:** define o nível de Exaustão (0 tira). Cada nível dá `-2` nos testes d20 e `-5 ft` no deslocamento, pela ficha (`docs/effects-spec.md` 3.10); no nível 6, a criatura morre (o log avisa). Imunidade a Exaustão segue a regra de `condition.add` para subir o nível.
-  - Cada mudança registra `condition_changed` no chat. Os efeitos de cada condição nas rolagens entram no PR 3 da Fase 5; até lá, a ficha aplica só a Exaustão.
+  - Cada mudança registra `condition_changed` no chat. Os efeitos de cada condição nas rolagens são do motor (`docs/effects-spec.md` 3.10, nota 0041). Nas rolagens do Host (`roll.d20`, `attack.make`, `save.force`, `mastery.use`, iniciativa):
+    - personagens: pela ficha;
+    - monstros: pelo bônus do bloco, com a Exaustão (−2 por nível) e as condições deles;
+    - ataques: as condições do alvo também contam, com a distância entre os tokens do atacante e do alvo no mesmo mapa.
 - **`token.create` com `characterId`:** o token representa esse personagem (o Host confere que ele existe). Remover o personagem não remove o token: o `characterId` volta a `null`.
 - **Recusas** (`IntentResult` com `rejected`): `not_allowed` para permissão (jogador num `Intent` do mestre, token de outro jogador); `rule_violation` para estado inválido (mapa ou token inexistente, posição fora do mapa, monstro fora do compêndio, imagem que o Host não tem). Um `Intent` recusado não muda o estado nem o `rev`.
 

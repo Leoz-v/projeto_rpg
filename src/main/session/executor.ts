@@ -2,7 +2,10 @@ import {
   type Ability,
   applyDamage,
   applyHitPointChange,
+  attackedConditions,
   cleaveDamageBonus,
+  conditionDefenses,
+  creatureD20,
   clampHitPoints,
   type Condition,
   CONDITION_NAME,
@@ -16,6 +19,8 @@ import {
   type DamageType,
   type Defenses,
   type DerivedSheet,
+  distanceFeet,
+  effectiveConditions,
   grazeDamage,
   MASTERY_NAME,
   masteryOutcome,
@@ -619,7 +624,9 @@ export class HostSession {
       } else {
         if (role !== 'gm' && !token.ownerIds.includes(playerId)) throw notAllowed('Você não controla este token');
         const creature = token.monsterId !== null ? this.deps.creature(token.monsterId) : undefined;
-        const immune = new Set<string>(creature ? creatureDefenses(creature).defenses.conditionImmunities.map((c) => c.condition) : []);
+        const defenses = creature ? conditionDefenses(this.conditionsOf(token).conditions, creatureDefenses(creature).defenses) : undefined;
+        // Do bloco, e as que vêm das condições (Petrificado é imune a Envenenado).
+        const immune = new Set<string>(defenses ? defenses.conditionImmunities.map((c) => c.condition) : this.conditionsOf(token).conditions.has('petrified') ? ['poisoned'] : []);
         return { path: toPointer('tokens', token.id, 'conditions'), state: token.conditions, name: token.name, immune, logTarget: { tokenId: token.id } };
       }
     }
@@ -736,6 +743,19 @@ export class HostSession {
     return proposal;
   }
 
+  /** Condições que valem para o token (as do personagem, num token de personagem), com as implícitas. */
+  private conditionsOf(token: Token): { conditions: Set<Condition>; exhaustion: number } {
+    const state = token.characterId !== null ? (this.current.characters[token.characterId]?.conditions ?? NO_CONDITIONS) : token.conditions;
+    return { conditions: effectiveConditions(state.active.map((c) => c.condition)), exhaustion: state.exhaustion };
+  }
+
+  /** Distância em pés entre dois tokens do mesmo mapa (motor); `undefined` sem o atacante no mapa do alvo. */
+  private distanceBetween(a: Token | undefined, b: Token): number | undefined {
+    if (!a || a.mapId !== b.mapId) return undefined;
+    const footprint = (t: Token) => ({ x: t.position.x / WORLD_UNITS_PER_CELL, y: t.position.y / WORLD_UNITS_PER_CELL, size: t.size });
+    return distanceFeet(footprint(a), footprint(b));
+  }
+
   /** CA e defesas de um token alvo: as da ficha do personagem ligado, ou as do bloco do monstro. */
   private targetOf(token: Token): { ac: number; defenses: Defenses; reminders: string[] } {
     if (token.characterId !== null) {
@@ -747,7 +767,7 @@ export class HostSession {
     const creature = token.monsterId !== null ? this.deps.creature(token.monsterId) : undefined;
     if (!creature) throw violation('O alvo não tem CA conhecida (não é personagem nem monstro do compêndio)');
     const { defenses, reminders } = creatureDefenses(creature);
-    return { ac: creature.ac, defenses, reminders };
+    return { ac: creature.ac, defenses: conditionDefenses(this.conditionsOf(token).conditions, defenses), reminders };
   }
 
   /**
@@ -762,6 +782,8 @@ export class HostSession {
     let label: string;
     let d20: SheetD20;
     let rollDamage: (critical: boolean) => { groups: ReturnType<typeof rollActionDamage>; bonus: number };
+    /** Token do atacante (para a distância até o alvo), se estiver no mapa. */
+    let attackerToken: Token | undefined;
     /** Arma da ficha: o que a maestria dela permite depois do resultado. */
     let weapon: { ref: { characterId: string; instanceId: string }; mastery: (hit: boolean, damaged: boolean) => ReturnType<typeof masteryOutcome> | undefined } | undefined;
 
@@ -772,6 +794,7 @@ export class HostSession {
       const roll = sheetD20(sheet, { kind: 'attack', instanceId }, declared);
       if (!attack || !roll) throw violation('Este ataque não está na ficha (a arma precisa estar equipada)');
       d20 = roll;
+      attackerToken = Object.values(this.current.tokens).find((t) => t.characterId === character.id && t.mapId === target.mapId);
       attackerName = character.name;
       label = attack.name;
       const abilityModifier = sheet.abilities[attack.ability].modifier;
@@ -803,16 +826,25 @@ export class HostSession {
       const actionId = data.attacker.actionId;
       const action = creature?.actions.find((a) => a.id === actionId);
       if (!creature || action?.kind !== 'attack') throw violation('Ação de ataque não encontrada no bloco do monstro');
-      const advantage = declared.advantage ? ['Declarada na rolagem'] : [];
-      const disadvantage = declared.disadvantage ? ['Declarada na rolagem'] : [];
-      const mode = advantage.length > 0 && disadvantage.length === 0 ? 'advantage' : disadvantage.length > 0 && advantage.length === 0 ? 'disadvantage' : 'normal';
-      d20 = { input: { modifier: action.toHit, mode }, parts: [{ label: 'Bônus de ataque', value: action.toHit }], advantage, disadvantage, reminders: [] };
+      // Bônus do bloco, com a Exaustão e as condições do monstro (Envenenado, Caído…).
+      d20 = creatureD20({ label: 'Bônus de ataque', modifier: action.toHit }, this.conditionsOf(token), { kind: 'attack' }, declared);
+      attackerToken = token;
       attackerName = token.name;
       label = action.name;
       rollDamage = (critical) => ({ groups: rollActionDamage(action.damage, critical, this.deps.rng), bonus: 0 });
     }
     const defender = this.targetOf(target);
-    const result = resolveAttack({ d20: d20.input, targetAc: defender.ac, rollDamage, defenses: defender.defenses }, this.deps.rng);
+    // Condições do alvo: Vantagem contra Impedido, Caído pela distância, crítico automático contra Paralisado a até 5 ft.
+    const against = attackedConditions(this.conditionsOf(target).conditions, this.distanceBetween(attackerToken, target));
+    const advantage = [...d20.advantage, ...against.advantage.map((s) => s.name)];
+    const disadvantage = [...d20.disadvantage, ...against.disadvantage.map((s) => s.name)];
+    d20 = { ...d20, input: { ...d20.input, mode: d20Mode(advantage.length > 0, disadvantage.length > 0) }, advantage, disadvantage, reminders: [...d20.reminders, ...against.reminders] };
+    const result = resolveAttack(
+      { d20: d20.input, targetAc: defender.ac, rollDamage, defenses: defender.defenses, autoCritical: against.autoCritical.length > 0 },
+      this.deps.rng,
+    );
+    const autoCriticalNote =
+      result.critical && !result.roll.critical ? [`Acerto Crítico: alvo ${against.autoCritical.map((s) => s.name).join(', ')} a até 5 ft`] : [];
     const mastery = weapon?.mastery(result.hit, (result.damage?.applied.total ?? 0) > 0);
     const entryId = this.deps.newId();
     const ops: PatchOp[] = [];
@@ -851,7 +883,7 @@ export class HostSession {
       fumble: result.roll.fumble,
       advantage: d20.advantage,
       disadvantage: d20.disadvantage,
-      notes: d20StepNotes(result.roll.steps),
+      notes: [...d20StepNotes(result.roll.steps), ...autoCriticalNote].slice(0, 50),
       reminders: [...d20.reminders, ...defender.reminders].slice(0, 50),
       hit: result.hit,
       ...(damage ? { damage } : {}),
@@ -891,9 +923,9 @@ export class HostSession {
     const rolled = data.tokenIds.map((tokenId) => {
       const token = this.token(tokenId);
       const notes: string[] = [];
-      let modifier = 0;
-      let advantage: string[] = [];
-      let disadvantage: string[] = [];
+      let modifier: number;
+      let advantage: string[];
+      let disadvantage: string[];
       let rules: D20RollInput['rules'];
       const character = token.characterId !== null ? this.current.characters[token.characterId] : undefined;
       const sheet = character ? this.deps.characterSheet(character) : undefined;
@@ -904,10 +936,13 @@ export class HostSession {
         advantage = roll.advantage;
         disadvantage = roll.disadvantage;
         rules = roll.input.rules;
-      } else if (creature) {
-        modifier = creature.initiative;
       } else {
-        notes.push(token.characterId !== null ? 'Personagem sem ficha: iniciativa +0' : 'Sem ficha nem bloco de monstro: iniciativa +0');
+        if (!creature) notes.push(token.characterId !== null ? 'Personagem sem ficha: iniciativa +0' : 'Sem ficha nem bloco de monstro: iniciativa +0');
+        // Bônus do bloco (ou +0), com a Exaustão e as condições (Incapacitado, Invisível).
+        const own = creatureD20({ label: 'Iniciativa', modifier: creature?.initiative ?? 0 }, this.conditionsOf(token), { kind: 'initiative' });
+        modifier = own.input.modifier;
+        advantage = own.advantage;
+        disadvantage = own.disadvantage;
       }
       if (surprised.has(tokenId)) disadvantage = [...disadvantage, 'Surpresa'];
       const input: D20RollInput = { modifier, mode: d20Mode(advantage.length > 0, disadvantage.length > 0), ...(rules ? { rules } : {}) };
@@ -1254,14 +1289,9 @@ export class HostSession {
     const creature = token.monsterId !== null ? this.deps.creature(token.monsterId) : undefined;
     if (!creature) throw violation(`${token.name}: sem salvaguarda conhecida (não é personagem nem monstro do compêndio)`);
     const { defenses, reminders } = creatureDefenses(creature);
-    const modifier = creatureSaveBonus(creature, ability);
-    return {
-      input: { modifier, mode: d20Mode(false, false) },
-      parts: [{ label: 'Salvaguarda do bloco', value: modifier }],
-      advantage: [],
-      disadvantage: [],
-      reminders,
-      defenses,
-    };
+    const state = this.conditionsOf(token);
+    // Bônus do bloco, com a Exaustão e as condições (Paralisado falha em FOR e DES).
+    const roll = creatureD20({ label: 'Salvaguarda do bloco', modifier: creatureSaveBonus(creature, ability) }, state, { kind: 'save', ability });
+    return { ...roll, reminders: [...roll.reminders, ...reminders], defenses: conditionDefenses(state.conditions, defenses) };
   }
 }

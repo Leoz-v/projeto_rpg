@@ -15,6 +15,7 @@ import type { Armor, Item, Weapon } from '../schemas/item';
 import type { Predicate } from '../schemas/predicate';
 import type { Compendium } from '../srd';
 import { resolveBuild, type SourcedEffect } from './build';
+import { type ConditionRoll, conditionDefenses, conditionSource, effectiveConditions, ownRollConditions, SPEED_ZERO_CONDITIONS } from './conditions';
 import { type MagicPart, resolveInventory } from './items';
 import { isWeaponProficient } from './proficiency';
 import {
@@ -301,16 +302,10 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     if (effect.condition === 'exhaustion') exhaustion += effect.level;
     else conditions.push({ condition: effect.condition, source });
   }
-  for (const c of conditions) currentConditions.add(c.condition);
+  // Com as implícitas (Inconsciente também é Incapacitado e Caído); os efeitos nas rolagens vêm de `ownRollConditions`.
+  for (const c of effectiveConditions(conditions.map((x) => x.condition))) currentConditions.add(c);
   if (exhaustion) currentConditions.add('exhaustion');
   exhaustion = Math.min(exhaustion, MAX_EXHAUSTION);
-  if (conditions.length) {
-    issues.push({
-      severity: 'warning',
-      code: 'not_supported',
-      message: `Efeitos mecânicos de ${conditions.map((c) => c.condition).join(', ')} ainda não são aplicados na ficha (Fase 5).`,
-    });
-  }
   const exhaustionPart = (): Contribution[] =>
     exhaustion ? [{ label: `Exaustão ${exhaustion}`, value: -EXHAUSTION_D20_PENALTY * exhaustion, source: RULE('exhaustion', 'Exaustão') }] : [];
 
@@ -355,8 +350,9 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     roll?: RollContext,
     extra: { kind: 'advantage' | 'disadvantage'; source: SourceLabel }[] = [],
     ruleTargets: readonly string[] = [],
+    conditionRoll?: ConditionRoll,
   ): RollState => {
-    const state: RollState = { mode: 'normal', advantage: [], disadvantage: [], situational: [], rules: [], situationalRules: [] };
+    const state: RollState = { mode: 'normal', advantage: [], disadvantage: [], situational: [], rules: [], situationalRules: [], autoFail: [] };
     const allRuleTargets = [...targets, 'd20_test', ...ruleTargets];
     for (const e of ofType('d20_rule')) {
       const { effect } = e;
@@ -380,6 +376,14 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       }
     }
     for (const e of extra) state[e.kind].push(e.source);
+    if (conditionRoll) {
+      // Condições da criatura (Envenenado, Impedido, Paralisado…), já com as implícitas.
+      const fromConditions = ownRollConditions(currentConditions, conditionRoll);
+      state.advantage.push(...fromConditions.advantage);
+      state.disadvantage.push(...fromConditions.disadvantage);
+      state.autoFail.push(...fromConditions.autoFail);
+      state.situational.push(...fromConditions.situational);
+    }
     const adv = state.advantage.length > 0;
     const dis = state.disadvantage.length > 0;
     state.mode = adv && !dis ? 'advantage' : dis && !adv ? 'disadvantage' : 'normal';
@@ -409,7 +413,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
         ...bonuses([`save.${a}`, 'save.all']),
         ...exhaustionPart(),
       ];
-      return [a, { ...stat(parts), proficient, roll: rollState([`save.${a}`, 'save.all']) } satisfies SaveStat];
+      return [a, { ...stat(parts), proficient, roll: rollState([`save.${a}`, 'save.all'], undefined, [], [], { kind: 'save', ability: a }) } satisfies SaveStat];
     }),
   ) as Record<Ability, SaveStat>;
 
@@ -427,7 +431,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
         ...bonuses(targets),
         ...exhaustionPart(),
       ];
-      const roll = rollState(targets, undefined, [], ['check.all', ...(multiplier ? ['check.proficient'] : [])]);
+      const roll = rollState(targets, undefined, [], ['check.all', ...(multiplier ? ['check.proficient'] : [])], { kind: 'check' });
       const passiveParts: Contribution[] = [
         { label: 'Base', value: PASSIVE_BASE },
         { label: 'Modificador do teste', value: total(parts) },
@@ -442,7 +446,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
   const initiativeTargets = ['initiative', 'check.dex'];
   const initiative: RollStat = {
     ...stat([{ label: 'Modificador de DES', value: mod('dex') }, ...bonuses(initiativeTargets), ...exhaustionPart()]),
-    roll: rollState(initiativeTargets, undefined, [], ['check.all']),
+    roll: rollState(initiativeTargets, undefined, [], ['check.all'], { kind: 'initiative' }),
   };
 
   // Salvaguarda contra a Morte: um d20 sem atributo; como salvaguarda, recebe `save.all`.
@@ -510,10 +514,16 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       : []),
     ...(exhaustion ? [{ label: `Exaustão ${exhaustion}`, value: -EXHAUSTION_SPEED_PENALTY * exhaustion, source: RULE('exhaustion', 'Exaustão') }] : []),
   ];
+  /** Condições que zeram o deslocamento (Agarrado, Impedido, Paralisado…). */
+  const speedZero = SPEED_ZERO_CONDITIONS.filter((c) => currentConditions.has(c));
   const speedStat = (kind: 'walk' | 'fly' | 'swim' | 'climb' | 'burrow', base: Contribution[]): Stat => {
     const parts = [...base, ...bonuses([`speed.${kind}`])];
     if (total(parts) <= 0) return { total: 0, parts: [] };
     const result = stat([...parts, ...speedPenalties()]);
+    if (speedZero.length > 0 && result.total > 0) {
+      const source = conditionSource(speedZero[0] ?? 'grappled');
+      return stat([...result.parts, { label: `${speedZero.map((c) => conditionSource(c).name).join(', ')}: deslocamento 0`, value: -result.total, source }]);
+    }
     return { ...result, total: Math.max(0, result.total) };
   };
   /** Deslocamento a pé mínimo ("becomes 30 feet unless your Speed is higher"), antes das penalidades. */
@@ -565,7 +575,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     return [...map.entries()].map(([key, sources]) => ({ key, sources }));
   };
   const immunities = effectsOf('immunity');
-  const defenses = {
+  const defenses = conditionDefenses(currentConditions, {
     damageReductions: effectsOf('damage_reduction').map(({ effect, source }) => ({ damageType: effect.damageType, amount: effect.amount, source })),
     resistances: groupBy(effectsOf('resistance').map(({ effect, source }) => ({ key: effect.damageType, source }))).map(({ key, sources }) => ({ damageType: key, sources })),
     vulnerabilities: groupBy(effectsOf('vulnerability').map(({ effect, source }) => ({ key: effect.damageType, source }))).map(({ key, sources }) => ({ damageType: key, sources })),
@@ -575,7 +585,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     conditionImmunities: groupBy(immunities.flatMap(({ effect, source }) => (effect.condition ? [{ key: effect.condition, source }] : []))).map(
       ({ key, sources }) => ({ condition: key, sources }),
     ),
-  };
+  });
 
   // --- Proficiências ------------------------------------------------------------
 
@@ -663,7 +673,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       kind: weapon.attackKind,
       ability,
       proficient,
-      attack: { ...stat(attackParts), roll: rollState([`attack.${weapon.attackKind}`, 'attack.all'], attackCtx, extra) },
+      attack: { ...stat(attackParts), roll: rollState([`attack.${weapon.attackKind}`, 'attack.all'], attackCtx, extra, [], { kind: 'attack' }) },
       damage: { dice: weapon.damage.dice, bonus: stat(damageParts), type: weapon.damage.type, dieMinimum: dieMinimum(attackCtx) },
       extraDamage: effectsOf('extra_damage', attackCtx)
         .filter(({ effect, refKey }) => effect.scope !== 'weapon' || refKey === `item:${instanceId}`)

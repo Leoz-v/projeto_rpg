@@ -26,3 +26,23 @@ export const FEET_PER_SQUARE = 5;
 export function spaceSquares(size: Size): number {
   return SPACE_FEET[size] / FEET_PER_SQUARE;
 }
+
+/** Onde a criatura está no grid: o canto superior esquerdo, em quadrados, e o tamanho. */
+export interface Footprint {
+  x: number;
+  y: number;
+  size: Size;
+}
+
+/**
+ * Distância entre duas criaturas em pés, contando os quadrados entre os
+ * espaços delas, com a diagonal valendo 5 ft (SRD 5.2.1, grid): vizinhas
+ * (inclusive na diagonal) ficam a 5 ft; espaços sobrepostos também contam 5 ft.
+ */
+export function distanceFeet(a: Footprint, b: Footprint): number {
+  const sideA = spaceSquares(a.size);
+  const sideB = spaceSquares(b.size);
+  const gapX = Math.max(0, b.x - (a.x + sideA), a.x - (b.x + sideB));
+  const gapY = Math.max(0, b.y - (a.y + sideA), a.y - (b.y + sideB));
+  return (Math.ceil(Math.max(gapX, gapY)) + 1) * FEET_PER_SQUARE;
+}

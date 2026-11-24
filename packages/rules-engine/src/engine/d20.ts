@@ -20,6 +20,8 @@ export interface D20RollInput {
   critMin?: number | undefined;
   /** CD da salvaguarda ou do teste; sem ela, `success` fica ausente. */
   dc?: number | undefined;
+  /** Falha automática contra a CD (Paralisado em salvaguarda de FOR/DES): vence o sucesso automático. */
+  autoFail?: readonly SourceLabel[] | undefined;
 }
 
 export type D20Step =
@@ -30,7 +32,8 @@ export type D20Step =
   | { kind: 'minimum_die'; from: number; to: number; source?: SourceLabel | undefined }
   | { kind: 'modifier'; value: number; total: number }
   | { kind: 'minimum_total'; from: number; to: number; source?: SourceLabel | undefined }
-  | { kind: 'auto_success'; source?: SourceLabel | undefined };
+  | { kind: 'auto_success'; source?: SourceLabel | undefined }
+  | { kind: 'auto_fail'; source?: SourceLabel | undefined };
 
 export interface D20RollResult {
   /** Valores finais de cada d20 rolado (depois de `reroll`). */
@@ -108,12 +111,18 @@ export function rollD20(input: D20RollInput, rng: Rng): D20RollResult {
     total = minimumTotal.value;
   }
 
-  // 7. Contra a CD: `auto_success` vence qualquer resultado.
+  // 7. Contra a CD: falha automática (condição) vence tudo; depois, `auto_success` vence qualquer resultado.
   let success: boolean | undefined;
   if (input.dc !== undefined) {
+    const autoFail = input.autoFail?.[0];
     const auto = rules.find((r) => r.rule === 'auto_success');
-    if (auto) steps.push({ kind: 'auto_success', source: auto.source });
-    success = auto !== undefined || total >= input.dc;
+    if (autoFail) {
+      steps.push({ kind: 'auto_fail', source: autoFail });
+      success = false;
+    } else {
+      if (auto) steps.push({ kind: 'auto_success', source: auto.source });
+      success = auto !== undefined || total >= input.dc;
+    }
   }
 
   return { dice, natural, die, total, critical, fumble: natural === 1, success, steps };

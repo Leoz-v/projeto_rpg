@@ -192,7 +192,25 @@ O valor do atributo passa a ser pelo menos `value` (ex.: Manoplas de Força do O
 - Aplica uma condição enquanto a fonte estiver ativa (ex.: item amaldiçoado, ajuste do mestre).
 - `condition` (SRD 5.2.1): `blinded`, `charmed`, `deafened`, `exhaustion`, `frightened`, `grappled`, `incapacitated`, `invisible`, `paralyzed`, `petrified`, `poisoned`, `prone`, `restrained`, `stunned`, `unconscious`.
 - `level` só para `exhaustion` (1–6). Níveis de várias fontes se somam, com teto em 6. Cada nível: `-2` em todos os testes d20 e `-5 ft` em todo deslocamento. No nível 6 a criatura morre.
-- Os efeitos mecânicos de cada condição são definidos pelo próprio motor a partir da tabela do SRD, não por dados externos.
+- Os efeitos mecânicos de cada condição são definidos pelo próprio motor a partir da tabela do SRD (Rules Glossary), não por dados externos (`engine/conditions.ts`, nota 0041):
+  - **Implícitas:** Paralisado, Petrificado e Atordoado incluem Incapacitado; Inconsciente inclui Incapacitado e Caído.
+  - **Rolagens da própria criatura:**
+    - Desvantagem nos ataques: Cego, Envenenado, Caído e Impedido. Vantagem: Invisível.
+    - Desvantagem nos testes de atributo (perícias, iniciativa): Envenenado.
+    - Iniciativa: Desvantagem para Incapacitado, Vantagem para Invisível.
+    - Salvaguardas: falha automática de FOR e DES para Paralisado, Petrificado, Atordoado e Inconsciente (vence o sucesso automático); Desvantagem de DES para Impedido.
+  - **Ataques contra a criatura:**
+    - Vantagem contra Cego, Paralisado, Petrificado, Impedido, Atordoado e Inconsciente. Desvantagem contra Invisível.
+    - Caído: Vantagem a até 5 ft, Desvantagem mais longe.
+    - Acerto a até 5 ft contra Paralisado ou Inconsciente é Acerto Crítico.
+    - A distância sai das posições dos tokens; sem ela, Caído e o crítico automático viram lembrete.
+  - **Outros efeitos:**
+    - Deslocamento 0 para Agarrado, Paralisado, Petrificado, Impedido e Inconsciente.
+    - Petrificado: Resistência a todo dano e Imunidade a Envenenado.
+  - **Lembretes (o motor não sabe o contexto):**
+    - Amedrontado: Desvantagem enquanto a fonte do medo estiver à vista.
+    - Agarrado: Desvantagem contra quem não é o agarrador.
+    - Enfeitiçado, Surdo, e a falha em testes que dependem da visão ou da audição: o mestre decide.
 
 ### 3.11 `half_proficiency`
 

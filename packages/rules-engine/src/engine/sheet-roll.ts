@@ -129,7 +129,7 @@ export function sheetD20(sheet: DerivedSheet, target: SheetRollTarget, declared:
   const rules = [...stat.roll.rules, ...situationalRules];
   const remaining = { ...stat.roll, situational: stat.roll.situational.filter((s) => !applies(s)), situationalRules: stat.roll.situationalRules.filter((r) => !applies(r)) };
   return {
-    input: { modifier: stat.total, mode, rules, ...(critMin !== undefined && critMin < 20 ? { critMin } : {}) },
+    input: { modifier: stat.total, mode, rules, ...(critMin !== undefined && critMin < 20 ? { critMin } : {}), ...(stat.roll.autoFail.length > 0 ? { autoFail: stat.roll.autoFail } : {}) },
     parts: stat.parts,
     advantage,
     disadvantage,
@@ -158,6 +158,8 @@ export function d20StepNotes(steps: readonly D20Step[]): string[] {
         return [`Total ${step.from} vale ${step.to}${sourceName(step.source)}`];
       case 'auto_success':
         return [`Sucesso automático${sourceName(step.source)}`];
+      case 'auto_fail':
+        return [`Falha automática${sourceName(step.source)}`];
       case 'roll':
       case 'keep':
       case 'modifier':

@@ -57,6 +57,8 @@ export interface AttackInput {
   /** Rola o dano do acerto (crítico ou não): grupos por tipo e o bônus, que soma ao primeiro grupo. */
   rollDamage: (critical: boolean) => { groups: DamageGroup[]; bonus: number };
   defenses: Defenses;
+  /** O acerto vira Acerto Crítico (alvo Paralisado ou Inconsciente a até 5 ft). */
+  autoCritical?: boolean | undefined;
 }
 
 export interface AttackResult {
@@ -68,9 +70,9 @@ export interface AttackResult {
 
 export function resolveAttack(input: AttackInput, rng: Rng): AttackResult {
   const roll = rollD20(input.d20, rng);
-  const critical = roll.critical;
-  const hit = critical || (!roll.fumble && roll.total >= input.targetAc);
+  const hit = roll.critical || (!roll.fumble && roll.total >= input.targetAc);
   if (!hit) return { roll, hit, critical: false };
+  const critical = roll.critical || input.autoCritical === true;
   const { groups, bonus } = input.rollDamage(critical);
   // O bônus (modificador de atributo, arma mágica) é do dano da arma: entra no primeiro grupo.
   const instances = groups.map((g, i) => ({ amount: Math.max(0, g.total + (i === 0 ? bonus : 0)), type: g.type }));
