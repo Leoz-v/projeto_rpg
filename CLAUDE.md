@@ -87,7 +87,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 ├── src/
 │   ├── main/                # Processo main (Node)
 │   │   ├── net/             # Servidor e cliente WebSocket
-│   │   ├── session/         # Executor da sessão do Host (Intent -> rules-engine -> broadcast)
+│   │   ├── session/         # Executor da sessão do Host (Intent -> rules-engine -> broadcast), um arquivo por área (nota 0049)
 │   │   ├── table/           # Mesa deste app: hospedar ou entrar, ponte entre IPC, sessão e rede
 │   │   ├── db/              # Conexões SQLite (app.db e campaign.db) e migrações
 │   │   ├── assets/          # Hash SHA-256, cache local e protocolo vtt-asset://
@@ -193,7 +193,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - ✅ Preparar para público: licença MIT, `NOTICE`, tela "Sobre" com a atribuição do SRD, `README` (nota 0046).
    - ✅ Janela do chat (`PROTOCOL_VERSION = 17`): o snapshot e a tela recebem só as últimas 200 entradas (`chatFrom`), e as anteriores vêm sob demanda (`ChatHistoryRequest`, botão "Carregar mensagens anteriores"). Antes, o snapshot passaria de 1 MB em algumas sessões e ninguém conseguiria entrar. Ver `docs/decisions/0047-janela-do-chat.md`.
    - ✅ Release pelo GitHub Actions (rascunho a cada tag `vX.Y.Z`) e atualização automática ao fechar o app; no Mac, baixar à mão. Ver `docs/decisions/0048-releases-e-atualizacao-automatica.md`.
-   - Dividir o executor de sessão por área.
+   - ✅ Executor da sessão dividido por área (`context.ts` + mapa, personagens, PV e morte, condições, combate, ataques), sem mudar comportamento. Ver `docs/decisions/0049-executor-por-area.md`.
 6. **Fase 6 — Recursos e descansos** (a detalhar): descansos curto e longo, espaços de magia, recursos de classe e conjurar magia.
 
 *Extras futuros:* ferramentas de mapa (régua, tokens ocultos, névoa, indicação de morto), ações de monstro com Multiattack e magias, exportar e abrir campanha de arquivo, criação de token a partir de imagem com recorte/moldura automáticos, spawn de vários inimigos de uma vez (a numeração Goblin 1, Goblin 2… já existe, um por vez), colar texto de ficha de monstro e converter para o schema.
