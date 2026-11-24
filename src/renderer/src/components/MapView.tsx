@@ -1,11 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { TableView } from '../../../shared/ipc';
 import type { GameMap } from '../../../shared/protocol';
+import { conditionLabels, timedEffectLabels, tokenConditions } from '../canvas/conditions';
 import type { FogTool } from '../canvas/fog-render';
 import { tokenHealth } from '../canvas/health';
-import { conditionLabels, timedEffectLabels, tokenConditions } from '../canvas/conditions';
-import { MapStage, type MapStageHandle } from '../canvas/MapStage';
+import { MapStage, type MapStageHandle, type RenderedMapBackground } from '../canvas/MapStage';
 import { DEFAULT_RULER_OPTIONS, type RulerOptions } from '../canvas/ruler';
+import { render3dMapTo2dCanvas } from '../canvas3d/render/mapConversion';
 import { sendIntent } from '../store/table';
 import { FogHudControls } from './FogHudControls';
 import { Map3DView } from './Map3DView';
@@ -13,11 +14,17 @@ import { RulerOptionsBar } from './RulerControls';
 
 /**
  * O mapa ativo: liga o `MapStage` (PixiJS 2D) ou o `Map3DView` (PixiJS 3D) ao
- * estado da mesa. Abrir um mapa 3D segue exatamente o mesmo fluxo dos mapas 2D.
+ * estado da mesa. Qualquer mapa (2D ou 3D) pode ser aberto em qualquer um dos
+ * dois visualizadores: mapas 2D viram um plano texturizado no 3D, e mapas 3D
+ * são renderizados pela câmera de topo em uma imagem 2D com resolução por tile.
  */
+
+export type MapViewerMode = '2d' | '3d';
 
 interface Props {
   view: TableView;
+  viewerMode: MapViewerMode;
+  onViewerModeChange: (mode: MapViewerMode) => void;
   selectedId: string | null;
   fogTool: FogTool;
   onFogTool: (tool: FogTool) => void;
@@ -43,7 +50,19 @@ function useHpMaxima(characters: TableView['state']['characters']): Record<strin
   return maxima;
 }
 
-function Map2DView({ view, selectedId, fogTool, onFogTool, onSelect, onStage }: Omit<Props, 'onEdit3dMap'>) {
+interface Map2DProps {
+  view: TableView;
+  maxima: Record<string, number>;
+  selectedId: string | null;
+  fogTool: FogTool;
+  onFogTool: (tool: FogTool) => void;
+  onSelect: (tokenId: string | null) => void;
+  onStage: (stage: MapStageHandle | null) => void;
+  onViewerModeChange: (mode: MapViewerMode) => void;
+  onEdit3dMap?: ((map: GameMap) => void) | undefined;
+}
+
+function Map2DView({ view, maxima, selectedId, fogTool, onFogTool, onSelect, onStage, onViewerModeChange, onEdit3dMap }: Map2DProps) {
   const host = useRef<HTMLDivElement>(null);
   const [stage, setStage] = useState<MapStage | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +70,10 @@ function Map2DView({ view, selectedId, fogTool, onFogTool, onSelect, onStage }: 
   const [rulerOptions, setRulerOptions] = useState<RulerOptions>({ ...DEFAULT_RULER_OPTIONS });
   const [fogHudOpen, setFogHudOpen] = useState(false);
   const [previewTokenVision, setPreviewTokenVision] = useState(true);
+  const [renderResult, setRenderResult] = useState<
+    { key: string; bg: RenderedMapBackground } | { key: string; error: string } | null
+  >(null);
+
   // O palco é criado uma vez; os callbacks leem sempre a versão atual.
   const latest = useRef({ onSelect, onStage });
   useLayoutEffect(() => {
@@ -97,14 +120,44 @@ function Map2DView({ view, selectedId, fogTool, onFogTool, onSelect, onStage }: 
 
   const { state, info } = view;
   const map = state.activeMapId !== null ? (state.maps[state.activeMapId] ?? null) : null;
-  const maxima = useHpMaxima(state.characters);
   const isGm = info.role === 'gm';
   const selectedToken = selectedId !== null ? (state.tokens[selectedId] ?? null) : null;
   const showFogHud = isGm && (fogHudOpen || fogTool !== 'none');
+  const scene3dHash = map?.scene3d ?? null;
+  const mapName = map?.name ?? '';
+
+  // Mapa 3D aberto no visualizador 2D: renderiza a câmera de topo em uma imagem 2D.
+  useEffect(() => {
+    if (scene3dHash === null) return;
+    let cancelled = false;
+    void render3dMapTo2dCanvas(scene3dHash, mapName)
+      .then((res) => {
+        if (cancelled) return;
+        setRenderResult({ key: scene3dHash, bg: { key: scene3dHash, source: res.canvas, cellPx: res.cellPx } });
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setRenderResult({
+          key: scene3dHash,
+          error: err instanceof Error ? err.message : 'Não foi possível renderizar o mapa 3D em 2D',
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [scene3dHash, mapName]);
+
+  const activeRenderedBg =
+    scene3dHash !== null && renderResult?.key === scene3dHash && 'bg' in renderResult ? renderResult.bg : null;
+  const renderError =
+    scene3dHash !== null && renderResult?.key === scene3dHash && 'error' in renderResult ? renderResult.error : null;
+  const rendering3d = scene3dHash !== null && renderResult?.key !== scene3dHash;
+  const visibleError = error ?? renderError;
 
   useEffect(() => {
     stage?.setScene({
       map,
+      renderedBackground: activeRenderedBg,
       tokens: Object.values(state.tokens),
       canDrag: (token) => isGm || token.ownerIds.includes(info.playerId),
       selectedId,
@@ -114,7 +167,7 @@ function Map2DView({ view, selectedId, fogTool, onFogTool, onSelect, onStage }: 
       viewer: { role: info.role, playerId: info.playerId, previewTokenId: isGm && previewTokenVision ? selectedId : null },
       fogTool: isGm ? fogTool : 'none',
     });
-  }, [stage, map, state.tokens, state.characters, state.combat, maxima, info.role, info.playerId, isGm, selectedId, previewTokenVision, fogTool]);
+  }, [stage, map, activeRenderedBg, state.tokens, state.characters, state.combat, maxima, info.role, info.playerId, isGm, selectedId, previewTokenVision, fogTool]);
 
   useEffect(() => {
     stage?.setRulerMode(rulerActive && fogTool === 'none' && map !== null);
@@ -145,11 +198,26 @@ function Map2DView({ view, selectedId, fogTool, onFogTool, onSelect, onStage }: 
   }, [map]);
 
   return (
-    <section className="map" aria-label="Mapa">
+    <section className="map" aria-label={map ? `Mapa 2D: ${map.name}` : 'Mapa'}>
       <div ref={host} className="map-canvas" />
       {map && (
         <>
           <div className="map3d-hud" role="toolbar" aria-label="Ferramentas do mapa">
+            <span className="map3d-badge">2D · {map.name}</span>
+            <div className="map3d-hud-group" role="group" aria-label="Visualizador">
+              <button type="button" className="active" aria-pressed="true">
+                2D
+              </button>
+              <button
+                type="button"
+                aria-pressed="false"
+                onClick={() => {
+                  onViewerModeChange('3d');
+                }}
+              >
+                3D
+              </button>
+            </div>
             <button
               type="button"
               className={rulerActive ? 'active' : ''}
@@ -187,6 +255,17 @@ function Map2DView({ view, selectedId, fogTool, onFogTool, onSelect, onStage }: 
                 Névoa
               </button>
             )}
+            {isGm && onEdit3dMap && map.scene3d !== null && (
+              <button
+                type="button"
+                className="map3d-edit-btn"
+                onClick={() => {
+                  onEdit3dMap(map);
+                }}
+              >
+                Editar mapa 3D
+              </button>
+            )}
           </div>
           {rulerActive && <RulerOptionsBar options={rulerOptions} onChange={setRulerOptions} />}
           {showFogHud && (
@@ -202,21 +281,22 @@ function Map2DView({ view, selectedId, fogTool, onFogTool, onSelect, onStage }: 
           )}
         </>
       )}
-      {!map && <p className="map-empty hint">{info.role === 'gm' ? 'Crie um mapa no painel ao lado para começar.' : 'O mestre ainda não mostrou um mapa.'}</p>}
-      {error && (
+      {!map && <p className="map-empty hint">{isGm ? 'Crie um mapa no painel ao lado para começar.' : 'O mestre ainda não mostrou um mapa.'}</p>}
+      {rendering3d && <p className="map-empty hint">Renderizando vista 2D do mapa 3D…</p>}
+      {visibleError && (
         <p className="map-error error" role="alert">
-          {error}
+          {visibleError}
         </p>
       )}
     </section>
   );
 }
 
-export function MapView({ view, selectedId, fogTool, onFogTool, onSelect, onStage, onEdit3dMap }: Props) {
+export function MapView({ view, viewerMode, onViewerModeChange, selectedId, fogTool, onFogTool, onSelect, onStage, onEdit3dMap }: Props) {
   const { state, info } = view;
   const map = state.activeMapId !== null ? (state.maps[state.activeMapId] ?? null) : null;
   const maxima = useHpMaxima(state.characters);
-  if (map !== null && map.scene3d !== null) {
+  if (map !== null && viewerMode === '3d') {
     return (
       <Map3DView
         view={view}
@@ -228,9 +308,22 @@ export function MapView({ view, selectedId, fogTool, onFogTool, onSelect, onStag
         onSelect={onSelect}
         onStage={onStage}
         isGm={info.role === 'gm'}
+        onViewerModeChange={onViewerModeChange}
         onEditMap={onEdit3dMap}
       />
     );
   }
-  return <Map2DView view={view} selectedId={selectedId} fogTool={fogTool} onFogTool={onFogTool} onSelect={onSelect} onStage={onStage} />;
+  return (
+    <Map2DView
+      view={view}
+      maxima={maxima}
+      selectedId={selectedId}
+      fogTool={fogTool}
+      onFogTool={onFogTool}
+      onSelect={onSelect}
+      onStage={onStage}
+      onViewerModeChange={onViewerModeChange}
+      onEdit3dMap={onEdit3dMap}
+    />
+  );
 }

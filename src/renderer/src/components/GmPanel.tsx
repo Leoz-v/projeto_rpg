@@ -15,6 +15,7 @@ import { ConditionsControl } from './Conditions';
 import { FogPanel } from './FogPanel';
 import { HitPointsControl, HitPointsSummary } from './HitPoints';
 import { MapGridModal } from './MapGridModal';
+import type { MapViewerMode } from './MapView';
 import { RestPanel } from './Rest';
 import { forceSave, SaveEffectForm, TargetChecklist, type TargetOption } from './SaveEffect';
 import { ABILITY_LABEL, CONDITION_LABEL, DAMAGE_LABEL, signed } from './sheet-labels';
@@ -93,7 +94,19 @@ interface BackgroundGrid {
   cellPx: number;
 }
 
-function Maps({ view, onError, onOpen3dEditor }: { view: TableView; onError: (m: string | null) => void; onOpen3dEditor: (map: GameMap | null) => void }) {
+function Maps({
+  view,
+  activeViewerMode,
+  onSelectViewerMode,
+  onError,
+  onOpen3dEditor,
+}: {
+  view: TableView;
+  activeViewerMode: MapViewerMode;
+  onSelectViewerMode: (mapId: string, mode: MapViewerMode) => void;
+  onError: (m: string | null) => void;
+  onOpen3dEditor: (map: GameMap | null) => void;
+}) {
   const { maps, activeMapId } = view.state;
   const [name, setName] = useState('');
   const [width, setWidth] = useState('30');
@@ -195,11 +208,41 @@ function Maps({ view, onError, onOpen3dEditor }: { view: TableView; onError: (m:
               {m.cellPx !== null ? `, ${m.cellPx} px` : ''})
             </span>
             {m.id === activeMapId ? (
-              <span className="tag">na tela</span>
+              <>
+                <span className="tag">na tela ({activeViewerMode.toUpperCase()})</span>
+                <button
+                  type="button"
+                  className="link"
+                  onClick={() => {
+                    onSelectViewerMode(m.id, activeViewerMode === '2d' ? '3d' : '2d');
+                  }}
+                >
+                  {activeViewerMode === '2d' ? 'Abrir em 3D' : 'Abrir em 2D'}
+                </button>
+              </>
             ) : (
-              <button type="button" className="link" onClick={() => void sendIntent({ kind: 'map.activate', data: { mapId: m.id } }).then(onError)}>
-                Mostrar
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="link"
+                  onClick={() => {
+                    onSelectViewerMode(m.id, '2d');
+                    void sendIntent({ kind: 'map.activate', data: { mapId: m.id } }).then(onError);
+                  }}
+                >
+                  Abrir 2D
+                </button>
+                <button
+                  type="button"
+                  className="link"
+                  onClick={() => {
+                    onSelectViewerMode(m.id, '3d');
+                    void sendIntent({ kind: 'map.activate', data: { mapId: m.id } }).then(onError);
+                  }}
+                >
+                  Abrir 3D
+                </button>
+              </>
             )}
             {m.scene3d !== null && (
               <button
@@ -815,6 +858,8 @@ export function GmPanel({
   selectedId,
   fogTool,
   onFogTool,
+  activeViewerMode,
+  onSelectViewerMode,
   onOpen3dEditor,
 }: {
   view: TableView;
@@ -822,6 +867,8 @@ export function GmPanel({
   selectedId: string | null;
   fogTool: FogTool;
   onFogTool: (tool: FogTool) => void;
+  activeViewerMode: MapViewerMode;
+  onSelectViewerMode: (mapId: string, mode: MapViewerMode) => void;
   onOpen3dEditor: (map: GameMap | null) => void;
 }) {
   const [error, setError] = useState<string | null>(null);
@@ -832,7 +879,13 @@ export function GmPanel({
           {error}
         </p>
       )}
-      <Maps view={view} onError={setError} onOpen3dEditor={onOpen3dEditor} />
+      <Maps
+        view={view}
+        activeViewerMode={activeViewerMode}
+        onSelectViewerMode={onSelectViewerMode}
+        onError={setError}
+        onOpen3dEditor={onOpen3dEditor}
+      />
       <FogPanel view={view} fogTool={fogTool} onFogTool={onFogTool} onError={setError} />
       <RestPanel state={view.state} />
       <CharacterTokens view={view} stage={stage} onError={setError} />

@@ -11,7 +11,7 @@ import { Chat } from './Chat';
 import { CombatTracker } from './CombatTracker';
 import { GmPanel } from './GmPanel';
 import { Map3DEditorModal } from './Map3DEditorModal';
-import { MapView } from './MapView';
+import { type MapViewerMode, MapView } from './MapView';
 
 /** A mesa: cabeçalho, barra lateral (jogadores e, para o mestre, mapas e tokens), mapa e chat. */
 
@@ -92,6 +92,7 @@ export function TableScreen({ view }: { view: TableView }) {
   const isHost = view.info.mode === 'host';
   const [openCharacterId, setOpenCharacterId] = useState<string | null>(null);
   const [editor3d, setEditor3d] = useState<{ map: GameMap | null } | null>(null);
+  const [viewerByMap, setViewerByMap] = useState<Record<string, MapViewerMode>>({});
   const closeSheet = useCallback(() => {
     setOpenCharacterId(null);
   }, []);
@@ -101,6 +102,20 @@ export function TableScreen({ view }: { view: TableView }) {
   const close3dEditor = useCallback(() => {
     setEditor3d(null);
   }, []);
+  const setMapViewerMode = useCallback((mapId: string, mode: MapViewerMode) => {
+    setViewerByMap((prev) => ({ ...prev, [mapId]: mode }));
+  }, []);
+
+  const activeMap = view.state.activeMapId !== null ? (view.state.maps[view.state.activeMapId] ?? null) : null;
+  const activeViewerMode: MapViewerMode = activeMap
+    ? (viewerByMap[activeMap.id] ?? (activeMap.scene3d !== null ? '3d' : '2d'))
+    : '2d';
+  const handleActiveViewerChange = useCallback(
+    (mode: MapViewerMode) => {
+      if (activeMap) setMapViewerMode(activeMap.id, mode);
+    },
+    [activeMap, setMapViewerMode],
+  );
 
   const leave = async (): Promise<void> => {
     if (isHost && !window.confirm('Encerrar a mesa para todos os jogadores?')) return;
@@ -123,11 +138,24 @@ export function TableScreen({ view }: { view: TableView }) {
         <Players view={view} />
         <Characters view={view} onOpen={setOpenCharacterId} />
         {selectedId !== null && <SelectedCharacter view={view} tokenId={selectedId} onOpen={setOpenCharacterId} />}
-        {view.info.role === 'gm' && <GmPanel view={view} stage={stage} selectedId={selectedId} fogTool={fogTool} onFogTool={setFogTool} onOpen3dEditor={open3dEditor} />}
+        {view.info.role === 'gm' && (
+          <GmPanel
+            view={view}
+            stage={stage}
+            selectedId={selectedId}
+            fogTool={fogTool}
+            onFogTool={setFogTool}
+            activeViewerMode={activeViewerMode}
+            onSelectViewerMode={setMapViewerMode}
+            onOpen3dEditor={open3dEditor}
+          />
+        )}
         <HostAddresses view={view} />
       </aside>
       <MapView
         view={view}
+        viewerMode={activeViewerMode}
+        onViewerModeChange={handleActiveViewerChange}
         selectedId={selectedId}
         fogTool={fogTool}
         onFogTool={setFogTool}

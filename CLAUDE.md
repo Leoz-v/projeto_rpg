@@ -212,6 +212,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - Tokens ocultos e indicação de morto.
 9. **Mapas 3D (`@pixi/3d`, nota 0056):**
    - ✅ Integração do motor e editor 3D (`PROTOCOL_VERSION = 23`, `<campanha>.db` v14, `vtt-3d://`, `map.create`/`map.update` com `scene3d` via `AssetStore`), visualização de mesa (`Map3DView`) integrada ao fluxo natural de mapas com tokens 3D (planos no modo Topo, billboard em 3D/Ortho, arrasto e movimento por teclado) e editor completo (`Map3DEditorModal`) exclusivo do mestre.
+   - ✅ Visualização bidirecional 2D/3D (`mapConversion.ts`): qualquer mapa pode ser aberto no visualizador 2D ou 3D (pela barra do mapa ou pelo painel do mestre). Mapas 2D abertos em 3D são montados em um plano horizontal na escala exata do grid com a imagem do mapa; mapas 3D abertos em 2D têm a câmera ortográfica de topo renderizada em imagem 2D com dimensão e resolução por tile adequadas (cacheada por SHA-256).
    - Visão de jogador (linha de visão/névoa) e navegação específica de jogador em 3D.
 
 *Extras futuros:* ações de monstro com Multiattack e magias, exportar e abrir campanha de arquivo, criação de token a partir de imagem com recorte/moldura automáticos, spawn de vários inimigos de uma vez (a numeração Goblin 1, Goblin 2… já existe, um por vez), colar texto de ficha de monstro e converter para o schema.

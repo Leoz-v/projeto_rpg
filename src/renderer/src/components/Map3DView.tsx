@@ -1,3 +1,5 @@
+import { FlatMaterial, Mesh3D, PlaneGeometry } from '@pixi/3d';
+import { ImageSource, Texture } from 'pixi.js';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { TableView } from '../../../shared/ipc';
 import type { GameMap } from '../../../shared/protocol';
@@ -16,19 +18,24 @@ import { AssetManager } from '../canvas3d/render/assetManager';
 import { FogLayer3d } from '../canvas3d/render/fogLayer3d';
 import { LightingManager } from '../canvas3d/render/lightingSystem';
 import { LiquidRenderer } from '../canvas3d/render/liquidRenderer';
+import { compute2dMapPlaneMetrics, createFlat2dGridOverlay } from '../canvas3d/render/mapConversion';
 import { RulerTool3d } from '../canvas3d/render/rulerTool3d';
 import { type CameraViewMode, SceneManager } from '../canvas3d/render/sceneManager';
 import { TerrainRenderer } from '../canvas3d/render/terrainRenderer';
 import { cameraTargetToWorld2d } from '../canvas3d/render/tokenGeometry3d';
 import { TokenRenderer3d } from '../canvas3d/render/tokenRenderer3d';
 import { METERS_PER_FOOT } from '../canvas3d/terrain/constants';
+import { TerrainGrid } from '../canvas3d/terrain/terrainGrid';
 import { sendIntent } from '../store/table';
 import { FogHudControls } from './FogHudControls';
+import type { MapViewerMode } from './MapView';
 import { RulerOptionsBar } from './RulerControls';
 
 /**
  * Visualização 3D da mesa (somente leitura do terreno): usada por jogadores e
  * pelo mestre durante a sessão, sem ferramentas de edição de mapa.
+ * Suporta tanto mapas 3D nativos (`scene3d !== null`) quanto mapas 2D abertos
+ * em 3D (convertidos em um plano texturizado com as dimensões exatas do grid).
  * Tokens funcionam exatamente como no 2D (seleção, arrasto `token.move`, barras
  * de PV, condições e anel de turno): planos no modo `top_down` e com billboard
  * vertical nos modos `perspective` e `orthographic`.
@@ -44,23 +51,36 @@ interface Props {
   onSelect: (tokenId: string | null) => void;
   onStage: (stage: MapStageHandle | null) => void;
   isGm: boolean;
+  onViewerModeChange: (mode: MapViewerMode) => void;
   onEditMap?: ((map: GameMap) => void) | undefined;
 }
 
 interface ActiveViewer {
   scene: SceneManager;
-  surfaceRenderer: TerrainRenderer;
-  interiorRenderer: TerrainRenderer;
-  assets: AssetManager;
+  setGridVisible: (visible: boolean) => void;
   tokens3d: TokenRenderer3d;
-  ruler3d: RulerTool3d;
+  ruler3d: RulerTool3d | null;
   fog3d: FogLayer3d;
   width: number;
   length: number;
   destroy: () => void;
 }
 
-export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, onSelect, onStage, isGm, onEditMap }: Props) {
+function load2dBackgroundImage(sha256: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      resolve(img);
+    };
+    img.onerror = () => {
+      reject(new Error('Não foi possível carregar a imagem do mapa 2D'));
+    };
+    img.src = `vtt-asset://${sha256}`;
+  });
+}
+
+export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, onSelect, onStage, isGm, onViewerModeChange, onEditMap }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<ActiveViewer | null>(null);
   const [viewer, setViewer] = useState<ActiveViewer | null>(null);
@@ -79,10 +99,15 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
   });
 
   const sceneHash = map.scene3d;
+  const bgHash = map.background;
+  const cellPx = map.cellPx;
+  const mapWidth = map.width;
+  const mapHeight = map.height;
+  const mapName = map.name;
 
   useEffect(() => {
     const element = hostRef.current;
-    if (!element || sceneHash === null) return;
+    if (!element) return;
 
     let cancelled = false;
     const isCancelled = (): boolean => cancelled;
@@ -90,14 +115,161 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
 
     setLoading(true);
     setError(null);
+    setCamMode('perspective');
 
-    const mount = async (): Promise<void> => {
-      const response = await fetch(`vtt-asset://${sceneHash}`);
+    const mountFlat2dMap = async (): Promise<void> => {
+      const surfaceGrid = new TerrainGrid(mapWidth, mapHeight);
+      const scene = await SceneManager.create(element, mapWidth, mapHeight);
+      if (isCancelled()) {
+        scene.destroy();
+        return;
+      }
+
+      scene.setLeftButtonAction('pan');
+      scene.skybox.mesh.visible = false;
+      scene.setEnvironmentAndAtmosphere({
+        skyColor: 0xd0d4de,
+        groundColor: 0x22212a,
+        ambientIntensity: 0.9,
+        backdropColor: 0x16151a,
+        fogEnabled: false,
+        fogColor: 0x16151a,
+        fogNear: 100,
+        fogFar: 200,
+      });
+
+      let bgImage: HTMLImageElement | null = null;
+      if (bgHash !== null) {
+        try {
+          bgImage = await load2dBackgroundImage(bgHash);
+        } catch (err: unknown) {
+          if (!isCancelled()) {
+            setError(err instanceof Error ? err.message : 'Não foi possível carregar a imagem do mapa 2D');
+          }
+        }
+        if (isCancelled()) {
+          scene.destroy();
+          return;
+        }
+      }
+
+      const metrics = compute2dMapPlaneMetrics(
+        { width: mapWidth, height: mapHeight, cellPx },
+        bgImage ? { width: bgImage.naturalWidth, height: bgImage.naturalHeight } : null,
+      );
+
+      // Piso plano cobrindo todo o grid lógico (visível sem imagem ou em bordas parciais de `cellPx`).
+      const floorGeo = new PlaneGeometry({ width: metrics.mapWidthMeters, height: metrics.mapLengthMeters });
+      const floorMat = new FlatMaterial({ baseColor: 0x22212a, doubleSided: true });
+      const floorMesh = new Mesh3D({
+        geometry: floorGeo,
+        material: floorMat,
+        castShadow: false,
+        receiveShadow: false,
+        label: 'flat2dFloor',
+      });
+      floorMesh.position.set(metrics.floorCenterX, -0.004, metrics.floorCenterZ);
+      floorMesh.rotation.set(-Math.PI / 2, 0, 0);
+      scene.terrainRoot.addChild(floorMesh);
+
+      let imageGeo: PlaneGeometry | null = null;
+      let imageMat: FlatMaterial | null = null;
+      let imageTex: Texture | null = null;
+      if (bgImage && metrics.imagePlane) {
+        imageTex = new Texture({ source: new ImageSource({ resource: bgImage }) });
+        imageGeo = new PlaneGeometry({
+          width: metrics.imagePlane.widthMeters,
+          height: metrics.imagePlane.lengthMeters,
+          flipV: true,
+        });
+        imageMat = new FlatMaterial({ baseColorTexture: imageTex, doubleSided: true });
+        const imageMesh = new Mesh3D({
+          geometry: imageGeo,
+          material: imageMat,
+          castShadow: false,
+          receiveShadow: false,
+          label: 'flat2dImagePlane',
+        });
+        imageMesh.position.set(metrics.imagePlane.centerX, 0, metrics.imagePlane.centerZ);
+        imageMesh.rotation.set(-Math.PI / 2, 0, 0);
+        scene.terrainRoot.addChild(imageMesh);
+      }
+
+      const gridOverlay = createFlat2dGridOverlay(mapWidth, mapHeight);
+      scene.overlayRoot.addChild(gridOverlay.mesh);
+      setGridVisible(true);
+
+      scene.configureForMap(mapWidth, mapHeight);
+
+      const fog3d = new FogLayer3d(
+        scene,
+        surfaceGrid,
+        {
+          onFogPaint: (mapId, mode, cells) => {
+            void sendIntent({ kind: 'fog.manual.paint', data: { mapId, mode, cells } }).then(setError);
+          },
+          onFogRect: (mapId, mode, from, to) => {
+            void sendIntent({ kind: 'fog.manual.rect', data: { mapId, mode, from, to } }).then(setError);
+          },
+        },
+        undefined,
+        [],
+      );
+
+      const tokens3d = new TokenRenderer3d(scene, surfaceGrid, {
+        onSelect: (id) => {
+          latest.current.onSelect(id);
+        },
+        onMove: (tokenId, to) => {
+          void sendIntent({ kind: 'token.move', data: { tokenId, to } }).then((refused) => {
+            setError(refused);
+            if (refused) tokens3d.revert(tokenId);
+          });
+        },
+      });
+
+      scene.app.ticker.add(() => {
+        tokens3d.tick();
+      });
+
+      active = {
+        scene,
+        setGridVisible: (visible) => {
+          gridOverlay.mesh.visible = visible;
+        },
+        tokens3d,
+        ruler3d: null,
+        fog3d,
+        width: mapWidth,
+        length: mapHeight,
+        destroy: () => {
+          fog3d.destroy();
+          tokens3d.destroy();
+          gridOverlay.geometry.destroy(true);
+          gridOverlay.material.destroy();
+          floorGeo.destroy(true);
+          floorMat.destroy();
+          imageGeo?.destroy(true);
+          imageMat?.destroy();
+          imageTex?.destroy(true);
+          scene.destroy();
+        },
+      };
+      viewerRef.current = active;
+      setViewer(active);
+      latest.current.onStage({
+        viewCenter: () => cameraTargetToWorld2d(scene.orbit.target.x, scene.orbit.target.z),
+      });
+      setLoading(false);
+    };
+
+    const mountNative3dMap = async (hash: string): Promise<void> => {
+      const response = await fetch(`vtt-asset://${hash}`);
       if (!response.ok) {
         throw new Error(`Não foi possível carregar o mapa 3D (HTTP ${response.status})`);
       }
       const raw: unknown = await response.json();
-      const doc = parseMapDocument(raw, map.name);
+      const doc = parseMapDocument(raw, mapName);
       if (isCancelled()) return;
 
       const surfaceGrid = gridFromMapDocument(doc);
@@ -197,9 +369,10 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
 
       active = {
         scene,
-        surfaceRenderer,
-        interiorRenderer,
-        assets,
+        setGridVisible: (visible) => {
+          surfaceRenderer.setGridVisible(visible);
+          interiorRenderer.setGridVisible(visible);
+        },
         tokens3d,
         ruler3d,
         fog3d,
@@ -232,7 +405,8 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
       setLoading(false);
     };
 
-    void mount().catch((err: unknown) => {
+    const mount = sceneHash !== null ? mountNative3dMap(sceneHash) : mountFlat2dMap();
+    void mount.catch((err: unknown) => {
       if (isCancelled()) return;
       setLoading(false);
       setError(err instanceof Error ? err.message : 'Não foi possível abrir o mapa 3D');
@@ -245,7 +419,7 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
       latest.current.onStage(null);
       active?.destroy();
     };
-  }, [sceneHash, map.name]);
+  }, [map.id, sceneHash, bgHash, cellPx, mapWidth, mapHeight, mapName]);
 
   const { state, info } = view;
   const selectedToken = selectedId !== null ? (state.tokens[selectedId] ?? null) : null;
@@ -276,18 +450,18 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
     const activeFog = isGm && fogTool !== 'none';
     const activeRuler = rulerActive && !activeFog;
     viewer.tokens3d.setInteractionEnabled(!activeRuler && !activeFog);
-    viewer.ruler3d.setActive(activeRuler);
+    viewer.ruler3d?.setActive(activeRuler);
     if (activeFog) {
       viewer.fog3d.setTool(fogTool);
     } else {
       viewer.fog3d.setTool('none');
       // Restaura cursor/ação da régua se ela estiver ativa.
-      if (activeRuler) viewer.ruler3d.setActive(true);
+      if (activeRuler) viewer.ruler3d?.setActive(true);
     }
   }, [viewer, rulerActive, isGm, fogTool]);
 
   useEffect(() => {
-    viewer?.ruler3d.setOptions(rulerOptions);
+    viewer?.ruler3d?.setOptions(rulerOptions);
   }, [viewer, rulerOptions]);
 
   useEffect(() => {
@@ -321,8 +495,7 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
     const v = viewerRef.current;
     if (!v) return;
     const next = !gridVisible;
-    v.surfaceRenderer.setGridVisible(next);
-    v.interiorRenderer.setGridVisible(next);
+    v.setGridVisible(next);
     setGridVisible(next);
   };
 
@@ -337,7 +510,21 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
       <div ref={hostRef} className="map-canvas" />
       <div className="map3d-hud" role="toolbar" aria-label="Controles da câmera 3D">
         <span className="map3d-badge">3D · {map.name}</span>
-        <div className="map3d-hud-group">
+        <div className="map3d-hud-group" role="group" aria-label="Visualizador">
+          <button
+            type="button"
+            aria-pressed="false"
+            onClick={() => {
+              onViewerModeChange('2d');
+            }}
+          >
+            2D
+          </button>
+          <button type="button" className="active" aria-pressed="true">
+            3D
+          </button>
+        </div>
+        <div className="map3d-hud-group" role="group" aria-label="Câmera">
           <button
             type="button"
             className={camMode === 'perspective' ? 'active' : ''}
@@ -409,7 +596,7 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
         <button type="button" onClick={resetCamera}>
           Centralizar
         </button>
-        {isGm && onEditMap && (
+        {isGm && onEditMap && map.scene3d !== null && (
           <button
             type="button"
             className="map3d-edit-btn"

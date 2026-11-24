@@ -24,8 +24,17 @@ import {
  * decide é o Host, e a posição volta pela próxima cena.
  */
 
+export interface RenderedMapBackground {
+  /** Identificador de cache (ex.: SHA-256 do `scene3d`). */
+  key: string;
+  source: HTMLCanvasElement;
+  cellPx: number;
+}
+
 export interface Scene {
   map: GameMap | null;
+  /** Fundo 2D renderizado a partir de um mapa 3D (câmera de topo), quando aberto no visualizador 2D. */
+  renderedBackground?: RenderedMapBackground | null;
   tokens: readonly Token[];
   /** O usuário pode arrastar este token (mestre, ou dono do token). */
   canDrag: (token: Token) => boolean;
@@ -137,6 +146,7 @@ export class MapStage {
   private fogSprite: Sprite | undefined;
   private fogTexture: Texture | undefined;
   private shownFogKey = '';
+  private renderedBgTexture: Texture | null = null;
   private camera: Camera = { x: 0, y: 0, zoom: 1 };
   private scene: Scene = {
     map: null,
@@ -211,6 +221,8 @@ export class MapStage {
   destroy(): void {
     if (this.destroyed) return;
     this.destroyed = true;
+    this.renderedBgTexture?.destroy(true);
+    this.renderedBgTexture = null;
     this.app.canvas.removeEventListener('wheel', this.onWheel);
     this.app.destroy({ removeView: true }, { children: true, texture: true });
   }
@@ -224,12 +236,13 @@ export class MapStage {
     if (this.destroyed) return;
     this.scene = scene;
     const map = scene.map;
-    const mapKey = map ? `${map.id}:${map.width}x${map.height}:${map.background ?? ''}:${map.cellPx ?? ''}` : '';
+    const renderedKey = scene.renderedBackground?.key ?? '';
+    const mapKey = map ? `${map.id}:${map.width}x${map.height}:${map.background ?? ''}:${map.cellPx ?? ''}:${renderedKey}` : '';
     if (mapKey !== this.shownMapKey) {
       const changedMap = map?.id !== this.shownMapKey.split(':')[0];
       this.shownMapKey = mapKey;
       if (changedMap) this.clearRuler();
-      this.drawMap(map);
+      this.drawMap(map, scene.renderedBackground ?? null);
       if (map && changedMap) this.setCamera(fitMap(map, this.app.screen));
     }
     this.syncTokens();
@@ -391,8 +404,10 @@ export class MapStage {
     this.rulerHud.position.set(midScreen.x, midScreen.y - 22);
   }
 
-  private drawMap(map: GameMap | null): void {
+  private drawMap(map: GameMap | null, renderedBackground: RenderedMapBackground | null): void {
     this.backgroundLayer.removeChildren().forEach((child) => { child.destroy(); });
+    this.renderedBgTexture?.destroy(true);
+    this.renderedBgTexture = null;
     const g = this.gridLayer.clear();
     if (!map) return;
     const width = map.width * WORLD_UNITS_PER_CELL;
@@ -403,6 +418,20 @@ export class MapStage {
     for (let y = 0; y <= height; y += WORLD_UNITS_PER_CELL) g.moveTo(0, y).lineTo(width, y);
     g.stroke({ width: 2, color: COLORS.grid, alpha: 0.12 });
     g.rect(0, 0, width, height).stroke({ width: 4, color: COLORS.border, alpha: 0.6 });
+
+    if (renderedBackground) {
+      const texture = new Texture({ source: new ImageSource({ resource: renderedBackground.source }) });
+      this.renderedBgTexture = texture;
+      const size = backgroundWorldSize(
+        { width: map.width, height: map.height, cellPx: renderedBackground.cellPx },
+        { width: renderedBackground.source.width, height: renderedBackground.source.height },
+      );
+      const sprite = new Sprite(texture);
+      sprite.width = size.width;
+      sprite.height = size.height;
+      this.backgroundLayer.addChild(sprite);
+      return;
+    }
 
     if (map.background) {
       const sha = map.background;
