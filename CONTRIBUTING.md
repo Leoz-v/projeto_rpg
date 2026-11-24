@@ -24,6 +24,12 @@ Valeu por ajudar! O objetivo do projeto é um VTT **sólido e previsível**: pou
 - **TypeScript estrito:** sem `any` e sem `@ts-ignore`.
 - Toda regra, condição, maestria ou efeito novo vem **com teste**.
 
+## Licença das contribuições
+
+Ao contribuir, você concorda que o seu código entra no projeto sob a [licença MIT](LICENSE), a mesma do resto do código. Conteúdo do SRD continua sob CC-BY 4.0 (ver [`NOTICE`](NOTICE)); homebrew do grupo que for para o repositório entra sob a MIT.
+
+Os commits aparecem com o nome e o e-mail configurados no Git. Para não expor o seu e-mail num repositório público, use o endereço *noreply* do GitHub (Settings → Emails → "Keep my email addresses private") em `git config user.email`.
+
 ## Convenções
 
 - **Código, identificadores e commits em inglês;** interface e documentação em português (pt-BR).

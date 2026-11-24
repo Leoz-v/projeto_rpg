@@ -1,8 +1,14 @@
 # VTT
 
-Mesa virtual (virtual tabletop) desktop para jogar campanhas de D&D 2024 entre amigos, baseada no **SRD 5.2.1** (CC-BY 4.0). Sem nuvem: um jogador hospeda a mesa e os outros se conectam direto, via rede virtual (Tailscale/ZeroTier).
+Mesa virtual (virtual tabletop) desktop para jogar campanhas da 5ª edição entre amigos, com as regras de 2024 do **SRD 5.2.1** (CC-BY 4.0). Sem nuvem: um jogador hospeda a mesa e os outros se conectam direto, via rede virtual (Tailscale/ZeroTier).
 
-> Projeto em desenvolvimento: **Fase 2, mesa e rede.** Veja o Roadmap no [`CLAUDE.md`](CLAUDE.md).
+O que já funciona:
+
+- **Fichas sempre derivadas das escolhas:** espécie, antecedente, classes, subclasses, talentos e magias do SRD, com subida de nível, inventário com itens mágicos que funcionam ao equipar e ajustes do mestre.
+- **Mesa em rede:** o Host guarda a campanha, aplica as regras e rola todos os dados; mapa com grid, tokens criados do compêndio de monstros e chat com rolagens.
+- **Combate assistido:** iniciativa e turnos, ataques contra a CA, salvaguardas forçadas, dano com resistências, maestrias de arma, condições com duração, Salvaguardas contra a Morte e Concentração. O Host propõe e o mestre confirma ou corrige.
+
+> As Fases 1 a 5 do Roadmap estão concluídas. O que vem a seguir está em [`docs/revisao-2026-11.md`](docs/revisao-2026-11.md) e no Roadmap do [`CLAUDE.md`](CLAUDE.md).
 
 ## Requisitos
 
@@ -42,6 +48,9 @@ pnpm dev       # abre o app com hot reload
 - [`docs/decisions/`](docs/decisions/): registro das decisões de arquitetura.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): como contribuir.
 
-## Licença do conteúdo
+## Licença
 
-O conteúdo de regras vem do *System Reference Document 5.2.1* da Wizards of the Coast, licenciado sob [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/legalcode).
+- **Código:** [MIT](LICENSE).
+- **Conteúdo de regras:** vem do *System Reference Document 5.2.1* da Wizards of the Coast, licenciado sob [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/legalcode). Ele fica em `packages/rules-engine/src/srd/data/` e `packages/rules-engine/srd-source/`, e não está sob a licença MIT. A atribuição completa está no [`NOTICE`](NOTICE) e na tela "Sobre" do app.
+
+Este projeto não é afiliado à Wizards of the Coast nem endossado por ela.
