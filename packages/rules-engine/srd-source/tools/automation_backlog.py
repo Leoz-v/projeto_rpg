@@ -35,7 +35,7 @@ FEATURE = {
     # que o nível tem alguma concessão além da característica).
     "structural": [
         "species:dragonborn/draconic_ancestry_trait", "species:dragonborn/damage_resistance", "species:elf/elven_lineage_trait",
-        "species:elf/keen_senses_trait", "species:gnome/gnomish_lineage_trait", "species:goliath/giant_ancestry_trait",
+        "species:elf/keen_senses_trait", "species:gnome/gnomish_lineage_trait",
         "species:human/skillful_trait", "species:human/versatile_trait", "species:tiefling/fiendish_legacy_trait",
         "class:barbarian/weapon_mastery_feature", "class:paladin/weapon_mastery_feature", "class:ranger/weapon_mastery_feature",
         "class:rogue/weapon_mastery_feature", "class:barbarian/primal_champion", "class:monk/body_and_mind",
@@ -177,6 +177,22 @@ PARTIAL = {
     "monster_trait:greater_magic_resistance#spell_attacks_miss": ("phase_4", "Ataques de magia erram a criatura automaticamente (resolução do ataque).",
                                                                   None),
 }
+# Recursos contados pelo efeito `resource` (nota 0052): o uso em si (ação, rolagem, escolha) segue pendente.
+RESOURCE_USES = [
+    "feature:class:barbarian/rage", "feature:class:bard/bardic_inspiration", "feature:class:bard/font_of_inspiration",
+    "feature:class:cleric/channel_divinity", "feature:class:cleric/divine_intervention", "feature:class:druid/wild_shape",
+    "feature:class:fighter/action_surge", "feature:class:fighter/indomitable", "feature:class:fighter/second_wind",
+    "feature:class:monk/monks_focus", "feature:class:monk/uncanny_metabolism", "feature:class:paladin/channel_divinity",
+    "feature:class:paladin/lay_on_hands", "feature:class:ranger/natures_veil", "feature:class:ranger/tireless",
+    "feature:class:rogue/stroke_of_luck", "feature:class:sorcerer/font_of_magic", "feature:class:sorcerer/innate_sorcery",
+    "feature:class:sorcerer/sorcerous_restoration", "feature:class:warlock/magical_cunning", "feature:class:wizard/arcane_recovery",
+    "feature:species:dragonborn/breath_weapon", "feature:species:dragonborn/draconic_flight", "feature:species:dwarf/stonecunning",
+    "feature:species:goliath/giant_ancestry_trait", "feature:species:goliath/large_form", "feature:species:orc/adrenaline_rush",
+    "feature:species:orc/relentless_endurance", "feature:subclass:circle_of_the_land/natural_recovery",
+    "feature:subclass:fiend_patron/dark_ones_own_luck", "feature:subclass:warrior_of_the_open_hand/wholeness_of_body",
+]
+for key in RESOURCE_USES:
+    PARTIAL[f"{key}#use"] = ("phase_4", "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052).", None)
 for key, (category, reason, mechanic) in PARTIAL.items():
     put(key, category, reason, mechanic)
 

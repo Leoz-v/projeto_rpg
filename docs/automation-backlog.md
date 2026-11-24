@@ -21,13 +21,13 @@ Magias ficam fora: a resolução delas é toda da Fase 4.
 
 | Categoria | O que é | Quantas |
 |---|---|---|
-| `structural` | A mecânica já existe em outro ponto do modelo: escolha, concessão ou conjuração no mesmo nível (ex.: "Expertise" é a escolha `expertise_1`). | 53 |
+| `structural` | A mecânica já existe em outro ponto do modelo: escolha, concessão ou conjuração no mesmo nível (ex.: "Expertise" é a escolha `expertise_1`). | 52 |
 | `automate` | Passivo e automatizável agora, estendendo o catálogo de efeitos. Fila abaixo. | 0 |
-| `phase_4` | Ação, reação, recurso, uso de item, ou efeito no momento da rolagem ou do dano contra um alvo (Sneak Attack, cargas, poções, Multiattack). | 445 |
+| `phase_4` | Ação, reação, recurso, uso de item, ou efeito no momento da rolagem ou do dano contra um alvo (Sneak Attack, cargas, poções, Multiattack). | 447 |
 | `phase_5` | Depende do estado de combate. Vazia desde a Concentração (nota 0045); conteúdo novo que dependa de turnos, iniciativa ou Concentração entra aqui. | 0 |
 | `gm` | Exploração, percepção, narrativa ou efeito permanente que é ajuste do mestre (Bag of Holding, Manuals e Tomes, Spider Climb). | 95 |
 
-Total: 593 entradas.
+Total: 594 entradas.
 
 Uma entrada **parcial** (`<chave>#<aspecto>`) marca a parte pendente de um item, característica ou traço de monstro que já tem outros efeitos (ex.: `item:sun_blade#longsword_with_finesse`, `feature:subclass:champion/survivor#heroic_rally`).
 
@@ -85,3 +85,7 @@ Um PR por grupo. Em cada um: primeiro `docs/effects-spec.md`, depois o schema, o
 - **Concentração** (nota 0045, Fase 5): efeito `keep_concentration` e predicado `against: { concentration: true }`.
   - Relentless Hunter: o dano não quebra a Concentração em Hunter's Mark. Com ela, a fila `phase_5` fica vazia.
   - Eldritch Mind (Warlock): a Vantagem "para manter Concentração" era só lembrete (`note`); agora vale sozinha na salvaguarda que o Host rola.
+- **Recursos de uso limitado** (nota 0052, Fase 6): efeito `resource` (máximo e recarga), contado pela mesa e devolvido pelos descansos.
+  - Classes: Rage, Bardic Inspiration (e Font of Inspiration, que muda a recarga), Channel Divinity (Clérigo e Paladino, o mesmo recurso), Divine Intervention, Wild Shape, Second Wind, Action Surge, Indomitable, Focus Points, Uncanny Metabolism, Lay On Hands (reserva de PV), Tireless, Nature's Veil, Stroke of Luck, Innate Sorcery, Sorcery Points, Sorcerous Restoration, Magical Cunning, Arcane Recovery.
+  - Subclasses: Natural Recovery, Wholeness of Body, Dark One's Own Luck. Espécies: Breath Weapon, Draconic Flight, Stonecunning, Giant Ancestry (saiu de `structural`), Large Form, Adrenaline Rush, Relentless Endurance.
+  - O uso em si (o efeito de cada recurso) ficou como parcial `#use` da Fase 4 em cada um: 31 entradas.

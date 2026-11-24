@@ -1,7 +1,7 @@
 import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, EffectSchema, InventorySchema, SizeSchema, TriggerMomentSchema, WeaponMasterySchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_COMBATANTS, MAX_HIT_POINTS, MAX_INITIATIVE, MAX_SAVE_TARGETS, MAX_TURN_TRIGGER_ITEMS, MIN_INITIATIVE } from './constants';
-import { ChatTextSchema, ConcentrationSchema, HitDiceSpentSchema, HitDieSchema, SpellSlotRefSchema, SpellSlotsSpentSchema, ConditionStateSchema, DeathSavesSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
+import { ChatTextSchema, ConcentrationSchema, HitDiceSpentSchema, HitDieSchema, SpellSlotRefSchema, SpellSlotsSpentSchema, ResourcesSpentSchema, ConditionStateSchema, DeathSavesSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 
 /** `SessionState` (docs/network-protocol.md, seção 5). */
 
@@ -236,6 +236,19 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     targetTokenId: UuidSchema,
     targetName: NameSchema,
   }),
+  /** Recurso gasto ou recuperado (nota 0052). */
+  z.strictObject({
+    kind: z.literal('resource'),
+    ...entryBase,
+    characterId: UuidSchema,
+    characterName: NameSchema,
+    resourceName: NameSchema,
+    event: z.enum(['spent', 'restored']),
+    amount: z.int().min(1).max(1000),
+    /** Usos que restam depois da mudança, e o máximo. */
+    available: z.int().min(0).max(1000),
+    max: z.int().min(0).max(1000),
+  }),
   /** Espaço de magia gasto ou recuperado (nota 0051). */
   z.strictObject({
     kind: z.literal('spell_slot'),
@@ -462,6 +475,8 @@ export const SessionCharacterSchema = z.strictObject({
   hitDiceSpent: HitDiceSpentSchema,
   /** Espaços de magia gastos; os descansos devolvem (nota 0051). */
   spellSlotsSpent: SpellSlotsSpentSchema,
+  /** Usos gastos dos recursos da ficha; os descansos devolvem (nota 0052). */
+  resourcesSpent: ResourcesSpentSchema,
 });
 export type SessionCharacter = z.infer<typeof SessionCharacterSchema>;
 

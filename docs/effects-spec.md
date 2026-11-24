@@ -364,6 +364,22 @@ Regra que muda o resultado de um Teste d20 (ataque, salvaguarda ou teste de atri
 - Sofrer dano não quebra a Concentração nesta magia: o Host não pede a salvaguarda de Constituição (Relentless Hunter: "Taking damage can't break your Concentration on Hunter's Mark"). Ficar Incapacitado ou morrer continua encerrando.
 - `spellId`: id da magia do compêndio. A ficha lista as magias em `spellcasting.keepConcentration`.
 
+### 3.24 `resource`
+
+```json
+{ "type": "resource", "id": "rage", "name": "Rage", "max": { "byLevel": [2, 2, 3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 6, 6, 6, 6] }, "recharge": "short_rest_one" }
+{ "type": "resource", "id": "bardic_inspiration", "name": "Bardic Inspiration", "max": { "ability": "cha", "min": 1 }, "recharge": "long_rest" }
+{ "type": "resource", "id": "lay_on_hands", "name": "Lay On Hands", "max": { "perLevel": 5 }, "recharge": "long_rest" }
+```
+
+- Um recurso de uso limitado que o personagem gasta e os descansos devolvem (nota 0052): usos de Rage, Bardic Inspiration, Channel Divinity, Focus Points, a reserva de PV do Lay On Hands.
+- `id`: o mesmo id para o mesmo recurso em fontes diferentes (Channel Divinity do Clérigo e do Paladino; Font of Inspiration muda a recarga da Bardic Inspiration).
+- `name`: o nome mostrado na ficha e no chat.
+- `max`: um valor (`BonusValue` da seção 3.1: inteiro, atributo com `min`, múltiplo da proficiência, por nível) ou `{ "byLevel": [20 valores] }`, pelo nível na escala da fonte (o da classe para características de classe, o do personagem para espécie e talento). Máximo 0: o recurso não aparece.
+- `recharge`: `long_rest` (o descanso longo devolve todos), `short_rest` (o curto ou o longo devolvem todos) ou `short_rest_one` (o curto devolve 1, o longo todos).
+- **Mesmo `id` de várias fontes:** vale o maior `max` e a recarga mais generosa (`short_rest` > `short_rest_one` > `long_rest`); o nome é o da primeira fonte.
+- A ficha lista os recursos em `resources`, já resolvidos. Usar o recurso (o que ele faz) continua com o jogador e o mestre; o motor só conta os usos.
+
 ## 4. Ordem de cálculo da ficha
 
 1. Valores base dos atributos (lista de escolhas: ASIs do antecedente e de talentos e aumentos fixos de classe, como Primal Champion).

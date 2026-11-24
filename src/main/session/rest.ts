@@ -1,4 +1,4 @@
-import { availableHitDice, currentHitPoints, exhaustionAfterLongRest, hitDieHealing, MIN_HP_TO_REST, spellSlotsAfterRest } from 'rules-engine';
+import { availableHitDice, currentHitPoints, exhaustionAfterLongRest, hitDieHealing, MIN_HP_TO_REST, resourcesAfterRest, spellSlotsAfterRest } from 'rules-engine';
 import { type IntentData, type PatchOp, type Role, type SessionCharacter, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation } from './context';
 import { changeCharacterHp } from './vitality';
@@ -45,6 +45,17 @@ export function finishRest(ctx: SessionContext, playerId: string): PatchOp[] {
       result.ops.push({ op: 'replace', path: toPointer('characters', character.id, 'spellSlotsSpent'), value: slots });
       result.recovered.push(`${slotsBack} espaço(s) de magia`);
     }
+    // Recursos da ficha: o longo devolve todos; o curto, conforme a recarga de cada um (nota 0052).
+    const resources = ctx.deps.characterSheet(character)?.resources ?? [];
+    const after = resourcesAfterRest(resources, character.resourcesSpent, rest.kind);
+    const back = resources.flatMap((r) => {
+      const returned = (character.resourcesSpent[r.id] ?? 0) - (after[r.id] ?? 0);
+      return returned > 0 ? [`${r.name} +${returned}`] : [];
+    });
+    if (JSON.stringify(after) !== JSON.stringify(character.resourcesSpent)) {
+      result.ops.push({ op: 'replace', path: toPointer('characters', character.id, 'resourcesSpent'), value: after });
+    }
+    result.recovered.push(...back);
     ops.push(...result.ops);
     if (rest.kind === 'long' || result.recovered.length > 0) notes.push(`${character.name}: ${result.recovered.length > 0 ? result.recovered.join(', ') : 'nada a recuperar'}`);
   }

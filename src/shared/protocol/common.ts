@@ -70,6 +70,9 @@ export const SpellSlotsSpentSchema = z.strictObject({
   pact: z.int().min(0).max(10),
 });
 
+/** Usos gastos de cada recurso, pelo id do recurso (nota 0052). */
+export const ResourcesSpentSchema = z.record(z.string().regex(/^[a-z0-9_]+$/).max(64), z.int().min(1).max(1000));
+
 /** Um espaço de magia: de um círculo, ou da Magia de Pacto. */
 export const SpellSlotRefSchema = z.union([z.strictObject({ level: z.int().min(1).max(9) }), z.literal('pact')]);
 export type SpellSlotRef = z.infer<typeof SpellSlotRefSchema>;

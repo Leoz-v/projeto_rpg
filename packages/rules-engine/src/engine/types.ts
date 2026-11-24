@@ -2,7 +2,7 @@ import type { Ability, DamageType, Condition, Sense, Size, Skill, WeaponMastery 
 import type { Predicate } from '../schemas/predicate';
 import type { ChoiceOptions, Feature } from '../schemas/source';
 import type { SourceKindSchema } from '../schemas/character';
-import type { SpellUsesSchema, TriggerMoment } from '../schemas/effect';
+import type { ResourceRecharge, SpellUsesSchema, TriggerMoment } from '../schemas/effect';
 import type { z } from 'zod';
 
 /** De onde veio um valor: fonte de construção, item, ajuste do mestre ou regra do motor. */
@@ -261,6 +261,16 @@ export interface DerivedSheet {
   conditions: { condition: Condition; source: SourceLabel }[];
   exhaustion: number;  /** Lembretes e curas que o Host aplica nos momentos do combate (`reminder`, `turn_start_heal`; nota 0043). */
   triggers: SheetTrigger[];
+  /** Recursos de uso limitado, já com o máximo (efeito `resource`; nota 0052). */
+  resources: SheetResource[];
+}
+
+export interface SheetResource {
+  id: string;
+  name: string;
+  max: number;
+  recharge: ResourceRecharge;
+  source: SourceLabel;
 }
 
 /** Efeito de um momento do combate, como a ficha o resolve. */
