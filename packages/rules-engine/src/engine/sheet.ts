@@ -103,7 +103,7 @@ export interface RollContext {
    * O que a rolagem evita: uma condição e/ou a origem (`spell` = magia; `magic` = outro
    * efeito mágico). Contra uma magia, use `spell`: ela satisfaz também `against.source: magic`.
    */
-  against?: { condition?: Condition | undefined; source?: 'spell' | 'magic' | undefined } | undefined;
+  against?: { condition?: Condition | undefined; source?: 'spell' | 'magic' | undefined; concentration?: boolean | undefined } | undefined;
 }
 
 /** Contexto para avaliar `when`. Sem `roll`, é a ficha estática. */
@@ -132,6 +132,7 @@ export function evaluatePredicate(p: Predicate, ctx: PredicateContext): boolean 
   if ('against' in p) {
     if (!roll) return undefined;
     if ('condition' in p.against) return roll.against?.condition === p.against.condition;
+    if ('concentration' in p.against) return roll.against?.concentration === true;
     const source = roll.against?.source;
     return p.against.source === 'spell' ? source === 'spell' : source === 'spell' || source === 'magic';
   }
@@ -786,6 +787,14 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     ),
   ];
 
+  // --- Concentração (nota 0045) ---------------------------------------------
+
+  /** Magias do personagem que exigem Concentração (truques, conhecidas, concedidas), sem repetir. */
+  const concentrationSpells = [
+    ...new Set([...casterClasses.flatMap((c) => [...c.cantrips, ...c.spells]), ...granted.map((g) => g.spellId)]),
+  ].filter((id) => find(compendium.spells, id)?.concentration === true);
+  const keepConcentration = [...new Set(effectsOf('keep_concentration').map(({ effect }) => effect.spellId))];
+
   const errors = issues.filter((i) => i.severity === 'error');
   return {
     complete: build.pending.length === 0 && errors.length === 0,
@@ -814,7 +823,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     proficiencies,
     weaponMasteries,
     attacks,
-    spellcasting: { classes: casterClasses, slots: spellSlots(casterLevel), pactSlots, granted, canCast: armorTrained },
+    spellcasting: { classes: casterClasses, slots: spellSlots(casterLevel), pactSlots, granted, canCast: armorTrained, concentration: concentrationSpells, keepConcentration },
     feats: build.feats,
     features: build.features,
     conditions,

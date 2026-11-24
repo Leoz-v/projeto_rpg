@@ -1,7 +1,7 @@
 import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, EffectSchema, InventorySchema, SizeSchema, TriggerMomentSchema, WeaponMasterySchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_COMBATANTS, MAX_HIT_POINTS, MAX_INITIATIVE, MAX_SAVE_TARGETS, MAX_TURN_TRIGGER_ITEMS, MIN_INITIATIVE } from './constants';
-import { ChatTextSchema, ConditionStateSchema, DeathSavesSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
+import { ChatTextSchema, ConcentrationSchema, ConditionStateSchema, DeathSavesSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 
 /** `SessionState` (docs/network-protocol.md, seção 5). */
 
@@ -236,6 +236,36 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     targetTokenId: UuidSchema,
     targetName: NameSchema,
   }),
+  /** Concentração que começou, terminou ou resistiu ao dano sem salvaguarda (nota 0045). */
+  z.strictObject({
+    kind: z.literal('concentration'),
+    ...entryBase,
+    characterId: UuidSchema,
+    characterName: NameSchema,
+    spellName: NameSchema,
+    event: z.enum(['started', 'ended', 'kept']),
+    /** Por que terminou (só em `ended`). */
+    reason: z.enum(['replaced', 'ended', 'failed_save', 'incapacitated', 'dead']).optional(),
+    notes: LogList,
+  }),
+  /** Salvaguarda de Constituição para manter a Concentração, rolada pelo Host ao sofrer dano. */
+  z.strictObject({
+    kind: z.literal('concentration_save'),
+    ...entryBase,
+    characterId: UuidSchema,
+    characterName: NameSchema,
+    spellName: NameSchema,
+    dc: z.int().min(10).max(30),
+    mode: d20Fields.mode,
+    dice: d20Fields.dice,
+    natural: d20Fields.natural,
+    modifier: z.int(),
+    total: z.int(),
+    success: z.boolean(),
+    advantage: LogList,
+    disadvantage: LogList,
+    notes: LogList,
+  }),
   /** Salvaguarda contra a Morte rolada pelo Host (início do turno, ou `roll.d20` fora do combate; nota 0044). */
   z.strictObject({
     kind: z.literal('death_save'),
@@ -386,6 +416,8 @@ export const SessionCharacterSchema = z.strictObject({
   conditions: ConditionStateSchema,
   /** Salvaguardas contra a Morte (nota 0044). */
   deathSaves: DeathSavesSchema,
+  /** Magia em que se concentra, ou `null` (nota 0045). */
+  concentration: ConcentrationSchema.nullable(),
 });
 export type SessionCharacter = z.infer<typeof SessionCharacterSchema>;
 

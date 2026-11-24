@@ -54,10 +54,8 @@ FEATURE = {
         "class:warlock/pact_magic",
     ],
     "automate": {},
-    # Lembretes de iniciativa e de turno (`reminder`, nota 0043) já saíram; fica a Concentração (Fase 5, PR 5).
-    "phase_5": [
-        "class:ranger/relentless_hunter",
-    ],
+    # Lembretes de turno (nota 0043) e Concentração (nota 0045) já saíram: a fila da Fase 5 está vazia.
+    "phase_5": [],
     "gm": [
         "species:elf/trance", "species:halfling/halfling_nimbleness", "species:halfling/naturally_stealthy", "species:gnome/clockwork_device",
         "class:monk/acrobatic_movement", "feat:grappler/fast_wrestler", "class:warlock/devils_sight", "class:warlock/gaze_of_two_minds",
@@ -67,7 +65,6 @@ FEATURE = {
 }
 # Motivos específicos, no lugar do motivo da categoria.
 FEATURE_REASON_OVERRIDE = {
-    "class:ranger/relentless_hunter": "Concentração em Hunter's Mark que o dano não quebra (Concentração, Fase 5).",
     "subclass:berserker/mindless_rage": "Imunidade enquanto a Fúria está ativa: depende do estado de Rage, que é recurso e ação (como Rage).",
 }
 FEATURE_REASONS = {

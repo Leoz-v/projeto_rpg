@@ -88,6 +88,7 @@ const state: SessionState = {
       adjustments: [{ id: 'c0d1e2f3-a4b5-4c6d-8e7f-8a9b0c1d2e3f', name: 'Maldição da Múmia', effects: [{ type: 'disadvantage', target: 'save.all' }] }],
       conditions: { active: [], exhaustion: 0 },
       deathSaves: { successes: 0, failures: 0, stable: false, dead: false },
+      concentration: null,
     },
   },
 };

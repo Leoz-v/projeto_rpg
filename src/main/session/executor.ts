@@ -31,6 +31,7 @@ import {
   type HitPointResult,
   isDying,
   resolveDeathSave,
+  concentrationDc,
   NO_DEATH_SAVES,
   isBloodied,
   MASTERY_NAME,
@@ -123,6 +124,8 @@ export interface SessionDeps {
   monsterHpMax(monsterId: string): number | undefined;
   /** Bloco de estatísticas de um monstro do compêndio. */
   creature(monsterId: string): Creature | undefined;
+  /** Nome de uma magia do compêndio (para o chat da Concentração). */
+  spellName(spellId: string): string | undefined;
 }
 
 type InventoryEntry = SessionCharacter['inventory']['items'][number];
@@ -316,7 +319,15 @@ export class HostSession {
         return [
           { op: 'replace', path: toPointer('characters', character.id, 'deathSaves'), value: intent.data.deathSaves },
           this.deathStateEntry(playerId, character, 'gm', intent.data.deathSaves, ['Ajuste do mestre']),
+          ...this.concentrationBreaks(playerId, character, character.conditions, intent.data.deathSaves),
         ];
+      }
+      case 'concentration.set':
+        return this.concentrate(playerId, role, intent.data.characterId, intent.data.spellId);
+      case 'concentration.end': {
+        const character = this.ownCharacter(playerId, role, intent.data.characterId);
+        if (!character.concentration) throw violation(`${character.name} não está concentrado`);
+        return this.endConcentration(playerId, character, 'ended');
       }
       case 'roll.damage':
         return [this.appendChat(this.rollDamage(playerId, role, intent.data))];
@@ -482,7 +493,7 @@ export class HostSession {
       this.requireGm(role);
       if (this.current.players[ownerId] === undefined) throw violation('Dono do personagem não está na mesa');
     }
-    const character: SessionCharacter = { id: this.deps.newId(), ownerId, name: data.name, baseScores: null, rolledScores: null, steps: [], inventory: EMPTY_INVENTORY, hp: { damage: 0, temp: 0 }, adjustments: [], conditions: NO_CONDITIONS, deathSaves: NO_DEATH_SAVES };
+    const character: SessionCharacter = { id: this.deps.newId(), ownerId, name: data.name, baseScores: null, rolledScores: null, steps: [], inventory: EMPTY_INVENTORY, hp: { damage: 0, temp: 0 }, adjustments: [], conditions: NO_CONDITIONS, deathSaves: NO_DEATH_SAVES, concentration: null };
     return [{ op: 'add', path: toPointer('characters', character.id), value: character }];
   }
 
@@ -620,9 +631,9 @@ export class HostSession {
     if ('characterId' in data.target) {
       if (change.kind === 'max') throw violation('Os PV máximos de um personagem vêm da ficha');
       const character = this.ownCharacter(playerId, role, data.target.characterId);
-      const max = this.deps.characterSheet(character)?.hpMax.total;
-      if (max === undefined) throw violation('O personagem ainda não tem ficha (defina os atributos)');
-      return this.changeCharacterHp(playerId, character, max, { kind: change.kind, amount: change.amount }).ops;
+      const sheet = this.deps.characterSheet(character);
+      if (!sheet) throw violation('O personagem ainda não tem ficha (defina os atributos)');
+      return this.changeCharacterHp(playerId, character, sheet, { kind: change.kind, amount: change.amount }).ops;
     }
     const token = this.token(data.target.tokenId);
     if (role !== 'gm' && !token.ownerIds.includes(playerId)) throw notAllowed('Você não controla este token');
@@ -713,11 +724,14 @@ export class HostSession {
     ];
     // Exaustão 6 mata: no personagem, o estado das Salvaguardas contra a Morte registra a morte.
     const character = 'characterId' in holder.logTarget ? this.current.characters[holder.logTarget.characterId] : undefined;
+    let deathSaves = character?.deathSaves;
     if (character && change.kind === 'exhaustion' && change.to >= MAX_EXHAUSTION_LEVEL && !character.deathSaves.dead) {
-      const deathSaves = { ...character.deathSaves, dead: true };
+      deathSaves = { ...character.deathSaves, dead: true };
       ops.push({ op: 'replace', path: toPointer('characters', character.id, 'deathSaves'), value: deathSaves });
       ops.push(this.deathStateEntry(playerId, character, 'exhaustion', deathSaves, [`Exaustão ${MAX_EXHAUSTION_LEVEL}: morto`]));
     }
+    // Incapacitado (ou o que o inclui) ou morto: a Concentração termina.
+    if (character && deathSaves) ops.push(...this.concentrationBreaks(playerId, character, state, deathSaves));
     return ops;
   }
 
@@ -1189,7 +1203,7 @@ export class HostSession {
       // Heroic Rally: Sangrando e com pelo menos 1 PV (com 0 PV, a criatura está morrendo).
       if (current.deathSaves.dead) continue;
       if (trigger.bloodiedOnly && (currentHitPoints(max, current.hp) < 1 || !isBloodied(max, current.hp))) continue;
-      const healed = this.changeCharacterHp(playerId, current, max, { kind: 'healing', amount: trigger.amount });
+      const healed = this.changeCharacterHp(playerId, current, sheet, { kind: 'healing', amount: trigger.amount });
       if (healed.result.hpChange <= 0) continue;
       current = healed.after;
       healOps.push(...healed.ops);
@@ -1245,7 +1259,7 @@ export class HostSession {
     let ops: PatchOp[];
     let deathSaves = resolved.state;
     if (resolved.outcome === 'revived') {
-      const healed = this.changeCharacterHp(playerId, character, sheet.hpMax.total, { kind: 'healing', amount: 1 }, false, false);
+      const healed = this.changeCharacterHp(playerId, character, sheet, { kind: 'healing', amount: 1 }, false, false);
       ops = healed.ops;
       deathSaves = healed.after.deathSaves;
       notes.push('20: recupera 1 PV');
@@ -1289,12 +1303,13 @@ export class HostSession {
   private changeCharacterHp(
     playerId: string,
     character: SessionCharacter,
-    max: number,
+    sheet: DerivedSheet,
     change: HitPointChange,
     critical = false,
     log = true,
   ): { ops: PatchOp[]; result: HitPointResult; after: SessionCharacter } {
     if (change.kind === 'healing' && character.deathSaves.dead) throw violation(`${character.name} está morto: o mestre o revive antes de curar`);
+    const max = sheet.hpMax.total;
     const result = applyHitPointChange(max, character.hp, change);
     let { conditions, deathSaves } = character;
     const notes: string[] = [];
@@ -1338,7 +1353,106 @@ export class HostSession {
       ops.push({ op: 'replace', path: toPointer('characters', character.id, 'deathSaves'), value: deathSaves });
       if (log && notes.length > 0) ops.push(this.deathStateEntry(playerId, character, change.kind === 'damage' ? 'damage' : 'healing', deathSaves, notes));
     }
-    return { ops, result, after: { ...character, hp: result.state, conditions, deathSaves } };
+    // Concentração: Inconsciente ou morto encerra; senão, dano pede a salvaguarda de Constituição.
+    let concentration = character.concentration;
+    const broken = this.concentrationBreaks(playerId, character, conditions, deathSaves);
+    if (broken.length > 0) {
+      ops.push(...broken);
+      concentration = null;
+    } else if (concentration && change.kind === 'damage' && Math.trunc(change.amount) > 0) {
+      const kept = this.concentrationSave(playerId, character, sheet, concentration, Math.trunc(change.amount));
+      ops.push(...kept.ops);
+      if (!kept.kept) concentration = null;
+    }
+    return { ops, result, after: { ...character, hp: result.state, conditions, deathSaves, concentration } };
+  }
+
+  // --- Concentração (Fase 5, PR 5b; nota 0045) -------------------------------
+
+  /** Passa a se concentrar numa magia da ficha que exige Concentração; a anterior termina. */
+  private concentrate(playerId: string, role: Role, characterId: string, spellId: string): PatchOp[] {
+    const { character, sheet } = this.sheetOf(playerId, role, characterId);
+    if (character.deathSaves.dead) throw violation(`${character.name} está morto`);
+    if (effectiveConditions(character.conditions.active.map((c) => c.condition)).has('incapacitated')) throw violation(`${character.name} está Incapacitado`);
+    if (!sheet.spellcasting.concentration.includes(spellId)) throw violation('Esta magia não está na ficha ou não exige Concentração');
+    if (character.concentration?.spellId === spellId) throw violation(`${character.name} já está concentrado nesta magia`);
+    const name = (this.deps.spellName(spellId) ?? spellId).slice(0, 100);
+    return [
+      ...(character.concentration ? this.endConcentration(playerId, character, 'replaced') : []),
+      { op: 'replace', path: toPointer('characters', character.id, 'concentration'), value: { spellId, name } },
+      this.appendChat({ kind: 'concentration', ...this.entryBase(playerId), characterId: character.id, characterName: character.name, spellName: name, event: 'started', notes: [] }),
+    ];
+  }
+
+  private endConcentration(
+    playerId: string,
+    character: SessionCharacter,
+    reason: Exclude<Extract<ChatEntry, { kind: 'concentration' }>['reason'], undefined>,
+    notes: string[] = [],
+  ): PatchOp[] {
+    if (!character.concentration) return [];
+    return [
+      { op: 'replace', path: toPointer('characters', character.id, 'concentration'), value: null },
+      this.appendChat({
+        kind: 'concentration',
+        ...this.entryBase(playerId),
+        characterId: character.id,
+        characterName: character.name,
+        spellName: character.concentration.name,
+        event: 'ended',
+        reason,
+        notes,
+      }),
+    ];
+  }
+
+  /** A Concentração termina se o personagem morreu ou está Incapacitado (ou com o que o inclui). */
+  private concentrationBreaks(playerId: string, character: SessionCharacter, conditions: ConditionState, deathSaves: DeathSaveState): PatchOp[] {
+    if (!character.concentration) return [];
+    if (deathSaves.dead) return this.endConcentration(playerId, character, 'dead');
+    if (effectiveConditions(conditions.active.map((c) => c.condition)).has('incapacitated')) return this.endConcentration(playerId, character, 'incapacitated');
+    return [];
+  }
+
+  /**
+   * Dano num personagem concentrado: salvaguarda de Constituição pela ficha,
+   * com o contexto de Concentração (Eldritch Mind), CD = o maior entre 10 e
+   * metade do dano, até 30. `keep_concentration` (Relentless Hunter) dispensa.
+   */
+  private concentrationSave(
+    playerId: string,
+    character: SessionCharacter,
+    sheet: DerivedSheet,
+    concentration: NonNullable<SessionCharacter['concentration']>,
+    damage: number,
+  ): { ops: PatchOp[]; kept: boolean } {
+    const base = { ...this.entryBase(playerId), characterId: character.id, characterName: character.name, spellName: concentration.name };
+    if (sheet.spellcasting.keepConcentration.includes(concentration.spellId)) {
+      return { ops: [this.appendChat({ kind: 'concentration', ...base, event: 'kept', notes: ['O dano não quebra a Concentração nesta magia'] })], kept: true };
+    }
+    const dc = concentrationDc(damage);
+    const roll = sheetD20(sheet, { kind: 'save', ability: 'con' }, {}, { concentration: true });
+    if (!roll) return { ops: [], kept: true };
+    const result = rollD20({ ...roll.input, dc }, this.deps.rng);
+    const success = result.success === true;
+    const ops: PatchOp[] = [
+      this.appendChat({
+        kind: 'concentration_save',
+        ...base,
+        dc,
+        mode: roll.input.mode,
+        dice: result.dice,
+        natural: result.natural,
+        modifier: roll.input.modifier,
+        total: result.total,
+        success,
+        advantage: roll.advantage,
+        disadvantage: roll.disadvantage,
+        notes: [...d20StepNotes(result.steps), ...roll.reminders].slice(0, 50),
+      }),
+    ];
+    if (!success) ops.push(...this.endConcentration(playerId, character, 'failed_save'));
+    return { ops, kept: success };
   }
 
   /**
@@ -1512,12 +1626,12 @@ export class HostSession {
     let ops: PatchOp[];
     if (token.characterId !== null) {
       const character = this.current.characters[token.characterId];
-      const max = character ? this.deps.characterSheet(character)?.hpMax.total : undefined;
-      if (!character || max === undefined) throw violation('O personagem do alvo ainda não tem ficha');
+      const sheet = character ? this.deps.characterSheet(character) : undefined;
+      if (!character || !sheet) throw violation('O personagem do alvo ainda não tem ficha');
       // Dano de um Acerto Crítico com 0 PV conta duas falhas.
       const source = this.current.chat.find((e) => e.id === proposal.entryId);
       const critical = source?.kind === 'attack_roll' && source.critical;
-      ({ result, ops } = this.changeCharacterHp(playerId, character, max, { kind: 'damage', amount }, critical));
+      ({ result, ops } = this.changeCharacterHp(playerId, character, sheet, { kind: 'damage', amount }, critical));
     } else {
       if (!token.hp) throw violation('O alvo não tem PV (defina os PV máximos no painel)');
       result = applyHitPointChange(token.hp.max, token.hp, { kind: 'damage', amount });

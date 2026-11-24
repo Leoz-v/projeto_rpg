@@ -172,6 +172,7 @@ describe('CampaignDb', () => {
         adjustments: [{ id: randomUUID(), name: 'Bênção do Templo', effects: [{ type: 'flat_bonus', target: 'save.all', value: 1 }] }],
         conditions: { active: [{ condition: 'poisoned' }], exhaustion: 2 },
         deathSaves: { successes: 1, failures: 2, stable: false, dead: false },
+        concentration: { spellId: 'bless', name: 'Bless' },
       },
     },
     ...overrides,
@@ -284,6 +285,7 @@ describe('CampaignDb', () => {
     expect(loaded.characters[HERO]?.adjustments).toEqual([]);
     expect(loaded.characters[HERO]?.hp).toEqual({ damage: 0, temp: 0 });
     expect(loaded.characters[HERO]?.deathSaves).toEqual({ successes: 0, failures: 0, stable: false, dead: false });
+    expect(loaded.characters[HERO]?.concentration).toBeNull();
     expect(loaded.tokens[TOKEN]?.hp).toBeNull();
     expect(loaded.tokens[TOKEN]?.characterId).toBeNull();
     migrated.close();

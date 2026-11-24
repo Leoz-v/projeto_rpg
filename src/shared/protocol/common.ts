@@ -54,6 +54,10 @@ export const DeathSavesSchema = z.strictObject({
 });
 export type DeathSaves = z.infer<typeof DeathSavesSchema>;
 
+/** Magia em que o personagem se concentra (nota 0045); o nome vem do compêndio, para o chat e a tela. */
+export const ConcentrationSchema = z.strictObject({ spellId: z.string().min(1).max(64), name: z.string().min(1).max(100) });
+export type Concentration = z.infer<typeof ConcentrationSchema>;
+
 /** Alvo de PV e condições: um personagem, ou um token. */
 export const CreatureTargetSchema = z.union([z.strictObject({ characterId: UuidSchema }), z.strictObject({ tokenId: UuidSchema })]);
 export type CreatureTarget = z.infer<typeof CreatureTargetSchema>;

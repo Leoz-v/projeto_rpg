@@ -39,6 +39,7 @@ Lista fechada. Um `when` é um objeto com **uma** destas chaves; para combinar, 
 | `{ "against": { "condition": "poisoned" } }` | A rolagem é para evitar ou encerrar a condição (salvaguarda ou teste de atributo). |
 | `{ "against": { "source": "spell" } }` | A rolagem é contra uma magia ("saving throws against spells"). |
 | `{ "against": { "source": "magic" } }` | A rolagem é contra uma magia **ou** outro efeito mágico ("against spells and other magical effects"). Uma rolagem contra magia satisfaz os dois. |
+| `{ "against": { "concentration": true } }` | A rolagem é a salvaguarda de Constituição para manter a Concentração (nota 0045). Ex.: Eldritch Mind. |
 | `{ "weaponCategory": "simple" }` | A arma usada é da categoria `simple` \| `martial`. |
 | `{ "weaponId": "longbow" }` | A arma usada é este item do compêndio (numa arma mágica, o item base). Ex.: Bracers of Archery, "+2 de dano com Longbow e Shortbow". |
 | `{ "twoHanded": true }` | A arma é empunhada com as duas mãos, como ela permite: propriedade Two-Handed, ou Versatile usada com as duas mãos (Great Weapon Fighting). |
@@ -353,6 +354,15 @@ Regra que muda o resultado de um Teste d20 (ataque, salvaguarda ou teste de atri
 - `bloodiedOnly: true`: só se a criatura estiver Sangrando (*Bloodied*: metade dos PV máximos ou menos) **e** com pelo menos 1 PV. Com 0 PV, nunca cura (a criatura está morrendo).
 - A cura segue as regras de PV (`engine/hit-points.ts`): não passa do máximo e não mexe nos PV temporários. O mestre corrige pelos PV, se precisar.
 - O `when` é avaliado como no `reminder`.
+
+### 3.23 `keep_concentration`
+
+```json
+{ "type": "keep_concentration", "spellId": "hunters_mark" }
+```
+
+- Sofrer dano não quebra a Concentração nesta magia: o Host não pede a salvaguarda de Constituição (Relentless Hunter: "Taking damage can't break your Concentration on Hunter's Mark"). Ficar Incapacitado ou morrer continua encerrando.
+- `spellId`: id da magia do compêndio. A ficha lista as magias em `spellcasting.keepConcentration`.
 
 ## 4. Ordem de cálculo da ficha
 

@@ -18,6 +18,7 @@ const draft = (overrides: Partial<SessionCharacter> = {}): SessionCharacter => (
   adjustments: [],
   conditions: { active: [], exhaustion: 0 },
   deathSaves: { successes: 0, failures: 0, stable: false, dead: false },
+  concentration: null,
   ...overrides,
 });
 

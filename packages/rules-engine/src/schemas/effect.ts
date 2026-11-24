@@ -338,6 +338,15 @@ const TurnStartHealSchema = z.strictObject({
   ...common,
 });
 
+// --- keep_concentration (3.23) -----------------------------------------------
+
+/** Dano não quebra a Concentração nesta magia (Relentless Hunter; nota 0045). */
+const KeepConcentrationSchema = z.strictObject({
+  type: z.literal('keep_concentration'),
+  spellId: IdSchema,
+  ...common,
+});
+
 // --- União -------------------------------------------------------------------
 
 export const EffectSchema = z.discriminatedUnion('type', [
@@ -367,6 +376,7 @@ export const EffectSchema = z.discriminatedUnion('type', [
   AttackAbilitySchema,
   ReminderSchema,
   TurnStartHealSchema,
+  KeepConcentrationSchema,
 ]);
 export type Effect = z.infer<typeof EffectSchema>;
 export type EffectType = Effect['type'];

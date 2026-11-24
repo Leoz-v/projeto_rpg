@@ -5059,7 +5059,13 @@
             "feature": {
               "id": "relentless_hunter",
               "name": "Relentless Hunter",
-              "description": "Taking damage can't break your Concentration on Hunter's Mark."
+              "description": "Taking damage can't break your Concentration on Hunter's Mark.",
+              "effects": [
+                {
+                  "type": "keep_concentration",
+                  "spellId": "hunters_mark"
+                }
+              ]
             }
           }
         ]
@@ -6904,7 +6910,11 @@
                           {
                             "type": "advantage",
                             "target": "save.con",
-                            "note": "Para manter Concentração."
+                            "when": {
+                              "against": {
+                                "concentration": true
+                              }
+                            }
                           }
                         ]
                       }
@@ -7621,7 +7631,11 @@
                           {
                             "type": "advantage",
                             "target": "save.con",
-                            "note": "Para manter Concentração."
+                            "when": {
+                              "against": {
+                                "concentration": true
+                              }
+                            }
                           }
                         ]
                       }
@@ -8380,7 +8394,11 @@
                           {
                             "type": "advantage",
                             "target": "save.con",
-                            "note": "Para manter Concentração."
+                            "when": {
+                              "against": {
+                                "concentration": true
+                              }
+                            }
                           }
                         ]
                       }
@@ -9087,7 +9105,11 @@
                           {
                             "type": "advantage",
                             "target": "save.con",
-                            "note": "Para manter Concentração."
+                            "when": {
+                              "against": {
+                                "concentration": true
+                              }
+                            }
                           }
                         ]
                       }
@@ -9828,7 +9850,11 @@
                           {
                             "type": "advantage",
                             "target": "save.con",
-                            "note": "Para manter Concentração."
+                            "when": {
+                              "against": {
+                                "concentration": true
+                              }
+                            }
                           }
                         ]
                       }
@@ -10594,7 +10620,11 @@
                           {
                             "type": "advantage",
                             "target": "save.con",
-                            "note": "Para manter Concentração."
+                            "when": {
+                              "against": {
+                                "concentration": true
+                              }
+                            }
                           }
                         ]
                       }
@@ -11328,7 +11358,11 @@
                           {
                             "type": "advantage",
                             "target": "save.con",
-                            "note": "Para manter Concentração."
+                            "when": {
+                              "against": {
+                                "concentration": true
+                              }
+                            }
                           }
                         ]
                       }
@@ -12074,7 +12108,11 @@
                           {
                             "type": "advantage",
                             "target": "save.con",
-                            "note": "Para manter Concentração."
+                            "when": {
+                              "against": {
+                                "concentration": true
+                              }
+                            }
                           }
                         ]
                       }
