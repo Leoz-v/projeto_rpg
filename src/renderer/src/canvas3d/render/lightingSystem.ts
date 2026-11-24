@@ -340,8 +340,15 @@ export function computeUnlitMoodTintHex(settings: LightingSettings): number {
 
 const MAX_ACTIVE_POINT_LIGHTS = 28;
 
+export interface LightingSceneHost {
+  readonly sun: SceneManager['sun'];
+  readonly skybox: Pick<SceneManager['skybox'], 'applyLightingSettings'>;
+  setEnvironmentAndAtmosphere: SceneManager['setEnvironmentAndAtmosphere'];
+  fitSunShadows: SceneManager['fitSunShadows'];
+}
+
 export class LightingManager {
-  private readonly scene: SceneManager;
+  private readonly scene: LightingSceneHost;
   private readonly lightsRoot: Container3D;
   private readonly managedLights: ManagedPointLight[] = [];
 
@@ -355,7 +362,7 @@ export class LightingManager {
 
   onMoodTintChange?: (tintHex: number) => void;
 
-  constructor(scene: SceneManager, lightsRoot: Container3D) {
+  constructor(scene: LightingSceneHost, lightsRoot: Container3D) {
     this.scene = scene;
     this.lightsRoot = lightsRoot;
   }

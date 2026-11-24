@@ -17,7 +17,7 @@ import {
 } from '../map/mapDocument';
 import { TILE_SIZE_FEET, TILE_SIZE_METERS } from '../terrain/constants';
 import { AssetManager } from './assetManager';
-import { LightingManager } from './lightingSystem';
+import { LightingManager, type LightingSceneHost } from './lightingSystem';
 import { LiquidRenderer } from './liquidRenderer';
 import './pixi3dUnsafeEval';
 import { TerrainRenderer } from './terrainRenderer';
@@ -352,15 +352,10 @@ async function render3dMapTo2dCanvasUncached(sceneHash: string, mapName: string)
     interiorRoot.visible = hasHoles || hasInteriorLiquids || hasInteriorProps;
 
     // Aplica a iluminação salva do mapa sem habilitar neblina na captura ortográfica de topo.
-    const lightingHost = {
+    const lightingHost: LightingSceneHost = {
       sun,
-      skybox: { setPalette: () => undefined },
-      setEnvironmentAndAtmosphere: (opts: {
-        skyColor: number;
-        groundColor: number;
-        ambientIntensity: number;
-        backdropColor: number;
-      }) => {
+      skybox: { applyLightingSettings: () => undefined },
+      setEnvironmentAndAtmosphere: (opts) => {
         view.environment = {
           skyColor: opts.skyColor,
           groundColor: opts.groundColor,
@@ -373,7 +368,7 @@ async function render3dMapTo2dCanvasUncached(sceneHash: string, mapName: string)
         sun.fitShadowBounds();
       },
     };
-    const lighting = new LightingManager(lightingHost as unknown as ConstructorParameters<typeof LightingManager>[0], lightsRoot);
+    const lighting = new LightingManager(lightingHost, lightsRoot);
     lighting.onMoodTintChange = (tintHex) => {
       surfaceRenderer.setUnlitMoodTint(tintHex);
       interiorRenderer.setUnlitMoodTint(tintHex);
