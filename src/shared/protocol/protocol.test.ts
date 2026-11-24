@@ -92,6 +92,7 @@ const state: SessionState = {
       concentration: null,
       hitDiceSpent: {},
       spellSlotsSpent: { byLevel: {}, pact: 0 },
+      resourcesSpent: {},
     },
   },
 };

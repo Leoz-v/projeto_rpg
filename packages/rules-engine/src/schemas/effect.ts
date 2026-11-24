@@ -338,6 +338,23 @@ const TurnStartHealSchema = z.strictObject({
   ...common,
 });
 
+// --- resource (3.24) ---------------------------------------------------------
+
+/** Como os descansos devolvem os usos: só o longo, o curto também (todos), ou o curto 1 e o longo todos. */
+export const ResourceRechargeSchema = z.enum(['long_rest', 'short_rest', 'short_rest_one']);
+export type ResourceRecharge = z.infer<typeof ResourceRechargeSchema>;
+
+/** Recurso de uso limitado que os descansos devolvem (Rage, Bardic Inspiration, Lay On Hands; nota 0052). */
+const ResourceSchema = z.strictObject({
+  type: z.literal('resource'),
+  id: IdSchema,
+  name: z.string().min(1).max(100),
+  /** Um valor (3.1) ou uma tabela pelo nível na escala da fonte (índice 0 = nível 1). */
+  max: z.union([BonusValueSchema, z.strictObject({ byLevel: z.array(z.int().nonnegative()).length(20) })]),
+  recharge: ResourceRechargeSchema,
+  ...common,
+});
+
 // --- keep_concentration (3.23) -----------------------------------------------
 
 /** Dano não quebra a Concentração nesta magia (Relentless Hunter; nota 0045). */
@@ -377,6 +394,7 @@ export const EffectSchema = z.discriminatedUnion('type', [
   ReminderSchema,
   TurnStartHealSchema,
   KeepConcentrationSchema,
+  ResourceSchema,
 ]);
 export type Effect = z.infer<typeof EffectSchema>;
 export type EffectType = Effect['type'];

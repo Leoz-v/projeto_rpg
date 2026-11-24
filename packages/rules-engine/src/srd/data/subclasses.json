@@ -1053,7 +1053,16 @@
             "feature": {
               "id": "natural_recovery",
               "name": "Natural Recovery",
-              "description": "You can cast one of the level 1+ spells that you have prepared from your Circle Spells feature without expending a spell slot, once per Long Rest. In addition, when you finish a Short Rest, you can recover expended spell slots with a combined level equal to or less than half your Druid level (round up), none of level 6+; once per Long Rest."
+              "description": "You can cast one of the level 1+ spells that you have prepared from your Circle Spells feature without expending a spell slot, once per Long Rest. In addition, when you finish a Short Rest, you can recover expended spell slots with a combined level equal to or less than half your Druid level (round up), none of level 6+; once per Long Rest.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "natural_recovery",
+                  "name": "Natural Recovery",
+                  "max": 1,
+                  "recharge": "long_rest"
+                }
+              ]
             }
           }
         ]
@@ -1118,7 +1127,19 @@
             "feature": {
               "id": "wholeness_of_body",
               "name": "Wholeness of Body",
-              "description": "As a Bonus Action, you can roll your Martial Arts die. You regain a number of Hit Points equal to the number rolled plus your Wisdom modifier (minimum of 1 Hit Point regained). You can use this feature a number of times equal to your Wisdom modifier (minimum of once), and you regain all expended uses when you finish a Long Rest."
+              "description": "As a Bonus Action, you can roll your Martial Arts die. You regain a number of Hit Points equal to the number rolled plus your Wisdom modifier (minimum of 1 Hit Point regained). You can use this feature a number of times equal to your Wisdom modifier (minimum of once), and you regain all expended uses when you finish a Long Rest.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "wholeness_of_body",
+                  "name": "Wholeness of Body",
+                  "max": {
+                    "ability": "wis",
+                    "min": 1
+                  },
+                  "recharge": "long_rest"
+                }
+              ]
             }
           }
         ]
@@ -1942,7 +1963,19 @@
             "feature": {
               "id": "dark_ones_own_luck",
               "name": "Dark One's Own Luck",
-              "description": "When you make an ability check or a saving throw, you can add 1d10 to your roll, after seeing the roll but before any of its effects occur. You can do so a number of times equal to your Charisma modifier (minimum of once), but no more than once per roll. You regain all expended uses when you finish a Long Rest."
+              "description": "When you make an ability check or a saving throw, you can add 1d10 to your roll, after seeing the roll but before any of its effects occur. You can do so a number of times equal to your Charisma modifier (minimum of once), but no more than once per roll. You regain all expended uses when you finish a Long Rest.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "dark_ones_own_luck",
+                  "name": "Dark One's Own Luck",
+                  "max": {
+                    "ability": "cha",
+                    "min": 1
+                  },
+                  "recharge": "long_rest"
+                }
+              ]
             }
           }
         ]

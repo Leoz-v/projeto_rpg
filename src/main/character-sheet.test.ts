@@ -21,6 +21,7 @@ const draft = (overrides: Partial<SessionCharacter> = {}): SessionCharacter => (
   concentration: null,
   hitDiceSpent: {},
   spellSlotsSpent: { byLevel: {}, pact: 0 },
+  resourcesSpent: {},
   ...overrides,
 });
 

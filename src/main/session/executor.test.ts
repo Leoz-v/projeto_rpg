@@ -9,6 +9,8 @@ import dwarfFighter from '../../../packages/rules-engine/tests/fixtures/dwarf-fi
 import gnomeRanger from '../../../packages/rules-engine/tests/fixtures/gnome-ranger-6.json';
 import elfWizard from '../../../packages/rules-engine/tests/fixtures/elf-wizard-7.json';
 import goliathWarlock from '../../../packages/rules-engine/tests/fixtures/goliath-warlock-5.json';
+import orcBarbarian from '../../../packages/rules-engine/tests/fixtures/orc-barbarian-5.json';
+import dragonbornPaladin from '../../../packages/rules-engine/tests/fixtures/dragonborn-paladin-6.json';
 import type { SessionCharacter } from '../../shared/protocol';
 import { cryptoRng } from './rng';
 
@@ -274,7 +276,7 @@ describe('HostSession: characters', () => {
   it('creates an empty draft owned by whoever asked', () => {
     const session = setup();
     const id = create(session, ANA.playerId);
-    expect(session.state.characters[id]).toEqual({ id, ownerId: ANA.playerId, name: 'Thorin', baseScores: null, rolledScores: null, steps: [], inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] }, hp: { damage: 0, temp: 0 }, adjustments: [], conditions: { active: [], exhaustion: 0 }, deathSaves: { successes: 0, failures: 0, stable: false, dead: false }, concentration: null, hitDiceSpent: {}, spellSlotsSpent: { byLevel: {}, pact: 0 } });
+    expect(session.state.characters[id]).toEqual({ id, ownerId: ANA.playerId, name: 'Thorin', baseScores: null, rolledScores: null, steps: [], inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] }, hp: { damage: 0, temp: 0 }, adjustments: [], conditions: { active: [], exhaustion: 0 }, deathSaves: { successes: 0, failures: 0, stable: false, dead: false }, concentration: null, hitDiceSpent: {}, spellSlotsSpent: { byLevel: {}, pact: 0 }, resourcesSpent: {} });
     expect(SessionStateSchema.safeParse(session.state).success).toBe(true);
   });
 
@@ -1943,5 +1945,67 @@ describe('HostSession: spell slots (note 0051)', () => {
     expect(rejection(k.slot('spell_slot.spend', { level: 1 }))).toBe('rule_violation');
     k.rest('short');
     expect(k.spent()).toEqual({ byLevel: {}, pact: 0 });
+  });
+});
+
+describe('HostSession: class and species resources (note 0052)', () => {
+  type Fixture = { character: { baseScores: SessionCharacter['baseScores']; steps: SessionCharacter['steps'] } };
+
+  function hero(fixture: Fixture) {
+    const session = setup({ itemProblems: () => [] });
+    session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Herói' } });
+    const id = Object.keys(session.state.characters)[0] ?? '';
+    session.handle(ANA.playerId, {
+      kind: 'character.update',
+      data: { characterId: id, baseScores: fixture.character.baseScores ?? undefined, steps: CharacterSchema.shape.steps.parse(fixture.character.steps) },
+    });
+    const use = (kind: 'resource.spend' | 'resource.restore', resourceId: string, amount?: number, who = ANA.playerId) =>
+      session.handle(who, { kind, data: { characterId: id, resourceId, ...(amount !== undefined ? { amount } : {}) } });
+    const rest = (kind: 'short' | 'long') => {
+      session.handle(GM.playerId, { kind: 'rest.start', data: { kind, characterIds: [id] } });
+      session.handle(GM.playerId, { kind: 'rest.finish', data: {} });
+    };
+    return { session, use, rest, spent: () => (session.state.characters[id] as SessionCharacter).resourcesSpent };
+  }
+
+  it('spends and restores uses of a resource of the sheet', () => {
+    const b = hero(orcBarbarian as Fixture);
+    expect(applied(b.use('resource.spend', 'rage'))).toBe(true);
+    expect(b.spent()).toEqual({ rage: 1 });
+    expect(b.session.state.chat.at(-1)).toMatchObject({ kind: 'resource', resourceName: 'Rage', event: 'spent', amount: 1, available: 2, max: 3 });
+    expect(rejection(b.use('resource.spend', 'rage', 3))).toBe('rule_violation');
+    expect(rejection(b.use('resource.spend', 'lay_on_hands'))).toBe('rule_violation');
+    expect(rejection(b.use('resource.spend', 'rage', 1, BRUNO.playerId))).toBe('not_allowed');
+    expect(rejection(b.use('resource.restore', 'rage', 2))).toBe('rule_violation');
+    b.use('resource.restore', 'rage');
+    expect(b.spent()).toEqual({});
+    expect(SessionStateSchema.safeParse(b.session.state).success).toBe(true);
+  });
+
+  it('a Short Rest returns one Rage use; a Long Rest returns all', () => {
+    const b = hero(orcBarbarian as Fixture);
+    b.use('resource.spend', 'rage', 3);
+    b.use('resource.spend', 'relentless_endurance');
+    b.use('resource.spend', 'adrenaline_rush', 2);
+    b.rest('short');
+    // Rage volta 1; Adrenaline Rush (curto) volta toda; Relentless Endurance (longo) não volta.
+    expect(b.spent()).toEqual({ rage: 2, relentless_endurance: 1 });
+    const notes = b.session.state.chat.at(-1);
+    expect(notes?.kind === 'rest' && notes.notes.join(' ')).toContain('Rage +1');
+    b.rest('long');
+    expect(b.spent()).toEqual({});
+  });
+
+  it('spends a pool in amounts: Lay On Hands (5 × Paladin level)', () => {
+    const p = hero(dragonbornPaladin as Fixture);
+    const sheet = characterSheet(p.session.state.characters[Object.keys(p.session.state.characters)[0] ?? ''] as SessionCharacter, compendium).sheet;
+    const pool = sheet?.resources.find((r) => r.id === 'lay_on_hands');
+    expect(pool?.max).toBe(30);
+    p.use('resource.spend', 'lay_on_hands', 12);
+    expect(p.session.state.chat.at(-1)).toMatchObject({ kind: 'resource', amount: 12, available: 18, max: 30 });
+    p.rest('short');
+    expect(p.spent()).toEqual({ lay_on_hands: 12 });
+    p.rest('long');
+    expect(p.spent()).toEqual({});
   });
 });

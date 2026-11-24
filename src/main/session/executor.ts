@@ -8,6 +8,7 @@ import { advanceTurn, expire, joinCombat, leaveCombat, setInitiative, startComba
 import { changeConditions } from './conditions';
 import { cancelRest, finishRest, spendHitDie, startRest } from './rest';
 import { changeSpellSlot } from './spell-slots';
+import { changeResource } from './resources';
 import { createMap, createToken, moveToken, roll } from './map-tokens';
 import { changeHp, concentrate, concentrationBreaks, deathStateEntry, endConcentration, inCombat, rollDeathSave } from './vitality';
 
@@ -193,6 +194,9 @@ export class HostSession extends SessionContext {
           ...concentrationBreaks(this, playerId, character, character.conditions, intent.data.deathSaves),
         ];
       }
+      case 'resource.spend':
+      case 'resource.restore':
+        return changeResource(this, playerId, role, intent);
       case 'spell_slot.spend':
       case 'spell_slot.restore':
         return changeSpellSlot(this, playerId, role, intent);

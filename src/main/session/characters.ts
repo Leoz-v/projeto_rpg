@@ -10,7 +10,7 @@ export function createCharacter(ctx: SessionContext, playerId: string, role: Rol
     ctx.requireGm(role);
     if (ctx.current.players[ownerId] === undefined) throw violation('Dono do personagem não está na mesa');
   }
-  const character: SessionCharacter = { id: ctx.deps.newId(), ownerId, name: data.name, baseScores: null, rolledScores: null, steps: [], inventory: EMPTY_INVENTORY, hp: { damage: 0, temp: 0 }, adjustments: [], conditions: NO_CONDITIONS, deathSaves: NO_DEATH_SAVES, concentration: null, hitDiceSpent: {}, spellSlotsSpent: NO_SPELL_SLOTS_SPENT };
+  const character: SessionCharacter = { id: ctx.deps.newId(), ownerId, name: data.name, baseScores: null, rolledScores: null, steps: [], inventory: EMPTY_INVENTORY, hp: { damage: 0, temp: 0 }, adjustments: [], conditions: NO_CONDITIONS, deathSaves: NO_DEATH_SAVES, concentration: null, hitDiceSpent: {}, spellSlotsSpent: NO_SPELL_SLOTS_SPENT, resourcesSpent: {} };
   return [{ op: 'add', path: toPointer('characters', character.id), value: character }];
 }
 

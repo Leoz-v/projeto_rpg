@@ -181,7 +181,18 @@
             "feature": {
               "id": "breath_weapon",
               "name": "Breath Weapon",
-              "description": "When you take the Attack action on your turn, you can replace one of your attacks with an exhalation of magical energy in either a 15-foot Cone or a 30-foot Line that is 5 feet wide (choose the shape each time). Each creature in that area must make a Dexterity saving throw (DC 8 plus your Constitution modifier and Proficiency Bonus). On a failed save, a creature takes 1d10 damage of the type determined by your Draconic Ancestry trait. On a successful save, a creature takes half as much damage. This damage increases by 1d10 when you reach character levels 5 (2d10), 11 (3d10), and 17 (4d10). You can use this Breath Weapon a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest."
+              "description": "When you take the Attack action on your turn, you can replace one of your attacks with an exhalation of magical energy in either a 15-foot Cone or a 30-foot Line that is 5 feet wide (choose the shape each time). Each creature in that area must make a Dexterity saving throw (DC 8 plus your Constitution modifier and Proficiency Bonus). On a failed save, a creature takes 1d10 damage of the type determined by your Draconic Ancestry trait. On a successful save, a creature takes half as much damage. This damage increases by 1d10 when you reach character levels 5 (2d10), 11 (3d10), and 17 (4d10). You can use this Breath Weapon a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "breath_weapon",
+                  "name": "Breath Weapon",
+                  "max": {
+                    "proficiency": 1
+                  },
+                  "recharge": "long_rest"
+                }
+              ]
             }
           },
           {
@@ -209,7 +220,16 @@
             "feature": {
               "id": "draconic_flight",
               "name": "Draconic Flight",
-              "description": "As a Bonus Action, you sprout spectral wings on your back that last for 10 minutes or until you retract the wings (no action required) or have the Incapacitated condition. During that time, you have a Fly Speed equal to your Speed. Your wings appear to be made of the same energy as your Breath Weapon. Once you use this trait, you can't use it again until you finish a Long Rest."
+              "description": "As a Bonus Action, you sprout spectral wings on your back that last for 10 minutes or until you retract the wings (no action required) or have the Incapacitated condition. During that time, you have a Fly Speed equal to your Speed. Your wings appear to be made of the same energy as your Breath Weapon. Once you use this trait, you can't use it again until you finish a Long Rest.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "draconic_flight",
+                  "name": "Draconic Flight",
+                  "max": 1,
+                  "recharge": "long_rest"
+                }
+              ]
             }
           }
         ]
@@ -287,7 +307,18 @@
             "feature": {
               "id": "stonecunning",
               "name": "Stonecunning",
-              "description": "As a Bonus Action, you gain Tremorsense with a range of 60 feet for 10 minutes. You must be on a stone surface or touching a stone surface to use this Tremorsense. The stone can be natural or worked. You can use this Bonus Action a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest."
+              "description": "As a Bonus Action, you gain Tremorsense with a range of 60 feet for 10 minutes. You must be on a stone surface or touching a stone surface to use this Tremorsense. The stone can be natural or worked. You can use this Bonus Action a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "stonecunning",
+                  "name": "Stonecunning",
+                  "max": {
+                    "proficiency": 1
+                  },
+                  "recharge": "long_rest"
+                }
+              ]
             }
           }
         ]
@@ -770,7 +801,18 @@
             "feature": {
               "id": "giant_ancestry_trait",
               "name": "Giant Ancestry",
-              "description": "You are descended from Giants. Choose one of the following benefits--a supernatural boon from your ancestry; you can use the chosen benefit a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest."
+              "description": "You are descended from Giants. Choose one of the following benefits--a supernatural boon from your ancestry; you can use the chosen benefit a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "giant_ancestry",
+                  "name": "Giant Ancestry",
+                  "max": {
+                    "proficiency": 1
+                  },
+                  "recharge": "long_rest"
+                }
+              ]
             }
           },
           {
@@ -905,7 +947,16 @@
             "feature": {
               "id": "large_form",
               "name": "Large Form",
-              "description": "You can change your size to Large as a Bonus Action if you're in a big enough space. This transformation lasts for 10 minutes or until you end it (no action required). For that duration, you have Advantage on Strength checks, and your Speed increases by 10 feet. Once you use this trait, you can't use it again until you finish a Long Rest."
+              "description": "You can change your size to Large as a Bonus Action if you're in a big enough space. This transformation lasts for 10 minutes or until you end it (no action required). For that duration, you have Advantage on Strength checks, and your Speed increases by 10 feet. Once you use this trait, you can't use it again until you finish a Long Rest.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "large_form",
+                  "name": "Large Form",
+                  "max": 1,
+                  "recharge": "long_rest"
+                }
+              ]
             }
           }
         ]
@@ -1056,7 +1107,18 @@
             "feature": {
               "id": "adrenaline_rush",
               "name": "Adrenaline Rush",
-              "description": "You can take the Dash action as a Bonus Action. When you do so, you gain a number of Temporary Hit Points equal to your Proficiency Bonus. You can use this trait a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Short or Long Rest."
+              "description": "You can take the Dash action as a Bonus Action. When you do so, you gain a number of Temporary Hit Points equal to your Proficiency Bonus. You can use this trait a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Short or Long Rest.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "adrenaline_rush",
+                  "name": "Adrenaline Rush",
+                  "max": {
+                    "proficiency": 1
+                  },
+                  "recharge": "short_rest"
+                }
+              ]
             }
           },
           {
@@ -1079,7 +1141,16 @@
             "feature": {
               "id": "relentless_endurance",
               "name": "Relentless Endurance",
-              "description": "When you are reduced to 0 Hit Points but not killed outright, you can drop to 1 Hit Point instead. Once you use this trait, you can't do so again until you finish a Long Rest."
+              "description": "When you are reduced to 0 Hit Points but not killed outright, you can drop to 1 Hit Point instead. Once you use this trait, you can't do so again until you finish a Long Rest.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "relentless_endurance",
+                  "name": "Relentless Endurance",
+                  "max": 1,
+                  "recharge": "long_rest"
+                }
+              ]
             }
           }
         ]

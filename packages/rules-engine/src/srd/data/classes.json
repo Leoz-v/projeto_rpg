@@ -150,7 +150,39 @@
             "feature": {
               "id": "second_wind",
               "name": "Second Wind",
-              "description": "As a Bonus Action, you can regain Hit Points equal to 1d10 plus your Fighter level. You can use this feature twice. You regain one expended use when you finish a Short Rest, and you regain all expended uses when you finish a Long Rest. Uses: 2 (levels 1-3), 3 (levels 4-9), 4 (levels 10-20)."
+              "description": "As a Bonus Action, you can regain Hit Points equal to 1d10 plus your Fighter level. You can use this feature twice. You regain one expended use when you finish a Short Rest, and you regain all expended uses when you finish a Long Rest. Uses: 2 (levels 1-3), 3 (levels 4-9), 4 (levels 10-20).",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "second_wind",
+                  "name": "Second Wind",
+                  "max": {
+                    "byLevel": [
+                      2,
+                      2,
+                      2,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3,
+                      4,
+                      4,
+                      4,
+                      4,
+                      4,
+                      4,
+                      4,
+                      4,
+                      4,
+                      4,
+                      4
+                    ]
+                  },
+                  "recharge": "short_rest_one"
+                }
+              ]
             }
           },
           {
@@ -171,7 +203,39 @@
             "feature": {
               "id": "action_surge",
               "name": "Action Surge",
-              "description": "On your turn, you can take one additional action, except the Magic action. Once you use this feature, you can't do so again until you finish a Short or Long Rest. Starting at level 17, you can use it twice before a rest but only once on a turn."
+              "description": "On your turn, you can take one additional action, except the Magic action. Once you use this feature, you can't do so again until you finish a Short or Long Rest. Starting at level 17, you can use it twice before a rest but only once on a turn.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "action_surge",
+                  "name": "Action Surge",
+                  "max": {
+                    "byLevel": [
+                      0,
+                      1,
+                      1,
+                      1,
+                      1,
+                      1,
+                      1,
+                      1,
+                      1,
+                      1,
+                      1,
+                      1,
+                      1,
+                      1,
+                      1,
+                      1,
+                      2,
+                      2,
+                      2,
+                      2
+                    ]
+                  },
+                  "recharge": "short_rest"
+                }
+              ]
             }
           },
           {
@@ -291,7 +355,39 @@
             "feature": {
               "id": "indomitable",
               "name": "Indomitable",
-              "description": "If you fail a saving throw, you can reroll it with a bonus equal to your Fighter level. You must use the new roll, and you can't use this feature again until you finish a Long Rest. You can use this feature twice before a Long Rest starting at level 13 and three times before a Long Rest starting at level 17."
+              "description": "If you fail a saving throw, you can reroll it with a bonus equal to your Fighter level. You must use the new roll, and you can't use this feature again until you finish a Long Rest. You can use this feature twice before a Long Rest starting at level 13 and three times before a Long Rest starting at level 17.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "indomitable",
+                  "name": "Indomitable",
+                  "max": {
+                    "byLevel": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0,
+                      0,
+                      0,
+                      0,
+                      1,
+                      1,
+                      1,
+                      1,
+                      2,
+                      2,
+                      2,
+                      2,
+                      3,
+                      3,
+                      3,
+                      3
+                    ]
+                  },
+                  "recharge": "long_rest"
+                }
+              ]
             }
           },
           {
@@ -571,7 +667,16 @@
             "feature": {
               "id": "arcane_recovery",
               "name": "Arcane Recovery",
-              "description": "When you finish a Short Rest, you can choose expended spell slots to recover. The spell slots can have a combined level equal to no more than half your Wizard level (round up), and none of the slots can be level 6 or higher. Once you use this feature, you can't do so again until you finish a Long Rest."
+              "description": "When you finish a Short Rest, you can choose expended spell slots to recover. The spell slots can have a combined level equal to no more than half your Wizard level (round up), and none of the slots can be level 6 or higher. Once you use this feature, you can't do so again until you finish a Long Rest.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "arcane_recovery",
+                  "name": "Arcane Recovery",
+                  "max": 1,
+                  "recharge": "long_rest"
+                }
+              ]
             }
           }
         ]
@@ -1228,7 +1333,39 @@
             "feature": {
               "id": "rage",
               "name": "Rage",
-              "description": "You can imbue yourself with a primal power called Rage. You can enter it as a Bonus Action if you aren't wearing Heavy armor. Uses: 2 (levels 1-2), 3 (3-5), 4 (6-11), 5 (12-16), 6 (17-20); you regain one expended use on a Short Rest and all on a Long Rest. While active: Resistance to Bludgeoning, Piercing, and Slashing damage; Rage Damage bonus when you attack using Strength (+2 at levels 1-8, +3 at 9-15, +4 at 16-20); Advantage on Strength checks and Strength saving throws; you can't maintain Concentration or cast spells. The Rage lasts until the end of your next turn and can be extended each round, up to 10 minutes; it ends early if you don Heavy armor or have the Incapacitated condition."
+              "description": "You can imbue yourself with a primal power called Rage. You can enter it as a Bonus Action if you aren't wearing Heavy armor. Uses: 2 (levels 1-2), 3 (3-5), 4 (6-11), 5 (12-16), 6 (17-20); you regain one expended use on a Short Rest and all on a Long Rest. While active: Resistance to Bludgeoning, Piercing, and Slashing damage; Rage Damage bonus when you attack using Strength (+2 at levels 1-8, +3 at 9-15, +4 at 16-20); Advantage on Strength checks and Strength saving throws; you can't maintain Concentration or cast spells. The Rage lasts until the end of your next turn and can be extended each round, up to 10 minutes; it ends early if you don Heavy armor or have the Incapacitated condition.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "rage",
+                  "name": "Rage",
+                  "max": {
+                    "byLevel": [
+                      2,
+                      2,
+                      3,
+                      3,
+                      3,
+                      4,
+                      4,
+                      4,
+                      4,
+                      4,
+                      4,
+                      5,
+                      5,
+                      5,
+                      5,
+                      5,
+                      6,
+                      6,
+                      6,
+                      6
+                    ]
+                  },
+                  "recharge": "short_rest_one"
+                }
+              ]
             }
           },
           {
@@ -1805,7 +1942,19 @@
             "feature": {
               "id": "bardic_inspiration",
               "name": "Bardic Inspiration",
-              "description": "As a Bonus Action, you can inspire another creature within 60 feet of yourself who can see or hear you. That creature gains one of your Bardic Inspiration dice (a d6; d8 at level 5, d10 at level 10, d12 at level 15). A creature can have only one at a time. Once within the next hour when the creature fails a D20 Test, it can roll the die and add the number rolled to the d20. You can confer it a number of times equal to your Charisma modifier (minimum of once), and you regain all expended uses when you finish a Long Rest."
+              "description": "As a Bonus Action, you can inspire another creature within 60 feet of yourself who can see or hear you. That creature gains one of your Bardic Inspiration dice (a d6; d8 at level 5, d10 at level 10, d12 at level 15). A creature can have only one at a time. Once within the next hour when the creature fails a D20 Test, it can roll the die and add the number rolled to the d20. You can confer it a number of times equal to your Charisma modifier (minimum of once), and you regain all expended uses when you finish a Long Rest.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "bardic_inspiration",
+                  "name": "Bardic Inspiration",
+                  "max": {
+                    "ability": "cha",
+                    "min": 1
+                  },
+                  "recharge": "long_rest"
+                }
+              ]
             }
           },
           {
@@ -1969,7 +2118,19 @@
             "feature": {
               "id": "font_of_inspiration",
               "name": "Font of Inspiration",
-              "description": "You now regain all your expended uses of Bardic Inspiration when you finish a Short or Long Rest. In addition, you can expend a spell slot (no action required) to regain one expended use of Bardic Inspiration."
+              "description": "You now regain all your expended uses of Bardic Inspiration when you finish a Short or Long Rest. In addition, you can expend a spell slot (no action required) to regain one expended use of Bardic Inspiration.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "bardic_inspiration",
+                  "name": "Bardic Inspiration",
+                  "max": {
+                    "ability": "cha",
+                    "min": 1
+                  },
+                  "recharge": "short_rest"
+                }
+              ]
             }
           },
           {
@@ -2609,7 +2770,39 @@
             "feature": {
               "id": "channel_divinity",
               "name": "Channel Divinity",
-              "description": "You can channel divine energy to create one of this class's Channel Divinity effects. Uses: 2 (levels 2-5), 3 (6-17), 4 (18-20); you regain one expended use on a Short Rest and all on a Long Rest. Save DC equals your Cleric spell save DC. Divine Spark: as a Magic action, roll 1d8 + your Wisdom modifier (2d8 at level 7, 3d8 at 13, 4d8 at 18) and either restore that many Hit Points to a creature within 30 feet or force it to make a Constitution saving throw, taking Necrotic or Radiant damage on a failure (half on a success). Turn Undead: as a Magic action, each Undead of your choice within 30 feet must make a Wisdom saving throw or have the Frightened and Incapacitated conditions for 1 minute, ending early if it takes damage."
+              "description": "You can channel divine energy to create one of this class's Channel Divinity effects. Uses: 2 (levels 2-5), 3 (6-17), 4 (18-20); you regain one expended use on a Short Rest and all on a Long Rest. Save DC equals your Cleric spell save DC. Divine Spark: as a Magic action, roll 1d8 + your Wisdom modifier (2d8 at level 7, 3d8 at 13, 4d8 at 18) and either restore that many Hit Points to a creature within 30 feet or force it to make a Constitution saving throw, taking Necrotic or Radiant damage on a failure (half on a success). Turn Undead: as a Magic action, each Undead of your choice within 30 feet must make a Wisdom saving throw or have the Frightened and Incapacitated conditions for 1 minute, ending early if it takes damage.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "channel_divinity",
+                  "name": "Channel Divinity",
+                  "max": {
+                    "byLevel": [
+                      0,
+                      2,
+                      2,
+                      2,
+                      2,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3,
+                      4,
+                      4,
+                      4
+                    ]
+                  },
+                  "recharge": "short_rest_one"
+                }
+              ]
             }
           }
         ]
@@ -2759,7 +2952,16 @@
             "feature": {
               "id": "divine_intervention",
               "name": "Divine Intervention",
-              "description": "As a Magic action, choose any Cleric spell of level 5 or lower that doesn't require a Reaction to cast. As part of the same action, you cast that spell without expending a spell slot or needing Material components. You can't use this feature again until you finish a Long Rest."
+              "description": "As a Magic action, choose any Cleric spell of level 5 or lower that doesn't require a Reaction to cast. As part of the same action, you cast that spell without expending a spell slot or needing Material components. You can't use this feature again until you finish a Long Rest.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "divine_intervention",
+                  "name": "Divine Intervention",
+                  "max": 1,
+                  "recharge": "long_rest"
+                }
+              ]
             }
           },
           {
@@ -3105,7 +3307,39 @@
             "feature": {
               "id": "wild_shape",
               "name": "Wild Shape",
-              "description": "As a Bonus Action, you shape-shift into a Beast form that you have learned. You stay in that form for a number of hours equal to half your Druid level or until you use Wild Shape again, have the Incapacitated condition, or die; you can leave early as a Bonus Action. Uses: 2 (levels 2-5), 3 (6-16), 4 (17-20); you regain one on a Short Rest and all on a Long Rest. Known forms: 4 Beasts of CR 1/4 without Fly Speed (6 of CR 1/2 at level 4; 8 of CR 1 at level 8, which may have a Fly Speed). While shape-shifted you gain Temporary Hit Points equal to your Druid level, use the Beast's statistics but keep your creature type, Hit Points, Hit Point Dice, Intelligence, Wisdom, and Charisma, class features, languages, feats, and proficiencies, and you can't cast spells."
+              "description": "As a Bonus Action, you shape-shift into a Beast form that you have learned. You stay in that form for a number of hours equal to half your Druid level or until you use Wild Shape again, have the Incapacitated condition, or die; you can leave early as a Bonus Action. Uses: 2 (levels 2-5), 3 (6-16), 4 (17-20); you regain one on a Short Rest and all on a Long Rest. Known forms: 4 Beasts of CR 1/4 without Fly Speed (6 of CR 1/2 at level 4; 8 of CR 1 at level 8, which may have a Fly Speed). While shape-shifted you gain Temporary Hit Points equal to your Druid level, use the Beast's statistics but keep your creature type, Hit Points, Hit Point Dice, Intelligence, Wisdom, and Charisma, class features, languages, feats, and proficiencies, and you can't cast spells.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "wild_shape",
+                  "name": "Wild Shape",
+                  "max": {
+                    "byLevel": [
+                      0,
+                      2,
+                      2,
+                      2,
+                      2,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3,
+                      4,
+                      4,
+                      4,
+                      4
+                    ]
+                  },
+                  "recharge": "short_rest_one"
+                }
+              ]
             }
           },
           {
@@ -3547,7 +3781,18 @@
             "feature": {
               "id": "monks_focus",
               "name": "Monk's Focus",
-              "description": "You have a number of Focus Points equal to your Monk level, regained on a Short or Long Rest. Save DC for Monk features: 8 + Wisdom modifier + Proficiency Bonus. Flurry of Blows: expend 1 Focus Point to make two Unarmed Strikes as a Bonus Action. Patient Defense: take the Disengage action as a Bonus Action, or expend 1 Focus Point to take both Disengage and Dodge. Step of the Wind: take the Dash action as a Bonus Action, or expend 1 Focus Point to take both Disengage and Dash, with your jump distance doubled for the turn."
+              "description": "You have a number of Focus Points equal to your Monk level, regained on a Short or Long Rest. Save DC for Monk features: 8 + Wisdom modifier + Proficiency Bonus. Flurry of Blows: expend 1 Focus Point to make two Unarmed Strikes as a Bonus Action. Patient Defense: take the Disengage action as a Bonus Action, or expend 1 Focus Point to take both Disengage and Dodge. Step of the Wind: take the Dash action as a Bonus Action, or expend 1 Focus Point to take both Disengage and Dash, with your jump distance doubled for the turn.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "focus_points",
+                  "name": "Focus Points",
+                  "max": {
+                    "perLevel": 1
+                  },
+                  "recharge": "short_rest"
+                }
+              ]
             }
           },
           {
@@ -3586,6 +3831,13 @@
                   "type": "reminder",
                   "on": "initiative",
                   "note": "Pode recuperar todos os Focus Points gastos e PV iguais ao nível de Monge + o dado de Martial Arts (uma vez por Descanso Longo)."
+                },
+                {
+                  "type": "resource",
+                  "id": "uncanny_metabolism",
+                  "name": "Uncanny Metabolism",
+                  "max": 1,
+                  "recharge": "long_rest"
                 }
               ]
             }
@@ -4197,7 +4449,18 @@
             "feature": {
               "id": "lay_on_hands",
               "name": "Lay On Hands",
-              "description": "You have a pool of healing power that replenishes when you finish a Long Rest, with which you can restore a total number of Hit Points equal to five times your Paladin level. As a Bonus Action, you can touch a creature (which could be yourself) and draw power from the pool to restore Hit Points to it, up to the maximum amount remaining in the pool. You can also expend 5 Hit Points from the pool to remove the Poisoned condition from the creature."
+              "description": "You have a pool of healing power that replenishes when you finish a Long Rest, with which you can restore a total number of Hit Points equal to five times your Paladin level. As a Bonus Action, you can touch a creature (which could be yourself) and draw power from the pool to restore Hit Points to it, up to the maximum amount remaining in the pool. You can also expend 5 Hit Points from the pool to remove the Poisoned condition from the creature.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "lay_on_hands",
+                  "name": "Lay On Hands",
+                  "max": {
+                    "perLevel": 5
+                  },
+                  "recharge": "long_rest"
+                }
+              ]
             }
           },
           {
@@ -4318,7 +4581,39 @@
             "feature": {
               "id": "channel_divinity",
               "name": "Channel Divinity",
-              "description": "You can use this class's Channel Divinity twice (three times from Paladin level 11). You regain one expended use when you finish a Short Rest and all on a Long Rest. Save DCs equal your Paladin spell save DC. Divine Sense: as a Bonus Action, for 10 minutes or until you have the Incapacitated condition, you know the location and type of any Celestial, Fiend, or Undead within 60 feet of yourself, and you detect consecrated or desecrated places and objects in that radius."
+              "description": "You can use this class's Channel Divinity twice (three times from Paladin level 11). You regain one expended use when you finish a Short Rest and all on a Long Rest. Save DCs equal your Paladin spell save DC. Divine Sense: as a Bonus Action, for 10 minutes or until you have the Incapacitated condition, you know the location and type of any Celestial, Fiend, or Undead within 60 feet of yourself, and you detect consecrated or desecrated places and objects in that radius.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "channel_divinity",
+                  "name": "Channel Divinity",
+                  "max": {
+                    "byLevel": [
+                      0,
+                      0,
+                      2,
+                      2,
+                      2,
+                      2,
+                      2,
+                      2,
+                      2,
+                      2,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3,
+                      3
+                    ]
+                  },
+                  "recharge": "short_rest_one"
+                }
+              ]
             }
           },
           {
@@ -5027,7 +5322,19 @@
             "feature": {
               "id": "tireless",
               "name": "Tireless",
-              "description": "As a Magic action, you can give yourself Temporary Hit Points equal to 1d8 plus your Wisdom modifier (minimum of 1), a number of times equal to your Wisdom modifier (minimum of once) per Long Rest. Whenever you finish a Short Rest, your Exhaustion level, if any, decreases by 1."
+              "description": "As a Magic action, you can give yourself Temporary Hit Points equal to 1d8 plus your Wisdom modifier (minimum of 1), a number of times equal to your Wisdom modifier (minimum of once) per Long Rest. Whenever you finish a Short Rest, your Exhaustion level, if any, decreases by 1.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "tireless",
+                  "name": "Tireless",
+                  "max": {
+                    "ability": "wis",
+                    "min": 1
+                  },
+                  "recharge": "long_rest"
+                }
+              ]
             }
           }
         ]
@@ -5078,7 +5385,19 @@
             "feature": {
               "id": "natures_veil",
               "name": "Nature's Veil",
-              "description": "As a Bonus Action, you can give yourself the Invisible condition until the end of your next turn. You can use this feature a number of times equal to your Wisdom modifier (minimum of once), and you regain all expended uses when you finish a Long Rest."
+              "description": "As a Bonus Action, you can give yourself the Invisible condition until the end of your next turn. You can use this feature a number of times equal to your Wisdom modifier (minimum of once), and you regain all expended uses when you finish a Long Rest.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "natures_veil",
+                  "name": "Nature's Veil",
+                  "max": {
+                    "ability": "wis",
+                    "min": 1
+                  },
+                  "recharge": "long_rest"
+                }
+              ]
             }
           }
         ]
@@ -5650,7 +5969,16 @@
             "feature": {
               "id": "stroke_of_luck",
               "name": "Stroke of Luck",
-              "description": "If you fail a D20 Test, you can turn the roll into a 20. Once you use this feature, you can't use it again until you finish a Short or Long Rest."
+              "description": "If you fail a D20 Test, you can turn the roll into a 20. Once you use this feature, you can't use it again until you finish a Short or Long Rest.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "stroke_of_luck",
+                  "name": "Stroke of Luck",
+                  "max": 1,
+                  "recharge": "short_rest"
+                }
+              ]
             }
           }
         ]
@@ -5764,7 +6092,16 @@
             "feature": {
               "id": "innate_sorcery",
               "name": "Innate Sorcery",
-              "description": "As a Bonus Action, you can unleash your innate magic for 1 minute, during which the spell save DC of your Sorcerer spells increases by 1 and you have Advantage on the attack rolls of Sorcerer spells you cast. You can use this feature twice, and you regain all expended uses when you finish a Long Rest."
+              "description": "As a Bonus Action, you can unleash your innate magic for 1 minute, during which the spell save DC of your Sorcerer spells increases by 1 and you have Advantage on the attack rolls of Sorcerer spells you cast. You can use this feature twice, and you regain all expended uses when you finish a Long Rest.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "innate_sorcery",
+                  "name": "Innate Sorcery",
+                  "max": 2,
+                  "recharge": "long_rest"
+                }
+              ]
             }
           },
           {
@@ -5790,7 +6127,18 @@
             "feature": {
               "id": "font_of_magic",
               "name": "Font of Magic",
-              "description": "You have Sorcery Points equal to your Sorcerer level (from level 2), regained on a Long Rest. You can expend a spell slot to gain Sorcery Points equal to the slot's level (no action required). As a Bonus Action, you can transform Sorcery Points into one spell slot of level 5 or lower: level 1 costs 2 points (Sorcerer level 2), level 2 costs 3 (level 3), level 3 costs 5 (level 5), level 4 costs 6 (level 7), level 5 costs 7 (level 9). Created slots vanish when you finish a Long Rest."
+              "description": "You have Sorcery Points equal to your Sorcerer level (from level 2), regained on a Long Rest. You can expend a spell slot to gain Sorcery Points equal to the slot's level (no action required). As a Bonus Action, you can transform Sorcery Points into one spell slot of level 5 or lower: level 1 costs 2 points (Sorcerer level 2), level 2 costs 3 (level 3), level 3 costs 5 (level 5), level 4 costs 6 (level 7), level 5 costs 7 (level 9). Created slots vanish when you finish a Long Rest.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "sorcery_points",
+                  "name": "Sorcery Points",
+                  "max": {
+                    "perLevel": 1
+                  },
+                  "recharge": "long_rest"
+                }
+              ]
             }
           },
           {
@@ -6045,7 +6393,16 @@
             "feature": {
               "id": "sorcerous_restoration",
               "name": "Sorcerous Restoration",
-              "description": "When you finish a Short Rest, you can regain expended Sorcery Points, but no more than a number equal to half your Sorcerer level (round down). Once you use this feature, you can't do so again until you finish a Long Rest."
+              "description": "When you finish a Short Rest, you can regain expended Sorcery Points, but no more than a number equal to half your Sorcerer level (round down). Once you use this feature, you can't do so again until you finish a Long Rest.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "sorcerous_restoration",
+                  "name": "Sorcerous Restoration",
+                  "max": 1,
+                  "recharge": "long_rest"
+                }
+              ]
             }
           },
           {
@@ -7504,7 +7861,16 @@
             "feature": {
               "id": "magical_cunning",
               "name": "Magical Cunning",
-              "description": "You can perform an esoteric rite for 1 minute. At the end of it, you regain expended Pact Magic spell slots but no more than a number equal to half your maximum (round up). Once you use this feature, you can't do so again until you finish a Long Rest."
+              "description": "You can perform an esoteric rite for 1 minute. At the end of it, you regain expended Pact Magic spell slots but no more than a number equal to half your maximum (round up). Once you use this feature, you can't do so again until you finish a Long Rest.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "magical_cunning",
+                  "name": "Magical Cunning",
+                  "max": 1,
+                  "recharge": "long_rest"
+                }
+              ]
             }
           },
           {

@@ -16,6 +16,7 @@ import { DeathSavesPanel } from './DeathSaves';
 import { ConcentrationControl } from './Concentration';
 import { HitDiceControl } from './Rest';
 import { SpellSlotsControl } from './SpellSlots';
+import { ResourcesControl } from './Resources';
 import { Inventory } from './Inventory';
 import { ABILITY_LABEL, CONDITION_LABEL, DAMAGE_LABEL, humanizeId, nameOf, SENSE_LABEL, SIZE_LABEL, signed, SKILL_LABEL } from './sheet-labels';
 
@@ -579,6 +580,7 @@ export function CharacterSheet({ view, characterId, onClose }: { view: TableView
                   }}
                 />
                 <ConditionsControl target={{ characterId: record.id }} state={record.conditions} canEdit={canEdit} combatants={combatantOptions(view.state)} />
+                <ResourcesControl character={record} resources={load.view.sheet.resources} canEdit={canEdit} />
                 <ConcentrationControl
                   characterId={record.id}
                   current={record.concentration}

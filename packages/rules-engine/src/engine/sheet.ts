@@ -34,6 +34,7 @@ import type {
   ClassSpellcasting,
   Contribution,
   DerivedSheet,
+  SheetResource,
   SheetTrigger,
   GrantedSpell,
   InventoryLine,
@@ -787,6 +788,25 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     ),
   ];
 
+  // --- Recursos (nota 0052) --------------------------------------------------
+
+  /** Mesmo recurso de várias fontes: o maior máximo e a recarga mais generosa. */
+  const RECHARGE_RANK = { long_rest: 0, short_rest_one: 1, short_rest: 2 } as const;
+  const resourceMap = new Map<string, SheetResource>();
+  for (const e of effectsOf('resource')) {
+    const { max } = e.effect;
+    const value = typeof max === 'object' && 'byLevel' in max ? (max.byLevel[Math.max(1, scaleLevel(e.classId)) - 1] ?? 0) : bonusValue(max, e.classId);
+    const known = resourceMap.get(e.effect.id);
+    resourceMap.set(e.effect.id, {
+      id: e.effect.id,
+      name: known?.name ?? e.effect.name,
+      max: Math.max(known?.max ?? 0, value),
+      recharge: known && RECHARGE_RANK[known.recharge] > RECHARGE_RANK[e.effect.recharge] ? known.recharge : e.effect.recharge,
+      source: known?.source ?? namedSource(e),
+    });
+  }
+  const resources = [...resourceMap.values()].filter((r) => r.max > 0);
+
   // --- Concentração (nota 0045) ---------------------------------------------
 
   /** Magias do personagem que exigem Concentração (truques, conhecidas, concedidas), sem repetir. */
@@ -829,5 +849,6 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     conditions,
     exhaustion,
     triggers,
+    resources,
   };
 }

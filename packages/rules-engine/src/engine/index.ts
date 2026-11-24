@@ -13,6 +13,7 @@ export { DEATH_SAVE_DC, type DeathDamageEvent, deathAfterDamage, deathAfterHeali
 export { concentrationDc } from './concentration';
 export { availableHitDice, exhaustionAfterLongRest, type HitDiceSpent, hitDieHealing, MIN_HP_TO_REST } from './rest';
 export { availableSpellSlots, NO_SPELL_SLOTS_SPENT, type SlotPool, type SpellSlotsSpent, spellSlotsAfterRest } from './spell-slots';
+export { availableUses, type ResourceRechargeRule, type ResourcesSpent, resourcesAfterRest } from './resources';
 export {
   d20StepNotes,
   type DamageGroup,
