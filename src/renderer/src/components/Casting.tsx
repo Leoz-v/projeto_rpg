@@ -8,6 +8,7 @@ import { sendIntent } from '../store/table';
 import type { ChatViewer } from './Chat';
 import { TargetChecklist } from './SaveEffect';
 import { ProposalActions } from './SheetRollEntries';
+import { describeEffect } from './effect-forms';
 import { ABILITY_LABEL, CONDITION_LABEL, DAMAGE_LABEL, signed } from './sheet-labels';
 
 /**
@@ -144,6 +145,12 @@ const typeLabel = (type: DamageType | DamageType[]): string => (typeof type === 
 /** Resumo de uma parte: "ataque à distância +7 · 2d10 fogo", "salvaguarda de Sabedoria CD 13 · na falha: Paralisado (até a magia acabar)", "cura 2d8+3". */
 function partSummary(part: SpellEffectPart, effect: NonNullable<CastEntry['effect']>): string {
   const targets = part.count !== undefined && !pickPerSlot(part) ? ` (até ${part.count} alvo${part.count > 1 ? 's' : ''})` : '';
+  if (part.kind === 'buff') {
+    const effects = part.effects.map(describeEffect).join(' · ');
+    const choice = part.options.length > 0 ? `à escolha: ${part.options.map((o) => o.label).join(', ')}` : '';
+    const ends = part.endConditions.length > 0 ? ` · termina ${part.endConditions.map((c) => CONDITION_LABEL[c]).join(', ')}` : '';
+    return `${[effects, choice].filter((t) => t !== '').join(' · ')}${targets}${ends}`;
+  }
   if (part.kind === 'heal') {
     const amount = part.healing === 'full' ? 'todos os PV' : part.healing;
     const ends = part.endConditions.length > 0 ? ` · termina ${part.endConditions.map((c) => CONDITION_LABEL[c]).join(', ')}` : '';
@@ -175,6 +182,8 @@ function SpellPartForm({ entry, part, index, targets }: { entry: CastEntry; part
   const [selected, setSelected] = useState<string[]>([]);
   const choices = 'damage' in part ? part.damage.flatMap((d) => (typeof d.type === 'string' ? [] : d.type)) : [];
   const conditionChoices = part.kind === 'save' && part.conditionChoice ? part.onFailConditions.filter((c): c is TableCondition => c !== 'exhaustion') : [];
+  const options = part.kind === 'buff' ? part.options : [];
+  const [option, setOption] = useState('');
   const [damageType, setDamageType] = useState<DamageType | ''>('');
   const [condition, setCondition] = useState<TableCondition | ''>('');
   const [mode, setMode] = useState<'normal' | 'advantage' | 'disadvantage'>('normal');
@@ -183,7 +192,11 @@ function SpellPartForm({ entry, part, index, targets }: { entry: CastEntry; part
   const chosen = pickPerSlot(part) ? picks.filter((p) => p !== '') : selected;
   const limit = !pickPerSlot(part) ? part.count : undefined;
   const ready =
-    chosen.length > 0 && (limit === undefined || chosen.length <= limit) && (choices.length === 0 || damageType !== '') && (conditionChoices.length === 0 || condition !== '');
+    chosen.length > 0 &&
+    (limit === undefined || chosen.length <= limit) &&
+    (choices.length === 0 || damageType !== '') &&
+    (conditionChoices.length === 0 || condition !== '') &&
+    (options.length === 0 || option !== '');
   const send = (): void => {
     setBusy(true);
     void sendIntent({
@@ -194,6 +207,7 @@ function SpellPartForm({ entry, part, index, targets }: { entry: CastEntry; part
         targetTokenIds: chosen,
         ...(damageType !== '' ? { damageType } : {}),
         ...(condition !== '' ? { condition } : {}),
+        ...(option !== '' ? { option: Number(option) } : {}),
         ...((part.kind === 'attack' || part.kind === 'save') && mode !== 'normal' ? { [mode]: true } : {}),
       },
     }).then((refused) => {
@@ -201,7 +215,7 @@ function SpellPartForm({ entry, part, index, targets }: { entry: CastEntry; part
       setError(refused);
     });
   };
-  const verb = { attack: 'Atacar', save: 'Forçar salvaguarda', damage: 'Causar dano', heal: part.kind === 'heal' && part.temporary ? 'Dar PV temporários' : 'Curar', condition: 'Aplicar' }[part.kind];
+  const verb = { attack: 'Atacar', save: 'Forçar salvaguarda', damage: 'Causar dano', heal: part.kind === 'heal' && part.temporary ? 'Dar PV temporários' : 'Curar', condition: 'Aplicar', buff: 'Aplicar' }[part.kind];
   return (
     <div className="spell-part-form">
       {!pickPerSlot(part) ? (
@@ -237,6 +251,16 @@ function SpellPartForm({ entry, part, index, targets }: { entry: CastEntry; part
             {choices.map((c) => (
               <option key={c} value={c}>
                 {DAMAGE_LABEL[c]}
+              </option>
+            ))}
+          </select>
+        )}
+        {options.length > 0 && (
+          <select aria-label="Opção da magia" value={option} onChange={(e) => { setOption(e.target.value); }}>
+            <option value="">escolha…</option>
+            {options.map((o, i) => (
+              <option key={i} value={String(i)}>
+                {o.label}
               </option>
             ))}
           </select>
@@ -310,6 +334,19 @@ function SpellEffect({ entry, state, viewer }: { entry: CastEntry; state: Sessio
         );
       })}
     </ul>
+  );
+}
+
+/** Efeito de magia que saiu da ficha: a Concentração acabou, ou alguém o encerrou. */
+export function SpellEffectEndedBody({ entry, header }: { entry: Extract<ChatEntry, { kind: 'spell_effect_ended' }>; header: ReactNode }) {
+  return (
+    <li className="entry condition-event">
+      {header}
+      <p>
+        {entry.characterName}: fim de {entry.effectName}
+        <span className="hint"> ({entry.reason === 'concentration' ? 'a Concentração acabou' : 'encerrado'})</span>
+      </p>
+    </li>
   );
 }
 

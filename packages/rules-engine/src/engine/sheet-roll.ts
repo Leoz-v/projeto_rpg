@@ -103,6 +103,7 @@ export function rollReminders(roll: RollState): string[] {
   return [
     ...roll.situational.map((s) => `${s.kind === 'advantage' ? 'Vantagem' : 'Desvantagem'} possível: ${s.source.name}${extra(s.when, s.note)}`),
     ...roll.situationalRules.map((r) => `Regra possível: ${r.source.name}${extra(r.when, r.note)}`),
+    ...roll.situationalBonusDice.map((b) => `${b.subtract ? '−' : '+'}${b.dice} possível: ${b.source.name}${extra(b.when, b.note)}`),
   ];
 }
 
@@ -142,9 +143,15 @@ function statD20(stat: RollStat, critMin: number | undefined, declared: Declared
   ];
   const mode = d20Mode(advantage.length > 0, disadvantage.length > 0);
   const rules = [...stat.roll.rules, ...situationalRules];
-  const remaining = { ...stat.roll, situational: stat.roll.situational.filter((s) => !applies(s)), situationalRules: stat.roll.situationalRules.filter((r) => !applies(r)) };
+  const bonusDice = [...stat.roll.bonusDice, ...stat.roll.situationalBonusDice.filter(applies)].map((b) => ({ dice: b.dice, subtract: b.subtract, source: b.source }));
+  const remaining = {
+    ...stat.roll,
+    situational: stat.roll.situational.filter((s) => !applies(s)),
+    situationalRules: stat.roll.situationalRules.filter((r) => !applies(r)),
+    situationalBonusDice: stat.roll.situationalBonusDice.filter((b) => !applies(b)),
+  };
   return {
-    input: { modifier: stat.total, mode, rules, ...(critMin !== undefined && critMin < 20 ? { critMin } : {}), ...(stat.roll.autoFail.length > 0 ? { autoFail: stat.roll.autoFail } : {}) },
+    input: { modifier: stat.total, mode, rules, ...(critMin !== undefined && critMin < 20 ? { critMin } : {}), ...(stat.roll.autoFail.length > 0 ? { autoFail: stat.roll.autoFail } : {}), ...(bonusDice.length > 0 ? { bonusDice } : {}) },
     parts: stat.parts,
     advantage,
     disadvantage,
@@ -169,6 +176,8 @@ export function d20StepNotes(steps: readonly D20Step[]): string[] {
         return [`${step.value} conta como 20${sourceName(step.source)}`];
       case 'minimum_die':
         return [`d20 ${step.from} vale ${step.to}${sourceName(step.source)}`];
+      case 'bonus_dice':
+        return [`${step.source?.name ?? 'Dado extra'}: ${step.value < 0 ? '−' : '+'}${Math.abs(step.value)} (${step.subtract ? '−' : ''}${step.dice})`];
       case 'minimum_total':
         return [`Total ${step.from} vale ${step.to}${sourceName(step.source)}`];
       case 'auto_success':

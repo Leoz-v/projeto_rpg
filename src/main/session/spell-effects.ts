@@ -1,5 +1,5 @@
-import { applyHitPointChange, CONDITION_NAME, type Condition, conditionDefenses, creatureDefenses, rollDice, type TurnExpiry } from 'rules-engine';
-import { type ChatEntry, type ConditionState, type PatchOp, type SessionCharacter, type TableCondition, type Token, toPointer } from '../../shared/protocol';
+import { applyHitPointChange, CONDITION_NAME, type Condition, conditionDefenses, creatureDefenses, type Effect, rollDice, type TurnExpiry } from 'rules-engine';
+import { type ChatEntry, type ConditionState, MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, type PatchOp, type SessionCharacter, type TableCondition, type Token, toPointer } from '../../shared/protocol';
 import type { SessionContext } from './context';
 import { untilNextTurn } from './conditions';
 import { changeCharacterHp, concentrationBreaks } from './vitality';
@@ -244,6 +244,56 @@ export function applyConditionPart(
 }
 
 /**
+ * Bônus ou penalidade de magia (nota 0060): os efeitos entram na ficha de cada
+ * personagem alvo como um ajuste ligado à magia. A mesma magia não se acumula
+ * (SRD 5.2.1, "Combining Magical Effects"): um ajuste dela, de quem quer que
+ * tenha conjurado, é substituído. Tokens de monstro ficam para o PR 4b, com nota.
+ */
+export function applyBuff(
+  ctx: SessionContext,
+  playerId: string,
+  options: {
+    casterName: string;
+    label: string;
+    spellOf: { entryId: string; part: number };
+    name: string;
+    effects: readonly Effect[];
+    endConditions: readonly Condition[];
+    link: SpellLink;
+    targets: Token[];
+  },
+): PatchOp[] {
+  const ledger = new ConditionLedger(ctx);
+  const ops: PatchOp[] = [];
+  const effects = options.effects.slice(0, MAX_ADJUSTMENT_EFFECTS);
+  const results = options.targets.map((target) => {
+    const notes: string[] = [];
+    const character = target.characterId !== null ? ctx.current.characters[target.characterId] : undefined;
+    if (!character) {
+      notes.push('Efeito de magia em monstro: o mestre acompanha (ainda não entra no bloco)');
+    } else {
+      const kept = character.adjustments.filter((a) => a.spell?.spellId !== options.link.spellId);
+      if (kept.length >= MAX_ADJUSTMENTS) {
+        notes.push(`No máximo ${MAX_ADJUSTMENTS} ajustes por personagem`);
+      } else {
+        if (effects.length > 0) {
+          const adjustment = { id: ctx.deps.newId(), name: options.name.slice(0, 100), effects, spell: options.link };
+          ops.push({ op: 'replace', path: toPointer('characters', character.id, 'adjustments'), value: [...kept, adjustment] });
+          notes.push(kept.length < character.adjustments.length ? 'Efeito renovado (a mesma magia não se acumula)' : 'Efeito na ficha');
+        }
+      }
+    }
+    if (options.endConditions.length > 0) {
+      const lifted = liftConditions(ctx, playerId, ledger, target, options.endConditions, options.label);
+      ops.push(...lifted.ops);
+      notes.push(...lifted.notes);
+    }
+    return { targetTokenId: target.id, targetName: target.name, notes: notes.slice(0, 50) };
+  });
+  return [ctx.appendChat({ kind: 'spell_applied', ...ctx.entryBase(playerId), spellOf: options.spellOf, casterName: options.casterName, label: options.label, results }), ...ops];
+}
+
+/**
  * As condições que uma magia pôs (`spell` igual ao do personagem e da magia)
  * saem de todos os personagens e tokens: a Concentração acabou (nota 0058).
  * `own`: as condições atuais de quem conjurou, quando a mesma ação acabou de
@@ -265,6 +315,21 @@ export function liftSpellConditions(ctx: SessionContext, playerId: string, link:
   for (const character of Object.values(ctx.current.characters)) {
     const state = character.id === link.characterId && own ? own : character.conditions;
     lift(toPointer('characters', character.id, 'conditions'), state, character.name, { characterId: character.id });
+    // Os bônus e penalidades da magia (nota 0060) saem da ficha.
+    const linked = character.adjustments.filter((a) => a.spell?.characterId === link.characterId && a.spell.spellId === link.spellId);
+    if (linked.length > 0) {
+      ops.push({ op: 'replace', path: toPointer('characters', character.id, 'adjustments'), value: character.adjustments.filter((a) => !linked.includes(a)) });
+      ops.push(
+        ctx.appendChat({
+          kind: 'spell_effect_ended',
+          ...ctx.entryBase(playerId),
+          characterId: character.id,
+          characterName: character.name,
+          effectName: (linked[0]?.name ?? spellName).slice(0, 100),
+          reason: 'concentration',
+        }),
+      );
+    }
   }
   for (const token of Object.values(ctx.current.tokens)) {
     if (token.characterId === null) lift(toPointer('tokens', token.id, 'conditions'), token.conditions, token.name, { tokenId: token.id });

@@ -1,7 +1,7 @@
 import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, DiceSchema, EffectSchema, IdSchema, SpellConditionEndSchema, InventorySchema, SizeSchema, TriggerMomentSchema, WeaponMasterySchema } from 'rules-engine/schemas';
 import { z } from 'zod';
-import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_COMBATANTS, MAX_HIT_POINTS, MAX_INITIATIVE, MAX_SAVE_TARGETS, MAX_SPELL_PARTS, MAX_TURN_TRIGGER_ITEMS, MIN_INITIATIVE } from './constants';
-import { ChatTextSchema, ConcentrationSchema, HitDiceSpentSchema, HitDieSchema, SpellSlotRefSchema, SpellSlotsSpentSchema, ResourcesSpentSchema, ConditionStateSchema, DeathSavesSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
+import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_COMBATANTS, MAX_HIT_POINTS, MAX_INITIATIVE, MAX_SAVE_TARGETS, MAX_SPELL_OPTIONS, MAX_SPELL_PARTS, MAX_TURN_TRIGGER_ITEMS, MIN_INITIATIVE } from './constants';
+import { ChatTextSchema, ConcentrationSchema, ConditionSpellSchema, HitDiceSpentSchema, HitDieSchema, SpellSlotRefSchema, SpellSlotsSpentSchema, ResourcesSpentSchema, ConditionStateSchema, DeathSavesSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 import { MapFogSchema, VisionFeetSchema } from './fog';
 
 /** `SessionState` (docs/network-protocol.md, seção 5). */
@@ -79,6 +79,14 @@ export const SpellEffectPartSchema = z.discriminatedUnion('kind', [
     count: SpellEffectCountSchema.optional(),
     conditions: SpellEffectConditionsSchema.min(1),
     conditionsEnd: SpellConditionEndSchema.optional(),
+  }),
+  z.strictObject({
+    label: LabelSchema.optional(),
+    kind: z.literal('buff'),
+    count: SpellEffectCountSchema.optional(),
+    effects: z.array(EffectSchema).max(MAX_ADJUSTMENT_EFFECTS),
+    options: z.array(z.strictObject({ label: LabelSchema, effects: z.array(EffectSchema).min(1).max(MAX_ADJUSTMENT_EFFECTS) })).max(MAX_SPELL_OPTIONS),
+    endConditions: SpellEffectConditionsSchema,
   }),
 ]);
 export type SpellEffectPart = z.infer<typeof SpellEffectPartSchema>;
@@ -289,6 +297,15 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
       .array(z.strictObject({ targetTokenId: UuidSchema, targetName: NameSchema, notes: LogList }))
       .min(1)
       .max(MAX_SAVE_TARGETS),
+  }),
+  /** Efeito de magia que saiu da ficha (nota 0060): a Concentração acabou, ou o dono ou o mestre o tirou. */
+  z.strictObject({
+    kind: z.literal('spell_effect_ended'),
+    ...entryBase,
+    characterId: UuidSchema,
+    characterName: NameSchema,
+    effectName: LabelSchema,
+    reason: z.enum(['concentration', 'removed']),
   }),
   /** Iniciativa rolada pelo Host (`combat.start`, `combat.add`): o resultado de cada token. */
   z.strictObject({
@@ -570,6 +587,8 @@ export const SessionAdjustmentSchema = z.strictObject({
   id: UuidSchema,
   name: NameSchema,
   effects: z.array(EffectSchema).min(1).max(MAX_ADJUSTMENT_EFFECTS),
+  /** Efeito de magia (nota 0060): quem conjurou e a magia. Com Concentração, sai quando ela acaba; o dono do personagem também pode tirar. */
+  spell: ConditionSpellSchema.optional(),
 });
 export type SessionAdjustment = z.infer<typeof SessionAdjustmentSchema>;
 

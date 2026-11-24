@@ -38,6 +38,8 @@ export const MAX_HIT_POINTS = 100_000;
 export const MAX_SAVE_TARGETS = 20;
 /** Partes da resolução de uma magia guardadas no `spell_cast` (o SRD chega a 7). */
 export const MAX_SPELL_PARTS = 10;
+/** Opções de uma parte `buff` de magia (Guidance: as 18 perícias). */
+export const MAX_SPELL_OPTIONS = 20;
 /** Itens de uma entrada `turn_trigger` (lembretes e cura de um combatente num momento). */
 export const MAX_TURN_TRIGGER_ITEMS = 20;
 /** Entradas do chat no `StateSnapshot` e no estado que vai à tela (nota 0047). */

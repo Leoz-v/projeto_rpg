@@ -94,7 +94,29 @@
       "paladin",
       "ranger"
     ],
-    "description": "Choose up to three creatures within range. Each target's Hit Point maximum and current Hit Points increase by 5 for the duration.\nUsing a Higher-Level Spell Slot. Each target's Hit Points increase by 5 for each spell slot level above 2."
+    "description": "Choose up to three creatures within range. Each target's Hit Point maximum and current Hit Points increase by 5 for the duration.\nUsing a Higher-Level Spell Slot. Each target's Hit Points increase by 5 for each spell slot level above 2.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 3
+        },
+        "effects": [
+          {
+            "type": "flat_bonus",
+            "target": "hp_max",
+            "value": 5
+          }
+        ],
+        "upcast": [
+          {
+            "type": "flat_bonus",
+            "target": "hp_max",
+            "value": 5
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "alarm",
@@ -507,7 +529,18 @@
       "cleric",
       "paladin"
     ],
-    "description": "An aura radiates from you in a 30-foot Emanation for the duration. While in the aura, you and your allies have Resistance to Necrotic damage, and your Hit Point maximums can't be reduced. If an ally with 0 Hit Points starts its turn in the aura, that ally regains 1 Hit Point."
+    "description": "An aura radiates from you in a 30-foot Emanation for the duration. While in the aura, you and your allies have Resistance to Necrotic damage, and your Hit Point maximums can't be reduced. If an ally with 0 Hit Points starts its turn in the aura, that ally regains 1 Hit Point.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "effects": [
+          {
+            "type": "resistance",
+            "damageType": "necrotic"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "awaken",
@@ -607,7 +640,22 @@
     "classes": [
       "cleric"
     ],
-    "description": "Choose any number of creatures within range. For the duration, each target has Advantage on Wisdom saving throws and Death Saving Throws and regains the maximum number of Hit Points possible from any healing."
+    "description": "Choose any number of creatures within range. For the duration, each target has Advantage on Wisdom saving throws and Death Saving Throws and regains the maximum number of Hit Points possible from any healing.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.wis"
+          },
+          {
+            "type": "advantage",
+            "target": "death_save"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "befuddlement",
@@ -748,7 +796,28 @@
       "cleric",
       "paladin"
     ],
-    "description": "You bless up to three creatures within range. Whenever a target makes an attack roll or a saving throw before the spell ends, the target adds 1d4 to the attack roll or save.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1."
+    "description": "You bless up to three creatures within range. Whenever a target makes an attack roll or a saving throw before the spell ends, the target adds 1d4 to the attack roll or save.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 3,
+          "perSlot": 1
+        },
+        "effects": [
+          {
+            "type": "d20_bonus",
+            "dice": "1d4",
+            "target": "attack.all"
+          },
+          {
+            "type": "d20_bonus",
+            "dice": "1d4",
+            "target": "save.all"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "blight",
@@ -2324,7 +2393,22 @@
     "classes": [
       "paladin"
     ],
-    "description": "Until the spell ends, your attacks with weapons deal an extra 1d4 Radiant damage on a hit."
+    "description": "Until the spell ends, your attacks with weapons deal an extra 1d4 Radiant damage on a hit.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1
+        },
+        "effects": [
+          {
+            "type": "extra_damage",
+            "dice": "1d4",
+            "damageType": "radiant"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "divine_smite",
@@ -2664,7 +2748,63 @@
       "sorcerer",
       "wizard"
     ],
-    "description": "You touch a creature and choose Strength, Dexterity, Intelligence, Wisdom, or Charisma. For the duration, the target has Advantage on ability checks using the chosen ability.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 2. You can choose a different ability for each target."
+    "description": "You touch a creature and choose Strength, Dexterity, Intelligence, Wisdom, or Charisma. For the duration, the target has Advantage on ability checks using the chosen ability.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 2. You can choose a different ability for each target.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1,
+          "perSlot": 1
+        },
+        "options": [
+          {
+            "label": "Força",
+            "effects": [
+              {
+                "type": "advantage",
+                "target": "check.str"
+              }
+            ]
+          },
+          {
+            "label": "Destreza",
+            "effects": [
+              {
+                "type": "advantage",
+                "target": "check.dex"
+              }
+            ]
+          },
+          {
+            "label": "Inteligência",
+            "effects": [
+              {
+                "type": "advantage",
+                "target": "check.int"
+              }
+            ]
+          },
+          {
+            "label": "Sabedoria",
+            "effects": [
+              {
+                "type": "advantage",
+                "target": "check.wis"
+              }
+            ]
+          },
+          {
+            "label": "Carisma",
+            "effects": [
+              {
+                "type": "advantage",
+                "target": "check.cha"
+              }
+            ]
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "enlarge_reduce",
@@ -3499,7 +3639,57 @@
       "warlock",
       "wizard"
     ],
-    "description": "You touch a willing creature and bestow a limited ability to see into the immediate future. For the duration, the target has Advantage on D20 Tests, and other creatures have Disadvantage on attack rolls against it. The spell ends early if you cast it again."
+    "description": "You touch a willing creature and bestow a limited ability to see into the immediate future. For the duration, the target has Advantage on D20 Tests, and other creatures have Disadvantage on attack rolls against it. The spell ends early if you cast it again.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1
+        },
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "attack.all"
+          },
+          {
+            "type": "advantage",
+            "target": "save.all"
+          },
+          {
+            "type": "advantage",
+            "target": "initiative"
+          },
+          {
+            "type": "advantage",
+            "target": "death_save"
+          },
+          {
+            "type": "advantage",
+            "target": "check.str"
+          },
+          {
+            "type": "advantage",
+            "target": "check.dex"
+          },
+          {
+            "type": "advantage",
+            "target": "check.con"
+          },
+          {
+            "type": "advantage",
+            "target": "check.int"
+          },
+          {
+            "type": "advantage",
+            "target": "check.wis"
+          },
+          {
+            "type": "advantage",
+            "target": "check.cha"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "freedom_of_movement",
@@ -3520,7 +3710,22 @@
       "druid",
       "ranger"
     ],
-    "description": "You touch a willing creature. For the duration, the target's movement is unaffected by Difficult Terrain, and spells and other magical effects can neither reduce the target's Speed nor cause the target to have the Paralyzed or Restrained conditions. The target also has a Swim Speed equal to its Speed.\nIn addition, the target can spend 5 feet of movement to automatically escape from nonmagical restraints, such as manacles or a creature imposing the Grappled condition on it.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 4."
+    "description": "You touch a willing creature. For the duration, the target's movement is unaffected by Difficult Terrain, and spells and other magical effects can neither reduce the target's Speed nor cause the target to have the Paralyzed or Restrained conditions. The target also has a Swim Speed equal to its Speed.\nIn addition, the target can spend 5 feet of movement to automatically escape from nonmagical restraints, such as manacles or a creature imposing the Grappled condition on it.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 4.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1
+        },
+        "effects": [
+          {
+            "type": "grant_speed",
+            "speed": "swim",
+            "value": "walk"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "freezing_sphere",
@@ -3910,7 +4115,197 @@
       "cleric",
       "druid"
     ],
-    "description": "You touch a willing creature and choose a skill. Until the spell ends, the creature adds 1d4 to any ability check using the chosen skill."
+    "description": "You touch a willing creature and choose a skill. Until the spell ends, the creature adds 1d4 to any ability check using the chosen skill.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1
+        },
+        "options": [
+          {
+            "label": "Acrobacia",
+            "effects": [
+              {
+                "type": "d20_bonus",
+                "dice": "1d4",
+                "target": "skill.acrobatics"
+              }
+            ]
+          },
+          {
+            "label": "Lidar com Animais",
+            "effects": [
+              {
+                "type": "d20_bonus",
+                "dice": "1d4",
+                "target": "skill.animal_handling"
+              }
+            ]
+          },
+          {
+            "label": "Arcanismo",
+            "effects": [
+              {
+                "type": "d20_bonus",
+                "dice": "1d4",
+                "target": "skill.arcana"
+              }
+            ]
+          },
+          {
+            "label": "Atletismo",
+            "effects": [
+              {
+                "type": "d20_bonus",
+                "dice": "1d4",
+                "target": "skill.athletics"
+              }
+            ]
+          },
+          {
+            "label": "Enganação",
+            "effects": [
+              {
+                "type": "d20_bonus",
+                "dice": "1d4",
+                "target": "skill.deception"
+              }
+            ]
+          },
+          {
+            "label": "História",
+            "effects": [
+              {
+                "type": "d20_bonus",
+                "dice": "1d4",
+                "target": "skill.history"
+              }
+            ]
+          },
+          {
+            "label": "Intuição",
+            "effects": [
+              {
+                "type": "d20_bonus",
+                "dice": "1d4",
+                "target": "skill.insight"
+              }
+            ]
+          },
+          {
+            "label": "Intimidação",
+            "effects": [
+              {
+                "type": "d20_bonus",
+                "dice": "1d4",
+                "target": "skill.intimidation"
+              }
+            ]
+          },
+          {
+            "label": "Investigação",
+            "effects": [
+              {
+                "type": "d20_bonus",
+                "dice": "1d4",
+                "target": "skill.investigation"
+              }
+            ]
+          },
+          {
+            "label": "Medicina",
+            "effects": [
+              {
+                "type": "d20_bonus",
+                "dice": "1d4",
+                "target": "skill.medicine"
+              }
+            ]
+          },
+          {
+            "label": "Natureza",
+            "effects": [
+              {
+                "type": "d20_bonus",
+                "dice": "1d4",
+                "target": "skill.nature"
+              }
+            ]
+          },
+          {
+            "label": "Percepção",
+            "effects": [
+              {
+                "type": "d20_bonus",
+                "dice": "1d4",
+                "target": "skill.perception"
+              }
+            ]
+          },
+          {
+            "label": "Atuação",
+            "effects": [
+              {
+                "type": "d20_bonus",
+                "dice": "1d4",
+                "target": "skill.performance"
+              }
+            ]
+          },
+          {
+            "label": "Persuasão",
+            "effects": [
+              {
+                "type": "d20_bonus",
+                "dice": "1d4",
+                "target": "skill.persuasion"
+              }
+            ]
+          },
+          {
+            "label": "Religião",
+            "effects": [
+              {
+                "type": "d20_bonus",
+                "dice": "1d4",
+                "target": "skill.religion"
+              }
+            ]
+          },
+          {
+            "label": "Prestidigitação",
+            "effects": [
+              {
+                "type": "d20_bonus",
+                "dice": "1d4",
+                "target": "skill.sleight_of_hand"
+              }
+            ]
+          },
+          {
+            "label": "Furtividade",
+            "effects": [
+              {
+                "type": "d20_bonus",
+                "dice": "1d4",
+                "target": "skill.stealth"
+              }
+            ]
+          },
+          {
+            "label": "Sobrevivência",
+            "effects": [
+              {
+                "type": "d20_bonus",
+                "dice": "1d4",
+                "target": "skill.survival"
+              }
+            ]
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "guiding_bolt",
@@ -4051,7 +4446,31 @@
       "sorcerer",
       "wizard"
     ],
-    "description": "Choose a willing creature that you can see within range. Until the spell ends, the target's Speed is doubled, it gains a +2 bonus to Armor Class, it has Advantage on Dexterity saving throws, and it gains an additional action on each of its turns. That action can be used to take only the Attack (one attack only), Dash, Disengage, Hide, or Utilize action.\nWhen the spell ends, the target is Incapacitated and has a Speed of 0 until the end of its next turn, as a wave of lethargy washes over it."
+    "description": "Choose a willing creature that you can see within range. Until the spell ends, the target's Speed is doubled, it gains a +2 bonus to Armor Class, it has Advantage on Dexterity saving throws, and it gains an additional action on each of its turns. That action can be used to take only the Attack (one attack only), Dash, Disengage, Hide, or Utilize action.\nWhen the spell ends, the target is Incapacitated and has a Speed of 0 until the end of its next turn, as a wave of lethargy washes over it.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1
+        },
+        "effects": [
+          {
+            "type": "flat_bonus",
+            "target": "ac",
+            "value": 2
+          },
+          {
+            "type": "advantage",
+            "target": "save.dex"
+          },
+          {
+            "type": "reminder",
+            "on": "turn_start",
+            "note": "Haste: Deslocamento dobrado e uma ação a mais neste turno (Atacar com um ataque, Disparada, Desengajar, Esconder ou Usar)."
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "heal",
@@ -4195,7 +4614,29 @@
       "cleric",
       "druid"
     ],
-    "description": "You conjure a feast that appears on a surface in an unoccupied 10-foot Cube next to you. The feast takes 1 hour to consume and disappears at the end of that time, and the beneficial effects don't set in until this hour is over. Up to twelve creatures can partake of the feast.\nA creature that partakes gains several benefits, which last for 24 hours. The creature has Resistance to Poison damage, and it has Immunity to the Frightened and Poisoned conditions. Its Hit Point maximum also increases by 2d10, and it gains the same number of Hit Points."
+    "description": "You conjure a feast that appears on a surface in an unoccupied 10-foot Cube next to you. The feast takes 1 hour to consume and disappears at the end of that time, and the beneficial effects don't set in until this hour is over. Up to twelve creatures can partake of the feast.\nA creature that partakes gains several benefits, which last for 24 hours. The creature has Resistance to Poison damage, and it has Immunity to the Frightened and Poisoned conditions. Its Hit Point maximum also increases by 2d10, and it gains the same number of Hit Points.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 12
+        },
+        "effects": [
+          {
+            "type": "resistance",
+            "damageType": "poison"
+          },
+          {
+            "type": "immunity",
+            "condition": "frightened"
+          },
+          {
+            "type": "immunity",
+            "condition": "poisoned"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "heroism",
@@ -4214,7 +4655,27 @@
       "bard",
       "paladin"
     ],
-    "description": "A willing creature you touch is imbued with bravery. Until the spell ends, the creature is immune to the Frightened condition and gains Temporary Hit Points equal to your spellcasting ability modifier at the start of each of its turns.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1."
+    "description": "A willing creature you touch is imbued with bravery. Until the spell ends, the creature is immune to the Frightened condition and gains Temporary Hit Points equal to your spellcasting ability modifier at the start of each of its turns.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1,
+          "perSlot": 1
+        },
+        "effects": [
+          {
+            "type": "immunity",
+            "condition": "frightened"
+          },
+          {
+            "type": "reminder",
+            "on": "turn_start",
+            "note": "Heroism: ganha PV temporários iguais ao modificador de conjuração de quem conjurou."
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "hex",
@@ -4989,7 +5450,23 @@
       "ranger",
       "wizard"
     ],
-    "description": "You touch a creature. The target's Speed increases by 10 feet until the spell ends.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1."
+    "description": "You touch a creature. The target's Speed increases by 10 feet until the spell ends.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1,
+          "perSlot": 1
+        },
+        "effects": [
+          {
+            "type": "flat_bonus",
+            "target": "speed.walk",
+            "value": 10
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "mage_armor",
@@ -5008,7 +5485,27 @@
       "sorcerer",
       "wizard"
     ],
-    "description": "You touch a willing creature who isn't wearing armor. Until the spell ends, the target's base AC becomes 13 plus its Dexterity modifier. The spell ends early if the target dons armor."
+    "description": "You touch a willing creature who isn't wearing armor. Until the spell ends, the target's base AC becomes 13 plus its Dexterity modifier. The spell ends early if the target dons armor.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1
+        },
+        "effects": [
+          {
+            "type": "set_base_ac",
+            "base": 13,
+            "abilities": [
+              "dex"
+            ],
+            "when": {
+              "wearingArmor": false
+            }
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "mage_hand",
@@ -5715,7 +6212,19 @@
       "druid",
       "ranger"
     ],
-    "description": "You radiate a concealing aura in a 30-foot Emanation for the duration. While in the aura, you and each creature you choose have a +10 bonus to Dexterity (Stealth) checks and leave no tracks."
+    "description": "You radiate a concealing aura in a 30-foot Emanation for the duration. While in the aura, you and each creature you choose have a +10 bonus to Dexterity (Stealth) checks and leave no tracks.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "effects": [
+          {
+            "type": "flat_bonus",
+            "target": "skill.stealth",
+            "value": 10
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "phantasmal_force",
@@ -6311,7 +6820,62 @@
       "sorcerer",
       "wizard"
     ],
-    "description": "For the duration, the willing creature you touch has Resistance to one damage type of your choice: Acid, Cold, Fire, Lightning, or Thunder."
+    "description": "For the duration, the willing creature you touch has Resistance to one damage type of your choice: Acid, Cold, Fire, Lightning, or Thunder.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1
+        },
+        "options": [
+          {
+            "label": "Ácido",
+            "effects": [
+              {
+                "type": "resistance",
+                "damageType": "acid"
+              }
+            ]
+          },
+          {
+            "label": "Frio",
+            "effects": [
+              {
+                "type": "resistance",
+                "damageType": "cold"
+              }
+            ]
+          },
+          {
+            "label": "Fogo",
+            "effects": [
+              {
+                "type": "resistance",
+                "damageType": "fire"
+              }
+            ]
+          },
+          {
+            "label": "Elétrico",
+            "effects": [
+              {
+                "type": "resistance",
+                "damageType": "lightning"
+              }
+            ]
+          },
+          {
+            "label": "Trovejante",
+            "effects": [
+              {
+                "type": "resistance",
+                "damageType": "thunder"
+              }
+            ]
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "protection_from_evil_and_good",
@@ -6353,7 +6917,33 @@
       "paladin",
       "ranger"
     ],
-    "description": "You touch a creature and end the Poisoned condition on it. For the duration, the target has Advantage on saving throws to avoid or end the Poisoned condition, and it has Resistance to Poison damage."
+    "description": "You touch a creature and end the Poisoned condition on it. For the duration, the target has Advantage on saving throws to avoid or end the Poisoned condition, and it has Resistance to Poison damage.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1
+        },
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all",
+            "when": {
+              "against": {
+                "condition": "poisoned"
+              }
+            }
+          },
+          {
+            "type": "resistance",
+            "damageType": "poison"
+          }
+        ],
+        "endConditions": [
+          "poisoned"
+        ]
+      }
+    ]
   },
   {
     "id": "purify_food_and_drink",
@@ -6582,7 +7172,138 @@
       "cleric",
       "druid"
     ],
-    "description": "You touch a willing creature and choose a damage type: Acid, Bludgeoning, Cold, Fire, Lightning, Necrotic, Piercing, Poison, Radiant, Slashing, or Thunder. When the creature takes damage of the chosen type before the spell ends, the creature reduces the total damage taken by 1d4. A creature can benefit from this spell only once per turn."
+    "description": "You touch a willing creature and choose a damage type: Acid, Bludgeoning, Cold, Fire, Lightning, Necrotic, Piercing, Poison, Radiant, Slashing, or Thunder. When the creature takes damage of the chosen type before the spell ends, the creature reduces the total damage taken by 1d4. A creature can benefit from this spell only once per turn.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1
+        },
+        "options": [
+          {
+            "label": "Ácido",
+            "effects": [
+              {
+                "type": "damage_reduction",
+                "damageType": "acid",
+                "amount": "1d4",
+                "note": "Uma vez por turno."
+              }
+            ]
+          },
+          {
+            "label": "Concussão",
+            "effects": [
+              {
+                "type": "damage_reduction",
+                "damageType": "bludgeoning",
+                "amount": "1d4",
+                "note": "Uma vez por turno."
+              }
+            ]
+          },
+          {
+            "label": "Frio",
+            "effects": [
+              {
+                "type": "damage_reduction",
+                "damageType": "cold",
+                "amount": "1d4",
+                "note": "Uma vez por turno."
+              }
+            ]
+          },
+          {
+            "label": "Fogo",
+            "effects": [
+              {
+                "type": "damage_reduction",
+                "damageType": "fire",
+                "amount": "1d4",
+                "note": "Uma vez por turno."
+              }
+            ]
+          },
+          {
+            "label": "Elétrico",
+            "effects": [
+              {
+                "type": "damage_reduction",
+                "damageType": "lightning",
+                "amount": "1d4",
+                "note": "Uma vez por turno."
+              }
+            ]
+          },
+          {
+            "label": "Necrótico",
+            "effects": [
+              {
+                "type": "damage_reduction",
+                "damageType": "necrotic",
+                "amount": "1d4",
+                "note": "Uma vez por turno."
+              }
+            ]
+          },
+          {
+            "label": "Perfurante",
+            "effects": [
+              {
+                "type": "damage_reduction",
+                "damageType": "piercing",
+                "amount": "1d4",
+                "note": "Uma vez por turno."
+              }
+            ]
+          },
+          {
+            "label": "Veneno",
+            "effects": [
+              {
+                "type": "damage_reduction",
+                "damageType": "poison",
+                "amount": "1d4",
+                "note": "Uma vez por turno."
+              }
+            ]
+          },
+          {
+            "label": "Radiante",
+            "effects": [
+              {
+                "type": "damage_reduction",
+                "damageType": "radiant",
+                "amount": "1d4",
+                "note": "Uma vez por turno."
+              }
+            ]
+          },
+          {
+            "label": "Cortante",
+            "effects": [
+              {
+                "type": "damage_reduction",
+                "damageType": "slashing",
+                "amount": "1d4",
+                "note": "Uma vez por turno."
+              }
+            ]
+          },
+          {
+            "label": "Trovejante",
+            "effects": [
+              {
+                "type": "damage_reduction",
+                "damageType": "thunder",
+                "amount": "1d4",
+                "note": "Uma vez por turno."
+              }
+            ]
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "resurrection",
@@ -6995,7 +7716,22 @@
       "cleric",
       "paladin"
     ],
-    "description": "A shimmering field surrounds a creature of your choice within range, granting it a +2 bonus to AC for the duration."
+    "description": "A shimmering field surrounds a creature of your choice within range, granting it a +2 bonus to AC for the duration.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1
+        },
+        "effects": [
+          {
+            "type": "flat_bonus",
+            "target": "ac",
+            "value": 2
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "shillelagh",
@@ -7528,7 +8264,29 @@
       "sorcerer",
       "wizard"
     ],
-    "description": "Until the spell ends, one willing creature you touch has Resistance to Bludgeoning, Piercing, and Slashing damage."
+    "description": "Until the spell ends, one willing creature you touch has Resistance to Bludgeoning, Piercing, and Slashing damage.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1
+        },
+        "effects": [
+          {
+            "type": "resistance",
+            "damageType": "bludgeoning"
+          },
+          {
+            "type": "resistance",
+            "damageType": "piercing"
+          },
+          {
+            "type": "resistance",
+            "damageType": "slashing"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "storm_of_vengeance",
@@ -8482,7 +9240,84 @@
       "cleric",
       "paladin"
     ],
-    "description": "You touch another creature that is willing and create a mystic connection between you and the target until the spell ends. While the target is within 60 feet of you, it gains a +1 bonus to AC and saving throws, and it has Resistance to all damage. Also, each time it takes damage, you take the same amount of damage.\nThe spell ends if you drop to 0 Hit Points or if you and the target become separated by more than 60 feet. It also ends if the spell is cast again on either of the connected creatures."
+    "description": "You touch another creature that is willing and create a mystic connection between you and the target until the spell ends. While the target is within 60 feet of you, it gains a +1 bonus to AC and saving throws, and it has Resistance to all damage. Also, each time it takes damage, you take the same amount of damage.\nThe spell ends if you drop to 0 Hit Points or if you and the target become separated by more than 60 feet. It also ends if the spell is cast again on either of the connected creatures.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1
+        },
+        "effects": [
+          {
+            "type": "flat_bonus",
+            "target": "ac",
+            "value": 1
+          },
+          {
+            "type": "flat_bonus",
+            "target": "save.all",
+            "value": 1
+          },
+          {
+            "type": "resistance",
+            "damageType": "acid"
+          },
+          {
+            "type": "resistance",
+            "damageType": "bludgeoning"
+          },
+          {
+            "type": "resistance",
+            "damageType": "cold"
+          },
+          {
+            "type": "resistance",
+            "damageType": "fire"
+          },
+          {
+            "type": "resistance",
+            "damageType": "force"
+          },
+          {
+            "type": "resistance",
+            "damageType": "lightning"
+          },
+          {
+            "type": "resistance",
+            "damageType": "necrotic"
+          },
+          {
+            "type": "resistance",
+            "damageType": "piercing"
+          },
+          {
+            "type": "resistance",
+            "damageType": "poison"
+          },
+          {
+            "type": "resistance",
+            "damageType": "psychic"
+          },
+          {
+            "type": "resistance",
+            "damageType": "radiant"
+          },
+          {
+            "type": "resistance",
+            "damageType": "slashing"
+          },
+          {
+            "type": "resistance",
+            "damageType": "thunder"
+          },
+          {
+            "type": "reminder",
+            "on": "turn_start",
+            "note": "Warding Bond: cada dano que sofrer, quem conjurou sofre também (a até 60 ft)."
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "water_breathing",

@@ -614,7 +614,7 @@ export function CharacterSheet({ view, characterId, onClose }: { view: TableView
                   />
                 )}
                 <Inventory character={record} sheet={load.view.sheet} canEdit={canEdit} />
-                <Adjustments character={record} isGm={isGm} />
+                <Adjustments character={record} isGm={isGm} canEdit={canEdit} />
               </>
             )}
           </div>

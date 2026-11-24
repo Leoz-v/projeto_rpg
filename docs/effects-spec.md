@@ -24,6 +24,7 @@ A **fonte** (de onde veio o efeito) não fica no efeito: o motor a anota ao cole
 | Item                        | Conforme o item declara: `carried`, `equipped` ou `attuned`. |
 | Condição                    | Enquanto a condição está aplicada à criatura. |
 | Ajuste do mestre            | Enquanto o ajuste existe. |
+| Efeito de magia (ajuste ligado à magia, nota 0060) | Enquanto existe: sai quando a Concentração de quem conjurou na magia acaba, ou quando o dono do personagem ou o mestre o encerra. |
 
 ## 2. Predicados (`when`)
 
@@ -381,6 +382,23 @@ Regra que muda o resultado de um Teste d20 (ataque, salvaguarda ou teste de atri
 - A ficha lista os recursos em `resources`, já resolvidos. Usar o recurso (o que ele faz) continua com o jogador e o mestre; o motor só conta os usos.
 - **Magias concedidas com usos por descanso** (`grant_spell` com `uses: { per, count }`, seção 3.6) viram recursos automáticos, com id `spell_<id da magia>`, o nome da magia e a recarga do `per` (`long_rest`, ou `short_rest` para `short_rest`). Conjurar sem espaço gasta deles (nota 0053).
 
+### 3.25 `d20_bonus`
+
+Dado somado (ou subtraído) a um Teste d20, rolado a cada rolagem (nota 0060).
+
+```json
+{ "type": "d20_bonus", "dice": "1d4", "target": "save.all" }
+{ "type": "d20_bonus", "dice": "1d4", "target": "skill.stealth" }
+{ "type": "d20_bonus", "dice": "1d4", "target": "attack.all", "subtract": true }
+```
+
+- `dice`: expressão de dados. `subtract: true` subtrai o resultado (Bane: "must subtract 1d4").
+- `target`: os alvos do `d20_rule` (3.17): os de `advantage`, mais `d20_test`, `check.all` e `check.proficient`.
+- Exemplos no SRD: Bless ("adds 1d4 to the attack roll or save"), Guidance ("adds 1d4 to any ability check using the chosen skill").
+- Rolado pelo Host em `rollD20`, depois do modificador e antes de `minimum_total` e da CD. Cada dado fica no registro da rolagem ("Bless (Elara): +3 (1d4)").
+- Vários `d20_bonus` se somam. A mesma magia não se acumula porque o efeito de magia é substituído (nota 0060), não por regra deste efeito.
+- O `when` segue a regra das vantagens: desconhecido na ficha estática vira lembrete e vale quando a rolagem confirma o contexto.
+
 ## 4. Ordem de cálculo da ficha
 
 1. Valores base dos atributos (lista de escolhas: ASIs do antecedente e de talentos e aumentos fixos de classe, como Primal Champion).
@@ -404,7 +422,7 @@ Cada número da ficha guarda a lista de contribuições com a fonte de cada uma,
 | Ataque mágico | `attack.spell`; CD em `spell_save_dc` |
 | Salvaguarda contra a Morte | `death_save`, `save.all` (é uma salvaguarda; não usa atributo) |
 
-Um `d20_rule` também casa com `d20_test` em toda rolagem, com `check.all` em todo teste de atributo (perícias e iniciativa) e com `check.proficient` nos testes de perícia com proficiência.
+Um `d20_rule` (e um `d20_bonus`) também casa com `d20_test` em toda rolagem, com `check.all` em todo teste de atributo (perícias e iniciativa) e com `check.proficient` nos testes de perícia com proficiência.
 
 ### Rolagem d20 (`rollD20`)
 
@@ -414,7 +432,7 @@ O motor rola os Testes d20 com o RNG injetado (`engine/dice.ts`) e registra cada
 2. `reroll`: rola de novo cada dado que mostrou `on`.
 3. Mantém o maior (Vantagem) ou o menor (Desvantagem). Esse é o resultado natural: 20 natural (ou `count_as_20`, ou `crit_range` no ataque) é crítico; 1 natural é falha crítica.
 4. `minimum_die` sobre o dado mantido.
-5. Soma o modificador da ficha (que já inclui a Exaustão).
+5. Soma o modificador da ficha (que já inclui a Exaustão) e os dados de `d20_bonus` (3.25), rolados.
 6. `minimum_total`.
 7. Contra uma CD: sucesso se o total alcança a CD, ou sempre com `auto_success`.
 

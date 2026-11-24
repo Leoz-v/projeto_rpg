@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { AbilitySchema, ConditionSchema, DamageTypeSchema, DiceSchema, IdSchema, TextSchema } from './common';
+import { EffectSchema } from './effect';
 
 /**
  * Magia do compêndio: metadados, texto e, nas magias de dano, cura e
@@ -112,7 +113,31 @@ export const SpellConditionPartSchema = z.strictObject({
   conditionsEnd: SpellConditionEndSchema.optional(),
 });
 
-export const SpellPartSchema = z.discriminatedUnion('kind', [SpellAttackPartSchema, SpellSavePartSchema, SpellDamagePartSchema, SpellHealPartSchema, SpellConditionPartSchema]);
+/**
+ * Bônus ou penalidade enquanto a magia dura (nota 0060): efeitos do catálogo
+ * (docs/effects-spec.md) que entram na ficha do alvo como ajuste ligado à
+ * magia. `upcast`: efeitos somados por círculo acima (Aid, +5 PV). `options`:
+ * quem conjura escolhe um conjunto (Protection from Energy: o tipo).
+ * `endConditions`: condições que a magia termina (Protection from Poison).
+ */
+export const SpellBuffPartSchema = z.strictObject({
+  ...partLabel,
+  ...partCount,
+  kind: z.literal('buff'),
+  effects: z.array(EffectSchema).default([]),
+  upcast: z.array(EffectSchema).default([]),
+  options: z.array(z.strictObject({ label: TextSchema, effects: z.array(EffectSchema).min(1) })).default([]),
+  endConditions: z.array(ConditionSchema).default([]),
+});
+
+export const SpellPartSchema = z.discriminatedUnion('kind', [
+  SpellAttackPartSchema,
+  SpellSavePartSchema,
+  SpellDamagePartSchema,
+  SpellHealPartSchema,
+  SpellConditionPartSchema,
+  SpellBuffPartSchema,
+]);
 export type SpellPart = z.infer<typeof SpellPartSchema>;
 
 export const SpellSchema = z
@@ -153,6 +178,8 @@ export const SpellSchema = z
     for (const p of spell.resolution) {
       if (p.kind === 'save' && p.conditionChoice && p.onFailConditions.length < 2) ctx.addIssue({ code: 'custom', message: 'escolha de condição com menos de duas' });
       if (p.kind === 'heal' && p.healing === 'full' && p.temporary) ctx.addIssue({ code: 'custom', message: 'PV temporários não podem ser "todos"' });
+      if (p.kind === 'buff' && p.effects.length === 0 && p.options.length === 0) ctx.addIssue({ code: 'custom', message: 'bônus de magia sem efeito' });
+      if (p.kind === 'buff' && p.options.length === 1) ctx.addIssue({ code: 'custom', message: 'escolha com uma opção só' });
       const conditions = p.kind === 'attack' ? p.onHitConditions : p.kind === 'save' ? p.onFailConditions : p.kind === 'condition' ? p.conditions : [];
       if ('conditionsEnd' in p && p.conditionsEnd && conditions.length === 0) ctx.addIssue({ code: 'custom', message: 'duração de condição numa parte sem condição' });
     }

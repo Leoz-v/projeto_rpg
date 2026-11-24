@@ -54,6 +54,17 @@ export interface RollState {
   autoFail: SourceLabel[];
   /** Regras com `when` que depende do contexto da rolagem (Greater Magic Resistance, contra magia): lembrete. */
   situationalRules: (SourcedD20Rule & { when?: Predicate | undefined; note?: string | undefined })[];
+  /** Dados somados ou subtraídos (`d20_bonus`: Bless, Guidance), rolados a cada rolagem. */
+  bonusDice: BonusDie[];
+  /** Os de `when` desconhecido ou com `note`: lembrete, ou valem quando a rolagem confirma o contexto. */
+  situationalBonusDice: (BonusDie & { when?: Predicate | undefined; note?: string | undefined })[];
+}
+
+/** Um dado somado ao Teste d20 (`d20_bonus`), com a fonte. */
+export interface BonusDie {
+  dice: string;
+  subtract: boolean;
+  source: SourceLabel;
 }
 
 export interface RollStat extends Stat {

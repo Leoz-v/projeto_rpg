@@ -4,6 +4,7 @@ import { type Rng, rollDice } from '../../src/engine/dice';
 import type { DerivedSheet, SourceLabel, WeaponAttack } from '../../src/engine/types';
 import type { Grant } from '../../src/schemas/source';
 import { loadSrdCompendium } from '../../src/srd';
+import { d20StepNotes, sheetD20 } from '../../src/engine/sheet-roll';
 import { derive, fighterSteps, sel } from './helpers';
 
 /** Regras de Teste d20 e mínimo nos dados de dano (docs/effects-spec.md 3.17, 3.18 e "Rolagem d20"). */
@@ -90,6 +91,31 @@ describe('rollD20', () => {
       'modifier',
       'minimum_total',
     ]);
+  });
+});
+
+describe('d20 bonus dice (Bless, Bane)', () => {
+  const bless: SourceLabel = { kind: 'adjustment', id: 'b', name: 'Bless (Elara)' };
+
+  it('adds the bonus die to the total before the DC', () => {
+    // d20 = 10, +2, Bless 1d4 = 3: 15 contra CD 15.
+    const result = rollD20({ modifier: 2, mode: 'normal', dc: 15, bonusDice: [{ dice: '1d4', subtract: false, source: bless }] }, fixed(10, 3));
+    expect(result).toMatchObject({ total: 15, success: true });
+    expect(result.steps.at(-1)).toMatchObject({ kind: 'bonus_dice', dice: '1d4', rolls: [3], value: 3, total: 15 });
+  });
+
+  it('subtracts the die when the effect is a penalty', () => {
+    expect(rollD20({ modifier: 2, mode: 'normal', bonusDice: [{ dice: '1d4', subtract: true }] }, fixed(10, 4)).total).toBe(8);
+  });
+
+  it('the sheet puts d20_bonus on the rolls it targets', () => {
+    const sheet = derive({ adjustments: [{ id: 'bless', name: 'Bless (Elara)', effects: [{ type: 'd20_bonus', dice: '1d4', target: 'save.all' }] }] });
+    expect(sheet.saves.wis.roll.bonusDice).toEqual([{ dice: '1d4', subtract: false, source: { kind: 'adjustment', id: 'bless', name: 'Bless (Elara)' } }]);
+    expect(sheet.skills.stealth.roll.bonusDice).toEqual([]);
+    const roll = sheetD20(sheet, { kind: 'save', ability: 'wis' });
+    expect(roll?.input.bonusDice).toHaveLength(1);
+    const result = rollD20(roll?.input ?? { modifier: 0, mode: 'normal' }, fixed(10, 2));
+    expect(d20StepNotes(result.steps)).toEqual(['Bless (Elara): +2 (1d4)']);
   });
 });
 
