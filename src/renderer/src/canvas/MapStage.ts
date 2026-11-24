@@ -234,24 +234,30 @@ export class MapStage {
     }
     this.syncTokens();
     this.syncFog();
-    this.app.canvas.style.cursor = this.scene.viewer.role === 'gm' && this.scene.fogTool !== 'none' ? 'crosshair' : '';
+    this.updateCursor();
+  }
+
+  private updateCursor(): void {
+    const activeFog = this.scene.viewer.role === 'gm' && this.scene.fogTool !== 'none';
+    const crosshair = this.rulerMode || activeFog;
+    this.app.canvas.style.cursor = crosshair ? 'crosshair' : '';
+    for (const [id, view] of this.views) {
+      const token = this.scene.tokens.find((t) => t.id === id);
+      view.container.cursor = crosshair ? 'crosshair' : token && this.scene.canDrag(token) ? 'grab' : 'pointer';
+    }
   }
 
   /** Ativa ou desativa a ferramenta local de régua (sem `Intent`). */
   setRulerMode(active: boolean): void {
     if (this.destroyed) return;
     this.rulerMode = active;
-    this.app.canvas.style.cursor = active ? 'crosshair' : '';
     if (active) {
       this.drag = undefined;
       this.pan = undefined;
     } else {
       this.clearRuler();
     }
-    for (const [id, view] of this.views) {
-      const token = this.scene.tokens.find((t) => t.id === id);
-      view.container.cursor = active ? 'crosshair' : token && this.scene.canDrag(token) ? 'grab' : 'pointer';
-    }
+    this.updateCursor();
   }
 
   /** Atualiza modo (linha/raio) e unidade (`ft`/`m`) da régua. */
