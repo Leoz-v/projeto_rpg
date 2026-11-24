@@ -65,7 +65,9 @@ import {
 import type { z } from 'zod';
 import {
   applyPatch,
+  chatBefore,
   type ChatEntry,
+  chatWindow,
   type Combat,
   type ConditionState,
   NO_CONDITIONS,
@@ -214,6 +216,19 @@ export class HostSession {
   /** O snapshot para um jogador. */
   viewFor(playerId: string): SessionState {
     return viewOf(this.current, { playerId, role: this.roleOf(playerId) ?? 'player' });
+  }
+
+  /** O `StateSnapshot` desse jogador: o estado visível com a janela do chat (nota 0047). */
+  snapshotFor(playerId: string): { state: SessionState; chatFrom: number } {
+    const { state, chatFrom } = chatWindow(this.current);
+    return { state: viewOf(state, { playerId, role: this.roleOf(playerId) ?? 'player' }), chatFrom };
+  }
+
+  /** Entradas do chat antes de `before`, filtradas para esse jogador (`ChatHistoryRequest`). */
+  chatHistory(playerId: string, before: number, limit: number): { from: number; entries: ChatEntry[] } {
+    const { from, entries } = chatBefore(this.current.chat, before, limit);
+    const view = viewOf({ ...this.current, chat: entries }, { playerId, role: this.roleOf(playerId) ?? 'player' });
+    return { from, entries: view.chat };
   }
 
   /** O patch para um jogador: mesmo `rev`, operações filtradas (podem ficar vazias). */

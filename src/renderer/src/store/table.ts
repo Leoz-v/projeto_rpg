@@ -28,7 +28,7 @@ function start(): void {
       return;
     }
     if (snapshot.status !== 'table' || event.rev < snapshot.view.rev) return;
-    set({ status: 'table', view: { ...snapshot.view, rev: event.rev, state: event.state } });
+    set({ status: 'table', view: { ...snapshot.view, rev: event.rev, state: event.state, chatFrom: event.chatFrom } });
   });
   void window.vtt.getTable().then((result) => {
     if (snapshot.status !== 'loading') return;

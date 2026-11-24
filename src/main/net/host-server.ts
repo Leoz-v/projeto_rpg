@@ -151,6 +151,11 @@ export class HostServer {
       case 'AssetRequest':
         this.sendAsset(peer, message.id, message.payload.sha256);
         return;
+      case 'ChatHistoryRequest': {
+        const { before, limit } = message.payload;
+        this.send(peer, { type: 'ChatHistory', replyTo: message.id, payload: this.options.session.chatHistory(peer.playerId, before, limit) });
+        return;
+      }
       case 'Ping':
         this.send(peer, { type: 'Pong', replyTo: message.id, payload: { t: message.payload.t } });
         return;
@@ -227,7 +232,7 @@ export class HostServer {
 
   private snapshot(peer: Peer, playerId: string): void {
     const { session } = this.options;
-    this.send(peer, { type: 'StateSnapshot', payload: { rev: session.rev, state: session.viewFor(playerId) } });
+    this.send(peer, { type: 'StateSnapshot', payload: { rev: session.rev, ...session.snapshotFor(playerId) } });
   }
 
   private broadcast(change: StateChange, except?: Peer): void {

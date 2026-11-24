@@ -190,8 +190,8 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - ✅ Concentração (`concentration.set`/`end`, `PROTOCOL_VERSION = 16`, `<campanha>.db` v10): o personagem marca na ficha a magia mantida; o Host rola a salvaguarda de CON ao sofrer dano (CD 10 ou metade do dano, Eldritch Mind com Vantagem) e encerra na falha, ao ficar Incapacitado ou ao morrer; Relentless Hunter com `keep_concentration`. A fila `phase_5` do backlog ficou vazia. Ver `docs/decisions/0045-concentracao.md`.
 
 **Revisão geral (novembro de 2026):** antes de abrir o repositório, uma revisão de tudo o que foi feito; plano completo e situação de cada item em `docs/revisao-2026-11.md`:
-   - Preparar para público: licença MIT, `NOTICE`, tela "Sobre" com a atribuição do SRD, `README` (nota 0046).
-   - Chat: snapshot limitado e histórico sob demanda (hoje o snapshot leva o chat inteiro e passa de 1 MB em algumas sessões), patches para a tela.
+   - ✅ Preparar para público: licença MIT, `NOTICE`, tela "Sobre" com a atribuição do SRD, `README` (nota 0046).
+   - ✅ Janela do chat (`PROTOCOL_VERSION = 17`): o snapshot e a tela recebem só as últimas 200 entradas (`chatFrom`), e as anteriores vêm sob demanda (`ChatHistoryRequest`, botão "Carregar mensagens anteriores"). Antes, o snapshot passaria de 1 MB em algumas sessões e ninguém conseguiria entrar. Ver `docs/decisions/0047-janela-do-chat.md`.
    - Release pelo GitHub Actions e atualização automática.
    - Dividir o executor de sessão por área.
 6. **Fase 6 — Recursos e descansos** (a detalhar): descansos curto e longo, espaços de magia, recursos de classe e conjurar magia.

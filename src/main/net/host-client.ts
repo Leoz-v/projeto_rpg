@@ -57,6 +57,12 @@ export class ConnectError extends Error {
 
 type Listener = (state: SessionState, rev: number) => void;
 
+/** Entradas antigas do chat (`ChatHistory`), com a posição da primeira no log. */
+export interface ChatHistoryPage {
+  from: number;
+  entries: SessionState['chat'];
+}
+
 interface AssetDownload {
   sha256: string;
   assembler: ChunkAssembler;
@@ -72,6 +78,10 @@ export class HostClient {
   private readonly listeners = new Set<Listener>();
   private readonly closeListeners = new Set<() => void>();
   private resyncing = false;
+  /** Posição de `current.chat[0]` no log do Host (janela do chat, nota 0047). */
+  private chatStart: number;
+  /** Pedidos de histórico do chat em andamento, pelo `id` do `ChatHistoryRequest`. */
+  private readonly histories = new Map<string, { resolve: (page: ChatHistoryPage) => void; reject: (error: Error) => void; timer: NodeJS.Timeout }>();
   /** Downloads em andamento, pelo `id` do `AssetRequest`. */
   private readonly downloads = new Map<string, AssetDownload>();
   /** O mesmo hash pedido de novo antes de terminar reaproveita o download. */
@@ -82,15 +92,21 @@ export class HostClient {
   private constructor(
     private readonly socket: WebSocket,
     readonly welcome: Welcome,
-    snapshot: { rev: number; state: SessionState },
+    snapshot: { rev: number; state: SessionState; chatFrom: number },
   ) {
     this.current = snapshot.state;
     this.revision = snapshot.rev;
+    this.chatStart = snapshot.chatFrom;
     socket.on('message', (raw: RawData, isBinary: boolean) => { this.receive(raw, isBinary); });
     socket.on('close', () => {
       for (const resolve of this.pending.values()) resolve({ status: 'rejected', code: 'internal_error', message: 'Conexão com o Host perdida' });
       this.pending.clear();
       for (const [id, download] of this.downloads) this.failDownload(id, download, new AssetError('Conexão com o Host perdida'));
+      for (const history of this.histories.values()) {
+        clearTimeout(history.timer);
+        history.reject(new Error('Conexão com o Host perdida'));
+      }
+      this.histories.clear();
       for (const listener of this.closeListeners) listener();
     });
   }
@@ -152,6 +168,28 @@ export class HostClient {
 
   get rev(): number {
     return this.revision;
+  }
+
+  /** Posição de `state.chat[0]` no log completo do Host. */
+  get chatFrom(): number {
+    return this.chatStart;
+  }
+
+  /** Pede ao Host as entradas do chat antes da posição `before` (`ChatHistoryRequest`). */
+  requestChatHistory(before: number, limit: number): Promise<ChatHistoryPage> {
+    return new Promise((resolve, reject) => {
+      if (this.socket.readyState !== WebSocket.OPEN) {
+        reject(new Error('Sem conexão com o Host'));
+        return;
+      }
+      const id = randomUUID();
+      const timer = setTimeout(() => {
+        this.histories.delete(id);
+        reject(new Error('O Host não respondeu ao pedido do histórico'));
+      }, this.assetTimeoutMs);
+      this.histories.set(id, { resolve, reject, timer });
+      this.write({ type: 'ChatHistoryRequest', id, payload: { before, limit } });
+    });
   }
 
   /** Avisado a cada estado novo (patch aplicado ou snapshot). Devolve a função que cancela. */
@@ -260,8 +298,17 @@ export class HostClient {
       }
       case 'StateSnapshot':
         this.resyncing = false;
+        this.chatStart = message.payload.chatFrom;
         this.update(message.payload.state, message.payload.rev);
         return;
+      case 'ChatHistory': {
+        const history = this.histories.get(message.replyTo);
+        if (!history) return;
+        this.histories.delete(message.replyTo);
+        clearTimeout(history.timer);
+        history.resolve(message.payload);
+        return;
+      }
       case 'StatePatch':
         this.patch(message.payload.rev, message.payload.baseRev, message.payload.ops);
         return;

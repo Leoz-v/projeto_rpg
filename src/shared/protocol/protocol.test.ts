@@ -131,13 +131,21 @@ describe('host messages', () => {
       { type: 'IntentResult', id: ID, replyTo: REPLY, payload: { status: 'applied', rev: 42 } },
       { type: 'IntentResult', id: ID, replyTo: REPLY, payload: { status: 'rejected', code: 'not_allowed', message: 'Você não controla este token' } },
       { type: 'IntentResult', id: ID, replyTo: REPLY, payload: { status: 'pending_gm' } },
-      { type: 'StateSnapshot', id: ID, payload: { rev: 41, state } },
+      { type: 'StateSnapshot', id: ID, payload: { rev: 41, state, chatFrom: 1340 } },
+      { type: 'ChatHistory', id: ID, replyTo: REPLY, payload: { from: 1140, entries: state.chat } },
       { type: 'StatePatch', id: ID, payload: { rev: 42, baseRev: 41, ops: [{ op: 'replace', path: `/tokens/${TOKEN}/position`, value: { x: 300, y: 500 } }] } },
       { type: 'StatePatch', id: ID, payload: { rev: 43, baseRev: 42, ops: [] } },
       { type: 'AssetChunk', id: ID, replyTo: REPLY, payload: { sha256: SHA, mime: 'image/webp', totalSize: 2483120, index: 0, count: 4, data: 'aGVsbG8=' } },
       { type: 'Error', id: ID, payload: { code: 'invalid_message', message: 'Mensagem inválida' } },
     ];
     for (const m of messages) expect(ok(HostMessageSchema, m), m.type).toBe(true);
+  });
+
+  it('requires chatFrom on snapshots and limits history requests (note 0047)', () => {
+    expect(ok(HostMessageSchema, { type: 'StateSnapshot', id: ID, payload: { rev: 41, state } })).toBe(false);
+    expect(ok(ClientMessageSchema, { type: 'ChatHistoryRequest', id: ID, payload: { before: 1340, limit: 200 } })).toBe(true);
+    expect(ok(ClientMessageSchema, { type: 'ChatHistoryRequest', id: ID, payload: { before: 1340, limit: 201 } })).toBe(false);
+    expect(ok(ClientMessageSchema, { type: 'ChatHistoryRequest', id: ID, payload: { before: -1, limit: 10 } })).toBe(false);
   });
 
   it('requires replyTo on replies', () => {

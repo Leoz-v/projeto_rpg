@@ -5,7 +5,7 @@ import { type Compendium, inventoryEntryProblems, loadSrdCompendium, pruneSelect
 import { z } from 'zod';
 import { type AppInfo, IpcChannel, type IpcResult, type TableEvent } from '../shared/ipc';
 import { HostTableRequestSchema, JoinTableRequestSchema } from '../shared/ipc-schemas';
-import { IntentSchema, MAX_ASSET_BYTES, UuidSchema } from '../shared/protocol';
+import { IntentSchema, MAX_ASSET_BYTES, MAX_CHAT_HISTORY, UuidSchema } from '../shared/protocol';
 import { PROTOCOL_VERSION } from '../shared/versions';
 import { ASSET_SCHEME, AssetError, assetResponse, AssetStore, type StoredAsset } from './assets';
 import { characterSheet, creationOptions } from './character-sheet';
@@ -131,6 +131,10 @@ function registerIpc(appDb: AppDb, table: TableController, library: CampaignLibr
   });
   handle(IpcChannel.getTable, () => table.view());
   handle(IpcChannel.sendIntent, (payload) => table.send(parse(IntentSchema, payload)));
+  handle(IpcChannel.chatHistory, (payload) => {
+    const { before, limit } = parse(z.strictObject({ before: z.int().nonnegative(), limit: z.int().min(1).max(MAX_CHAT_HISTORY) }), payload);
+    return table.chatHistory(before, limit);
+  });
   handle(IpcChannel.creationOptions, () => creationOptions(getCompendium()));
   handle(IpcChannel.monsterActions, (payload) => monsterActions(getCompendium().creatures, parse(z.string().max(100), payload)));
   handle(IpcChannel.characterHpMaxima, () => {

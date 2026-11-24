@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Rng } from 'rules-engine';
-import type { HostTableRequest, IntentResultPayload, JoinTableRequest, TableEvent, TableInfo, TableView } from '../../shared/ipc';
-import { type AssetMime, DEFAULT_PORT, type Intent } from '../../shared/protocol';
+import type { ChatHistoryPage, HostTableRequest, IntentResultPayload, JoinTableRequest, TableEvent, TableInfo, TableView } from '../../shared/ipc';
+import { type AssetMime, chatBefore, chatWindow, DEFAULT_PORT, type Intent } from '../../shared/protocol';
 import type { CampaignChoice } from '../../shared/ipc-schemas';
 import { AssetError, type AssetStore } from '../assets';
 import { CampaignDbError, CampaignNotFoundError, DatabaseTooNewError, type OpenCampaign } from '../db';
@@ -68,8 +68,20 @@ export class TableController {
   view(): TableView | null {
     const table = this.table;
     if (!table) return null;
-    if (table.mode === 'host') return { info: table.info, rev: table.session.rev, state: table.session.state };
-    return { info: table.info, rev: table.client.rev, state: table.client.state };
+    if (table.mode === 'host') return { info: table.info, rev: table.session.rev, ...chatWindow(table.session.state) };
+    return { info: table.info, rev: table.client.rev, ...chatWindow(table.client.state, table.client.chatFrom) };
+  }
+
+  /** Entradas antigas do chat: do estado do Host (o mestre vê tudo) ou pedidas ao Host (`ChatHistoryRequest`). */
+  async chatHistory(before: number, limit: number): Promise<ChatHistoryPage> {
+    const table = this.table;
+    if (!table) throw new TableError('Você não está em uma mesa');
+    if (table.mode === 'host') return chatBefore(table.session.state.chat, before, limit);
+    try {
+      return await table.client.requestChatHistory(before, limit);
+    } catch (err: unknown) {
+      throw new TableError(err instanceof Error ? err.message : 'Falha ao buscar o histórico do chat');
+    }
   }
 
   async host(request: HostTableRequest): Promise<TableView> {
@@ -93,7 +105,8 @@ export class TableController {
       onChange: (change) => {
         if (this.table?.mode !== 'host' || this.table.session !== session) return;
         this.persist(store, session);
-        deps.emit({ kind: 'state', rev: change.rev, state: session.state });
+        // Só a janela do chat vai à tela: o custo do IPC não cresce com a campanha (nota 0047).
+        deps.emit({ kind: 'state', rev: change.rev, ...chatWindow(session.state) });
       },
     });
     let port: number;
@@ -109,7 +122,7 @@ export class TableController {
     this.persist(store, session);
     const info: TableInfo = { mode: 'host', role: 'gm', playerId: deps.playerId, campaignName: store.campaign.name, port, addresses: deps.addresses() };
     this.table = { mode: 'host', info, session, server, store };
-    return { info, rev: session.rev, state: session.state };
+    return { info, rev: session.rev, ...chatWindow(session.state) };
   }
 
   private openCampaign(choice: CampaignChoice): OpenCampaign {
@@ -152,7 +165,7 @@ export class TableController {
       throw err;
     }
     const info: TableInfo = { mode: 'player', role: client.welcome.role, playerId: deps.playerId, campaignName: client.welcome.campaignName };
-    const stopState = client.subscribe((state, rev) => { deps.emit({ kind: 'state', rev, state }); });
+    const stopState = client.subscribe((state, rev) => { deps.emit({ kind: 'state', rev, ...chatWindow(state, client.chatFrom) }); });
     const stopClose = client.onClose(() => {
       // Fechamento pedido por `leave` já limpou a mesa; aqui só a queda.
       if (this.table?.mode !== 'player' || this.table.client !== client) return;
@@ -161,7 +174,7 @@ export class TableController {
       deps.emit({ kind: 'closed', message: 'A conexão com o Host caiu' });
     });
     this.table = { mode: 'player', info, client, unsubscribe: () => { stopState(); stopClose(); } };
-    return { info, rev: client.rev, state: client.state };
+    return { info, rev: client.rev, ...chatWindow(client.state, client.chatFrom) };
   }
 
   /** Sai da mesa; no modo `host`, encerra a mesa para todos. */
