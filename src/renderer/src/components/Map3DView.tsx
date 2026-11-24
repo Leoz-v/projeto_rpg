@@ -174,6 +174,7 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
           },
         },
         assets,
+        doc.liquids ?? [],
       );
       const tokens3d = new TokenRenderer3d(scene, surfaceGrid, {
         onSelect: (id) => {

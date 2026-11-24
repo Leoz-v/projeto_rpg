@@ -59,8 +59,8 @@ export function FogHudControls({
     }
   };
 
-  const selectedOwnerId = selectedToken?.ownerIds[0];
-  const selectedHasMemory = selectedOwnerId !== undefined && fog.explored[selectedOwnerId] !== undefined;
+  const selectedMemoryKey = selectedToken ? (selectedToken.ownerIds[0] ?? selectedToken.id) : undefined;
+  const selectedHasMemory = selectedMemoryKey !== undefined && fog.explored[selectedMemoryKey] !== undefined;
 
   return (
     <div className="fog-popover" role="group" aria-label="Controles de névoa de guerra">
@@ -149,12 +149,12 @@ export function FogHudControls({
             >
               Limpar memória
             </button>
-            {selectedToken && selectedOwnerId !== undefined && (
+            {selectedToken && selectedMemoryKey !== undefined && (
               <button
                 type="button"
                 disabled={!selectedHasMemory}
-                title={`Limpar memória explorada do dono de ${selectedToken.name}`}
-                onClick={() => void sendIntent({ kind: 'fog.memory.clear', data: { mapId: map.id, playerId: selectedOwnerId } }).then(onError)}
+                title={`Limpar memória explorada de ${selectedToken.name}`}
+                onClick={() => void sendIntent({ kind: 'fog.memory.clear', data: { mapId: map.id, playerId: selectedMemoryKey } }).then(onError)}
               >
                 Limpar ({selectedToken.name})
               </button>

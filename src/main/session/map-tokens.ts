@@ -24,10 +24,8 @@ export function moveToken(ctx: SessionContext, playerId: string, role: Role, dat
   const map = ctx.map(token.mapId);
   ctx.requireInside(map, data.to, token.size);
   const ops: PatchOp[] = [{ op: 'replace', path: toPointer('tokens', token.id, 'position'), value: data.to }];
-  if (token.ownerIds.length > 0) {
-    const nextTokens = Object.values(ctx.current.tokens).map((t) => (t.id === token.id ? { ...t, position: data.to } : t));
-    ops.push(...recordExploredOps(map, nextTokens, token.ownerIds));
-  }
+  const nextTokens = Object.values(ctx.current.tokens).map((t) => (t.id === token.id ? { ...t, position: data.to } : t));
+  ops.push(...recordExploredOps(map, nextTokens, token.ownerIds.length > 0 ? token.ownerIds : [token.id]));
   return ops;
 }
 
@@ -102,8 +100,6 @@ export function createToken(ctx: SessionContext, data: IntentData<'token.create'
     visionFeet: null,
   };
   const ops: PatchOp[] = [{ op: 'add', path: toPointer('tokens', token.id), value: token }];
-  if (ownerIds.length > 0) {
-    ops.push(...recordExploredOps(map, [...Object.values(ctx.current.tokens), token], ownerIds));
-  }
+  ops.push(...recordExploredOps(map, [...Object.values(ctx.current.tokens), token], ownerIds.length > 0 ? ownerIds : [token.id]));
   return ops;
 }

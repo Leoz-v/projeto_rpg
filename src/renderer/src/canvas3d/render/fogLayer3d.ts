@@ -2,7 +2,8 @@ import { FlatMaterial, Geometry3D, Mesh3D } from '@pixi/3d';
 import { CanvasSource, Texture } from 'pixi.js';
 import type { FogCell, FogMode, GameMap, Token } from '../../../../shared/protocol';
 import { fillFogImageData, fogSignature, type FogTool, type FogViewer } from '../../canvas/fog-render';
-import { METERS_PER_HEIGHT_UNIT, TILE_SIZE_METERS } from '../terrain/constants';
+import { METERS_PER_FOOT, METERS_PER_HEIGHT_UNIT, TILE_SIZE_METERS } from '../terrain/constants';
+import type { LiquidSurface } from '../terrain/liquidSurface';
 import { pickTerrain } from '../terrain/raycast';
 import type { TerrainGrid } from '../terrain/terrainGrid';
 import type { AssetManager } from './assetManager';
@@ -19,23 +20,46 @@ export interface FogLayer3dEvents {
   onFogRect: (mapId: string, mode: FogMode, from: FogCell, to: FogCell) => void;
 }
 
-const FOG_ELEVATION_OFFSET = 0.08;
+const FOG_ELEVATION_OFFSET = 0.22;
 
-function buildFogGeometry(grid: TerrainGrid): Geometry3D {
+function liquidElevationAt(col: number, row: number, liquids: readonly LiquidSurface[]): number {
+  let maxY = -Infinity;
+  for (const s of liquids) {
+    if (s.layer !== 'surface') continue;
+    if (col >= s.x - 1e-4 && col <= s.x + s.width + 1e-4 && row >= s.z - 1e-4 && row <= s.z + s.length + 1e-4) {
+      const y = s.levelFeet * METERS_PER_FOOT;
+      if (y > maxY) maxY = y;
+    }
+  }
+  return maxY;
+}
+
+/**
+ * Constrói a malha de névoa acima do terreno e das superfícies líquidas, com 4
+ * triângulos por célula (encontrando-se no centro da célula na altura máxima dos
+ * 4 cantos) para evitar que diagonais de penhascos ou água atravessem a névoa.
+ */
+function buildFogGeometry(grid: TerrainGrid, liquids: readonly LiquidSurface[]): Geometry3D {
   const { width, length } = grid;
   const cols = width + 1;
   const rows = length + 1;
-  const positions = new Float32Array(cols * rows * 3);
-  const uvs = new Float32Array(cols * rows * 2);
-  const indices = new Uint32Array(width * length * 6);
+  const cornerCount = cols * rows;
+  const tileCount = width * length;
+  const positions = new Float32Array((cornerCount + tileCount) * 3);
+  const uvs = new Float32Array((cornerCount + tileCount) * 2);
+  const indices = new Uint32Array(tileCount * 12);
 
+  const cornerY = new Float32Array(cornerCount);
   let pi = 0;
   let ui = 0;
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
-      const h = grid.sampleHeightAtTileCoord(col, row);
+      const terrainY = grid.getHeight(col, row) * METERS_PER_HEIGHT_UNIT;
+      const liquidY = liquidElevationAt(col, row, liquids);
+      const y = Math.max(terrainY, liquidY) + FOG_ELEVATION_OFFSET;
+      cornerY[row * cols + col] = y;
       positions[pi++] = col * TILE_SIZE_METERS;
-      positions[pi++] = h * METERS_PER_HEIGHT_UNIT + FOG_ELEVATION_OFFSET;
+      positions[pi++] = y;
       positions[pi++] = row * TILE_SIZE_METERS;
       uvs[ui++] = col / width;
       uvs[ui++] = row / length;
@@ -49,12 +73,31 @@ function buildFogGeometry(grid: TerrainGrid): Geometry3D {
       const v10 = v00 + 1;
       const v01 = v00 + cols;
       const v11 = v01 + 1;
+      const vc = cornerCount + row * width + col;
+      const maxCornerY = Math.max(cornerY[v00] ?? 0, cornerY[v10] ?? 0, cornerY[v01] ?? 0, cornerY[v11] ?? 0);
+      const centerLiquidY = liquidElevationAt(col + 0.5, row + 0.5, liquids) + FOG_ELEVATION_OFFSET;
+      positions[pi++] = (col + 0.5) * TILE_SIZE_METERS;
+      positions[pi++] = Math.max(maxCornerY, centerLiquidY);
+      positions[pi++] = (row + 0.5) * TILE_SIZE_METERS;
+      uvs[ui++] = (col + 0.5) / width;
+      uvs[ui++] = (row + 0.5) / length;
+
+      // 4 triângulos CCW voltados para cima (+Y) ao redor do centro da célula.
       indices[ii++] = v00;
       indices[ii++] = v01;
+      indices[ii++] = vc;
+
+      indices[ii++] = v01;
       indices[ii++] = v11;
-      indices[ii++] = v00;
+      indices[ii++] = vc;
+
       indices[ii++] = v11;
       indices[ii++] = v10;
+      indices[ii++] = vc;
+
+      indices[ii++] = v10;
+      indices[ii++] = v00;
+      indices[ii++] = vc;
     }
   }
 
@@ -82,6 +125,7 @@ export class FogLayer3d {
     private readonly grid: TerrainGrid,
     private readonly events: FogLayer3dEvents,
     private readonly assets?: AssetManager,
+    liquids: readonly LiquidSurface[] = [],
   ) {
     this.fogCanvas = document.createElement('canvas');
     this.fogCanvas.width = grid.width;
@@ -93,7 +137,7 @@ export class FogLayer3d {
       doubleSided: true,
     });
     this.mesh = new Mesh3D({
-      geometry: buildFogGeometry(grid),
+      geometry: buildFogGeometry(grid, liquids),
       material: this.material,
       castShadow: false,
       receiveShadow: false,
@@ -188,6 +232,7 @@ export class FogLayer3d {
         }
         prop.model.visible = !hidden;
         if (prop.shadowDisc) prop.shadowDisc.visible = !hidden;
+        if (prop.caveVoidMesh) prop.caveVoidMesh.visible = !hidden;
       }
     }
   }

@@ -2,6 +2,7 @@ import {
   applyFogCells,
   applyFogRect,
   computePlayerVision,
+  computeTokenVision,
   decodeFogBits,
   emptyFogBits,
   encodeFogBits,
@@ -26,34 +27,58 @@ function requireCellInside(map: GameMap, cell: { x: number; y: number }): void {
 }
 
 /**
- * Atualiza `map.fog.explored` para os jogadores afetados quando a névoa automática
- * e a memória explorada estão ativas. Células cobertas pela névoa manual nunca
- * entram na memória até serem reveladas pelo mestre.
+ * Atualiza `map.fog.explored` para os jogadores (ou tokens sem dono, para pré-visualização
+ * do mestre) quando a névoa automática e a memória explorada estão ativas. Células cobertas
+ * pela névoa manual nunca entram na memória até serem reveladas pelo mestre.
  */
-export function recordExploredOps(map: GameMap, tokens: readonly Token[], playerIds?: readonly string[]): PatchOp[] {
+export function recordExploredOps(map: GameMap, tokens: readonly Token[], targetIds?: readonly string[]): PatchOp[] {
   if (!map.fog.autoEnabled || !map.fog.rememberExplored) return [];
-  const targets = new Set<string>();
-  if (playerIds) {
-    for (const id of playerIds) targets.add(id);
+  const manual = decodeFogBits(map.fog.manual, map.width, map.height);
+  const playerTargets = new Set<string>();
+  const unownedTokenTargets = new Map<string, Token>();
+
+  if (targetIds) {
+    const allowed = new Set(targetIds);
+    for (const token of tokens) {
+      if (token.mapId !== map.id) continue;
+      if (token.ownerIds.length > 0) {
+        for (const ownerId of token.ownerIds) if (allowed.has(ownerId)) playerTargets.add(ownerId);
+      } else if (allowed.has(token.id)) {
+        unownedTokenTargets.set(token.id, token);
+      }
+    }
   } else {
     for (const token of tokens) {
       if (token.mapId !== map.id) continue;
-      for (const ownerId of token.ownerIds) targets.add(ownerId);
+      if (token.ownerIds.length > 0) {
+        for (const ownerId of token.ownerIds) playerTargets.add(ownerId);
+      } else {
+        unownedTokenTargets.set(token.id, token);
+      }
     }
   }
+
   const ops: PatchOp[] = [];
-  for (const playerId of targets) {
-    const vision = computePlayerVision(map, tokens, playerId);
-    const existing = map.fog.explored[playerId];
+  const appendForKey = (key: string, vision: Uint8Array): void => {
+    const existing = map.fog.explored[key];
     const prev = existing !== undefined ? decodeFogBits(existing, map.width, map.height) : emptyFogBits(map.width, map.height);
     const next = unionFogBits(prev, vision);
     if (existing === undefined) {
       if (hasAnyFogBit(next)) {
-        ops.push({ op: 'add', path: toPointer('maps', map.id, 'fog', 'explored', playerId), value: encodeFogBits(next) });
+        ops.push({ op: 'add', path: toPointer('maps', map.id, 'fog', 'explored', key), value: encodeFogBits(next) });
       }
     } else if (!fogBitsEqual(prev, next)) {
-      ops.push({ op: 'replace', path: toPointer('maps', map.id, 'fog', 'explored', playerId), value: encodeFogBits(next) });
+      ops.push({ op: 'replace', path: toPointer('maps', map.id, 'fog', 'explored', key), value: encodeFogBits(next) });
     }
+  };
+
+  for (const playerId of playerTargets) {
+    appendForKey(playerId, computePlayerVision(map, tokens, playerId));
+  }
+  for (const [tokenId, token] of unownedTokenTargets) {
+    const vision = computeTokenVision(map, token, map.fog.visionFeet);
+    for (let i = 0; i < vision.length; i++) vision[i] = (vision[i] ?? 0) & ~(manual[i] ?? 0);
+    appendForKey(tokenId, vision);
   }
   return ops;
 }
@@ -120,7 +145,9 @@ export function configureFog(ctx: SessionContext, data: IntentData<'fog.config'>
 export function clearFogMemory(ctx: SessionContext, data: IntentData<'fog.memory.clear'>): PatchOp[] {
   const map = ctx.map(data.mapId);
   if (data.playerId !== undefined) {
-    if (ctx.current.players[data.playerId] === undefined) throw violation('Jogador não encontrado');
+    if (ctx.current.players[data.playerId] === undefined && map.fog.explored[data.playerId] === undefined) {
+      throw violation('Jogador não encontrado');
+    }
     if (map.fog.explored[data.playerId] === undefined) return [];
     return [{ op: 'remove', path: toPointer('maps', map.id, 'fog', 'explored', data.playerId) }];
   }
@@ -131,9 +158,7 @@ export function setTokenVision(ctx: SessionContext, data: IntentData<'token.visi
   const token = ctx.token(data.tokenId);
   const map = ctx.map(token.mapId);
   const ops: PatchOp[] = [{ op: 'replace', path: toPointer('tokens', token.id, 'visionFeet'), value: data.visionFeet }];
-  if (token.ownerIds.length > 0) {
-    const tokens = Object.values(ctx.current.tokens).map((t) => (t.id === token.id ? { ...t, visionFeet: data.visionFeet } : t));
-    ops.push(...recordExploredOps(map, tokens, token.ownerIds));
-  }
+  const tokens = Object.values(ctx.current.tokens).map((t) => (t.id === token.id ? { ...t, visionFeet: data.visionFeet } : t));
+  ops.push(...recordExploredOps(map, tokens, token.ownerIds.length > 0 ? token.ownerIds : [token.id]));
   return ops;
 }

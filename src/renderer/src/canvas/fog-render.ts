@@ -64,11 +64,12 @@ export function fillFogImageData(data: Uint8ClampedArray, map: GameMap, tokens: 
     if (previewToken) {
       const vision = fog.autoEnabled ? computeTokenVision(map, previewToken, fog.visionFeet) : null;
       let explored: Uint8Array | null = null;
-      if (fog.autoEnabled && fog.rememberExplored && previewToken.ownerIds.length > 0) {
+      if (fog.autoEnabled && fog.rememberExplored) {
+        const memoryKeys = previewToken.ownerIds.length > 0 ? previewToken.ownerIds : [previewToken.id];
         let merged = emptyFogBits(width, height);
         let hasAny = false;
-        for (const ownerId of previewToken.ownerIds) {
-          const encoded = fog.explored[ownerId];
+        for (const key of memoryKeys) {
+          const encoded = fog.explored[key];
           if (encoded !== undefined) {
             merged = unionFogBits(merged, decodeFogBits(encoded, width, height));
             hasAny = true;
@@ -162,7 +163,7 @@ export function fogSignature(map: GameMap | null, tokens: readonly Token[], view
   const exploredPart =
     viewer.role === 'gm'
       ? previewToken
-        ? previewToken.ownerIds.map((id) => `${id}:${fog.explored[id] ?? ''}`).join(',')
+        ? (previewToken.ownerIds.length > 0 ? previewToken.ownerIds : [previewToken.id]).map((id) => `${id}:${fog.explored[id] ?? ''}`).join(',')
         : ''
       : (fog.explored[viewer.playerId] ?? '');
 
