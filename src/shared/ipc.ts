@@ -26,6 +26,9 @@ export const IpcChannel = {
   sendIntent: 'table:intent',
   chatHistory: 'table:chat-history',
   tableEvent: 'table:event',
+  getUpdateStatus: 'app:update-status',
+  installUpdate: 'app:install-update',
+  updateEvent: 'app:update-event',
 } as const;
 
 /** Resposta serializável do main: erros viram valor, nunca exceção. */
@@ -144,6 +147,17 @@ export interface ChatHistoryPage {
   entries: SessionState['chat'];
 }
 
+/** Situação da atualização automática (nota 0048). */
+export type UpdateStatus =
+  | { state: 'idle' }
+  | { state: 'checking' }
+  | { state: 'none' }
+  | { state: 'downloading'; version: string; percent: number }
+  | { state: 'ready'; version: string }
+  | { state: 'error'; message: string }
+  /** Sem atualização automática (app de desenvolvimento, Mac sem assinatura). */
+  | { state: 'unavailable'; reason: string };
+
 /** API exposta pelo preload em `window.vtt`. */
 export interface VttApi {
   getAppInfo(): Promise<IpcResult<AppInfo>>;
@@ -176,4 +190,8 @@ export interface VttApi {
   importAsset(): Promise<IpcResult<ImportedAsset | null>>;
   /** Avisa a cada estado novo e quando a mesa fecha. Devolve a função que cancela. */
   onTableEvent(listener: (event: TableEvent) => void): () => void;
+  getUpdateStatus(): Promise<IpcResult<UpdateStatus>>;
+  /** Reinicia e instala a versão baixada (recusa numa mesa). */
+  installUpdate(): Promise<IpcResult<null>>;
+  onUpdateStatus(listener: (status: UpdateStatus) => void): () => void;
 }

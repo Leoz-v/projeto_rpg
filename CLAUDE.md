@@ -66,7 +66,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 - **Cópia offline (complemento, adiada; nota 0034):** cada jogador mantém cópia local do personagem (lista de escolhas + inventário).
   - **Lista de escolhas** (construção do personagem): fora da sessão o jogador pode editar (ex.: subir de nível entre sessões); ao reconectar, o Host compara o hash e exibe o *diff* das escolhas para o mestre aprovar ou rejeitar antes de aplicar.
   - **Inventário:** durante a sessão é alterado só via `Intent` ao Host. Fora da sessão é somente leitura no cliente (o Host é a fonte da verdade e reenvia o inventário ao reconectar).
-- **Distribuição e atualização automática (planejada, `docs/revisao-2026-11.md`):** GitHub Actions gera os builds (Windows, Linux AppImage e Mac) com electron-builder a cada tag e publica no GitHub Releases; o app atualiza via **`electron-updater`**. Hoje ainda não existe: o instalador é gerado à mão com `pnpm build`.
+- **Distribuição e atualização automática (nota 0048):** uma tag `vX.Y.Z` faz o GitHub Actions (`release.yml`) gerar os builds (Windows, Linux AppImage e Mac) com electron-builder num **rascunho** de release; o dono confere e publica. O app (`src/main/updater/`) confere as releases ao abrir e a cada 4 horas, baixa em segundo plano e instala ao fechar, via **`electron-updater`**. Processo de release no `CONTRIBUTING.md`.
   - Integridade garantida pelo hash `sha512` dos artefatos (`latest.yml`) e pelo controle do repositório. O binário **não** usa certificado pago de code signing, então:
     - **Windows:** aviso do SmartScreen na instalação inicial é esperado.
     - **Mac:** a atualização automática exige app assinado; sem assinatura, usuários de Mac atualizam manualmente baixando a release.
@@ -91,7 +91,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 │   │   ├── table/           # Mesa deste app: hospedar ou entrar, ponte entre IPC, sessão e rede
 │   │   ├── db/              # Conexões SQLite (app.db e campaign.db) e migrações
 │   │   ├── assets/          # Hash SHA-256, cache local e protocolo vtt-asset://
-│   │   └── updater/         # electron-updater (a criar)
+│   │   └── updater/         # electron-updater (UpdateService)
 │   ├── preload/             # contextBridge: API de IPC tipada (index.d.ts tipa window.vtt)
 │   ├── renderer/            # React + PixiJS
 │   │   ├── index.html       # Entrada do renderer (CSP definida aqui)
@@ -192,7 +192,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 **Revisão geral (novembro de 2026):** antes de abrir o repositório, uma revisão de tudo o que foi feito; plano completo e situação de cada item em `docs/revisao-2026-11.md`:
    - ✅ Preparar para público: licença MIT, `NOTICE`, tela "Sobre" com a atribuição do SRD, `README` (nota 0046).
    - ✅ Janela do chat (`PROTOCOL_VERSION = 17`): o snapshot e a tela recebem só as últimas 200 entradas (`chatFrom`), e as anteriores vêm sob demanda (`ChatHistoryRequest`, botão "Carregar mensagens anteriores"). Antes, o snapshot passaria de 1 MB em algumas sessões e ninguém conseguiria entrar. Ver `docs/decisions/0047-janela-do-chat.md`.
-   - Release pelo GitHub Actions e atualização automática.
+   - ✅ Release pelo GitHub Actions (rascunho a cada tag `vX.Y.Z`) e atualização automática ao fechar o app; no Mac, baixar à mão. Ver `docs/decisions/0048-releases-e-atualizacao-automatica.md`.
    - Dividir o executor de sessão por área.
 6. **Fase 6 — Recursos e descansos** (a detalhar): descansos curto e longo, espaços de magia, recursos de classe e conjurar magia.
 

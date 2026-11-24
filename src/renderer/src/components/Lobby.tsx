@@ -2,6 +2,7 @@ import { type SyntheticEvent, useEffect, useState } from 'react';
 import type { AppInfo, CampaignChoice, CampaignSummary, Preferences } from '../../../shared/ipc';
 import { DEFAULT_PORT } from '../../../shared/protocol';
 import { AboutButton } from './About';
+import { UpdateNotice } from './UpdateNotice';
 import { hostTable, joinTable } from '../store/table';
 
 /** Tela inicial: hospedar uma mesa (como mestre) ou entrar na mesa de alguém. */
@@ -233,6 +234,7 @@ export function Lobby({ notice }: { notice?: string | undefined }) {
     <main className="lobby">
       <h1>VTT</h1>
       <p className="hint">Mesa virtual para campanhas da 5ª edição (SRD 5.2.1).</p>
+      <UpdateNotice />
       {notice && !error && <p className="notice">{notice}</p>}
       {error && (
         <p className="error" role="alert">

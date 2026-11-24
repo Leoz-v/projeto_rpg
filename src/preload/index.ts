@@ -1,5 +1,5 @@
 import { contextBridge, type IpcRendererEvent, ipcRenderer } from 'electron';
-import { IpcChannel, type TableEvent, type VttApi } from '../shared/ipc';
+import { IpcChannel, type TableEvent, type UpdateStatus, type VttApi } from '../shared/ipc';
 
 const api: VttApi = {
   getAppInfo: () => ipcRenderer.invoke(IpcChannel.getAppInfo),
@@ -19,6 +19,17 @@ const api: VttApi = {
   searchItems: (query) => ipcRenderer.invoke(IpcChannel.searchItems, query),
   characterHpMaxima: () => ipcRenderer.invoke(IpcChannel.characterHpMaxima),
   monsterActions: (monsterId) => ipcRenderer.invoke(IpcChannel.monsterActions, monsterId),
+  getUpdateStatus: () => ipcRenderer.invoke(IpcChannel.getUpdateStatus),
+  installUpdate: () => ipcRenderer.invoke(IpcChannel.installUpdate),
+  onUpdateStatus: (listener) => {
+    const handler = (_event: IpcRendererEvent, payload: UpdateStatus): void => {
+      listener(payload);
+    };
+    ipcRenderer.on(IpcChannel.updateEvent, handler);
+    return () => {
+      ipcRenderer.removeListener(IpcChannel.updateEvent, handler);
+    };
+  },
   onTableEvent: (listener) => {
     // O evento do Electron não passa para o renderer: só o payload.
     const handler = (_event: IpcRendererEvent, payload: TableEvent): void => {
