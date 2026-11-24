@@ -54,6 +54,21 @@ describe('attack against a target', () => {
   });
 });
 
+describe('half damage on a miss (Acid Arrow)', () => {
+  const acid = (critical: boolean) => ({ groups: [{ dice: critical ? '8d4' : '4d4', type: 'acid' as const, rolls: [], total: 11 }], bonus: 0 });
+
+  it('a miss still deals half the damage, rounded down and without a critical', () => {
+    const miss = resolveAttack({ d20: { modifier: 5, mode: 'normal' }, targetAc: 20, rollDamage: acid, defenses: NONE, onMiss: 'half' }, fixed([2]));
+    expect(miss).toMatchObject({ hit: false, critical: false });
+    expect(miss.damage?.groups[0]?.dice).toBe('4d4');
+    expect(miss.damage?.applied.total).toBe(5);
+  });
+
+  it('a hit deals the full damage', () => {
+    expect(resolveAttack({ d20: { modifier: 5, mode: 'normal' }, targetAc: 10, rollDamage: acid, defenses: NONE, onMiss: 'half' }, fixed([9])).damage?.applied.total).toBe(11);
+  });
+});
+
 describe('saving throws against an effect', () => {
   it('uses the published save bonus or the ability modifier', () => {
     expect(creatureSaveBonus(creature('adult_red_dragon'), 'dex')).toBe(6);

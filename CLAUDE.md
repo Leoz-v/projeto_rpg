@@ -202,7 +202,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 
 7. **Fase 7 — Magias estruturadas:** o efeito das magias resolvido pela mesa a partir de dados curados do SRD. Dividida em 4 PRs (ver `docs/decisions/0054-magias-estruturadas.md`); as magias sem resolução ficam classificadas no backlog (`spell:<id>`):
    - ✅ Schema (`resolution`: ataque, salvaguarda ou dano direto, com escala por círculo e melhoria de truque), motor (`engine/spells.ts`, `resolveSpellParts`) e curadoria de 95 magias de dano conferida contra o texto (`srd-source/tools/spell_resolution.py`).
-   - Conjurar com alvos: o Host rola o ataque ou as salvaguardas pela magia e o dano vira proposta para o mestre.
+   - ✅ Conjurar com alvos (`spell.effect`, `PROTOCOL_VERSION = 22`): o `spell_cast` grava a CD, o bônus de ataque e as partes no círculo usado; quem conjurou escolhe os alvos de cada parte e o Host rola os ataques (um por raio), as salvaguardas ou o dano direto, com o dano como proposta para o mestre. Ver `docs/decisions/0055-conjurar-com-alvos.md`.
    - Cura (direto nos PV) e salvaguardas que só aplicam condição, com a condição caindo junto com a Concentração.
    - Bônus e penalidades temporários (Bless, Shield of Faith, Mage Armor, Bane, Haste) ligados à duração ou à Concentração.
 8. **Ferramentas de mapa (reservada para outro contribuidor, [issue #59](https://github.com/Leoz-v/projeto_rpg/issues/59)):** régua, tokens ocultos, névoa e indicação de morto.

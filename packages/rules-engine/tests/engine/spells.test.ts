@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDice, addFlat, cantripTier, multiplyDice, resolveSpellParts } from '../../src/engine/spells';
+import { addDice, addFlat, cantripTier, multiplyDice, resolveSpellParts, spellDamageWith } from '../../src/engine/spells';
 import { loadSrdCompendium } from '../../src/srd';
 
 /** Resolução das magias de dano (nota 0054). */
@@ -130,6 +130,16 @@ describe('resolveSpellParts', () => {
 
   it('a text-only spell has no parts', () => {
     expect(resolveSpellParts(spell('light'), { characterLevel: 1, modifier: 3 })).toEqual([]);
+  });
+});
+
+describe('spellDamageWith', () => {
+  it('keeps fixed types and requires a choice from the list', () => {
+    const orb = resolveSpellParts(spell('chromatic_orb'), { characterLevel: 1, modifier: 3 })[0]?.damage ?? [];
+    expect(spellDamageWith(orb, 'fire')).toEqual([{ dice: '3d8', type: 'fire' }]);
+    expect(spellDamageWith(orb, undefined)).toBeUndefined();
+    expect(spellDamageWith(orb, 'radiant')).toBeUndefined();
+    expect(spellDamageWith([{ dice: '8d6', type: 'fire' }], 'cold')).toEqual([{ dice: '8d6', type: 'fire' }]);
   });
 });
 

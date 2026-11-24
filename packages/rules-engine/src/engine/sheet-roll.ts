@@ -4,7 +4,7 @@ import { criticalDice } from './attack';
 import { CONDITION_NAME } from './names';
 import type { D20RollInput, D20Step } from './d20';
 import { type Rng, rollDice } from './dice';
-import type { Contribution, DerivedSheet, RollState, RollStat, SourceLabel, WeaponAttack } from './types';
+import type { Contribution, DerivedSheet, RollState, RollStat, SourceLabel, SpellCaster, WeaponAttack } from './types';
 
 /**
  * Rolagens a partir da ficha calculada: o que entra no `rollD20` (modificador,
@@ -113,8 +113,19 @@ export function rollReminders(roll: RollState): string[] {
  */
 export function sheetD20(sheet: DerivedSheet, target: SheetRollTarget, declared: DeclaredRoll = {}, against?: RollAgainst): SheetD20 | undefined {
   const found = statFor(sheet, target);
-  if (!found) return undefined;
-  const { stat, critMin } = found;
+  return found ? statD20(found.stat, found.critMin, declared, against) : undefined;
+}
+
+/**
+ * Ataque de magia (nota 0055): o bônus de quem conjura (atributo da classe ou
+ * da magia concedida) com as Vantagens, Desvantagens e regras do d20 dos
+ * ataques de magia da ficha.
+ */
+export function spellAttackD20(sheet: DerivedSheet, caster: SpellCaster, declared: DeclaredRoll = {}): SheetD20 {
+  return statD20({ ...caster.attack, roll: sheet.spellcasting.attackRoll }, undefined, declared, undefined);
+}
+
+function statD20(stat: RollStat, critMin: number | undefined, declared: DeclaredRoll, against: RollAgainst | undefined): SheetD20 {
   // Circunstâncias que batem com o que a rolagem evita deixam de ser lembrete e valem (Dwarven Resilience contra Envenenado).
   const applies = (s: { when?: Predicate | undefined; note?: string | undefined }): boolean => s.note === undefined && matchesAgainst(s.when, against);
   const situational = stat.roll.situational.filter(applies);

@@ -36,7 +36,7 @@ Só o dono do repositório cria releases.
    ```
 
 3. O workflow `Release` confere que a tag bate com o `package.json`, roda as verificações e sobe os instaladores (Windows, Linux, Mac) para um **rascunho** de release.
-4. Confira o rascunho no GitHub (arquivos, notas da versão) e publique. Só então os apps do grupo baixam a versão nova, que é instalada quando cada um fecha o app. No Mac, a atualização é manual.
+4. Espere os três builds terminarem e confira o rascunho no GitHub: os 10 arquivos (o `.exe` e os dois `.dmg`, cada um com o `.blockmap`, o `.AppImage` e os três `latest*.yml`) e as notas da versão. Só então publique: um build que termina depois da publicação não sobe os arquivos (o electron-builder só envia para rascunho), e o workflow aparece verde mesmo assim. Se faltar algo, volte a release para rascunho (`gh release edit vX.Y.Z --draft=true`), rode de novo o job que faltou e publique outra vez. Publicada, os apps do grupo baixam a versão nova, que é instalada quando cada um fecha o app. No Mac, a atualização é manual.
 
 ## Licença das contribuições
 

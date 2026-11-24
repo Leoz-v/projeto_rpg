@@ -117,7 +117,7 @@ type AttackEntry = Extract<ChatEntry, { kind: 'attack_roll' }>;
 type AppliedEntry = Extract<ChatEntry, { kind: 'damage_applied' }>;
 
 /** Botões do mestre para a proposta de dano ainda pendente: aplicar o proposto, outro valor, ou descartar. */
-function ProposalActions({ proposalId, amount }: { proposalId: string; amount: number }) {
+export function ProposalActions({ proposalId, amount }: { proposalId: string; amount: number }) {
   const [custom, setCustom] = useState('');
   const [error, setError] = useState<string | null>(null);
   const value = Number(custom);

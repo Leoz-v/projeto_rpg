@@ -2088,3 +2088,143 @@ describe('HostSession: casting spells (note 0053)', () => {
     expect(w.last('rest')).toMatchObject({ event: 'interrupted', notes: ['Conjurou uma magia: o descanso não vale'] });
   });
 });
+
+describe('HostSession: structured spell effects (note 0055)', () => {
+  type Fixture = { character: { baseScores: SessionCharacter['baseScores']; steps: SessionCharacter['steps'] } };
+  const sequence = (values: number[]) => {
+    let i = 0;
+    return { roll: () => values[i++ % values.length] ?? 1 };
+  };
+
+  /** Elara (maga elfa 7: INT +4, CD 15, ataque +7) e dois Goblin Warriors (CA 15, DES +2) no mapa. */
+  function arena(rolls: number[]) {
+    const session = setup({
+      rng: sequence(rolls),
+      itemProblems: () => [],
+      monsterExists: (id) => compendium.creatures.some((c) => c.id === id),
+      monsterHpMax: (id) => compendium.creatures.find((c) => c.id === id)?.hp.average,
+    });
+    session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10 } });
+    const mapId = Object.keys(session.state.maps)[0] ?? '';
+    session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Elara' } });
+    const id = Object.keys(session.state.characters)[0] ?? '';
+    const fixture = elfWizard as Fixture;
+    session.handle(ANA.playerId, {
+      kind: 'character.update',
+      data: { characterId: id, baseScores: fixture.character.baseScores ?? undefined, steps: CharacterSchema.shape.steps.parse(fixture.character.steps) },
+    });
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Elara', position: { x: 0, y: 0 }, size: 'medium', characterId: id, ownerIds: [ANA.playerId] } });
+    for (const name of ['Goblin 1', 'Goblin 2']) {
+      session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name, position: { x: 600, y: 0 }, size: 'small', monsterId: 'goblin_warrior' } });
+    }
+    const token = (name: string) => Object.values(session.state.tokens).find((t) => t.name === name)?.id ?? '';
+    const cast = (spellId: string, using: { slot: { level: number } } | 'free') => {
+      const outcome = session.handle(ANA.playerId, { kind: 'spell.cast', data: { characterId: id, spellId, using } });
+      const entry = [...session.state.chat].reverse().find((e) => e.kind === 'spell_cast');
+      return { outcome, entryId: entry?.id ?? '' };
+    };
+    const use = (entryId: string, targetTokenIds: string[], extra: { part?: number; damageType?: 'fire' | 'cold'; advantage?: boolean } = {}, who = ANA.playerId) =>
+      session.handle(who, {
+        kind: 'spell.effect',
+        data: {
+          entryId,
+          part: extra.part ?? 0,
+          targetTokenIds,
+          ...(extra.damageType ? { damageType: extra.damageType } : {}),
+          ...(extra.advantage !== undefined ? { advantage: extra.advantage } : {}),
+        },
+      });
+    return { session, id, cast, use, goblin1: token('Goblin 1'), goblin2: token('Goblin 2') };
+  }
+
+  it('the cast records the caster DC, attack bonus and the parts at the slot and character level', () => {
+    const a = arena([10]);
+    const { entryId } = a.cast('fire_bolt', 'free');
+    const entry = a.session.state.chat.find((e) => e.id === entryId);
+    // Nível 7: o truque rola 2d10.
+    expect(entry).toMatchObject({
+      kind: 'spell_cast',
+      effect: { spellId: 'fire_bolt', ability: 'int', saveDc: 15, attackBonus: 7, parts: [{ kind: 'attack', attackKind: 'ranged', count: 1, damage: [{ dice: '2d10', type: 'fire' }] }] },
+    });
+    a.cast('fireball', { slot: { level: 4 } });
+    expect(a.session.state.chat.at(-1)).toMatchObject({ effect: { parts: [{ kind: 'save', ability: 'dex', onSuccess: 'half', damage: [{ dice: '9d6', type: 'fire' }] }] } });
+    a.cast('light', 'free');
+    expect(a.session.state.chat.at(-1)).not.toHaveProperty('effect');
+    expect(SessionStateSchema.safeParse(a.session.state).success).toBe(true);
+  });
+
+  it('a spell attack rolls against the AC and proposes the damage; an instantaneous part is used once', () => {
+    // d20 = 10 (+7 = 17 contra CA 15); 2d10 = 6 + 4.
+    const a = arena([10, 6, 4]);
+    const { entryId } = a.cast('fire_bolt', 'free');
+    expect(applied(a.use(entryId, [a.goblin1]))).toBe(true);
+    const attack = a.session.state.chat.at(-1);
+    expect(attack).toMatchObject({ kind: 'attack_roll', attackerName: 'Elara', label: 'Fire Bolt', targetName: 'Goblin 1', total: 17, hit: true, spellOf: { entryId, part: 0 } });
+    if (attack?.kind !== 'attack_roll') throw new Error('sem ataque');
+    expect(attack.damage).toMatchObject({ total: 10, groups: [{ dice: '2d10', type: 'fire' }] });
+    expect(a.session.state.proposals[attack.damage?.proposalId ?? '']).toMatchObject({ targetTokenId: a.goblin1, amount: 10 });
+    expect(rejection(a.use(entryId, [a.goblin2]))).toBe('rule_violation');
+  });
+
+  it('Scorching Ray makes one attack per ray, at most the rays of the slot, repeating targets', () => {
+    const a = arena([15, 1, 1, 1, 1]);
+    const { entryId } = a.cast('scorching_ray', { slot: { level: 3 } });
+    const many = Array.from({ length: 5 }, () => a.goblin1);
+    expect(rejection(a.use(entryId, many))).toBe('rule_violation');
+    expect(applied(a.use(entryId, [a.goblin1, a.goblin1, a.goblin2]))).toBe(true);
+    const attacks = a.session.state.chat.flatMap((e) => (e.kind === 'attack_roll' ? [e.targetName] : []));
+    expect(attacks).toEqual(['Goblin 1', 'Goblin 1', 'Goblin 2']);
+  });
+
+  it('Fireball: one damage roll, a Dexterity save per target against the caster DC, half on a success', () => {
+    // 9d6 (espaço de 4º) = 9 × 3 = 27; Goblin 1 tira 5 (+2 = 7, falha), Goblin 2 tira 18 (+2 = 20, sucesso).
+    const a = arena([3, 3, 3, 3, 3, 3, 3, 3, 3, 5, 18]);
+    const { entryId } = a.cast('fireball', { slot: { level: 4 } });
+    expect(rejection(a.use(entryId, [a.goblin1, a.goblin1]))).toBe('rule_violation');
+    expect(rejection(a.use(entryId, [a.goblin1], { advantage: true }))).toBe('rule_violation');
+    expect(applied(a.use(entryId, [a.goblin1, a.goblin2]))).toBe(true);
+    const save = a.session.state.chat.at(-1);
+    expect(save).toMatchObject({ kind: 'save_roll', actorName: 'Elara', label: 'Fireball', ability: 'dex', dc: 15, spellOf: { entryId, part: 0 } });
+    if (save?.kind !== 'save_roll') throw new Error('sem salvaguarda');
+    expect(save.results.map((r) => [r.success, r.damage?.total])).toEqual([
+      [false, 27],
+      [true, 13],
+    ]);
+    expect(Object.values(a.session.state.proposals).map((p) => p.amount)).toEqual([27, 13]);
+  });
+
+  it('Magic Missile rolls each dart against its target, without attack or save', () => {
+    const a = arena([2, 3, 4]);
+    const { entryId } = a.cast('magic_missile', { slot: { level: 1 } });
+    expect(rejection(a.use(entryId, [a.goblin1, a.goblin1, a.goblin1, a.goblin2]))).toBe('rule_violation');
+    expect(applied(a.use(entryId, [a.goblin1, a.goblin1, a.goblin2]))).toBe(true);
+    const entry = a.session.state.chat.at(-1);
+    expect(entry).toMatchObject({ kind: 'spell_damage', casterName: 'Elara', label: 'Magic Missile', spellOf: { entryId, part: 0 } });
+    if (entry?.kind !== 'spell_damage') throw new Error('sem dano');
+    expect(entry.results.map((r) => [r.targetName, r.total])).toEqual([
+      ['Goblin 1', 3],
+      ['Goblin 1', 4],
+      ['Goblin 2', 5],
+    ]);
+    expect(Object.keys(a.session.state.proposals)).toHaveLength(3);
+    expect(SessionStateSchema.safeParse(a.session.state).success).toBe(true);
+  });
+
+  it('a damage type choice is required when the spell leaves it open, and a lasting spell can be used again', () => {
+    const a = arena([4, 4]);
+    const { entryId } = a.cast('fire_shield', { slot: { level: 4 } });
+    expect(rejection(a.use(entryId, [a.goblin1]))).toBe('rule_violation');
+    expect(applied(a.use(entryId, [a.goblin1], { damageType: 'cold' }))).toBe(true);
+    expect(a.session.state.chat.at(-1)).toMatchObject({ kind: 'spell_damage', label: 'Fire Shield: Retaliação', results: [{ groups: [{ type: 'cold' }] }] });
+    expect(applied(a.use(entryId, [a.goblin2], { damageType: 'cold' }))).toBe(true);
+  });
+
+  it('only the caster owner or the GM uses the spell, and a text-only spell has nothing to use', () => {
+    const a = arena([10, 1, 1]);
+    const { entryId } = a.cast('fire_bolt', 'free');
+    expect(rejection(a.use(entryId, [a.goblin1], {}, BRUNO.playerId))).toBe('not_allowed');
+    expect(applied(a.use(entryId, [a.goblin1], {}, GM.playerId))).toBe(true);
+    const light = a.cast('light', 'free');
+    expect(rejection(a.use(light.entryId, [a.goblin1]))).toBe('rule_violation');
+  });
+});

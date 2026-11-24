@@ -20,7 +20,7 @@ Levantamento das 339 magias:
 **Fase 7 em 4 PRs** (aprovada pelo usuário):
 
 1. Schema, motor e curadoria das magias de dano (este PR).
-2. "Conjurar" com alvos: o Host rola o ataque ou as salvaguardas pela magia estruturada, e o dano vira proposta para o mestre, como nos ataques e salvaguardas da Fase 4.
+2. "Conjurar" com alvos: o Host rola o ataque ou as salvaguardas pela magia estruturada, e o dano vira proposta para o mestre, como nos ataques e salvaguardas da Fase 4 (nota 0055).
 3. Cura e salvaguardas que só aplicam condição. A cura entra direto nos PV do alvo (decisão do usuário: é benéfica, quem rola é o Host e o mestre ainda corrige os PV). A condição de uma magia com Concentração cai junto com ela (Hold Person).
 4. Bônus e penalidades temporários (Bless, Shield of Faith, Mage Armor, Bane, Haste) como efeitos ligados à duração ou à Concentração.
 
