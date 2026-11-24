@@ -4,6 +4,7 @@ import type { GameMap } from '../../../shared/protocol';
 import { conditionLabels, timedEffectLabels, tokenConditions } from '../canvas/conditions';
 import { tokenHealth } from '../canvas/health';
 import type { MapStageHandle } from '../canvas/MapStage';
+import { DEFAULT_RULER_OPTIONS, type RulerOptions } from '../canvas/ruler';
 import {
   DEFAULT_INTERIOR_DEPTH_FEET,
   gridFromMapDocument,
@@ -20,6 +21,7 @@ import { cameraTargetToWorld2d } from '../canvas3d/render/tokenGeometry3d';
 import { TokenRenderer3d } from '../canvas3d/render/tokenRenderer3d';
 import { METERS_PER_FOOT } from '../canvas3d/terrain/constants';
 import { sendIntent } from '../store/table';
+import { RulerOptionsBar } from './RulerControls';
 
 /**
  * Visualização 3D da mesa (somente leitura do terreno): usada por jogadores e
@@ -61,6 +63,7 @@ export function Map3DView({ view, map, maxima, selectedId, onSelect, onStage, is
   const [camMode, setCamMode] = useState<CameraViewMode>('perspective');
   const [gridVisible, setGridVisible] = useState(true);
   const [rulerActive, setRulerActive] = useState(false);
+  const [rulerOptions, setRulerOptions] = useState<RulerOptions>({ ...DEFAULT_RULER_OPTIONS });
 
   const latest = useRef({ onSelect, onStage });
   useLayoutEffect(() => {
@@ -243,6 +246,10 @@ export function Map3DView({ view, map, maxima, selectedId, onSelect, onStage, is
   }, [viewer, rulerActive]);
 
   useEffect(() => {
+    viewer?.ruler3d.setOptions(rulerOptions);
+  }, [viewer, rulerOptions]);
+
+  useEffect(() => {
     const onKeyDown = (e: KeyboardEvent): void => {
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
@@ -322,7 +329,7 @@ export function Map3DView({ view, map, maxima, selectedId, onSelect, onStage, is
           type="button"
           className={rulerActive ? 'active' : ''}
           aria-pressed={rulerActive}
-          title="Medir distância em pés (R)"
+          title="Medir distância ou área de impacto (R)"
           onClick={() => {
             setRulerActive((prev) => !prev);
           }}
@@ -347,6 +354,7 @@ export function Map3DView({ view, map, maxima, selectedId, onSelect, onStage, is
           </button>
         )}
       </div>
+      {rulerActive && <RulerOptionsBar options={rulerOptions} onChange={setRulerOptions} />}
       {loading && <p className="map-empty hint">Carregando mapa 3D…</p>}
       {error && (
         <p className="map-error error" role="alert">

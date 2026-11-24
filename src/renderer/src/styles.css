@@ -460,6 +460,45 @@ button.link.danger:focus-visible {
   background: #2d6a4f;
 }
 
+.ruler-popover {
+  position: absolute;
+  top: 3.45rem;
+  right: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.28rem 0.45rem;
+  border-radius: 8px;
+  background: rgba(15, 19, 26, 0.86);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(6px);
+  z-index: 5;
+}
+
+.ruler-popover button {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.76rem;
+  background: transparent;
+  color: var(--ink);
+  border: none;
+  cursor: pointer;
+}
+
+.ruler-popover button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ruler-popover button.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.ruler-hint {
+  font-size: 0.72rem;
+  color: var(--muted);
+  padding: 0 0.2rem;
+}
+
 /* Painel do mestre */
 
 .panel ul {

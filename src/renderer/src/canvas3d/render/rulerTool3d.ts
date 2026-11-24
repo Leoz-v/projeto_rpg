@@ -1,4 +1,10 @@
-import { formatRulerLabel, measureRuler } from '../../canvas/ruler';
+import {
+  DEFAULT_RULER_OPTIONS,
+  formatRulerLabel,
+  measureRulerPath,
+  measureRulerRadius,
+  type RulerOptions,
+} from '../../canvas/ruler';
 import { heightUnitsToFeet, METERS_PER_HEIGHT_UNIT, TILE_SIZE_METERS } from '../terrain/constants';
 import { pickTerrain, type TerrainPickHit } from '../terrain/raycast';
 import type { TerrainGrid } from '../terrain/terrainGrid';
@@ -7,9 +13,9 @@ import type { TerrainRenderer } from './terrainRenderer';
 
 /**
  * Ferramenta local de régua para a visualização 3D da mesa (`Map3DView`).
- * Usa a mesma regra de distância do motor (`rules-engine/space`) via
- * `measureRuler`/`formatRulerLabel`, desenhando a linha 3D no terreno e
- * projetando o rótulo em pés no HUD 2D a cada quadro.
+ * Usa a mesma regra de distância do motor (`rules-engine/space`), suportando
+ * trajetos com curvas (`Shift`), área circular de impacto (`Raio`) e unidades
+ * em pés (`ft`) ou metros (`m`).
  */
 
 interface RulerEndpoint3d {
@@ -38,9 +44,9 @@ function endpointFromHit(grid: TerrainGrid, hit: TerrainPickHit): RulerEndpoint3
 export class RulerTool3d {
   private readonly eventAbort = new AbortController();
   private active = false;
+  private options: RulerOptions = { ...DEFAULT_RULER_OPTIONS };
   private dragging = false;
-  private start: RulerEndpoint3d | null = null;
-  private end: RulerEndpoint3d | null = null;
+  private points: RulerEndpoint3d[] = [];
   private label = '';
   private destroyed = false;
 
@@ -60,22 +66,34 @@ export class RulerTool3d {
     if (!active) this.clear();
   }
 
+  setOptions(options: RulerOptions): void {
+    if (this.destroyed) return;
+    const shapeChanged = this.options.shape !== options.shape;
+    this.options = { ...options };
+    if (shapeChanged) {
+      this.clear();
+    } else if (this.points.length >= 2) {
+      this.render();
+    }
+  }
+
   clear(): void {
     this.dragging = false;
-    this.start = null;
-    this.end = null;
+    this.points = [];
     this.label = '';
-    this.surfaceRenderer.setRulerLine(null, null);
+    this.surfaceRenderer.setRulerPath(null);
     this.sceneMgr.setRulerLabel(null, '');
   }
 
   /** Mantém o rótulo 2D alinhado ao ponto médio 3D enquanto a câmera orbita ou faz zoom. */
   tick(): void {
-    if (!this.start || !this.end || !this.label) return;
+    if (this.points.length < 2 || !this.label) return;
+    const prev = this.points[this.points.length - 2]!;
+    const curr = this.points[this.points.length - 1]!;
     const mid = {
-      x: (this.start.x + this.end.x) * 0.5,
-      y: Math.max(this.start.y, this.end.y) + 0.75,
-      z: (this.start.z + this.end.z) * 0.5,
+      x: (prev.x + curr.x) * 0.5,
+      y: Math.max(prev.y, curr.y) + 0.75,
+      z: (prev.z + curr.z) * 0.5,
     };
     this.sceneMgr.setRulerLabel(mid, this.label);
   }
@@ -87,16 +105,35 @@ export class RulerTool3d {
     this.clear();
   }
 
-  private updateFromEnd(end: RulerEndpoint3d): void {
-    if (!this.start) return;
-    this.end = end;
-    this.surfaceRenderer.setRulerLine(this.start, end);
-    const measurement = measureRuler(
-      { x: this.start.tx, y: this.start.tz },
-      { x: end.tx, y: end.tz },
-      heightUnitsToFeet(end.hUnits - this.start.hUnits),
-    );
-    this.label = formatRulerLabel(measurement);
+  private render(): void {
+    if (this.points.length < 2) {
+      this.clear();
+      return;
+    }
+
+    const first = this.points[0]!;
+    const last = this.points[this.points.length - 1]!;
+    const elevDeltaFeet = heightUnitsToFeet(last.hUnits - first.hUnits);
+
+    if (this.options.shape === 'radius') {
+      const measurement = measureRulerRadius(
+        { x: first.tx, y: first.tz },
+        { x: last.tx, y: last.tz },
+        elevDeltaFeet,
+      );
+      const radiusMeters =
+        measurement.squares > 0 ? measurement.squares * TILE_SIZE_METERS : TILE_SIZE_METERS * 0.5;
+      this.surfaceRenderer.setRulerRadius(first, last, radiusMeters);
+      this.label = formatRulerLabel(measurement, this.options.unit);
+    } else {
+      const measurement = measureRulerPath(
+        this.points.map((p) => ({ x: p.tx, y: p.tz })),
+        elevDeltaFeet,
+      );
+      this.surfaceRenderer.setRulerPath(this.points);
+      this.label = formatRulerLabel(measurement, this.options.unit);
+    }
+
     this.tick();
   }
 
@@ -114,9 +151,13 @@ export class RulerTool3d {
         e.stopImmediatePropagation();
         e.preventDefault();
         const pt = endpointFromHit(this.grid, hit);
-        this.start = pt;
+        if (this.options.shape === 'line' && e.shiftKey && this.points.length >= 2) {
+          this.points = [...this.points, pt];
+        } else {
+          this.points = [pt, pt];
+        }
         this.dragging = true;
-        this.updateFromEnd(pt);
+        this.render();
       },
       { capture: true, signal },
     );
@@ -124,13 +165,15 @@ export class RulerTool3d {
     canvas.addEventListener(
       'pointermove',
       (e) => {
-        if (!this.active || !this.dragging || !this.start) return;
+        if (!this.active || !this.dragging || this.points.length < 2) return;
         e.stopImmediatePropagation();
         const ray = this.sceneMgr.clientPointToRay(e.clientX, e.clientY);
         const hit = pickTerrain(this.grid, ray);
         if (!hit) return;
-        if (this.end && hit.tileX === this.end.tx && hit.tileZ === this.end.tz) return;
-        this.updateFromEnd(endpointFromHit(this.grid, hit));
+        const last = this.points[this.points.length - 1]!;
+        if (hit.tileX === last.tx && hit.tileZ === last.tz) return;
+        this.points = [...this.points.slice(0, -1), endpointFromHit(this.grid, hit)];
+        this.render();
       },
       { capture: true, signal },
     );
