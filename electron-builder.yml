@@ -12,6 +12,8 @@ asarUnpack:
 win:
   target: nsis
 nsis:
+  # Sem espaços: o mesmo nome no GitHub e no latest.yml do electron-updater.
+  artifactName: VTT-Setup-${version}.${ext}
   oneClick: false
   allowToChangeInstallationDirectory: true
 linux:
@@ -21,5 +23,10 @@ mac:
   target: dmg
   category: public.app-category.role-playing-games
 npmRebuild: true
+# Releases no GitHub (nota 0048): o workflow `release.yml` publica como rascunho;
+# o dono do repositório confere e publica, e só então o `electron-updater` a enxerga.
 publish:
   provider: github
+  owner: Leoz-v
+  repo: projeto_rpg
+  releaseType: draft

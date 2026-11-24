@@ -24,6 +24,20 @@ Valeu por ajudar! O objetivo do projeto é um VTT **sólido e previsível**: pou
 - **TypeScript estrito:** sem `any` e sem `@ts-ignore`.
 - Toda regra, condição, maestria ou efeito novo vem **com teste**.
 
+## Como sai uma versão nova
+
+Só o dono do repositório cria releases.
+
+1. Num PR, suba a `version` do `package.json` (SemVer: `0.2.0` → `0.3.0` para funcionalidades, `0.2.1` para correções) e mergeie.
+2. Na `main` atualizada, crie e envie a tag com o mesmo número:
+
+   ```bash
+   git tag v0.3.0 && git push origin v0.3.0
+   ```
+
+3. O workflow `Release` confere que a tag bate com o `package.json`, roda as verificações e sobe os instaladores (Windows, Linux, Mac) para um **rascunho** de release.
+4. Confira o rascunho no GitHub (arquivos, notas da versão) e publique. Só então os apps do grupo baixam a versão nova, que é instalada quando cada um fecha o app. No Mac, a atualização é manual.
+
 ## Licença das contribuições
 
 Ao contribuir, você concorda que o seu código entra no projeto sob a [licença MIT](LICENSE), a mesma do resto do código. Conteúdo do SRD continua sob CC-BY 4.0 (ver [`NOTICE`](NOTICE)); homebrew do grupo que for para o repositório entra sob a MIT.

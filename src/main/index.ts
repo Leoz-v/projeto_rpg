@@ -1,6 +1,7 @@
 import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { app, BrowserWindow, dialog, ipcMain, protocol, shell } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import { type Compendium, inventoryEntryProblems, loadSrdCompendium, pruneSelections, RULES_ENGINE_VERSION } from 'rules-engine';
 import { z } from 'zod';
 import { type AppInfo, IpcChannel, type IpcResult, type TableEvent } from '../shared/ipc';
@@ -13,6 +14,7 @@ import { monsterActions, searchItems, searchMonsters } from './compendium';
 import { AppDb, CampaignLibrary, CampaignNotFoundError } from './db';
 import { cryptoRng } from './session';
 import { localAddresses, TableController, TableError } from './table';
+import { UpdateError, UpdateService } from './updater/update-service';
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -65,7 +67,7 @@ function handle<T>(channel: string, run: (payload: unknown) => T | Promise<T>): 
       return { ok: true, value: await run(payload) };
     } catch (err: unknown) {
       if (err instanceof InvalidPayload) return { ok: false, error: { code: 'invalid_payload', message: err.message } };
-      if (err instanceof TableError || err instanceof AssetError || err instanceof CampaignNotFoundError) return { ok: false, error: { code: 'table_error', message: err.message } };
+      if (err instanceof TableError || err instanceof AssetError || err instanceof CampaignNotFoundError || err instanceof UpdateError) return { ok: false, error: { code: 'table_error', message: err.message } };
       console.error(`[ipc ${channel}]`, err);
       return { ok: false, error: { code: 'internal_error', message: 'Erro interno' } };
     }
@@ -84,6 +86,29 @@ const monsterExists = (id: string): boolean => {
 const emit = (event: TableEvent): void => {
   for (const win of BrowserWindow.getAllWindows()) win.webContents.send(IpcChannel.tableEvent, event);
 };
+
+/**
+ * Atualização automática pelo GitHub Releases (nota 0048). Só no app empacotado;
+ * no Mac, sem assinatura, o `electron-updater` não instala: o jogador baixa à mão.
+ */
+function createUpdateService(controller: TableController): UpdateService {
+  const unavailableReason = !app.isPackaged
+    ? 'Versão de desenvolvimento: sem atualização automática'
+    : process.platform === 'darwin'
+      ? 'No Mac, baixe as versões novas na página de releases do GitHub'
+      : undefined;
+  return new UpdateService({
+    updater: unavailableReason === undefined ? autoUpdater : undefined,
+    ...(unavailableReason !== undefined ? { unavailableReason } : {}),
+    emit: (status) => {
+      for (const win of BrowserWindow.getAllWindows()) win.webContents.send(IpcChannel.updateEvent, status);
+    },
+    atTable: () => controller.view() !== null,
+    log: (message) => {
+      console.error(`[atualização] ${message}`);
+    },
+  });
+}
 
 /** O mestre escolhe uma imagem no disco; ela entra no armazenamento pelo hash. `null` se cancelou. */
 async function importAsset(assets: AssetStore): Promise<StoredAsset | null> {
@@ -197,6 +222,13 @@ void app.whenReady().then(() => {
   table = controller;
   protocol.handle(ASSET_SCHEME, (request) => assetResponse(request, (sha) => controller.asset(sha)));
   registerIpc(appDb, controller, library, assets);
+  const updates = createUpdateService(controller);
+  handle(IpcChannel.getUpdateStatus, () => updates.status);
+  handle(IpcChannel.installUpdate, () => {
+    updates.installNow();
+    return null;
+  });
+  updates.start();
   app.on('will-quit', () => {
     appDb.close();
   });
