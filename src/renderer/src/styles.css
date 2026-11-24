@@ -1933,3 +1933,37 @@ button.small {
 .concentration button.link {
   margin-left: 0.5rem;
 }
+
+/* Sobre (nota 0046) */
+
+.table-header .about-button {
+  margin-left: auto;
+}
+
+.table-header .about-button + button {
+  margin-left: 0;
+}
+
+.modal-dialog.about-dialog {
+  height: auto;
+  max-height: min(88vh, 760px);
+  width: min(92vw, 640px);
+}
+
+.about-body {
+  padding: 1rem 1.25rem 1.25rem;
+  overflow-y: auto;
+}
+
+.about-body h3 {
+  margin: 1.25rem 0 0.4rem;
+  font-size: 1rem;
+}
+
+.about-body blockquote {
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--accent);
+  background: var(--bg);
+  overflow-wrap: anywhere;
+}

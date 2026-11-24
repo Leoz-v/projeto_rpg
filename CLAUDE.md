@@ -66,7 +66,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 - **Cópia offline (complemento, adiada; nota 0034):** cada jogador mantém cópia local do personagem (lista de escolhas + inventário).
   - **Lista de escolhas** (construção do personagem): fora da sessão o jogador pode editar (ex.: subir de nível entre sessões); ao reconectar, o Host compara o hash e exibe o *diff* das escolhas para o mestre aprovar ou rejeitar antes de aplicar.
   - **Inventário:** durante a sessão é alterado só via `Intent` ao Host. Fora da sessão é somente leitura no cliente (o Host é a fonte da verdade e reenvia o inventário ao reconectar).
-- **Distribuição e atualização automática:** GitHub Actions gera os builds (Windows, Linux AppImage e Mac) com electron-builder a cada tag e publica no GitHub Releases; o app atualiza via **`electron-updater`**.
+- **Distribuição e atualização automática (planejada, `docs/revisao-2026-11.md`):** GitHub Actions gera os builds (Windows, Linux AppImage e Mac) com electron-builder a cada tag e publica no GitHub Releases; o app atualiza via **`electron-updater`**. Hoje ainda não existe: o instalador é gerado à mão com `pnpm build`.
   - Integridade garantida pelo hash `sha512` dos artefatos (`latest.yml`) e pelo controle do repositório. O binário **não** usa certificado pago de code signing, então:
     - **Windows:** aviso do SmartScreen na instalação inicial é esperado.
     - **Mac:** a atualização automática exige app assinado; sem assinatura, usuários de Mac atualizam manualmente baixando a release.
@@ -91,7 +91,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 │   │   ├── table/           # Mesa deste app: hospedar ou entrar, ponte entre IPC, sessão e rede
 │   │   ├── db/              # Conexões SQLite (app.db e campaign.db) e migrações
 │   │   ├── assets/          # Hash SHA-256, cache local e protocolo vtt-asset://
-│   │   └── updater/         # electron-updater
+│   │   └── updater/         # electron-updater (a criar)
 │   ├── preload/             # contextBridge: API de IPC tipada (index.d.ts tipa window.vtt)
 │   ├── renderer/            # React + PixiJS
 │   │   ├── index.html       # Entrada do renderer (CSP definida aqui)
@@ -115,7 +115,8 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 
 ## Regras e Conteúdo (D&D 2024 / SRD 5.2.1)
 
-- **Base:** **SRD 5.2.1** (regras de D&D 2024, licença CC-BY 4.0). O compêndio do SRD vem embutido no app, com a atribuição exigida pela CC-BY 4.0 visível na tela "Sobre".
+- **Base:** **SRD 5.2.1** (regras de D&D 2024, licença CC-BY 4.0). O compêndio do SRD vem embutido no app, com a atribuição exigida pela CC-BY 4.0 visível na tela "Sobre" (`components/About.tsx`) e no `NOTICE`.
+- **Licenças (nota 0046):** código sob **MIT** (`LICENSE`); o conteúdo do SRD (`srd/data/`, `srd-source/`) continua sob CC-BY 4.0. Textos para o público dizem "compatível com a 5ª edição / SRD 5.2.1": a licença do SRD não cobre as marcas da Wizards of the Coast.
 - **Nunca** incluir conteúdo de livros oficiais fora do SRD. Conteúdo adicional é homebrew criado pelo grupo.
 - **Modelagem específica de D&D 2024:**
   - Antecedentes (*Backgrounds*) concedem os aumentos de atributo (ASI) e um Talento de Origem (*Origin Feat*); Espécies não concedem ASI.
@@ -188,7 +189,14 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - ✅ Salvaguardas contra a Morte (`death.set`, `PROTOCOL_VERSION = 15`, `<campanha>.db` v9, `engine/death.ts`): cair a 0 PV deixa Inconsciente, o Host rola a salvaguarda no início do turno (fora do combate, pela ficha), conta sucessos e falhas (crítico com 0 PV, duas), Estável, morte (inclusive por dano massivo e Exaustão 6), e o mestre estabiliza ou revive. Ver `docs/decisions/0044-salvaguardas-contra-a-morte.md`.
    - ✅ Concentração (`concentration.set`/`end`, `PROTOCOL_VERSION = 16`, `<campanha>.db` v10): o personagem marca na ficha a magia mantida; o Host rola a salvaguarda de CON ao sofrer dano (CD 10 ou metade do dano, Eldritch Mind com Vantagem) e encerra na falha, ao ficar Incapacitado ou ao morrer; Relentless Hunter com `keep_concentration`. A fila `phase_5` do backlog ficou vazia. Ver `docs/decisions/0045-concentracao.md`.
 
-*Extras futuros:* criação de token a partir de imagem com recorte/moldura automáticos, spawn de vários inimigos de uma vez (a numeração Goblin 1, Goblin 2… já existe, um por vez), colar texto de ficha de monstro e converter para o schema.
+**Revisão geral (novembro de 2026):** antes de abrir o repositório, uma revisão de tudo o que foi feito; plano completo e situação de cada item em `docs/revisao-2026-11.md`:
+   - Preparar para público: licença MIT, `NOTICE`, tela "Sobre" com a atribuição do SRD, `README` (nota 0046).
+   - Chat: snapshot limitado e histórico sob demanda (hoje o snapshot leva o chat inteiro e passa de 1 MB em algumas sessões), patches para a tela.
+   - Release pelo GitHub Actions e atualização automática.
+   - Dividir o executor de sessão por área.
+6. **Fase 6 — Recursos e descansos** (a detalhar): descansos curto e longo, espaços de magia, recursos de classe e conjurar magia.
+
+*Extras futuros:* ferramentas de mapa (régua, tokens ocultos, névoa, indicação de morto), ações de monstro com Multiattack e magias, exportar e abrir campanha de arquivo, criação de token a partir de imagem com recorte/moldura automáticos, spawn de vários inimigos de uma vez (a numeração Goblin 1, Goblin 2… já existe, um por vez), colar texto de ficha de monstro e converter para o schema.
 
 ## Comandos
 
@@ -221,7 +229,7 @@ pnpm build
 - **TypeScript estrito** (`strict: true`, `noUncheckedIndexedAccess: true`) em todo o projeto. Proibido usar `any` ou `@ts-ignore`.
 - **Idioma:** interface em português (`pt-BR`); código, identificadores, schemas e commits em inglês.
 - **Linguagens:** o código do app é só TypeScript. Ferramentas de desenvolvimento fora do build (ex.: importação do SRD em `srd-source/tools/`) podem usar Python (nota 0008).
-- **Colaboração:** o projeto tem vários contribuidores (ver `CONTRIBUTING.md`). Commits no estilo `feat:`/`fix:`/`docs:`/`test:`/`refactor:`/`chore:`, uma branch por mudança e PR para a `main`. Fins de linha normalizados em LF (`.gitattributes`).
+- **Colaboração:** o projeto tem vários contribuidores (ver `CONTRIBUTING.md`). Commits no estilo `feat:`/`fix:`/`docs:`/`test:`/`refactor:`/`chore:`, uma branch por mudança e PR para a `main`. Fins de linha normalizados em LF (`.gitattributes`). Contribuições entram sob a licença MIT.
 - **Fronteira inviolável do motor:** nunca importar `react`, `pixi.js`, `electron` ou módulos `node:*` dentro de `packages/rules-engine`. Nunca implementar regras de D&D fora dele.
 - **Fronteira dos processos:** o renderer nunca importa `electron` nem módulos do Node; tudo passa pela API exposta no preload. SQLite, sistema de arquivos e rede só no processo main.
 - **Sem mutação direta no cliente:** componentes React nunca alteram estado da campanha diretamente; sempre despacham uma `Intent`.

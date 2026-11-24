@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import type { TableView } from '../../../shared/ipc';
 import { leaveTable } from '../store/table';
+import { AboutButton } from './About';
 import type { MapStage } from '../canvas/MapStage';
 import { CharacterSheet } from './CharacterSheet';
 import { Characters } from './Characters';
@@ -101,6 +102,7 @@ export function TableScreen({ view }: { view: TableView }) {
       <header className="table-header">
         <h1>{view.state.campaign.name}</h1>
         <span className="tag">{view.info.role === 'gm' ? 'Mestre' : 'Jogador'}</span>
+        <AboutButton className="secondary about-button" />
         <button type="button" onClick={() => void leave()} disabled={leaving}>
           {isHost ? 'Encerrar mesa' : 'Sair da mesa'}
         </button>

@@ -2,7 +2,8 @@
   "name": "rules-engine",
   "version": "0.1.0",
   "private": true,
-  "description": "Motor de regras de D&D 2024 (SRD 5.2.1): schemas, ficha derivada e resolução de efeitos. TypeScript puro.",
+  "description": "Motor de regras da 5ª edição (SRD 5.2.1): schemas, ficha derivada e resolução de efeitos. TypeScript puro.",
+  "license": "MIT AND CC-BY-4.0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
