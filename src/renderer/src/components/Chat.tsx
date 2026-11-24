@@ -5,6 +5,7 @@ import { CHAT_HELP, parseChatInput } from './chat-command';
 import { type RollPart, rollParts } from './roll-parts';
 import { AttackRollBody, D20RollBody, DamageAppliedBody, DamageRollBody, MasteryDamageBody, SaveRollBody } from './SheetRollEntries';
 import { CONDITION_LABEL } from './sheet-labels';
+import { DeathSaveBody, DeathStateBody } from './DeathSaves';
 
 /** Log da sessão (mensagens e rolagens) e campo de envio. */
 
@@ -167,6 +168,10 @@ function Entry({ entry, author, context }: { entry: ChatEntry; author: string; c
         </li>
       );
     }
+    case 'death_save':
+      return <DeathSaveBody entry={entry} header={header} />;
+    case 'death_state':
+      return <DeathStateBody entry={entry} header={header} />;
     case 'turn_trigger': {
       const moment = { initiative: 'Iniciativa', turn_start: 'Início do turno', turn_end: 'Fim do turno' }[entry.on];
       return (

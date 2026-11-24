@@ -23,7 +23,15 @@ import {
   distanceFeet,
   effectiveConditions,
   expiresAt,
+  deathAfterDamage,
+  deathAfterHealing,
+  type DeathSaveState,
   grazeDamage,
+  type HitPointChange,
+  type HitPointResult,
+  isDying,
+  resolveDeathSave,
+  NO_DEATH_SAVES,
   isBloodied,
   MASTERY_NAME,
   masteryOutcome,
@@ -290,8 +298,26 @@ export class HostSession {
         if (index < 0) throw violation('Ajuste não encontrado');
         return [{ op: 'remove', path: toPointer('characters', character.id, 'adjustments', String(index)) }];
       }
-      case 'roll.d20':
+      case 'roll.d20': {
+        // Salvaguarda contra a Morte de quem está morrendo conta (fora do combate; no combate, o Host rola no início do turno).
+        if (intent.data.target.kind === 'death_save') {
+          const { character, sheet } = this.sheetOf(playerId, role, intent.data.characterId);
+          if (isDying(currentHitPoints(sheet.hpMax.total, character.hp), character.deathSaves)) {
+            if (this.inCombat(character.id)) throw violation('No combate, o Host rola a Salvaguarda contra a Morte no início do turno');
+            return this.rollDeathSave(playerId, this.current, character.id);
+          }
+        }
         return [this.appendChat(this.rollFromSheet(playerId, role, intent.data))];
+      }
+      case 'death.set': {
+        this.requireGm(role);
+        const character = this.current.characters[intent.data.characterId];
+        if (!character) throw violation('Personagem não encontrado');
+        return [
+          { op: 'replace', path: toPointer('characters', character.id, 'deathSaves'), value: intent.data.deathSaves },
+          this.deathStateEntry(playerId, character, 'gm', intent.data.deathSaves, ['Ajuste do mestre']),
+        ];
+      }
       case 'roll.damage':
         return [this.appendChat(this.rollDamage(playerId, role, intent.data))];
       case 'attack.make':
@@ -456,7 +482,7 @@ export class HostSession {
       this.requireGm(role);
       if (this.current.players[ownerId] === undefined) throw violation('Dono do personagem não está na mesa');
     }
-    const character: SessionCharacter = { id: this.deps.newId(), ownerId, name: data.name, baseScores: null, rolledScores: null, steps: [], inventory: EMPTY_INVENTORY, hp: { damage: 0, temp: 0 }, adjustments: [], conditions: NO_CONDITIONS };
+    const character: SessionCharacter = { id: this.deps.newId(), ownerId, name: data.name, baseScores: null, rolledScores: null, steps: [], inventory: EMPTY_INVENTORY, hp: { damage: 0, temp: 0 }, adjustments: [], conditions: NO_CONDITIONS, deathSaves: NO_DEATH_SAVES };
     return [{ op: 'add', path: toPointer('characters', character.id), value: character }];
   }
 
@@ -596,8 +622,7 @@ export class HostSession {
       const character = this.ownCharacter(playerId, role, data.target.characterId);
       const max = this.deps.characterSheet(character)?.hpMax.total;
       if (max === undefined) throw violation('O personagem ainda não tem ficha (defina os atributos)');
-      const result = applyHitPointChange(max, character.hp, { kind: change.kind, amount: change.amount });
-      return [{ op: 'replace', path: toPointer('characters', character.id, 'hp'), value: result.state }];
+      return this.changeCharacterHp(playerId, character, max, { kind: change.kind, amount: change.amount }).ops;
     }
     const token = this.token(data.target.tokenId);
     if (role !== 'gm' && !token.ownerIds.includes(playerId)) throw notAllowed('Você não controla este token');
@@ -682,10 +707,18 @@ export class HostSession {
         change = { kind: 'removed', condition };
       }
     }
-    return [
+    const ops: PatchOp[] = [
       { op: 'replace', path: holder.path, value: state },
       this.appendChat({ kind: 'condition_changed', ...this.entryBase(playerId), target: holder.logTarget, targetName: holder.name, change, notes }),
     ];
+    // Exaustão 6 mata: no personagem, o estado das Salvaguardas contra a Morte registra a morte.
+    const character = 'characterId' in holder.logTarget ? this.current.characters[holder.logTarget.characterId] : undefined;
+    if (character && change.kind === 'exhaustion' && change.to >= MAX_EXHAUSTION_LEVEL && !character.deathSaves.dead) {
+      const deathSaves = { ...character.deathSaves, dead: true };
+      ops.push({ op: 'replace', path: toPointer('characters', character.id, 'deathSaves'), value: deathSaves });
+      ops.push(this.deathStateEntry(playerId, character, 'exhaustion', deathSaves, [`Exaustão ${MAX_EXHAUSTION_LEVEL}: morto`]));
+    }
+    return ops;
   }
 
   /** Duração até o início ou o fim do próximo turno do combatente (precisa de combate com ele). */
@@ -726,7 +759,7 @@ export class HostSession {
       natural: result.natural,
       modifier: roll.input.modifier,
       total: result.total,
-      // Crítico e falha crítica só existem na jogada de ataque (o 20 da Salvaguarda contra a Morte é da Fase 5).
+      // Crítico e falha crítica só existem na jogada de ataque (o 20 e o 1 da Salvaguarda contra a Morte valem no `death_save`, nota 0044).
       critical: target.kind === 'attack' && result.critical,
       fumble: target.kind === 'attack' && result.fumble,
       parts: roll.parts.map((p) => ({ label: p.label.slice(0, 200), value: p.value })),
@@ -1051,7 +1084,7 @@ export class HostSession {
       this.appendChat({ kind: 'combat_event', ...this.entryBase(playerId), event: 'started', round: 1 }),
       this.appendChat({ kind: 'initiative_roll', ...this.entryBase(playerId), results: entry }),
       ...data.tokenIds.flatMap((tokenId) => this.triggers(playerId, this.current, 'initiative', tokenId)),
-      ...(first !== undefined ? this.triggers(playerId, this.current, 'turn_start', first) : []),
+      ...(first !== undefined ? this.turnStart(playerId, this.current, first) : []),
     ];
   }
 
@@ -1120,11 +1153,12 @@ export class HostSession {
     const expired = this.expire(combat, (until) => events.some((e) => expiresAt(until, e)), playerId);
     // Lembretes e cura com o estado depois das durações encerradas (nota 0043).
     const after = expired.ops.length > 0 ? applyPatch(this.current, expired.ops) : this.current;
+    const endOps = ended !== undefined ? this.triggers(playerId, after, 'turn_end', ended) : [];
     return [
       ...(position.newRound ? [this.appendChat({ kind: 'combat_event', ...this.entryBase(playerId), event: 'round', round: position.round })] : []),
       ...expired.ops,
-      ...(ended !== undefined ? this.triggers(playerId, after, 'turn_end', ended) : []),
-      ...(started !== undefined ? this.triggers(playerId, after, 'turn_start', started) : []),
+      ...endOps,
+      ...(started !== undefined ? this.turnStart(playerId, endOps.length > 0 ? applyPatch(after, endOps) : after, started) : []),
       this.replaceCombat({ ...combat, round: position.round, turn: position.turn, effects: expired.effects }),
     ];
   }
@@ -1143,7 +1177,8 @@ export class HostSession {
     const sheet = this.deps.characterSheet(character);
     if (!sheet) return [];
     const max = sheet.hpMax.total;
-    let hp = character.hp;
+    let current = character;
+    const healOps: PatchOp[] = [];
     const items: Extract<ChatEntry, { kind: 'turn_trigger' }>['items'] = [];
     for (const trigger of sheet.triggers) {
       if (trigger.on !== on) continue;
@@ -1152,17 +1187,158 @@ export class HostSession {
         continue;
       }
       // Heroic Rally: Sangrando e com pelo menos 1 PV (com 0 PV, a criatura está morrendo).
-      if (trigger.bloodiedOnly && (currentHitPoints(max, hp) < 1 || !isBloodied(max, hp))) continue;
-      const result = applyHitPointChange(max, hp, { kind: 'healing', amount: trigger.amount });
-      if (result.hpChange <= 0) continue;
-      hp = result.state;
-      items.push({ source: trigger.source.name.slice(0, 100), healed: result.hpChange });
+      if (current.deathSaves.dead) continue;
+      if (trigger.bloodiedOnly && (currentHitPoints(max, current.hp) < 1 || !isBloodied(max, current.hp))) continue;
+      const healed = this.changeCharacterHp(playerId, current, max, { kind: 'healing', amount: trigger.amount });
+      if (healed.result.hpChange <= 0) continue;
+      current = healed.after;
+      healOps.push(...healed.ops);
+      items.push({ source: trigger.source.name.slice(0, 100), healed: healed.result.hpChange });
     }
     if (items.length === 0) return [];
     return [
-      ...(hp !== character.hp ? [{ op: 'replace' as const, path: toPointer('characters', character.id, 'hp'), value: hp }] : []),
       this.appendChat({ kind: 'turn_trigger', ...this.entryBase(playerId), on, tokenId, name: token.name, items: items.slice(0, MAX_TURN_TRIGGER_ITEMS) }),
+      ...healOps,
     ];
+  }
+
+  // --- Salvaguardas contra a Morte (Fase 5, PR 5a; nota 0044) ---------------
+
+  /** Algum token do personagem está no combate. */
+  private inCombat(characterId: string): boolean {
+    const combat = this.current.combat;
+    return combat !== null && combat.combatants.some((c) => this.current.tokens[c.tokenId]?.characterId === characterId);
+  }
+
+  /**
+   * Início do turno do token: primeiro a Salvaguarda contra a Morte (se o
+   * personagem ligado está morrendo), depois os lembretes e a cura do turno,
+   * com o estado depois da rolagem.
+   */
+  private turnStart(playerId: string, state: SessionState, tokenId: string): PatchOp[] {
+    const token = state.tokens[tokenId];
+    const character = token && token.characterId !== null ? state.characters[token.characterId] : undefined;
+    const sheet = character ? this.deps.characterSheet(character) : undefined;
+    const dying = character !== undefined && sheet !== undefined && isDying(currentHitPoints(sheet.hpMax.total, character.hp), character.deathSaves);
+    const save = dying ? this.rollDeathSave(playerId, state, character.id) : [];
+    return [...save, ...this.triggers(playerId, save.length > 0 ? applyPatch(state, save) : state, 'turn_start', tokenId)];
+  }
+
+  /**
+   * O Host rola a Salvaguarda contra a Morte com a ficha (Vantagens, regras do
+   * d20, bônus de `save.all`) e aplica o resultado pelo motor: 20 recupera 1
+   * PV, 1 conta duas falhas, três sucessos estabilizam, três falhas matam.
+   */
+  private rollDeathSave(playerId: string, state: SessionState, characterId: string): PatchOp[] {
+    const character = state.characters[characterId];
+    const sheet = character ? this.deps.characterSheet(character) : undefined;
+    if (!character || !sheet) return [];
+    const roll = sheetD20(sheet, { kind: 'death_save' });
+    if (!roll) return [];
+    const result = rollD20(roll.input, this.deps.rng);
+    const resolved = resolveDeathSave(character.deathSaves, { total: result.total, natural1: result.fumble, natural20: result.critical });
+    const notes = [
+      ...(roll.advantage.length > 0 ? [`Vantagem: ${roll.advantage.join(', ')}`] : []),
+      ...(roll.disadvantage.length > 0 ? [`Desvantagem: ${roll.disadvantage.join(', ')}`] : []),
+      ...d20StepNotes(result.steps),
+    ];
+    let ops: PatchOp[];
+    let deathSaves = resolved.state;
+    if (resolved.outcome === 'revived') {
+      const healed = this.changeCharacterHp(playerId, character, sheet.hpMax.total, { kind: 'healing', amount: 1 }, false, false);
+      ops = healed.ops;
+      deathSaves = healed.after.deathSaves;
+      notes.push('20: recupera 1 PV');
+    } else {
+      ops = [{ op: 'replace', path: toPointer('characters', character.id, 'deathSaves'), value: deathSaves }];
+      if (resolved.outcome === 'two_failures') notes.push('1: duas falhas');
+      if (deathSaves.stable) notes.push('Três sucessos: Estável');
+      if (deathSaves.dead) notes.push('Três falhas: morto');
+    }
+    return [
+      this.appendChat({
+        kind: 'death_save',
+        ...this.entryBase(playerId),
+        characterId: character.id,
+        characterName: character.name,
+        mode: roll.input.mode,
+        dice: result.dice,
+        natural: result.natural,
+        modifier: roll.input.modifier,
+        total: result.total,
+        outcome: resolved.outcome,
+        deathSaves,
+        notes: notes.slice(0, 50),
+      }),
+      ...ops,
+    ];
+  }
+
+  private deathStateEntry(playerId: string, character: SessionCharacter, cause: Extract<ChatEntry, { kind: 'death_state' }>['cause'], deathSaves: DeathSaveState, notes: string[]): PatchOp {
+    return this.appendChat({ kind: 'death_state', ...this.entryBase(playerId), characterId: character.id, characterName: character.name, cause, deathSaves, notes });
+  }
+
+  /**
+   * Mudança de PV de um personagem com as regras de 0 PV (motor,
+   * `engine/death.ts`): cair a 0 deixa Inconsciente (dano massivo mata), dano
+   * com 0 PV conta falhas, recuperar PV zera a contagem e tira o Inconsciente.
+   * Um personagem morto não recupera PV. Devolve as operações (PV, condições,
+   * Salvaguardas contra a Morte e os registros no chat) e o personagem depois.
+   * `log: false` omite o `death_state` (quem chama já registra, como a rolagem).
+   */
+  private changeCharacterHp(
+    playerId: string,
+    character: SessionCharacter,
+    max: number,
+    change: HitPointChange,
+    critical = false,
+    log = true,
+  ): { ops: PatchOp[]; result: HitPointResult; after: SessionCharacter } {
+    if (change.kind === 'healing' && character.deathSaves.dead) throw violation(`${character.name} está morto: o mestre o revive antes de curar`);
+    const result = applyHitPointChange(max, character.hp, change);
+    let { conditions, deathSaves } = character;
+    const notes: string[] = [];
+    const hasUnconscious = conditions.active.some((c) => c.condition === 'unconscious');
+    let condition: { kind: 'added' | 'removed'; note: string } | undefined;
+    if (change.kind === 'damage') {
+      const death = deathAfterDamage(deathSaves, result, critical);
+      deathSaves = death.state;
+      if (death.event === 'unconscious' && !hasUnconscious) {
+        conditions = { ...conditions, active: [...conditions.active, { condition: 'unconscious' }] };
+        condition = { kind: 'added', note: 'Caiu a 0 PV' };
+      }
+      if (death.event === 'dead') notes.push(result.massiveDamage ? 'Dano massivo: morte instantânea' : 'Três falhas: morto');
+      if (death.event === 'failure') notes.push('Dano com 0 PV: uma falha');
+      if (death.event === 'two_failures') notes.push('Acerto Crítico com 0 PV: duas falhas');
+      if (character.deathSaves.stable && !deathSaves.stable) notes.push('Deixou de estar Estável');
+    } else if (change.kind === 'healing' && result.hpChange > 0 && currentHitPoints(max, character.hp) === 0) {
+      deathSaves = deathAfterHealing(deathSaves);
+      if (hasUnconscious) {
+        conditions = { ...conditions, active: conditions.active.filter((c) => c.condition !== 'unconscious') };
+        condition = { kind: 'removed', note: 'Recuperou PV' };
+      }
+      notes.push('Recuperou PV: contagem zerada');
+    }
+    const deathChanged = JSON.stringify(deathSaves) !== JSON.stringify(character.deathSaves);
+    const ops: PatchOp[] = [{ op: 'replace', path: toPointer('characters', character.id, 'hp'), value: result.state }];
+    if (condition) {
+      ops.push({ op: 'replace', path: toPointer('characters', character.id, 'conditions'), value: conditions });
+      ops.push(
+        this.appendChat({
+          kind: 'condition_changed',
+          ...this.entryBase(playerId),
+          target: { characterId: character.id },
+          targetName: character.name,
+          change: { kind: condition.kind, condition: 'unconscious' },
+          notes: [condition.note],
+        }),
+      );
+    }
+    if (deathChanged) {
+      ops.push({ op: 'replace', path: toPointer('characters', character.id, 'deathSaves'), value: deathSaves });
+      if (log && notes.length > 0) ops.push(this.deathStateEntry(playerId, character, change.kind === 'damage' ? 'damage' : 'healing', deathSaves, notes));
+    }
+    return { ops, result, after: { ...character, hp: result.state, conditions, deathSaves } };
   }
 
   /**
@@ -1338,8 +1514,10 @@ export class HostSession {
       const character = this.current.characters[token.characterId];
       const max = character ? this.deps.characterSheet(character)?.hpMax.total : undefined;
       if (!character || max === undefined) throw violation('O personagem do alvo ainda não tem ficha');
-      result = applyHitPointChange(max, character.hp, { kind: 'damage', amount });
-      ops = [{ op: 'replace', path: toPointer('characters', character.id, 'hp'), value: result.state }];
+      // Dano de um Acerto Crítico com 0 PV conta duas falhas.
+      const source = this.current.chat.find((e) => e.id === proposal.entryId);
+      const critical = source?.kind === 'attack_roll' && source.critical;
+      ({ result, ops } = this.changeCharacterHp(playerId, character, max, { kind: 'damage', amount }, critical));
     } else {
       if (!token.hp) throw violation('O alvo não tem PV (defina os PV máximos no painel)');
       result = applyHitPointChange(token.hp.max, token.hp, { kind: 'damage', amount });
@@ -1349,10 +1527,10 @@ export class HostSession {
       ...(result.absorbed > 0 ? [`${result.absorbed} absorvido(s) pelos PV temporários`] : []),
       ...(result.droppedToZero ? [`${token.name} caiu a 0 PV`] : []),
       ...(result.massiveDamage && token.characterId !== null ? ['Dano massivo: morte instantânea (SRD)'] : []),
-      ...(result.damagedAtZero ? ['Dano com 0 PV: falha na Salvaguarda contra a Morte (Fase 5)'] : []),
+      ...(result.damagedAtZero && token.characterId === null ? ['Dano com 0 PV'] : []),
     ];
+    // O registro do dano vem antes das consequências (Inconsciente, falhas, morte).
     return [
-      ...ops,
       { op: 'remove', path: toPointer('proposals', proposalId) },
       this.appendChat({
         kind: 'damage_applied',
@@ -1363,6 +1541,7 @@ export class HostSession {
         ...(override !== undefined && override !== proposal.amount ? { proposed: proposal.amount } : {}),
         notes,
       }),
+      ...ops,
     ];
   }
 

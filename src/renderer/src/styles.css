@@ -1845,3 +1845,59 @@ button.small {
 .turn-trigger-items li {
   overflow-wrap: anywhere;
 }
+
+/* Salvaguardas contra a Morte (nota 0044) */
+
+.death-saves {
+  border: 1px solid var(--error);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+}
+
+.death-saves p {
+  margin: 0 0 0.35rem;
+}
+
+.death-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.death-tally {
+  display: inline-flex;
+  gap: 0.6rem;
+  margin-left: 0.35rem;
+}
+
+.death-pips .pip {
+  color: var(--muted);
+  margin-right: 0.1rem;
+}
+
+.death-pips:first-child .pip.on {
+  color: var(--ok);
+}
+
+.death-pips:last-child .pip.on {
+  color: var(--error);
+}
+
+.tag.death-tag {
+  color: var(--error);
+  border-color: var(--error);
+}
+
+.tag.stable-tag {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+.entry.death-event {
+  border-left: 3px solid var(--ok);
+}
+
+.entry.death-event.bad {
+  border-left-color: var(--error);
+}
