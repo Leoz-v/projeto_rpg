@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "d56df8d3-26e7-3fc1-b780-c0408e51290b",
+  "key": "alderwatch.floor_slab",
+  "displayName": "Floor slab",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

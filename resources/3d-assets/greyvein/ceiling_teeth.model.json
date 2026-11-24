@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "e062eda3-1dff-3024-8350-a8491b07a329",
+  "key": "greyvein.ceiling_teeth",
+  "displayName": "Ceiling teeth",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

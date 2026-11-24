@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "816d027f-9a49-3cf2-8db3-a90bd7f6ba02",
+  "key": "dunmere_lower_ward.yard_well",
+  "displayName": "Yard well",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

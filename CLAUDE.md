@@ -37,7 +37,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 
 - **App desktop com Electron** (versão estável mais recente), tudo em **TypeScript estrito**. Build com **electron-vite**, empacotamento com **electron-builder**.
   - Motivo da escolha (vs. Tauri): uma só linguagem de ponta a ponta, motor de regras rodando no mesmo processo do servidor do Host e Chromium embutido (renderização WebGL idêntica em Windows, Linux e Mac). Ver `docs/decisions/0001-electron-em-vez-de-tauri.md`.
-- **UI:** React + TypeScript. **Canvas do mapa:** PixiJS v8, desacoplado da árvore de componentes React.
+- **UI:** React + TypeScript. **Canvas do mapa:** PixiJS v8 (2D em `canvas/` e 3D com `@pixi/3d` em `canvas3d/`), desacoplado da árvore de componentes React.
 - **Monorepo com pnpm workspaces** (`pnpm-workspace.yaml` na raiz). Usar `node-linker=hoisted` no `.npmrc` (exigido pelo electron-builder com pnpm).
 - **Divisão de responsabilidades por processo:**
   - **Processo main (`src/main/`, Node):** infraestrutura e orquestração — servidor/cliente WebSocket, acesso ao SQLite, cache de assets por SHA-256, protocolo customizado `vtt-asset://`, auto-updater e o **executor da sessão do Host** (recebe `Intent`, chama o motor de regras, persiste e transmite o resultado). **Não implementa regras de D&D**, só chama o motor.
@@ -61,7 +61,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
   - `<campanha>.db` (portátil, um arquivo por campanha): personagens, inventários, monstros, mapas, tokens, combate, log de chat/rolagens e conteúdo homebrew daquela mesa.
   - Migrações sequenciais controladas por `PRAGMA user_version`, gerando backup automático (`.bak`) antes de alterar o schema.
   - Sem módulo nativo: o `node:sqlite` vem com o Node (o do Electron no app, o do sistema nos testes). Todo o acesso fica em `src/main/db/`, para uma troca de biblioteca, se precisar, ficar restrita a essa pasta.
-- **Assets endereçados por hash do conteúdo (SHA-256 via `node:crypto`):** cacheados localmente e transferidos uma única vez sob demanda. Servidos ao PixiJS via protocolo customizado `vtt-asset://` registrado com `protocol.handle` (evitando tráfego Base64 pelo IPC).
+- **Assets endereçados por hash do conteúdo (SHA-256 via `node:crypto`):** cacheados localmente e transferidos uma única vez sob demanda. Servidos ao PixiJS via protocolo customizado `vtt-asset://` registrado com `protocol.handle` (evitando tráfego Base64 pelo IPC), aceitando imagens (PNG, JPEG, WebP) e documentos JSON de mapas 3D (`application/json`). Modelos `.glb` embutidos em `resources/3d-assets/` são servidos via `vtt-3d://` (nota 0056).
 - **Personagens e fichas:** o personagem pertence à campanha (`<campanha>.db` do Host) e é criado **dentro da sessão**, por `Intent` ao Host; o mestre acompanha ao vivo e pode editar as escolhas de qualquer personagem. O estado guarda só as escolhas; cada app calcula a ficha no processo main com o motor (ver `docs/decisions/0029-personagens-na-sessao.md`).
 - **Cópia offline (complemento, adiada; nota 0034):** cada jogador mantém cópia local do personagem (lista de escolhas + inventário).
   - **Lista de escolhas** (construção do personagem): fora da sessão o jogador pode editar (ex.: subir de nível entre sessões); ao reconectar, o Host compara o hash e exibe o *diff* das escolhas para o mestre aprovar ou rejeitar antes de aplicar.
@@ -96,8 +96,9 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 │   ├── renderer/            # React + PixiJS
 │   │   ├── index.html       # Entrada do renderer (CSP definida aqui)
 │   │   └── src/
-│   │       ├── canvas/      # Palco PixiJS, camadas do mapa, grid, tokens e câmera
-│   │       ├── components/  # UI (fichas, compêndio, chat/rolagens, tracker de combate)
+│   │       ├── canvas/      # Palco PixiJS 2D, camadas do mapa, grid, tokens e câmera
+│   │       ├── canvas3d/    # Motor e editor de mapas 3D (@pixi/3d): terreno, líquidos, props, iluminação e estúdio do mestre
+│   │       ├── components/  # UI (fichas, compêndio, chat/rolagens, tracker de combate, mapas 2D/3D)
 │   │       └── store/       # Estado reativo da UI
 │   └── shared/              # Tipos da API de IPC (ipc.ts), schemas Zod (ipc-schemas.ts), protocolo de rede e versões
 └── docs/
@@ -206,6 +207,9 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - Cura (direto nos PV) e salvaguardas que só aplicam condição, com a condição caindo junto com a Concentração.
    - Bônus e penalidades temporários (Bless, Shield of Faith, Mage Armor, Bane, Haste) ligados à duração ou à Concentração.
 8. **Ferramentas de mapa (reservada para outro contribuidor, [issue #59](https://github.com/Leoz-v/projeto_rpg/issues/59)):** régua, tokens ocultos, névoa e indicação de morto.
+9. **Mapas 3D (`@pixi/3d`, nota 0056):**
+   - ✅ Integração do motor e editor 3D (`PROTOCOL_VERSION = 23`, `<campanha>.db` v14, `vtt-3d://`, `map.create`/`map.update` com `scene3d` via `AssetStore`), visualização de mesa (`Map3DView`) integrada ao fluxo natural de mapas com tokens 3D (planos no modo Topo, billboard em 3D/Ortho, arrasto e movimento por teclado) e editor completo (`Map3DEditorModal`) exclusivo do mestre.
+   - Visão de jogador (linha de visão/névoa) e navegação específica de jogador em 3D.
 
 *Extras futuros:* ações de monstro com Multiattack e magias, exportar e abrir campanha de arquivo, criação de token a partir de imagem com recorte/moldura automáticos, spawn de vários inimigos de uma vez (a numeração Goblin 1, Goblin 2… já existe, um por vez), colar texto de ficha de monstro e converter para o schema.
 

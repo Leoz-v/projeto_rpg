@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "f475e01f-bc99-365e-a760-567083ea4fc7",
+  "key": "barleyfold.ploughed_tile",
+  "displayName": "Ploughed tile",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

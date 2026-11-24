@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "824c6a20-3463-3f46-81f8-c4498c1e4c7d",
+  "key": "reedbank.roof_table",
+  "displayName": "Roof table",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

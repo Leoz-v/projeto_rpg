@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "a8cdfda2-ae15-3559-ba39-c78e9593c07d",
+  "key": "blackbeck.torn_inspection_grille",
+  "displayName": "Torn inspection grille",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

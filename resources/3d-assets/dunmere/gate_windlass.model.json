@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "4ac215a3-9a82-374e-9553-c88291aeb41e",
+  "key": "dunmere.gate_windlass",
+  "displayName": "Gate windlass",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

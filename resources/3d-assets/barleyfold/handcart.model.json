@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "96d84fdc-fa13-3add-b2f2-cdfeb146b1c1",
+  "key": "barleyfold.handcart",
+  "displayName": "Handcart",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

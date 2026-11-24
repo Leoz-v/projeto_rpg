@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "695e3ba9-a598-3411-a7e2-801fdeabb4bd",
+  "key": "dunmere.curtain_bay",
+  "displayName": "Curtain bay",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

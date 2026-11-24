@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "d80f5a8a-914b-33d0-a7db-cb0a44baead0",
+  "key": "barleyfold.doorstone",
+  "displayName": "Doorstone",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

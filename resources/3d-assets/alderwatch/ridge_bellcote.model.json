@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "3d33a787-6fc9-345e-b2bd-9939ad2462fb",
+  "key": "alderwatch.ridge_bellcote",
+  "displayName": "Ridge bellcote",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

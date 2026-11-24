@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "da8f82e7-33db-3f73-a72d-d7d525f084e0",
+  "key": "alderwatch.postern_door",
+  "displayName": "Postern door",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

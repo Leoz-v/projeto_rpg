@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "ce211999-e4fb-3241-be99-392bd8793a6e",
+  "key": "dunmere.arrow_tower_drum",
+  "displayName": "Arrow tower drum",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

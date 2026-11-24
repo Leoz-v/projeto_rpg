@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "4e58b2e7-73cf-30a6-81da-ea6fd0bf422f",
+  "key": "dunmere.forktower_pennon",
+  "displayName": "Forktower pennon",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

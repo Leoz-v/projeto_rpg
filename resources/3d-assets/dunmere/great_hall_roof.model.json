@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "53bd32f8-916f-379c-8aa2-1bc83cde76e9",
+  "key": "dunmere.great_hall_roof",
+  "displayName": "Great hall roof",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

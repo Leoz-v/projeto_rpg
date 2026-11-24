@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "e664ca4a-c7eb-39ac-83dc-1cac692f7500",
+  "key": "reedbank.falling_brace",
+  "displayName": "Falling brace",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

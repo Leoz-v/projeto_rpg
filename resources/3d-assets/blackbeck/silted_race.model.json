@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "1c21531f-9d89-35be-8bcf-839b24496e76",
+  "key": "blackbeck.silted_race",
+  "displayName": "Silted race",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

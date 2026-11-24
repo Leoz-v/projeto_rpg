@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "d9122011-6da2-32b9-b9cf-2dd7990bb8d5",
+  "key": "alderwatch.boarded_loft_floor",
+  "displayName": "Boarded loft floor",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

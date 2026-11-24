@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "0a0c9d69-9667-3dc9-abc4-6087164abb17",
+  "key": "dunmere.crenellated_tower_crown",
+  "displayName": "Crenellated tower crown",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

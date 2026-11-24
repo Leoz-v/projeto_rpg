@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "d5d1db9b-7945-3472-8313-611b2328f12a",
+  "key": "greyvein.bedding_roof",
+  "displayName": "Bedding roof",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

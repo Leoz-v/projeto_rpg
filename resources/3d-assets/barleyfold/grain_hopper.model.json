@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "a05b14de-cd44-3eff-9e52-edbeba298bf3",
+  "key": "barleyfold.grain_hopper",
+  "displayName": "Grain hopper",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

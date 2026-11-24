@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "7147d63b-c3c1-3959-831a-39f389e09ad3",
+  "key": "greyvein.solution_pillar",
+  "displayName": "Solution pillar",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

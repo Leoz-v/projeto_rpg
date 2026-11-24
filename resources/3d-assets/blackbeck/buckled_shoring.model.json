@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "0ef949af-57cf-3f23-bb38-a16d3fcb4eda",
+  "key": "blackbeck.buckled_shoring",
+  "displayName": "Buckled shoring",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

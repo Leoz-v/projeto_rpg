@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "cbcf3f01-85ba-3a14-87c1-cc8e58a7c544",
+  "key": "reedbank.crown_end",
+  "displayName": "Crown end",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

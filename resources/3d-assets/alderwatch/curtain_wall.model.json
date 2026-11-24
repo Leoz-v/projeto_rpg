@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "6b8809ff-5cec-35fb-8f77-ce340e487646",
+  "key": "alderwatch.curtain_wall",
+  "displayName": "Curtain wall",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "e7688158-8f6d-310e-8ca0-c5853bfb25e2",
+  "key": "reedbank.counter_hatch",
+  "displayName": "Counter hatch",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

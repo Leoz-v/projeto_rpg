@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "0e771918-f170-3e7a-8b7b-5cab946b8598",
+  "key": "greyvein.slumped_entrance",
+  "displayName": "Slumped entrance",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

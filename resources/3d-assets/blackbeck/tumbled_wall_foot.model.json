@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "fce49e0a-fe77-382d-9b0c-b1b6682fd563",
+  "key": "blackbeck.tumbled_wall_foot",
+  "displayName": "Tumbled wall foot",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

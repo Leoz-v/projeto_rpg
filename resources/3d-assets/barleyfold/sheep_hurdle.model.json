@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "498e55ec-40e7-3448-84d6-2f534ac6ae7f",
+  "key": "barleyfold.sheep_hurdle",
+  "displayName": "Sheep hurdle",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

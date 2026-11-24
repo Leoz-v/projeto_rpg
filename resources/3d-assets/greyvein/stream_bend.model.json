@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "ecfd80c7-e519-3c8c-a9f4-460c214ba4f8",
+  "key": "greyvein.stream_bend",
+  "displayName": "Stream bend",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

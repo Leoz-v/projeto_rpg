@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "1e0a39d0-3223-3d97-952c-6bb1b27f99d0",
+  "key": "reedbank.fish_trade_sign",
+  "displayName": "Fish trade sign",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

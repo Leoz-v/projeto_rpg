@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "95d5f185-e67d-3f87-9d6b-75037fa3c284",
+  "key": "blackbeck.spring_line_wall",
+  "displayName": "Spring-line wall",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

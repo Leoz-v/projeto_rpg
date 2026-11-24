@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "36fc172f-12a3-399b-b6df-d035e4f4352c",
+  "key": "greyvein.pinch_passage",
+  "displayName": "Pinch passage",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

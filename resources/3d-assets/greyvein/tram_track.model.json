@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "65261d7e-24af-3326-b285-c0cca3eba8b8",
+  "key": "greyvein.tram_track",
+  "displayName": "Tram track",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

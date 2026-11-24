@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "a70e615f-b9a9-3fb3-affb-3bf83e085168",
+  "key": "dunmere.notched_battlement",
+  "displayName": "Notched battlement",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

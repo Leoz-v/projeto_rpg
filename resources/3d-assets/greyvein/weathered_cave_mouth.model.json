@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "80a4cc65-d141-3921-a273-121962268232",
+  "key": "greyvein.weathered_cave_mouth",
+  "displayName": "Weathered cave mouth",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

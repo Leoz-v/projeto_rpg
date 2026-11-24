@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "5a2ecdad-b009-3cc6-a1a6-adf3bc521b8c",
+  "key": "blackbeck.straight_race",
+  "displayName": "Straight race",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

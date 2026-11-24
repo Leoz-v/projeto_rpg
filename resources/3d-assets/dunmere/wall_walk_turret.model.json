@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "7e8a4872-7525-3859-9419-23916f0d6850",
+  "key": "dunmere.wall_walk_turret",
+  "displayName": "Wall-walk turret",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

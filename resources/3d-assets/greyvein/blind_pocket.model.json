@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "f936f6f7-3033-3cb7-976d-b803b5c728aa",
+  "key": "greyvein.blind_pocket",
+  "displayName": "Blind pocket",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

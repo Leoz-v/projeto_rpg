@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "19aca79a-de23-3f09-bb29-92f480073105",
+  "key": "dunmere_lower_ward.square_parapet_return",
+  "displayName": "Square parapet return",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "6a375e71-50ee-39e5-83a5-b4a5bde5e5ae",
+  "key": "barleyfold.cloth_sail",
+  "displayName": "Cloth sail",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

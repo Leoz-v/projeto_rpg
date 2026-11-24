@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "a46e500a-a80c-31f1-98e7-42ca5fe779b6",
+  "key": "blackbeck.crypt_arch",
+  "displayName": "Crypt arch",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

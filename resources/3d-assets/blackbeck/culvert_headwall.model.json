@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "c3ad6bbb-1d18-3647-be49-c8a7cdeb2d3b",
+  "key": "blackbeck.culvert_headwall",
+  "displayName": "Culvert headwall",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

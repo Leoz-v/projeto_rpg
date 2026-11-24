@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "f2c253f7-b033-35e9-ab69-c5214794e3eb",
+  "key": "barleyfold.gatepost",
+  "displayName": "Gatepost",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

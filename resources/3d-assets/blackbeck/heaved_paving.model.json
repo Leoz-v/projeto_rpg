@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "5bba2bb4-d3f1-335c-9411-9accc412492c",
+  "key": "blackbeck.heaved_paving",
+  "displayName": "Heaved paving",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

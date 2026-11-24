@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "97e1687b-cb5d-3054-823d-c55010156768",
+  "key": "greyvein.undercut_shelf",
+  "displayName": "Undercut shelf",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

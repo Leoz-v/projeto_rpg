@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "25769229-191a-3096-b39a-b6000f4d0008",
+  "key": "dunmere_lower_ward.corner_walk_slab",
+  "displayName": "Corner walk slab",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

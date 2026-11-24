@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "4d2438c3-a6e7-3da6-a402-dcaabe92dd7e",
+  "key": "dunmere.twin_lancet",
+  "displayName": "Twin lancet",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

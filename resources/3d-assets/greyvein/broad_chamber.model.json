@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "7d467af1-bab1-30bc-b2a8-335d6fb668b1",
+  "key": "greyvein.broad_chamber",
+  "displayName": "Broad chamber",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

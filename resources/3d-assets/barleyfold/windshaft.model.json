@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "61a71bf6-310e-393d-ae30-b63d35d97b70",
+  "key": "barleyfold.windshaft",
+  "displayName": "Windshaft",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

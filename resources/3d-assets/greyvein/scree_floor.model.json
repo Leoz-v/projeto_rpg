@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "ea92d831-5da6-3536-8b32-d240fea837bb",
+  "key": "greyvein.scree_floor",
+  "displayName": "Scree floor",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

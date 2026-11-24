@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "8bc46b77-b596-3d2c-9d83-f14f0ebc91e0",
+  "key": "blackbeck.bonded_corner",
+  "displayName": "Bonded corner",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

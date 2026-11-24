@@ -151,7 +151,7 @@ describe('CampaignDb', () => {
         ].map((kept) => ({ dice: [1, ...kept], dropped: 0, total: kept.reduce((a, b) => a + b, 0) })),
       },
     ],
-    maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: null, cellPx: null } },
+    maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: null, cellPx: null, scene3d: null } },
     activeMapId: MAP,
     tokens: {
       [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [], characterId: null, hp: { max: 7, damage: 2, temp: 0 }, conditions: { active: [{ condition: 'prone' }], exhaustion: 1 } },
@@ -317,15 +317,23 @@ describe('CampaignDb', () => {
     const migrated = CampaignDb.open(path);
     expect(migrated.migration).toEqual({ from: 1, to: CAMPAIGN_DB_SCHEMA_VERSION, backup: `${path}.bak` });
     const loaded = migrated.load();
-    expect(loaded.maps[MAP]).toEqual({ id: MAP, name: 'Antigo', width: 20, height: 15, background: null, cellPx: null });
+    expect(loaded.maps[MAP]).toEqual({ id: MAP, name: 'Antigo', width: 20, height: 15, background: null, cellPx: null, scene3d: null });
 
     const withGrid = randomUUID();
+    const with3d = randomUUID();
     const sha = 'a'.repeat(64);
+    const sha3d = 'b'.repeat(64);
     migrated.save({
       ...loaded,
-      maps: { ...loaded.maps, [withGrid]: { id: withGrid, name: 'Calibrado', width: 30, height: 20, background: sha, cellPx: 70 } },
+      maps: {
+        ...loaded.maps,
+        [withGrid]: { id: withGrid, name: 'Calibrado', width: 30, height: 20, background: sha, cellPx: 70, scene3d: null },
+        [with3d]: { id: with3d, name: 'Masmorra 3D', width: 32, height: 32, background: null, cellPx: null, scene3d: sha3d },
+      },
     });
-    expect(migrated.load().maps[withGrid]).toEqual({ id: withGrid, name: 'Calibrado', width: 30, height: 20, background: sha, cellPx: 70 });
+    const reloaded = migrated.load();
+    expect(reloaded.maps[withGrid]).toEqual({ id: withGrid, name: 'Calibrado', width: 30, height: 20, background: sha, cellPx: 70, scene3d: null });
+    expect(reloaded.maps[with3d]).toEqual({ id: with3d, name: 'Masmorra 3D', width: 32, height: 32, background: null, cellPx: null, scene3d: sha3d });
     migrated.close();
   });
 });

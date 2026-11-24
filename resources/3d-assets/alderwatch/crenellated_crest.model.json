@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "cccfc463-6b0a-3699-aee2-f8d0ef26bd4d",
+  "key": "alderwatch.crenellated_crest",
+  "displayName": "Crenellated crest",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

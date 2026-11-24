@@ -199,6 +199,18 @@ describe('HostSession: maps', () => {
     expect(Object.values(session.state.maps).find((m) => m.name === 'Com grid px')?.cellPx).toBe(70);
     expect(rejection(session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Sem fundo', width: 5, height: 5, background: UNKNOWN_IMAGE } }))).toBe('rule_violation');
     expect(rejection(session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Px sem fundo', width: 5, height: 5, cellPx: 70 } }))).toBe('rule_violation');
+
+    // Mapas 3D (`scene3d`) e `map.update` (exclusivo do mestre).
+    expect(applied(session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Masmorra 3D', width: 32, height: 32, scene3d: KNOWN_IMAGE } }))).toBe(true);
+    const map3d = Object.values(session.state.maps).find((m) => m.name === 'Masmorra 3D');
+    expect(map3d?.scene3d).toBe(KNOWN_IMAGE);
+    expect(rejection(session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Misto', width: 10, height: 10, background: KNOWN_IMAGE, scene3d: KNOWN_IMAGE } }))).toBe('rule_violation');
+    expect(rejection(session.handle(GM.playerId, { kind: 'map.create', data: { name: '3D ausente', width: 10, height: 10, scene3d: UNKNOWN_IMAGE } }))).toBe('rule_violation');
+
+    if (!map3d) throw new Error('esperava mapa 3D');
+    expect(rejection(session.handle(ANA.playerId, { kind: 'map.update', data: { mapId: map3d.id, name: 'Hack' } }))).toBe('not_allowed');
+    expect(applied(session.handle(GM.playerId, { kind: 'map.update', data: { mapId: map3d.id, name: 'Masmorra 3D v2', width: 48, height: 48, scene3d: KNOWN_IMAGE } }))).toBe(true);
+    expect(session.state.maps[map3d.id]).toMatchObject({ name: 'Masmorra 3D v2', width: 48, height: 48, scene3d: KNOWN_IMAGE });
   });
 });
 

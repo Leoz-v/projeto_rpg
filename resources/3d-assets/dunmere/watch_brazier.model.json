@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "f3067b04-de90-349d-8303-94dc600b56bf",
+  "key": "dunmere.watch_brazier",
+  "displayName": "Watch brazier",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

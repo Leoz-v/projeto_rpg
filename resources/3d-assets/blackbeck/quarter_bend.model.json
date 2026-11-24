@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "b6da0a3e-cf28-3009-adc3-abb39fc087d2",
+  "key": "blackbeck.quarter_bend",
+  "displayName": "Quarter bend",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

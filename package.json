@@ -20,6 +20,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@pixi/3d": "^0.1.0",
     "electron-updater": "^6.8.11",
     "pixi.js": "^8.23.0",
     "ws": "^8.23.0",

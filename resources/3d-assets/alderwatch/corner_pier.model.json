@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "bc5d0db2-1e91-35ba-95ab-e3fd69b190f5",
+  "key": "alderwatch.corner_pier",
+  "displayName": "Corner pier",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

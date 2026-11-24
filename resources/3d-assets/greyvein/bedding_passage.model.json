@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "c0906aee-330b-3494-bcff-ce0a20d8addd",
+  "key": "greyvein.bedding_passage",
+  "displayName": "Bedding passage",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

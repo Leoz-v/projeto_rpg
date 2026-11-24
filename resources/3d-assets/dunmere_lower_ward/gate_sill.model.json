@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "6dbb1197-5248-38bb-824a-47ff6b29162e",
+  "key": "dunmere_lower_ward.gate_sill",
+  "displayName": "Gate sill",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

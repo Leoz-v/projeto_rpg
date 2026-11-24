@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "4604ccb8-258b-3dae-b984-02e55bc4473c",
+  "key": "barleyfold.threshing_doors",
+  "displayName": "Threshing doors",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

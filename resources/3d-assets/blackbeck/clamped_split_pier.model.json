@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "4eee812e-3f88-35da-a6e2-797892575084",
+  "key": "blackbeck.clamped_split_pier",
+  "displayName": "Clamped split pier",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

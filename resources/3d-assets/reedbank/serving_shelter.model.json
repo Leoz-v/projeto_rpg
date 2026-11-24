@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "734f83ea-8a03-3f15-8595-4390444ea4c2",
+  "key": "reedbank.serving_shelter",
+  "displayName": "Serving shelter",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

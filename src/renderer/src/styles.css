@@ -394,6 +394,72 @@ button.link.danger:focus-visible {
   bottom: 1rem;
 }
 
+/* HUD mínima da visualização 3D na mesa (sem ferramentas de edição) */
+.map3d-hud {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  background: rgba(15, 19, 26, 0.86);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(6px);
+  z-index: 5;
+}
+
+.map3d-badge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink);
+  padding: 0 0.35rem;
+}
+
+.map3d-hud-group {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.map3d-hud button {
+  padding: 0.25rem 0.55rem;
+  font-size: 0.8rem;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.map3d-hud-group button {
+  border: none;
+  border-radius: 0;
+}
+
+.map3d-hud button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.map3d-hud button.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.map3d-hud button.map3d-edit-btn {
+  background: #1b4332;
+  border-color: #2d6a4f;
+  color: #d8f3dc;
+  font-weight: 600;
+}
+
+.map3d-hud button.map3d-edit-btn:hover {
+  background: #2d6a4f;
+}
+
 /* Painel do mestre */
 
 .panel ul {

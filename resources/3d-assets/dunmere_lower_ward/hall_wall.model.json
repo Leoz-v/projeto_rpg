@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "210cf299-e271-3382-95f2-d513c7084231",
+  "key": "dunmere_lower_ward.hall_wall",
+  "displayName": "Hall wall",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

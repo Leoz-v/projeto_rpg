@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "e4929a2e-2968-3241-b4b1-8f8d0169bbff",
+  "key": "dunmere_lower_ward.stringcourse",
+  "displayName": "Stringcourse",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

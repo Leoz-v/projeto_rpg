@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "56a35151-42e3-3d06-bda1-fd6206a77631",
+  "key": "dunmere.tower_footing",
+  "displayName": "Tower footing",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

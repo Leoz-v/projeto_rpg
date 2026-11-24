@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "6690be49-4695-348e-967e-95eda76ab7d1",
+  "key": "dunmere_lower_ward.paired_lights",
+  "displayName": "Paired lights",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

@@ -77,6 +77,8 @@ const MIGRATIONS = [
   `ALTER TABLE characters ADD COLUMN spell_slots_spent TEXT NOT NULL DEFAULT '{"byLevel":{},"pact":0}';`,
   // Usos gastos dos recursos da ficha, em JSON validado ao carregar (nota 0052).
   `ALTER TABLE characters ADD COLUMN resources_spent TEXT NOT NULL DEFAULT '{}';`,
+  // SHA-256 do documento JSON de um mapa 3D (nota 0056); NULL em mapas 2D.
+  `ALTER TABLE maps ADD COLUMN scene_3d TEXT;`,
 ] as const;
 
 export const CAMPAIGN_DB_SCHEMA_VERSION = MIGRATIONS.length;
@@ -90,7 +92,7 @@ export class CampaignDbError extends Error {
 
 const CampaignRow = z.object({ id: z.string(), name: z.string(), active_map_id: z.string().nullable(), combat: z.string().nullable(), rest: z.string().nullable() });
 const PlayerRow = z.object({ id: z.string(), display_name: z.string(), role: z.string() });
-const MapRow = z.object({ id: z.string(), name: z.string(), width: z.number(), height: z.number(), background: z.string().nullable(), cell_px: z.number().nullable() });
+const MapRow = z.object({ id: z.string(), name: z.string(), width: z.number(), height: z.number(), background: z.string().nullable(), cell_px: z.number().nullable(), scene_3d: z.string().nullable() });
 const TokenRow = z.object({
   id: z.string(),
   map_id: z.string(),
@@ -165,11 +167,11 @@ export class CampaignDb {
     );
     const maps = Object.fromEntries(
       this.db
-        .prepare('SELECT id, name, width, height, background, cell_px FROM maps')
+        .prepare('SELECT id, name, width, height, background, cell_px, scene_3d FROM maps')
         .all()
         .map((row) => {
           const m = MapRow.parse(row);
-          return [m.id, { id: m.id, name: m.name, width: m.width, height: m.height, background: m.background, cellPx: m.cell_px }];
+          return [m.id, { id: m.id, name: m.name, width: m.width, height: m.height, background: m.background, cellPx: m.cell_px, scene3d: m.scene_3d }];
         }),
     );
     const tokens = Object.fromEntries(
@@ -229,10 +231,10 @@ export class CampaignDb {
       this.removeMissing('tokens', Object.keys(state.tokens));
       this.removeMissing('maps', Object.keys(state.maps));
       const upsertMap = db.prepare(
-        `INSERT INTO maps (id, name, width, height, background, cell_px) VALUES (?, ?, ?, ?, ?, ?)
-         ON CONFLICT (id) DO UPDATE SET name = excluded.name, width = excluded.width, height = excluded.height, background = excluded.background, cell_px = excluded.cell_px`,
+        `INSERT INTO maps (id, name, width, height, background, cell_px, scene_3d) VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT (id) DO UPDATE SET name = excluded.name, width = excluded.width, height = excluded.height, background = excluded.background, cell_px = excluded.cell_px, scene_3d = excluded.scene_3d`,
       );
-      for (const m of Object.values(state.maps)) upsertMap.run(m.id, m.name, m.width, m.height, m.background, m.cellPx);
+      for (const m of Object.values(state.maps)) upsertMap.run(m.id, m.name, m.width, m.height, m.background, m.cellPx, m.scene3d);
       const upsertToken = db.prepare(
         `INSERT INTO tokens (id, map_id, name, x, y, size, monster_id, image, owner_ids, character_id, hp, conditions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (id) DO UPDATE SET map_id = excluded.map_id, name = excluded.name, x = excluded.x, y = excluded.y, size = excluded.size,

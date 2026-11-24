@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "4a3bc47c-deec-357f-9e1d-664049eab06a",
+  "key": "alderwatch.postern_arch",
+  "displayName": "Postern arch",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

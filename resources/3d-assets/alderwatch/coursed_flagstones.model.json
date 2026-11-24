@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "49f97491-274a-3e30-bae1-cee148c80b76",
+  "key": "alderwatch.coursed_flagstones",
+  "displayName": "Coursed flagstones",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

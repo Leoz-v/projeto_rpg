@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "73c536da-7329-3f12-8cde-330d7033c703",
+  "key": "blackbeck.springer_pier",
+  "displayName": "Springer pier",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "971302f2-835b-35c3-b063-957fa0598fb3",
+  "key": "greyvein.stalagmite_cluster",
+  "displayName": "Stalagmite cluster",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

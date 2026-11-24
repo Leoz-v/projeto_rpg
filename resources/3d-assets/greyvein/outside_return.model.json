@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "11d89380-4510-3f08-9266-afbf06edce89",
+  "key": "greyvein.outside_return",
+  "displayName": "Outside return",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

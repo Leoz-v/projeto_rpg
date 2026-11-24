@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "779739c0-8d11-33a1-9b16-8329059482bb",
+  "key": "blackbeck.stone_arch_rib",
+  "displayName": "Stone arch rib",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

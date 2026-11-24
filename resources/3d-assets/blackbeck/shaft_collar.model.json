@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "2aaff727-ca3e-361f-b347-d402719d560e",
+  "key": "blackbeck.shaft_collar",
+  "displayName": "Shaft collar",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

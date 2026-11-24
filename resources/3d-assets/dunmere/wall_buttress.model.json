@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "7af646cd-524b-3f3e-b194-fbc234cb53c5",
+  "key": "dunmere.wall_buttress",
+  "displayName": "Wall buttress",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "565deb9d-b76c-3fc6-830b-b1ef1faa8408",
+  "key": "dunmere.oak_postern",
+  "displayName": "Oak postern",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

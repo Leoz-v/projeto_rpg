@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "86c99e91-b7a1-3aa2-b4d3-bddcd8ca1e26",
+  "key": "alderwatch.saddle_ridge",
+  "displayName": "Saddle ridge",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

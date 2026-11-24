@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "e648eedd-ec58-340b-85d4-d65d8f204836",
+  "key": "greyvein.stream_run",
+  "displayName": "Stream run",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

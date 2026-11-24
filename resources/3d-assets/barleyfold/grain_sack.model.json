@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "9ac35920-758d-3ca3-9842-ad30b979b2df",
+  "key": "barleyfold.grain_sack",
+  "displayName": "Grain sack",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

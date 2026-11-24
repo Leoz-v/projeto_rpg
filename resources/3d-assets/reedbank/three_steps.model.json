@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "87d2c42b-3c16-3c2b-9644-d12404f05b16",
+  "key": "reedbank.three_steps",
+  "displayName": "Three steps",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

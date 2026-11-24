@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "e1b7b618-8801-385e-a132-9ed6b6e4a008",
+  "key": "dunmere.corner_tower_footing",
+  "displayName": "Corner tower footing",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

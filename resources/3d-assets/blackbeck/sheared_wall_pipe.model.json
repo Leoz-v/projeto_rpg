@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "383b2029-053c-388f-a8f3-7594d918dbdd",
+  "key": "blackbeck.sheared_wall_pipe",
+  "displayName": "Sheared wall pipe",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

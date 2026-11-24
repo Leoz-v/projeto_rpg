@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "13f3d5fe-3c1e-37af-b621-ca79212198d9",
+  "key": "blackbeck.forced_cell_grille",
+  "displayName": "Forced cell grille",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

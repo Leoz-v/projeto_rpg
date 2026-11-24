@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "c3afd6b7-d632-38d2-9cb4-5c59df6908bf",
+  "key": "blackbeck.burial_recess",
+  "displayName": "Burial recess",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

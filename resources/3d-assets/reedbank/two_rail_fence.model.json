@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "dafb4720-c871-3553-aecf-6d1ff4b706e1",
+  "key": "reedbank.two_rail_fence",
+  "displayName": "Two-rail fence",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

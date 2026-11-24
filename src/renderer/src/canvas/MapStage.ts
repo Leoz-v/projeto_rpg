@@ -27,6 +27,11 @@ export interface Scene {
   health: (token: Token) => Health | null;
 }
 
+export interface MapStageHandle {
+  /** Centro da área visível em unidades lógicas do mundo: onde o mestre coloca um token novo. */
+  viewCenter(): Point;
+}
+
 export interface MapStageEvents {
   onMove: (tokenId: string, to: Point) => void;
   onSelect: (tokenId: string | null) => void;

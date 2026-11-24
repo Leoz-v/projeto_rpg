@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "5112b666-661e-32c9-82be-2d2b1c02fdca",
+  "key": "barleyfold.byre_roof_bay",
+  "displayName": "Byre roof bay",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

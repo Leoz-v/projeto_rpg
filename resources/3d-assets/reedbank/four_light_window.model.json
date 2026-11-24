@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "a8317ddb-0e93-31e7-a78b-ecfaba65377e",
+  "key": "reedbank.four_light_window",
+  "displayName": "Four-light window",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

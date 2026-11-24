@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "eb5a7cfc-26b3-3ef9-80c1-0583bafbbc4d",
+  "key": "reedbank.swing_door",
+  "displayName": "Swing door",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "32100bfa-6ae0-3a41-a8f2-f5b54764dc25",
+  "key": "dunmere_lower_ward.corbel_walk",
+  "displayName": "Corbel walk",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

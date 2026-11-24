@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "4060d883-6266-302d-9386-c2126568c60e",
+  "key": "barleyfold.green_shoots",
+  "displayName": "Green shoots",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

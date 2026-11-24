@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "d95ed575-4b7c-32ae-b771-d3004b35129a",
+  "key": "barleyfold.scarecrow",
+  "displayName": "Scarecrow",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

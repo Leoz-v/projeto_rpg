@@ -8,7 +8,7 @@ import { type AppInfo, IpcChannel, type IpcResult, type TableEvent } from '../sh
 import { HostTableRequestSchema, JoinTableRequestSchema } from '../shared/ipc-schemas';
 import { IntentSchema, MAX_ASSET_BYTES, MAX_CHAT_HISTORY, UuidSchema } from '../shared/protocol';
 import { PROTOCOL_VERSION } from '../shared/versions';
-import { ASSET_SCHEME, AssetError, assetResponse, AssetStore, type StoredAsset } from './assets';
+import { ASSET_SCHEME, AssetError, assetResponse, AssetStore, create3dAssetHandler, type StoredAsset, VTT_3D_SCHEME } from './assets';
 import { characterSheet, creationOptions } from './character-sheet';
 import { monsterActions, searchItems, searchMonsters } from './compendium';
 import { AppDb, CampaignLibrary, CampaignNotFoundError } from './db';
@@ -128,6 +128,12 @@ async function importAsset(assets: AssetStore): Promise<StoredAsset | null> {
 
 function registerIpc(appDb: AppDb, table: TableController, library: CampaignLibrary, assets: AssetStore): void {
   handle(IpcChannel.importAsset, () => importAsset(assets));
+  handle(IpcChannel.save3dMapAsset, (payload) => {
+    const json = parse(z.string().min(2).max(MAX_ASSET_BYTES), payload);
+    const bytes = Buffer.from(json, 'utf8');
+    if (bytes.length > MAX_ASSET_BYTES) throw new AssetError('Mapa 3D maior que 32 MiB');
+    return assets.put(bytes);
+  });
   handle(IpcChannel.getAppInfo, (): AppInfo => ({ appVersion: app.getVersion(), protocolVersion: PROTOCOL_VERSION, rulesEngineVersion: RULES_ENGINE_VERSION }));
   handle(IpcChannel.getPreferences, () => appDb.preferences());
   handle(IpcChannel.listCampaigns, () => library.list().map(({ id, name, lastOpenedAt }) => ({ id, name, lastOpenedAt })));
@@ -189,8 +195,11 @@ function openAppDb(): AppDb | undefined {
 
 let table: TableController | undefined;
 
-// `vtt-asset://<sha256>`: as imagens do mapa e dos tokens, servidas do armazenamento local (precisa vir antes do `ready`).
-protocol.registerSchemesAsPrivileged([{ scheme: ASSET_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }]);
+// `vtt-asset://<sha256>`: imagens e documentos 3D da mesa; `vtt-3d://`: catálogo e modelos GLB embutidos (precisa vir antes do `ready`).
+protocol.registerSchemesAsPrivileged([
+  { scheme: ASSET_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } },
+  { scheme: VTT_3D_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } },
+]);
 
 void app.whenReady().then(() => {
   const appDb = openAppDb();
@@ -221,6 +230,8 @@ void app.whenReady().then(() => {
   });
   table = controller;
   protocol.handle(ASSET_SCHEME, (request) => assetResponse(request, (sha) => controller.asset(sha)));
+  const bundled3dAssetsDir = app.isPackaged ? join(process.resourcesPath, '3d-assets') : join(app.getAppPath(), 'resources', '3d-assets');
+  protocol.handle(VTT_3D_SCHEME, create3dAssetHandler(bundled3dAssetsDir));
   registerIpc(appDb, controller, library, assets);
   const updates = createUpdateService(controller);
   handle(IpcChannel.getUpdateStatus, () => updates.status);

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "17ab2785-e3b5-3cf2-b386-eb5a64c4ad43",
+  "key": "dunmere.end_quoin",
+  "displayName": "End quoin",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "1c109227-f851-3a23-9098-e054758b04f3",
+  "key": "barleyfold.peaked_hayrick",
+  "displayName": "Peaked hayrick",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

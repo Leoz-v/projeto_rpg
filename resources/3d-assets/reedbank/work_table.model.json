@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "545d5239-b82e-3092-b4d0-3f7d96ed7e19",
+  "key": "reedbank.work_table",
+  "displayName": "Work table",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

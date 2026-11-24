@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "9ff2d511-9f1b-3869-9d8d-52162bbc3e5b",
+  "key": "dunmere.chamfer_battlement",
+  "displayName": "Chamfer battlement",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

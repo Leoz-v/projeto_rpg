@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "53f4bc83-ea90-37ef-b5eb-b584f22a8fc9",
+  "key": "greyvein.inside_return",
+  "displayName": "Inside return",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

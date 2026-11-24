@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "1261384c-49b5-35ee-9806-e807b735a004",
+  "key": "dunmere.corner_bartizan",
+  "displayName": "Corner bartizan",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

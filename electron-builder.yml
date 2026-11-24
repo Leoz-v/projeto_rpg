@@ -7,6 +7,9 @@ files:
   - out/**
   - package.json
   - '!**/*.map'
+extraResources:
+  - from: resources/3d-assets
+    to: 3d-assets
 asarUnpack:
   - '**/*.node'
 win:

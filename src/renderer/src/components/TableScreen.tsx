@@ -1,13 +1,15 @@
 import { useCallback, useState } from 'react';
 import type { TableView } from '../../../shared/ipc';
+import type { GameMap } from '../../../shared/protocol';
 import { leaveTable } from '../store/table';
 import { AboutButton } from './About';
-import type { MapStage } from '../canvas/MapStage';
+import type { MapStageHandle } from '../canvas/MapStage';
 import { CharacterSheet } from './CharacterSheet';
 import { Characters } from './Characters';
 import { Chat } from './Chat';
 import { CombatTracker } from './CombatTracker';
 import { GmPanel } from './GmPanel';
+import { Map3DEditorModal } from './Map3DEditorModal';
 import { MapView } from './MapView';
 
 /** A mesa: cabeçalho, barra lateral (jogadores e, para o mestre, mapas e tokens), mapa e chat. */
@@ -81,14 +83,21 @@ function SelectedCharacter({ view, tokenId, onOpen }: { view: TableView; tokenId
 
 export function TableScreen({ view }: { view: TableView }) {
   const [leaving, setLeaving] = useState(false);
-  const [stage, setStage] = useState<MapStage | null>(null);
+  const [stage, setStage] = useState<MapStageHandle | null>(null);
   const [selected, setSelectedId] = useState<string | null>(null);
   // Um token removido deixa de estar selecionado.
   const selectedId = selected !== null && selected in view.state.tokens ? selected : null;
   const isHost = view.info.mode === 'host';
   const [openCharacterId, setOpenCharacterId] = useState<string | null>(null);
+  const [editor3d, setEditor3d] = useState<{ map: GameMap | null } | null>(null);
   const closeSheet = useCallback(() => {
     setOpenCharacterId(null);
+  }, []);
+  const open3dEditor = useCallback((map: GameMap | null) => {
+    setEditor3d({ map });
+  }, []);
+  const close3dEditor = useCallback(() => {
+    setEditor3d(null);
   }, []);
 
   const leave = async (): Promise<void> => {
@@ -112,12 +121,19 @@ export function TableScreen({ view }: { view: TableView }) {
         <Players view={view} />
         <Characters view={view} onOpen={setOpenCharacterId} />
         {selectedId !== null && <SelectedCharacter view={view} tokenId={selectedId} onOpen={setOpenCharacterId} />}
-        {view.info.role === 'gm' && <GmPanel view={view} stage={stage} selectedId={selectedId} />}
+        {view.info.role === 'gm' && <GmPanel view={view} stage={stage} selectedId={selectedId} onOpen3dEditor={open3dEditor} />}
         <HostAddresses view={view} />
       </aside>
-      <MapView view={view} selectedId={selectedId} onSelect={setSelectedId} onStage={setStage} />
+      <MapView
+        view={view}
+        selectedId={selectedId}
+        onSelect={setSelectedId}
+        onStage={setStage}
+        {...(view.info.role === 'gm' ? { onEdit3dMap: open3dEditor } : {})}
+      />
       <Chat state={view.state} chatFrom={view.chatFrom} viewer={view.info} />
       {openCharacterId !== null && <CharacterSheet view={view} characterId={openCharacterId} onClose={closeSheet} />}
+      {view.info.role === 'gm' && editor3d !== null && <Map3DEditorModal editingMap={editor3d.map} onClose={close3dEditor} />}
     </div>
   );
 }

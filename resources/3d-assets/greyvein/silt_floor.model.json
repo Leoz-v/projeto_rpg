@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "55003a07-417a-378f-9e5d-758a7f8d79f4",
+  "key": "greyvein.silt_floor",
+  "displayName": "Silt floor",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

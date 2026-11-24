@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "135635ca-7a33-35aa-a77e-72ac2b09ab40",
+  "key": "barleyfold.smock_storey",
+  "displayName": "Smock storey",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "e0709700-5256-3255-a2cf-fcbd7a808b3b",
+  "key": "reedbank.floor_flag",
+  "displayName": "Floor flag",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

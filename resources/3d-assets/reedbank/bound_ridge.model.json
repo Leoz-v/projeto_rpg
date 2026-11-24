@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "11529a12-0582-33fe-b2ed-388c7e6f386d",
+  "key": "reedbank.bound_ridge",
+  "displayName": "Bound ridge",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

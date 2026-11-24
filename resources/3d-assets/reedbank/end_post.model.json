@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "da107b9e-c0f9-3b07-9825-985bcb50c443",
+  "key": "reedbank.end_post",
+  "displayName": "End post",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}

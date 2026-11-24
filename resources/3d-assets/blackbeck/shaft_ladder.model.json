@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "assetId": "0fd17c62-cc74-3f2c-9f76-5a4ca92944b0",
+  "key": "blackbeck.shaft_ladder",
+  "displayName": "Shaft ladder",
+  "unitsPerTile": 1,
+  "fitFootprint": false,
+  "anchor": "AUTHORED",
+  "projectMaterials": false
+}
