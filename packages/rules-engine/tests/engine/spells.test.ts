@@ -1,0 +1,148 @@
+import { describe, expect, it } from 'vitest';
+import { addDice, addFlat, cantripTier, multiplyDice, resolveSpellParts } from '../../src/engine/spells';
+import { loadSrdCompendium } from '../../src/srd';
+
+/** Resolução das magias de dano (nota 0054). */
+const srd = loadSrdCompendium();
+const spell = (id: string) => {
+  const found = srd.spells.find((s) => s.id === id);
+  if (!found) throw new Error(`magia ${id} não está no compêndio`);
+  return found;
+};
+
+describe('dice expressions', () => {
+  it('adds dice of the same size together and keeps the flat part', () => {
+    expect(addDice('8d6', '1d6', 2)).toBe('10d6');
+    expect(addDice('10d6+40', '3d6', 1)).toBe('13d6+40');
+    expect(addDice('1d4+1', '1d6', 1)).toBe('1d4+1d6+1');
+    expect(addDice('8d6', '1d6', 0)).toBe('8d6');
+  });
+
+  it('multiplies only the dice', () => {
+    expect(multiplyDice('1d10', 3)).toBe('3d10');
+    expect(multiplyDice('1d4+1', 2)).toBe('2d4+1');
+  });
+
+  it('adds a positive or negative modifier', () => {
+    expect(addFlat('1d8', 3)).toBe('1d8+3');
+    expect(addFlat('1d8', -1)).toBe('1d8-1');
+    expect(addFlat('1d8', 0)).toBe('1d8');
+    expect(addFlat('2d6+1', -1)).toBe('2d6');
+  });
+});
+
+describe('cantrip tiers (SRD: levels 5, 11 and 17)', () => {
+  it.each([
+    [1, 1],
+    [4, 1],
+    [5, 2],
+    [10, 2],
+    [11, 3],
+    [16, 3],
+    [17, 4],
+    [20, 4],
+  ])('character level %i is tier %i', (level, tier) => {
+    expect(cantripTier(level)).toBe(tier);
+  });
+});
+
+describe('resolveSpellParts', () => {
+  it('Fireball: 8d6 Fire, Dexterity save for half, +1d6 per slot above 3', () => {
+    const at3 = resolveSpellParts(spell('fireball'), { characterLevel: 5, modifier: 4 });
+    expect(at3).toEqual([{ kind: 'save', ability: 'dex', onSuccess: 'half', onFailConditions: [], damage: [{ dice: '8d6', type: 'fire' }], count: 1 }]);
+    expect(resolveSpellParts(spell('fireball'), { slotLevel: 5, characterLevel: 9, modifier: 4 })[0]?.damage).toEqual([{ dice: '10d6', type: 'fire' }]);
+  });
+
+  it('a slot below the spell level does not shrink the damage', () => {
+    expect(resolveSpellParts(spell('fireball'), { slotLevel: 1, characterLevel: 5, modifier: 4 })[0]?.damage[0]?.dice).toBe('8d6');
+  });
+
+  it('Fire Bolt grows with the character level, not the slot', () => {
+    const at = (characterLevel: number) => resolveSpellParts(spell('fire_bolt'), { slotLevel: 9, characterLevel, modifier: 5 })[0];
+    expect(at(1)).toMatchObject({ kind: 'attack', attackKind: 'ranged', count: 1, damage: [{ dice: '1d10', type: 'fire' }] });
+    expect(at(5)?.damage[0]?.dice).toBe('2d10');
+    expect(at(11)?.damage[0]?.dice).toBe('3d10');
+    expect(at(17)?.damage[0]?.dice).toBe('4d10');
+  });
+
+  it('Eldritch Blast creates more beams instead of more dice', () => {
+    const at = (characterLevel: number) => resolveSpellParts(spell('eldritch_blast'), { characterLevel, modifier: 3 })[0];
+    expect(at(4)).toMatchObject({ count: 1, damage: [{ dice: '1d10', type: 'force' }] });
+    expect(at(5)).toMatchObject({ count: 2, damage: [{ dice: '1d10' }] });
+    expect(at(17)?.count).toBe(4);
+  });
+
+  it('Scorching Ray and Magic Missile add projectiles per slot level', () => {
+    expect(resolveSpellParts(spell('scorching_ray'), { slotLevel: 4, characterLevel: 7, modifier: 4 })[0]).toMatchObject({
+      count: 5,
+      damage: [{ dice: '2d6', type: 'fire' }],
+    });
+    expect(resolveSpellParts(spell('magic_missile'), { slotLevel: 3, characterLevel: 5, modifier: 4 })[0]).toMatchObject({
+      kind: 'damage',
+      count: 5,
+      damage: [{ dice: '1d4+1', type: 'force' }],
+    });
+  });
+
+  it('Spiritual Weapon adds the spellcasting modifier and scales per slot', () => {
+    expect(resolveSpellParts(spell('spiritual_weapon'), { slotLevel: 4, characterLevel: 7, modifier: 4 })[0]?.damage).toEqual([
+      { dice: '3d8+4', type: 'force' },
+    ]);
+  });
+
+  it('Ice Storm scales only the Bludgeoning part', () => {
+    expect(resolveSpellParts(spell('ice_storm'), { slotLevel: 6, characterLevel: 11, modifier: 4 })[0]?.damage).toEqual([
+      { dice: '4d10', type: 'bludgeoning' },
+      { dice: '4d6', type: 'cold' },
+    ]);
+  });
+
+  it('Ice Knife has two named parts: the shard attack and the save against the burst', () => {
+    const parts = resolveSpellParts(spell('ice_knife'), { slotLevel: 2, characterLevel: 3, modifier: 3 });
+    expect(parts.map((p) => [p.label, p.kind])).toEqual([
+      ['Fragmento', 'attack'],
+      ['Explosão', 'save'],
+    ]);
+    expect(parts[1]).toMatchObject({ ability: 'dex', onSuccess: 'none', damage: [{ dice: '3d6', type: 'cold' }] });
+  });
+
+  it('Chromatic Orb leaves the damage type for the caster to choose', () => {
+    expect(resolveSpellParts(spell('chromatic_orb'), { characterLevel: 1, modifier: 3 })[0]?.damage[0]?.type).toEqual([
+      'acid',
+      'cold',
+      'fire',
+      'lightning',
+      'poison',
+      'thunder',
+    ]);
+  });
+
+  it('Acid Arrow deals half damage on a miss and has the delayed damage as a separate part', () => {
+    const parts = resolveSpellParts(spell('acid_arrow'), { slotLevel: 3, characterLevel: 5, modifier: 4 });
+    expect(parts[0]).toMatchObject({ kind: 'attack', onMiss: 'half', damage: [{ dice: '5d4', type: 'acid' }] });
+    expect(parts[1]).toMatchObject({ kind: 'damage', label: 'Fim do próximo turno do alvo', damage: [{ dice: '3d4', type: 'acid' }] });
+  });
+
+  it('keeps the conditions of a failed save or a hit', () => {
+    expect(resolveSpellParts(spell('sunburst'), { characterLevel: 15, modifier: 5 })[0]).toMatchObject({ onFailConditions: ['blinded'] });
+    expect(resolveSpellParts(spell('ray_of_sickness'), { characterLevel: 1, modifier: 3 })[0]).toMatchObject({ onHitConditions: ['poisoned'] });
+  });
+
+  it('a text-only spell has no parts', () => {
+    expect(resolveSpellParts(spell('light'), { characterLevel: 1, modifier: 3 })).toEqual([]);
+  });
+});
+
+describe('spells with structured resolution in the SRD compendium', () => {
+  const structured = srd.spells.filter((s) => s.resolution.length > 0);
+
+  it('covers the damage spells (95 of 339)', () => {
+    expect(structured).toHaveLength(95);
+  });
+
+  it('every damaging cantrip upgrades with the character level', () => {
+    const cantrips = structured.filter((s) => s.level === 0 && s.resolution.some((p) => p.damage.length > 0));
+    expect(cantrips.length).toBeGreaterThan(10);
+    expect(cantrips.filter((s) => !s.cantripUpgrade).map((s) => s.id)).toEqual([]);
+  });
+});

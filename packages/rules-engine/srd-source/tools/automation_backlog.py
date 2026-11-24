@@ -13,6 +13,7 @@ Categorias:
 - automate:   passivo, automatizável agora (com `mechanic`: a extensão de catálogo necessária);
 - phase_4:    resolução de ações (ataque, dano, salvaguarda, magia, recurso, uso de item);
 - phase_5:    combate (iniciativa, turnos, condições, concentração, morte);
+- phase_7:    magias (nota 0054): cura e condições (PR 3) ou bônus e penalidades temporários (PR 4);
 - gm:         julgamento do mestre ou narrativo, com efeito real mas não mecanizável sem distorcer;
 - none:       descritivo, sem mecânica.
 """
@@ -106,6 +107,52 @@ MONSTER_TRAIT = {
 MONSTER_REASONS = {
     "phase_4": "Traço ou ação de criatura: resolução assistida no combate (Fase 4).",
     "gm": "Exploração ou narrativa: o mestre decide.",
+}
+
+
+# --- Magias (Fase 7, nota 0054) -------------------------------------------------------------------------------
+# As magias de dano têm resolução estruturada (`srd-source/tools/spell_resolution.py`). As demais ficam aqui:
+SPELL = {
+    # PR 3: cura, Pontos de Vida temporários, estabilizar, salvaguardas que só aplicam condição, remover condição.
+    "heal_conditions": [
+        "cure_wounds", "healing_word", "mass_cure_wounds", "mass_healing_word", "prayer_of_healing", "heal", "mass_heal",
+        "power_word_heal", "regenerate", "false_life", "spare_the_dying", "lesser_restoration", "greater_restoration",
+        "animal_friendship", "blindness_deafness", "charm_monster", "charm_person", "color_spray", "dominate_beast",
+        "dominate_monster", "dominate_person", "entangle", "eyebite", "fear", "flesh_to_stone", "grease", "hideous_laughter",
+        "hold_monster", "hold_person", "hypnotic_pattern", "irresistible_dance", "power_word_stun", "sleep", "sleet_storm",
+        "stinking_cloud", "suggestion", "mass_suggestion", "divine_word", "telekinesis", "antipathy_sympathy", "invisibility",
+        "greater_invisibility",
+    ],
+    # PR 4: bônus e penalidades com número na ficha ou na rolagem, enquanto a magia dura.
+    "temporary_effects": [
+        "aid", "bane", "barkskin", "beacon_of_hope", "bless", "blur", "divine_favor", "enhance_ability", "enlarge_reduce",
+        "faerie_fire", "foresight", "guidance", "haste", "hex", "hunters_mark", "heroism", "longstrider", "mage_armor",
+        "magic_weapon", "pass_without_trace", "protection_from_energy", "protection_from_evil_and_good", "protection_from_poison",
+        "ray_of_enfeeblement", "resistance", "shield", "shield_of_faith", "slow", "stoneskin", "true_strike", "shillelagh",
+        "warding_bond", "death_ward", "conjure_minor_elementals", "bestow_curse", "holy_aura", "sanctuary", "freedom_of_movement",
+        "aura_of_life", "heroes_feast",
+    ],
+}
+SPELL_REASONS = {
+    "heal_conditions": "Cura ou condição aplicada pela magia: Fase 7, PR 3 (nota 0054).",
+    "temporary_effects": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054).",
+    "gm": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide.",
+}
+# Magias com dano no texto que ficam sem resolução estruturada, com o motivo.
+SPELL_REASON_OVERRIDE = {
+    "animate_objects": "Invocação com bloco de estatísticas próprio: as ações da criatura são das ações de monstro (extra futuro).",
+    "find_steed": "Invocação com bloco de estatísticas próprio: as ações da criatura são das ações de monstro (extra futuro).",
+    "giant_insect": "Invocação com bloco de estatísticas próprio: as ações da criatura são das ações de monstro (extra futuro).",
+    "summon_dragon": "Invocação com bloco de estatísticas próprio: as ações da criatura são das ações de monstro (extra futuro).",
+    "dream": "O dano vem ao acordar, fora de combate e depois de um descanso sem benefício: o mestre aplica.",
+    "contact_other_plane": "Salvaguarda de quem conjura contra CD 15 fixa, com resultado narrativo: o mestre conduz.",
+    "prismatic_wall": "Muralha de sete camadas atravessadas uma a uma: o mestre conduz (as cores repetem as do Prismatic Spray).",
+    "wish": "Efeitos à escolha e consequência do esforço decididos pelo mestre.",
+}
+# Partes pendentes de magias que já têm resolução estruturada.
+SPELL_PARTIAL = {
+    "spell:vampiric_touch#healing": "Quem conjura recupera metade do dano Necrotic causado: cura, Fase 7, PR 3.",
+    "spell:conjure_celestial#healing_light": "Healing Light (4d12 + modificador): cura, Fase 7, PR 3.",
 }
 
 
@@ -209,12 +256,39 @@ for name in sorted({snake(t["name"].split(" (")[0]) for m in monsters for t in m
 for name in sorted({snake(a["name"].split(" (")[0]) for m in monsters for a in m["actions"] if a["kind"] == "text"}):
     put(f"monster_action:{name}", "phase_4", MONSTER_REASONS["phase_4"])
 
+# Magias sem resolução estruturada.
+spells = load("spells.json")
+spell_ids = {sp["id"] for sp in spells}
+structured = {sp["id"] for sp in spells if sp.get("resolution")}
+for sp in spells:
+    if sp["id"] in structured:
+        continue
+    key = f"spell:{sp['id']}"
+    group = next((g for g, ids in SPELL.items() if sp["id"] in ids), None)
+    if sp["id"] in SPELL_REASON_OVERRIDE:
+        put(key, "gm", SPELL_REASON_OVERRIDE[sp["id"]])
+    elif group:
+        put(key, "phase_7", SPELL_REASONS[group])
+    else:
+        put(key, "gm", SPELL_REASONS["gm"])
+for key, reason in SPELL_PARTIAL.items():
+    put(key, "phase_7", reason)
+
 # Conferência: toda exceção listada aqui precisa existir no compêndio (curadoria não fica órfã).
 magic_ids = {i["id"] for i in load("magic-items.json")}
 problems = []
 listed = ([f"feature:{k}" for c in ("structural", "phase_5", "gm") for k in FEATURE[c]] + [f"feature:{k}" for k in FEATURE["automate"]]
           + [f"item:{k}" for k in ITEM["automate"]] + [f"item:{k}" for k in ITEM["gm"]]
           + [f"monster_trait:{k}" for k in MONSTER_TRAIT["automate"]] + [f"monster_trait:{k}" for k in MONSTER_TRAIT["gm"]])
+for sid in [i for ids in SPELL.values() for i in ids] + list(SPELL_REASON_OVERRIDE):
+    if sid not in spell_ids or sid in structured:
+        problems.append(f"magia classificada inexistente ou já estruturada: {sid}")
+for key in SPELL_PARTIAL:
+    if key.split("#")[0].split(":")[1] not in structured:
+        problems.append(f"parte pendente de magia sem resolução: {key}")
+dups = [i for g in SPELL.values() for i in g]
+if len(dups) != len(set(dups)):
+    problems.append("magia em mais de um grupo")
 feature_keys = set(dict.fromkeys(features))
 all_features = []
 

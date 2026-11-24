@@ -200,7 +200,14 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - ✅ Recursos de uso limitado (efeito `resource`, `resource.spend`/`restore`, `PROTOCOL_VERSION = 20`, `<campanha>.db` v13, `engine/resources.ts`): 31 características de classe, subclasse e espécie (Rage, Bardic Inspiration, Channel Divinity, Lay On Hands, Focus Points…) com máximo e recarga; o personagem guarda os usos gastos e os descansos devolvem. O uso em si continua como parcial da Fase 4 no backlog. Ver `docs/decisions/0052-recursos-de-uso-limitado.md`.
    - ✅ Conjurar (`spell.cast`, `PROTOCOL_VERSION = 21`, `spellcasting.castable`): gasta o espaço (ou o uso gratuito: truque, à vontade, ou as magias concedidas com usos por descanso, que viram recursos), vira a Concentração, interrompe o descanso e publica a magia com o texto no chat. O efeito estruturado de cada magia fica para uma fase própria (as 339 magias são só texto). Ver `docs/decisions/0053-conjurar-magias.md`.
 
-*Extras futuros:* ferramentas de mapa (régua, tokens ocultos, névoa, indicação de morto), ações de monstro com Multiattack e magias, exportar e abrir campanha de arquivo, criação de token a partir de imagem com recorte/moldura automáticos, spawn de vários inimigos de uma vez (a numeração Goblin 1, Goblin 2… já existe, um por vez), colar texto de ficha de monstro e converter para o schema.
+7. **Fase 7 — Magias estruturadas:** o efeito das magias resolvido pela mesa a partir de dados curados do SRD. Dividida em 4 PRs (ver `docs/decisions/0054-magias-estruturadas.md`); as magias sem resolução ficam classificadas no backlog (`spell:<id>`):
+   - ✅ Schema (`resolution`: ataque, salvaguarda ou dano direto, com escala por círculo e melhoria de truque), motor (`engine/spells.ts`, `resolveSpellParts`) e curadoria de 95 magias de dano conferida contra o texto (`srd-source/tools/spell_resolution.py`).
+   - Conjurar com alvos: o Host rola o ataque ou as salvaguardas pela magia e o dano vira proposta para o mestre.
+   - Cura (direto nos PV) e salvaguardas que só aplicam condição, com a condição caindo junto com a Concentração.
+   - Bônus e penalidades temporários (Bless, Shield of Faith, Mage Armor, Bane, Haste) ligados à duração ou à Concentração.
+8. **Ferramentas de mapa (reservada para outro contribuidor, [issue #59](https://github.com/Leoz-v/projeto_rpg/issues/59)):** régua, tokens ocultos, névoa e indicação de morto.
+
+*Extras futuros:* ações de monstro com Multiattack e magias, exportar e abrir campanha de arquivo, criação de token a partir de imagem com recorte/moldura automáticos, spawn de vários inimigos de uma vez (a numeração Goblin 1, Goblin 2… já existe, um por vez), colar texto de ficha de monstro e converter para o schema.
 
 ## Comandos
 

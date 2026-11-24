@@ -11,3 +11,6 @@ coverage/
 .DS_Store
 .claude/settings.local.json
 *.tsbuildinfo
+
+# Python (ferramentas de importação do SRD)
+__pycache__/
