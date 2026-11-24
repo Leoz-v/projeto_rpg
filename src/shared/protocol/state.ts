@@ -1,7 +1,7 @@
 import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, EffectSchema, InventorySchema, SizeSchema, TriggerMomentSchema, WeaponMasterySchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_COMBATANTS, MAX_HIT_POINTS, MAX_INITIATIVE, MAX_SAVE_TARGETS, MAX_TURN_TRIGGER_ITEMS, MIN_INITIATIVE } from './constants';
-import { ChatTextSchema, ConcentrationSchema, HitDiceSpentSchema, HitDieSchema, ConditionStateSchema, DeathSavesSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
+import { ChatTextSchema, ConcentrationSchema, HitDiceSpentSchema, HitDieSchema, SpellSlotRefSchema, SpellSlotsSpentSchema, ConditionStateSchema, DeathSavesSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 
 /** `SessionState` (docs/network-protocol.md, seção 5). */
 
@@ -236,6 +236,18 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     targetTokenId: UuidSchema,
     targetName: NameSchema,
   }),
+  /** Espaço de magia gasto ou recuperado (nota 0051). */
+  z.strictObject({
+    kind: z.literal('spell_slot'),
+    ...entryBase,
+    characterId: UuidSchema,
+    characterName: NameSchema,
+    event: z.enum(['spent', 'restored']),
+    slot: SpellSlotRefSchema,
+    /** Quantos restam desse tipo depois da mudança, e o total. */
+    available: z.int().min(0).max(20),
+    total: z.int().min(0).max(20),
+  }),
   /** Descanso que começou, terminou ou foi interrompido (nota 0050). */
   z.strictObject({
     kind: z.literal('rest'),
@@ -448,6 +460,8 @@ export const SessionCharacterSchema = z.strictObject({
   concentration: ConcentrationSchema.nullable(),
   /** Dados de Vida gastos por tamanho; o descanso longo devolve todos (nota 0050). */
   hitDiceSpent: HitDiceSpentSchema,
+  /** Espaços de magia gastos; os descansos devolvem (nota 0051). */
+  spellSlotsSpent: SpellSlotsSpentSchema,
 });
 export type SessionCharacter = z.infer<typeof SessionCharacterSchema>;
 

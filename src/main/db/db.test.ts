@@ -175,6 +175,7 @@ describe('CampaignDb', () => {
         deathSaves: { successes: 1, failures: 2, stable: false, dead: false },
         concentration: { spellId: 'bless', name: 'Bless' },
         hitDiceSpent: { '10': 2 },
+        spellSlotsSpent: { byLevel: { '1': 1 }, pact: 0 },
       },
     },
     ...overrides,
@@ -289,6 +290,7 @@ describe('CampaignDb', () => {
     expect(loaded.characters[HERO]?.deathSaves).toEqual({ successes: 0, failures: 0, stable: false, dead: false });
     expect(loaded.characters[HERO]?.concentration).toBeNull();
     expect(loaded.characters[HERO]?.hitDiceSpent).toEqual({});
+    expect(loaded.characters[HERO]?.spellSlotsSpent).toEqual({ byLevel: {}, pact: 0 });
     expect(loaded.tokens[TOKEN]?.hp).toBeNull();
     expect(loaded.tokens[TOKEN]?.characterId).toBeNull();
     migrated.close();

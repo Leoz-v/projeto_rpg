@@ -1,4 +1,4 @@
-import { NO_DEATH_SAVES, rollAbilityScores, usesRolledValues } from 'rules-engine';
+import { NO_DEATH_SAVES, NO_SPELL_SLOTS_SPENT, rollAbilityScores, usesRolledValues } from 'rules-engine';
 import { NO_CONDITIONS, type IntentData, type PatchOp, type Role, type SessionCharacter, MAX_ADJUSTMENTS, MAX_INVENTORY_ITEMS, MAX_ITEM_QUANTITY, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed, EMPTY_INVENTORY, type InventoryEntry } from './context';
 
@@ -10,7 +10,7 @@ export function createCharacter(ctx: SessionContext, playerId: string, role: Rol
     ctx.requireGm(role);
     if (ctx.current.players[ownerId] === undefined) throw violation('Dono do personagem não está na mesa');
   }
-  const character: SessionCharacter = { id: ctx.deps.newId(), ownerId, name: data.name, baseScores: null, rolledScores: null, steps: [], inventory: EMPTY_INVENTORY, hp: { damage: 0, temp: 0 }, adjustments: [], conditions: NO_CONDITIONS, deathSaves: NO_DEATH_SAVES, concentration: null, hitDiceSpent: {} };
+  const character: SessionCharacter = { id: ctx.deps.newId(), ownerId, name: data.name, baseScores: null, rolledScores: null, steps: [], inventory: EMPTY_INVENTORY, hp: { damage: 0, temp: 0 }, adjustments: [], conditions: NO_CONDITIONS, deathSaves: NO_DEATH_SAVES, concentration: null, hitDiceSpent: {}, spellSlotsSpent: NO_SPELL_SLOTS_SPENT };
   return [{ op: 'add', path: toPointer('characters', character.id), value: character }];
 }
 

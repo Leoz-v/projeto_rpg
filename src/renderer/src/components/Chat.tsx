@@ -9,6 +9,7 @@ import { CONDITION_LABEL } from './sheet-labels';
 import { DeathSaveBody, DeathStateBody } from './DeathSaves';
 import { ConcentrationBody, ConcentrationSaveBody } from './Concentration';
 import { HitDieBody, RestBody } from './Rest';
+import { SpellSlotBody } from './SpellSlots';
 
 /** Log da sessão (mensagens e rolagens) e campo de envio. */
 
@@ -171,6 +172,8 @@ function Entry({ entry, author, context }: { entry: ChatEntry; author: string; c
         </li>
       );
     }
+    case 'spell_slot':
+      return <SpellSlotBody entry={entry} header={header} />;
     case 'rest':
       return <RestBody entry={entry} header={header} />;
     case 'hit_die':

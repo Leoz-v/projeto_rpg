@@ -64,6 +64,16 @@ export const HitDieSchema = z.union([z.literal(6), z.literal(8), z.literal(10), 
 /** Dados de Vida gastos por tamanho do dado, como texto ("10": 2) (nota 0050). */
 export const HitDiceSpentSchema = z.partialRecord(z.enum(['6', '8', '10', '12']), z.int().min(1).max(20));
 
+/** Espaços de magia gastos: por círculo ("1": 2) e os da Magia de Pacto (nota 0051). */
+export const SpellSlotsSpentSchema = z.strictObject({
+  byLevel: z.partialRecord(z.enum(['1', '2', '3', '4', '5', '6', '7', '8', '9']), z.int().min(1).max(20)),
+  pact: z.int().min(0).max(10),
+});
+
+/** Um espaço de magia: de um círculo, ou da Magia de Pacto. */
+export const SpellSlotRefSchema = z.union([z.strictObject({ level: z.int().min(1).max(9) }), z.literal('pact')]);
+export type SpellSlotRef = z.infer<typeof SpellSlotRefSchema>;
+
 /** Alvo de PV e condições: um personagem, ou um token. */
 export const CreatureTargetSchema = z.union([z.strictObject({ characterId: UuidSchema }), z.strictObject({ tokenId: UuidSchema })]);
 export type CreatureTarget = z.infer<typeof CreatureTargetSchema>;

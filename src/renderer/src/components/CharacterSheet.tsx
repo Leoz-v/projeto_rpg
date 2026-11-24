@@ -15,6 +15,7 @@ import { type Roller, RollToolbar, RollButton, useRoller } from './SheetRolls';
 import { DeathSavesPanel } from './DeathSaves';
 import { ConcentrationControl } from './Concentration';
 import { HitDiceControl } from './Rest';
+import { SpellSlotsControl } from './SpellSlots';
 import { Inventory } from './Inventory';
 import { ABILITY_LABEL, CONDITION_LABEL, DAMAGE_LABEL, humanizeId, nameOf, SENSE_LABEL, SIZE_LABEL, signed, SKILL_LABEL } from './sheet-labels';
 
@@ -355,10 +356,9 @@ function Attacks({ sheet, roller, onSelect }: { sheet: DerivedSheet; roller: Rol
   );
 }
 
-function Spellcasting({ sheet, names, onSelect }: { sheet: DerivedSheet; names: Record<string, string>; onSelect: (d: Detail) => void }) {
-  const { classes, slots, pactSlots, granted } = sheet.spellcasting;
+function Spellcasting({ sheet, names, onSelect, slots }: { sheet: DerivedSheet; names: Record<string, string>; onSelect: (d: Detail) => void; slots: ReactNode }) {
+  const { classes, granted } = sheet.spellcasting;
   if (classes.length === 0 && granted.length === 0) return null;
-  const usedSlots = slots.map((count, i) => ({ level: i + 1, count })).filter((s) => s.count > 0);
   return (
     <section aria-label="Magia" className="spellcasting">
       <h3>Magia</h3>
@@ -372,12 +372,7 @@ function Spellcasting({ sheet, names, onSelect }: { sheet: DerivedSheet; names: 
           {c.spells.length > 0 && <p className="hint">Magias: {c.spells.map((id) => nameOf(id, names)).join(', ')}</p>}
         </div>
       ))}
-      {usedSlots.length > 0 && <p>Espaços: {usedSlots.map((s) => `${s.level}º: ${s.count}`).join(' · ')}</p>}
-      {pactSlots && (
-        <p>
-          Magia de Pacto: {pactSlots.count} espaço(s) de {pactSlots.level}º nível
-        </p>
-      )}
+      {slots}
       {granted.length > 0 && (
         <p className="hint">
           Concedidas: {granted.map((g) => `${nameOf(g.spellId, names)} (${g.source.name})`).join(', ')}
@@ -595,7 +590,12 @@ export function CharacterSheet({ view, characterId, onClose }: { view: TableView
                 <div className="sheet-columns">
                   <Skills sheet={load.view.sheet} roller={roller} onSelect={setDetail} />
                   <div>
-                    <Spellcasting sheet={load.view.sheet} names={load.view.names} onSelect={setDetail} />
+                    <Spellcasting
+                      sheet={load.view.sheet}
+                      names={load.view.names}
+                      onSelect={setDetail}
+                      slots={<SpellSlotsControl character={record} spellcasting={load.view.sheet.spellcasting} canEdit={canEdit} />}
+                    />
                     <Traits sheet={load.view.sheet} names={load.view.names} onSelect={setDetail} />
                   </div>
                 </div>
