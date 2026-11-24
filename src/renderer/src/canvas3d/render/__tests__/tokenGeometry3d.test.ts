@@ -23,6 +23,7 @@ function makeToken(overrides: Partial<Token> = {}): Token {
     characterId: null,
     hp: null,
     conditions: { active: [], exhaustion: 0 },
+    visionFeet: null,
     ...overrides,
   };
 }

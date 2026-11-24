@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { type ChatEntry, type SessionState, SessionStateSchema } from '../../shared/protocol';
+import { type ChatEntry, defaultMapFog, type SessionState, SessionStateSchema } from '../../shared/protocol';
 import { migrate, type MigrateResult } from './migrate';
 import { type Database, openDatabase, transaction } from './sqlite';
 
@@ -79,6 +79,9 @@ const MIGRATIONS = [
   `ALTER TABLE characters ADD COLUMN resources_spent TEXT NOT NULL DEFAULT '{}';`,
   // SHA-256 do documento JSON de um mapa 3D (nota 0056); NULL em mapas 2D.
   `ALTER TABLE maps ADD COLUMN scene_3d TEXT;`,
+  // Névoa de guerra do mapa (JSON) e alcance de visão próprio do token em pés (nota 0058).
+  `ALTER TABLE maps ADD COLUMN fog TEXT;
+   ALTER TABLE tokens ADD COLUMN vision_feet INTEGER;`,
 ] as const;
 
 export const CAMPAIGN_DB_SCHEMA_VERSION = MIGRATIONS.length;
@@ -92,7 +95,7 @@ export class CampaignDbError extends Error {
 
 const CampaignRow = z.object({ id: z.string(), name: z.string(), active_map_id: z.string().nullable(), combat: z.string().nullable(), rest: z.string().nullable() });
 const PlayerRow = z.object({ id: z.string(), display_name: z.string(), role: z.string() });
-const MapRow = z.object({ id: z.string(), name: z.string(), width: z.number(), height: z.number(), background: z.string().nullable(), cell_px: z.number().nullable(), scene_3d: z.string().nullable() });
+const MapRow = z.object({ id: z.string(), name: z.string(), width: z.number(), height: z.number(), background: z.string().nullable(), cell_px: z.number().nullable(), scene_3d: z.string().nullable(), fog: z.string().nullable() });
 const TokenRow = z.object({
   id: z.string(),
   map_id: z.string(),
@@ -106,6 +109,7 @@ const TokenRow = z.object({
   character_id: z.string().nullable(),
   hp: z.string().nullable(),
   conditions: z.string(),
+  vision_feet: z.number().nullable(),
 });
 const ChatRow = z.object({ entry: z.string() });
 const CharacterRow = z.object({ id: z.string(), owner_id: z.string(), name: z.string(), build: z.string(), inventory: z.string(), adjustments: z.string(), hp: z.string(), conditions: z.string(), death_saves: z.string(), concentration: z.string(), hit_dice_spent: z.string(), spell_slots_spent: z.string(), resources_spent: z.string() });
@@ -167,21 +171,38 @@ export class CampaignDb {
     );
     const maps = Object.fromEntries(
       this.db
-        .prepare('SELECT id, name, width, height, background, cell_px, scene_3d FROM maps')
+        .prepare('SELECT id, name, width, height, background, cell_px, scene_3d, fog FROM maps')
         .all()
         .map((row) => {
           const m = MapRow.parse(row);
-          return [m.id, { id: m.id, name: m.name, width: m.width, height: m.height, background: m.background, cellPx: m.cell_px, scene3d: m.scene_3d }];
+          const fog: unknown = m.fog === null ? defaultMapFog(m.width, m.height) : JSON.parse(m.fog);
+          return [m.id, { id: m.id, name: m.name, width: m.width, height: m.height, background: m.background, cellPx: m.cell_px, scene3d: m.scene_3d, fog }];
         }),
     );
     const tokens = Object.fromEntries(
       this.db
-        .prepare('SELECT id, map_id, name, x, y, size, monster_id, image, owner_ids, character_id, hp, conditions FROM tokens')
+        .prepare('SELECT id, map_id, name, x, y, size, monster_id, image, owner_ids, character_id, hp, conditions, vision_feet FROM tokens')
         .all()
         .map((row) => {
           const t = TokenRow.parse(row);
           const ownerIds: unknown = JSON.parse(t.owner_ids);
-          return [t.id, { id: t.id, mapId: t.map_id, name: t.name, position: { x: t.x, y: t.y }, size: t.size, monsterId: t.monster_id, image: t.image, ownerIds, characterId: t.character_id, hp: t.hp === null ? null : (JSON.parse(t.hp) as unknown), conditions: JSON.parse(t.conditions) as unknown }];
+          return [
+            t.id,
+            {
+              id: t.id,
+              mapId: t.map_id,
+              name: t.name,
+              position: { x: t.x, y: t.y },
+              size: t.size,
+              monsterId: t.monster_id,
+              image: t.image,
+              ownerIds,
+              characterId: t.character_id,
+              hp: t.hp === null ? null : (JSON.parse(t.hp) as unknown),
+              conditions: JSON.parse(t.conditions) as unknown,
+              visionFeet: t.vision_feet,
+            },
+          ];
         }),
     );
     const characters = Object.fromEntries(
@@ -231,18 +252,18 @@ export class CampaignDb {
       this.removeMissing('tokens', Object.keys(state.tokens));
       this.removeMissing('maps', Object.keys(state.maps));
       const upsertMap = db.prepare(
-        `INSERT INTO maps (id, name, width, height, background, cell_px, scene_3d) VALUES (?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT (id) DO UPDATE SET name = excluded.name, width = excluded.width, height = excluded.height, background = excluded.background, cell_px = excluded.cell_px, scene_3d = excluded.scene_3d`,
+        `INSERT INTO maps (id, name, width, height, background, cell_px, scene_3d, fog) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT (id) DO UPDATE SET name = excluded.name, width = excluded.width, height = excluded.height, background = excluded.background, cell_px = excluded.cell_px, scene_3d = excluded.scene_3d, fog = excluded.fog`,
       );
-      for (const m of Object.values(state.maps)) upsertMap.run(m.id, m.name, m.width, m.height, m.background, m.cellPx, m.scene3d);
+      for (const m of Object.values(state.maps)) upsertMap.run(m.id, m.name, m.width, m.height, m.background, m.cellPx, m.scene3d, JSON.stringify(m.fog));
       const upsertToken = db.prepare(
-        `INSERT INTO tokens (id, map_id, name, x, y, size, monster_id, image, owner_ids, character_id, hp, conditions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO tokens (id, map_id, name, x, y, size, monster_id, image, owner_ids, character_id, hp, conditions, vision_feet) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (id) DO UPDATE SET map_id = excluded.map_id, name = excluded.name, x = excluded.x, y = excluded.y, size = excluded.size,
            monster_id = excluded.monster_id, image = excluded.image, owner_ids = excluded.owner_ids, character_id = excluded.character_id, hp = excluded.hp,
-           conditions = excluded.conditions`,
+           conditions = excluded.conditions, vision_feet = excluded.vision_feet`,
       );
       for (const t of Object.values(state.tokens)) {
-        upsertToken.run(t.id, t.mapId, t.name, t.position.x, t.position.y, t.size, t.monsterId, t.image, JSON.stringify(t.ownerIds), t.characterId, t.hp === null ? null : JSON.stringify(t.hp), JSON.stringify(t.conditions));
+        upsertToken.run(t.id, t.mapId, t.name, t.position.x, t.position.y, t.size, t.monsterId, t.image, JSON.stringify(t.ownerIds), t.characterId, t.hp === null ? null : JSON.stringify(t.hp), JSON.stringify(t.conditions), t.visionFeet);
       }
 
       this.removeMissing('characters', Object.keys(state.characters));

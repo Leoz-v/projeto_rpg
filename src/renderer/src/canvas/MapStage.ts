@@ -1,8 +1,9 @@
 // O PixiJS gera código de shader com `new Function`, que a CSP da tela bloqueia; este módulo troca por versões prontas.
 import 'pixi.js/unsafe-eval';
-import { Application, Container, type FederatedPointerEvent, Graphics, ImageSource, Sprite, Text, Texture } from 'pixi.js';
+import { Application, CanvasSource, Container, type FederatedPointerEvent, Graphics, ImageSource, Sprite, Text, Texture } from 'pixi.js';
 import type { GridCell } from 'rules-engine/space';
-import { type GameMap, type Point, type Token, WORLD_UNITS_PER_CELL } from '../../../shared/protocol';
+import { type FogCell, type FogMode, type GameMap, type Point, type Token, WORLD_UNITS_PER_CELL } from '../../../shared/protocol';
+import { clampFogCell, fillFogImageData, fogSignature, type FogTool, type FogViewer, worldToFogCell } from './fog-render';
 import { type Camera, fitMap, placeToken, screenToWorld, tokenSide, worldToScreen, zoomAt } from './geometry';
 import { type Health, healthColor } from './health';
 import { backgroundWorldSize } from './map-grid';
@@ -35,6 +36,10 @@ export interface Scene {
   conditions: (token: Token) => readonly string[];
   /** PV para a barra do token, ou `null` (sem barra). */
   health: (token: Token) => Health | null;
+  /** Quem está vendo o mapa (mestre ou jogador), para a névoa de guerra. */
+  viewer: FogViewer;
+  /** Ferramenta de edição de névoa ativa (só para o mestre). */
+  fogTool: FogTool;
 }
 
 export interface MapStageHandle {
@@ -45,6 +50,8 @@ export interface MapStageHandle {
 export interface MapStageEvents {
   onMove: (tokenId: string, to: Point) => void;
   onSelect: (tokenId: string | null) => void;
+  onFogPaint: (mapId: string, mode: FogMode, cells: FogCell[]) => void;
+  onFogRect: (mapId: string, mode: FogMode, from: FogCell, to: FogCell) => void;
 }
 
 const COLORS = {
@@ -118,14 +125,30 @@ export class MapStage {
   private readonly backgroundLayer = new Container();
   private readonly gridLayer = new Graphics();
   private readonly tokenLayer = new Container();
+  private readonly fogLayer = new Container();
+  private readonly fogPreviewLayer = new Graphics();
   private readonly rulerLayer = new Graphics();
   private readonly rulerHud = new Container();
   private readonly rulerBadgeBg = new Graphics();
   private readonly rulerBadgeText: Text;
   private readonly views = new Map<string, TokenView>();
   private readonly textures = new Map<string, Promise<Texture | null>>();
+  private fogCanvas: HTMLCanvasElement | undefined;
+  private fogSprite: Sprite | undefined;
+  private fogTexture: Texture | undefined;
+  private shownFogKey = '';
   private camera: Camera = { x: 0, y: 0, zoom: 1 };
-  private scene: Scene = { map: null, tokens: [], canDrag: () => false, selectedId: null, activeId: null, conditions: () => [], health: () => null };
+  private scene: Scene = {
+    map: null,
+    tokens: [],
+    canDrag: () => false,
+    selectedId: null,
+    activeId: null,
+    conditions: () => [],
+    health: () => null,
+    viewer: { role: 'player', playerId: '' },
+    fogTool: 'none',
+  };
   private shownMapKey = '';
   private drag: { id: string; offset: Point } | undefined;
   private pan: { from: Point; camera: Camera } | undefined;
@@ -133,13 +156,15 @@ export class MapStage {
   private rulerOptions: RulerOptions = { ...DEFAULT_RULER_OPTIONS };
   private rulerDragging = false;
   private rulerPoints: GridCell[] = [];
+  private fogBrush: { mapId: string; mode: FogMode; cells: Map<string, FogCell> } | undefined;
+  private fogRect: { mapId: string; mode: FogMode; from: FogCell; to: FogCell } | undefined;
   private destroyed = false;
 
   private constructor(
     private readonly app: Application,
     private readonly events: MapStageEvents,
   ) {
-    this.world.addChild(this.backgroundLayer, this.gridLayer, this.tokenLayer, this.rulerLayer);
+    this.world.addChild(this.backgroundLayer, this.gridLayer, this.tokenLayer, this.fogLayer, this.fogPreviewLayer, this.rulerLayer);
     this.rulerBadgeText = new Text({
       text: '',
       style: {
@@ -208,23 +233,31 @@ export class MapStage {
       if (map && changedMap) this.setCamera(fitMap(map, this.app.screen));
     }
     this.syncTokens();
+    this.syncFog();
+    this.updateCursor();
+  }
+
+  private updateCursor(): void {
+    const activeFog = this.scene.viewer.role === 'gm' && this.scene.fogTool !== 'none';
+    const crosshair = this.rulerMode || activeFog;
+    this.app.canvas.style.cursor = crosshair ? 'crosshair' : '';
+    for (const [id, view] of this.views) {
+      const token = this.scene.tokens.find((t) => t.id === id);
+      view.container.cursor = crosshair ? 'crosshair' : token && this.scene.canDrag(token) ? 'grab' : 'pointer';
+    }
   }
 
   /** Ativa ou desativa a ferramenta local de régua (sem `Intent`). */
   setRulerMode(active: boolean): void {
     if (this.destroyed) return;
     this.rulerMode = active;
-    this.app.canvas.style.cursor = active ? 'crosshair' : '';
     if (active) {
       this.drag = undefined;
       this.pan = undefined;
     } else {
       this.clearRuler();
     }
-    for (const [id, view] of this.views) {
-      const token = this.scene.tokens.find((t) => t.id === id);
-      view.container.cursor = active ? 'crosshair' : token && this.scene.canDrag(token) ? 'grab' : 'pointer';
-    }
+    this.updateCursor();
   }
 
   /** Atualiza modo (linha/raio) e unidade (`ft`/`m`) da régua. */
@@ -489,8 +522,9 @@ export class MapStage {
   }
 
   private tokenDown(id: string, e: FederatedPointerEvent): void {
-    // Em modo régua, o clique sobre o token inicia a medição na célula dele.
+    // Em modo régua ou com ferramenta de névoa ativa, cliques não arrastam tokens.
     if (this.rulerMode) return;
+    if (this.scene.viewer.role === 'gm' && this.scene.fogTool !== 'none') return;
     // O clique no token não vira arrasto da câmera.
     e.stopPropagation();
     // Permissão conferida na hora (a cena pode ter mudado desde que o token foi desenhado).
@@ -507,9 +541,27 @@ export class MapStage {
   }
 
   private stageDown(e: FederatedPointerEvent): void {
+    const map = this.scene.map;
+    if (map && this.scene.viewer.role === 'gm' && this.scene.fogTool !== 'none' && e.button === 0) {
+      const world = screenToWorld(this.camera, e.global);
+      if (this.scene.fogTool === 'brush-cover' || this.scene.fogTool === 'brush-reveal') {
+        const mode: FogMode = this.scene.fogTool === 'brush-cover' ? 'cover' : 'reveal';
+        const cells = new Map<string, FogCell>();
+        const cell = worldToFogCell(world, map);
+        if (cell) cells.set(`${cell.x},${cell.y}`, cell);
+        this.fogBrush = { mapId: map.id, mode, cells };
+        this.drawFogPreview();
+        return;
+      }
+      const mode: FogMode = this.scene.fogTool === 'rect-cover' ? 'cover' : 'reveal';
+      const cell = clampFogCell(world, map);
+      this.fogRect = { mapId: map.id, mode, from: cell, to: cell };
+      this.drawFogPreview();
+      return;
+    }
     if (this.rulerMode) {
-      if (e.button === 0 && this.scene.map) {
-        const cell = worldToGridCell(screenToWorld(this.camera, e.global), this.scene.map);
+      if (e.button === 0 && map) {
+        const cell = worldToGridCell(screenToWorld(this.camera, e.global), map);
         if (this.rulerOptions.shape === 'line' && e.shiftKey && this.rulerPoints.length >= 2) {
           this.rulerPoints = [...this.rulerPoints, cell];
         } else {
@@ -529,6 +581,29 @@ export class MapStage {
   }
 
   private pointerMove(e: FederatedPointerEvent): void {
+    if (this.fogBrush) {
+      const map = this.scene.map;
+      if (!map || map.id !== this.fogBrush.mapId) return;
+      const cell = worldToFogCell(screenToWorld(this.camera, e.global), map);
+      if (cell) {
+        const key = `${cell.x},${cell.y}`;
+        if (!this.fogBrush.cells.has(key)) {
+          this.fogBrush.cells.set(key, cell);
+          this.drawFogPreview();
+        }
+      }
+      return;
+    }
+    if (this.fogRect) {
+      const map = this.scene.map;
+      if (!map || map.id !== this.fogRect.mapId) return;
+      const to = clampFogCell(screenToWorld(this.camera, e.global), map);
+      if (to.x !== this.fogRect.to.x || to.y !== this.fogRect.to.y) {
+        this.fogRect.to = to;
+        this.drawFogPreview();
+      }
+      return;
+    }
     if (this.rulerDragging && this.rulerPoints.length >= 2 && this.scene.map) {
       const cell = worldToGridCell(screenToWorld(this.camera, e.global), this.scene.map);
       const last = this.rulerPoints[this.rulerPoints.length - 1];
@@ -552,6 +627,20 @@ export class MapStage {
   private pointerUp(): void {
     this.rulerDragging = false;
     this.pan = undefined;
+    if (this.fogBrush) {
+      const { mapId, mode, cells } = this.fogBrush;
+      this.fogBrush = undefined;
+      this.fogPreviewLayer.clear();
+      if (cells.size > 0) this.events.onFogPaint(mapId, mode, [...cells.values()]);
+      return;
+    }
+    if (this.fogRect) {
+      const { mapId, mode, from, to } = this.fogRect;
+      this.fogRect = undefined;
+      this.fogPreviewLayer.clear();
+      this.events.onFogRect(mapId, mode, from, to);
+      return;
+    }
     const drag = this.drag;
     if (!drag) return;
     this.drag = undefined;
@@ -563,6 +652,63 @@ export class MapStage {
     const to = placeToken({ x: view.x, y: view.y }, token.size, map);
     view.position.set(to.x, to.y);
     if (to.x !== token.position.x || to.y !== token.position.y) this.events.onMove(token.id, to);
+  }
+
+  private syncFog(): void {
+    const map = this.scene.map;
+    const key = fogSignature(map, this.scene.tokens, this.scene.viewer);
+    if (key === this.shownFogKey) return;
+    this.shownFogKey = key;
+    if (!map) {
+      if (this.fogSprite) this.fogSprite.visible = false;
+      return;
+    }
+    if (!this.fogCanvas || this.fogCanvas.width !== map.width || this.fogCanvas.height !== map.height) {
+      this.fogSprite?.destroy();
+      this.fogTexture?.destroy(true);
+      this.fogCanvas = document.createElement('canvas');
+      this.fogCanvas.width = map.width;
+      this.fogCanvas.height = map.height;
+      this.fogTexture = new Texture({ source: new CanvasSource({ resource: this.fogCanvas, scaleMode: 'nearest' }) });
+      this.fogSprite = new Sprite(this.fogTexture);
+      this.fogLayer.addChild(this.fogSprite);
+    }
+    const ctx2d = this.fogCanvas.getContext('2d');
+    if (!ctx2d || !this.fogTexture || !this.fogSprite) return;
+    const imageData = ctx2d.createImageData(map.width, map.height);
+    fillFogImageData(imageData.data, map, this.scene.tokens, this.scene.viewer);
+    ctx2d.putImageData(imageData, 0, 0);
+    this.fogTexture.source.update();
+    this.fogSprite.visible = true;
+    this.fogSprite.width = map.width * WORLD_UNITS_PER_CELL;
+    this.fogSprite.height = map.height * WORLD_UNITS_PER_CELL;
+  }
+
+  private drawFogPreview(): void {
+    const g = this.fogPreviewLayer.clear();
+    if (this.fogBrush) {
+      const color = this.fogBrush.mode === 'cover' ? 0x6c5ce7 : 0x5fd38d;
+      for (const cell of this.fogBrush.cells.values()) {
+        g.rect(cell.x * WORLD_UNITS_PER_CELL, cell.y * WORLD_UNITS_PER_CELL, WORLD_UNITS_PER_CELL, WORLD_UNITS_PER_CELL);
+      }
+      g.fill({ color, alpha: 0.35 }).stroke({ width: 3, color, alpha: 0.9 });
+      return;
+    }
+    if (this.fogRect) {
+      const color = this.fogRect.mode === 'cover' ? 0x6c5ce7 : 0x5fd38d;
+      const minX = Math.min(this.fogRect.from.x, this.fogRect.to.x);
+      const maxX = Math.max(this.fogRect.from.x, this.fogRect.to.x);
+      const minY = Math.min(this.fogRect.from.y, this.fogRect.to.y);
+      const maxY = Math.max(this.fogRect.from.y, this.fogRect.to.y);
+      g.rect(
+        minX * WORLD_UNITS_PER_CELL,
+        minY * WORLD_UNITS_PER_CELL,
+        (maxX - minX + 1) * WORLD_UNITS_PER_CELL,
+        (maxY - minY + 1) * WORLD_UNITS_PER_CELL,
+      )
+        .fill({ color, alpha: 0.3 })
+        .stroke({ width: 4, color, alpha: 0.9 });
+    }
   }
 
   private readonly onWheel = (e: WheelEvent): void => {

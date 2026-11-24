@@ -3,7 +3,7 @@ import { copyFileSync, existsSync, mkdtempSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { SessionState } from '../../shared/protocol';
+import { defaultMapFog, type SessionState } from '../../shared/protocol';
 import { APP_DB_SCHEMA_VERSION, AppDb } from './app-db';
 import { CAMPAIGN_DB_SCHEMA_VERSION, CampaignDb, CampaignDbError } from './campaign-db';
 import { CampaignLibrary, CampaignNotFoundError } from './library';
@@ -151,11 +151,11 @@ describe('CampaignDb', () => {
         ].map((kept) => ({ dice: [1, ...kept], dropped: 0, total: kept.reduce((a, b) => a + b, 0) })),
       },
     ],
-    maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: null, cellPx: null, scene3d: null } },
+    maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: null, cellPx: null, scene3d: null, fog: { ...defaultMapFog(30, 20), autoEnabled: true, visionFeet: 45, rememberExplored: false } } },
     activeMapId: MAP,
     tokens: {
-      [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [], characterId: null, hp: { max: 7, damage: 2, temp: 0 }, conditions: { active: [{ condition: 'prone' }], exhaustion: 1 } },
-      [HERO_TOKEN]: { id: HERO_TOKEN, mapId: MAP, name: 'Thorin', position: { x: 0, y: 0 }, size: 'medium', monsterId: null, image: null, ownerIds: [ANA], characterId: HERO, hp: null, conditions: { active: [], exhaustion: 0 } },
+      [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [], characterId: null, hp: { max: 7, damage: 2, temp: 0 }, conditions: { active: [{ condition: 'prone' }], exhaustion: 1 }, visionFeet: null },
+      [HERO_TOKEN]: { id: HERO_TOKEN, mapId: MAP, name: 'Thorin', position: { x: 0, y: 0 }, size: 'medium', monsterId: null, image: null, ownerIds: [ANA], characterId: HERO, hp: null, conditions: { active: [], exhaustion: 0 }, visionFeet: 120 },
     },
     characters: {
       [HERO]: {
@@ -317,23 +317,25 @@ describe('CampaignDb', () => {
     const migrated = CampaignDb.open(path);
     expect(migrated.migration).toEqual({ from: 1, to: CAMPAIGN_DB_SCHEMA_VERSION, backup: `${path}.bak` });
     const loaded = migrated.load();
-    expect(loaded.maps[MAP]).toEqual({ id: MAP, name: 'Antigo', width: 20, height: 15, background: null, cellPx: null, scene3d: null });
+    expect(loaded.maps[MAP]).toEqual({ id: MAP, name: 'Antigo', width: 20, height: 15, background: null, cellPx: null, scene3d: null, fog: defaultMapFog(20, 15) });
 
     const withGrid = randomUUID();
     const with3d = randomUUID();
     const sha = 'a'.repeat(64);
     const sha3d = 'b'.repeat(64);
+    const calibratedMap = { id: withGrid, name: 'Calibrado', width: 30, height: 20, background: sha, cellPx: 70, scene3d: null, fog: defaultMapFog(30, 20) };
+    const map3d = { id: with3d, name: 'Masmorra 3D', width: 32, height: 32, background: null, cellPx: null, scene3d: sha3d, fog: defaultMapFog(32, 32) };
     migrated.save({
       ...loaded,
       maps: {
         ...loaded.maps,
-        [withGrid]: { id: withGrid, name: 'Calibrado', width: 30, height: 20, background: sha, cellPx: 70, scene3d: null },
-        [with3d]: { id: with3d, name: 'Masmorra 3D', width: 32, height: 32, background: null, cellPx: null, scene3d: sha3d },
+        [withGrid]: calibratedMap,
+        [with3d]: map3d,
       },
     });
     const reloaded = migrated.load();
-    expect(reloaded.maps[withGrid]).toEqual({ id: withGrid, name: 'Calibrado', width: 30, height: 20, background: sha, cellPx: 70, scene3d: null });
-    expect(reloaded.maps[with3d]).toEqual({ id: with3d, name: 'Masmorra 3D', width: 32, height: 32, background: null, cellPx: null, scene3d: sha3d });
+    expect(reloaded.maps[withGrid]).toEqual(calibratedMap);
+    expect(reloaded.maps[with3d]).toEqual(map3d);
     migrated.close();
   });
 });

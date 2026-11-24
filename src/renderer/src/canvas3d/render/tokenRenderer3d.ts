@@ -194,6 +194,8 @@ export class TokenRenderer3d {
     activeId: null,
     conditions: () => [],
     health: () => null,
+    viewer: { role: 'player', playerId: '' },
+    fogTool: 'none',
   };
 
   private drag: { tokenId: string; moved: boolean } | null = null;

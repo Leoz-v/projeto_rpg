@@ -10,6 +10,7 @@ import { cancelRest, finishRest, spendHitDie, startRest } from './rest';
 import { changeSpellSlot } from './spell-slots';
 import { changeResource } from './resources';
 import { castSpell, useSpellEffect } from './casting';
+import { clearFogMemory, configureFog, fillManualFog, paintManualFog, rectManualFog, setTokenVision } from './fog';
 import { createMap, createToken, moveToken, roll, updateMap } from './map-tokens';
 import { changeHp, concentrate, concentrationBreaks, deathStateEntry, endConcentration, inCombat, rollDeathSave } from './vitality';
 
@@ -24,6 +25,7 @@ export type { Identity, IntentOutcome, IntentResultPayload, SessionDeps, StateCh
  */
 export class HostSession extends SessionContext {
   private revision = 0;
+  private previous: SessionState | undefined;
 
   /**
    * `restored`: o estado salvo da campanha (`<campanha>.db`). Ninguém começa
@@ -91,7 +93,7 @@ export class HostSession extends SessionContext {
 
   /** O patch para um jogador: mesmo `rev`, operações filtradas (podem ficar vazias). */
   patchFor(change: StateChange, playerId: string): StateChange {
-    return { ...change, ops: opsFor(change.ops, { playerId, role: this.roleOf(playerId) ?? 'player' }, this.current) };
+    return { ...change, ops: opsFor(change.ops, { playerId, role: this.roleOf(playerId) ?? 'player' }, this.current, change.rev === this.revision ? this.previous : undefined) };
   }
 
   /** Conexão aceita no handshake: registra o jogador ou o marca como conectado. */
@@ -122,7 +124,9 @@ export class HostSession extends SessionContext {
 
   private commit(ops: PatchOp[]): StateChange {
     // Aplica antes de mudar a revisão: se o patch falhar, nada muda.
+    const before = this.current;
     this.current = applyPatch(this.current, ops);
+    this.previous = before;
     const baseRev = this.revision;
     this.revision += 1;
     return { rev: this.revision, baseRev, ops };
@@ -279,6 +283,24 @@ export class HostSession extends SessionContext {
       case 'inventory.currency':
         this.ownCharacter(playerId, role, intent.data.characterId);
         return [{ op: 'replace', path: toPointer('characters', intent.data.characterId, 'inventory', 'currency'), value: intent.data.currency }];
+      case 'fog.manual.paint':
+        this.requireGm(role);
+        return paintManualFog(this, intent.data);
+      case 'fog.manual.rect':
+        this.requireGm(role);
+        return rectManualFog(this, intent.data);
+      case 'fog.manual.fill':
+        this.requireGm(role);
+        return fillManualFog(this, intent.data);
+      case 'fog.config':
+        this.requireGm(role);
+        return configureFog(this, intent.data);
+      case 'fog.memory.clear':
+        this.requireGm(role);
+        return clearFogMemory(this, intent.data);
+      case 'token.vision':
+        this.requireGm(role);
+        return setTokenVision(this, intent.data);
     }
   }
 }

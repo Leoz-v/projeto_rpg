@@ -21,6 +21,11 @@ export const WORLD_UNITS_PER_CELL = 100;
 /** Limites de dimensões de um mapa (em células) e da célula em pixels da imagem. */
 export const MAX_MAP_CELLS = 200;
 export const MAX_CELL_PX = 4096;
+/** Limites da névoa de guerra (nota 0056). */
+export const DEFAULT_VISION_FEET = 60;
+export const MIN_VISION_FEET = 5;
+export const MAX_VISION_FEET = 300;
+export const MAX_FOG_PAINT_CELLS = 2000;
 /** Entradas no inventário de um personagem e quantidade por entrada. */
 export const MAX_INVENTORY_ITEMS = 500;
 export const MAX_ITEM_QUANTITY = 9999;

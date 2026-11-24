@@ -2,6 +2,7 @@ import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, Co
 import { z } from 'zod';
 import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_COMBATANTS, MAX_HIT_POINTS, MAX_INITIATIVE, MAX_SAVE_TARGETS, MAX_SPELL_PARTS, MAX_TURN_TRIGGER_ITEMS, MIN_INITIATIVE } from './constants';
 import { ChatTextSchema, ConcentrationSchema, HitDiceSpentSchema, HitDieSchema, SpellSlotRefSchema, SpellSlotsSpentSchema, ResourcesSpentSchema, ConditionStateSchema, DeathSavesSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
+import { MapFogSchema, VisionFeetSchema } from './fog';
 
 /** `SessionState` (docs/network-protocol.md, seção 5). */
 
@@ -532,6 +533,8 @@ export const MapSchema = z.strictObject({
   cellPx: MapCellPxSchema.nullable(),
   /** SHA-256 do documento JSON de um mapa 3D (`VttMapDocument`), ou `null` (mapa 2D). */
   scene3d: Sha256Schema.nullable().default(null),
+  /** Névoa de guerra manual e automática do mapa (nota 0058). */
+  fog: MapFogSchema,
 });
 export type GameMap = z.infer<typeof MapSchema>;
 
@@ -554,6 +557,8 @@ export const TokenSchema = z.strictObject({
   hp: HitPointStateSchema.extend({ max: z.int().min(1).max(MAX_HIT_POINTS) }).nullable(),
   /** Condições do token; vazias num token de personagem (valem as do personagem). */
   conditions: ConditionStateSchema,
+  /** Alcance de visão próprio em pés (5–300), ou `null` para usar o padrão do mapa (nota 0056). */
+  visionFeet: VisionFeetSchema.nullable(),
 });
 export type Token = z.infer<typeof TokenSchema>;
 
