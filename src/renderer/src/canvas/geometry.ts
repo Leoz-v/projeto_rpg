@@ -55,11 +55,35 @@ export function tokenSide(size: Size): number {
 
 /**
  * Posição final de um token solto em `corner` (canto superior esquerdo):
- * encaixa no grid (Tiny em meias células) e mantém o token inteiro no mapa.
+ * encaixa no grid (Tiny em meias células) por padrão; com `snapToGrid = false`
+ * (Shift pressionado), mantém a posição livre em inteiros dentro do mapa.
  */
-export function placeToken(corner: Point, size: Size, map: Pick<GameMap, 'width' | 'height'>): Point {
+export function placeToken(corner: Point, size: Size, map: Pick<GameMap, 'width' | 'height'>, snapToGrid = true): Point {
   const side = tokenSide(size);
   const step = Math.min(side, WORLD_UNITS_PER_CELL);
-  const snap = (v: number, max: number): number => clamp(Math.round(v / step) * step, 0, max - side);
-  return { x: snap(corner.x, map.width * WORLD_UNITS_PER_CELL), y: snap(corner.y, map.height * WORLD_UNITS_PER_CELL) };
+  const place = (v: number, max: number): number =>
+    clamp(snapToGrid ? Math.round(v / step) * step : Math.round(v), 0, max - side);
+  return { x: place(corner.x, map.width * WORLD_UNITS_PER_CELL), y: place(corner.y, map.height * WORLD_UNITS_PER_CELL) };
+}
+
+export const ROTATION_STEP_SLOW = 5;
+export const ROTATION_STEP_FAST = 45;
+
+/** Normaliza um ângulo em graus para o intervalo inteiro `[0, 359]`. */
+export function normalizeRotation(degrees: number): number {
+  return ((Math.round(degrees) % 360) + 360) % 360;
+}
+
+/** Aplica um passo de rotação a partir do scroll da roda (`deltaY > 0` horário, `< 0` anti-horário). */
+export function stepRotation(currentDegrees: number, deltaY: number, fast: boolean): number {
+  if (deltaY === 0) return normalizeRotation(currentDegrees);
+  const step = fast ? ROTATION_STEP_FAST : ROTATION_STEP_SLOW;
+  const dir = deltaY > 0 ? 1 : -1;
+  return normalizeRotation(currentDegrees + dir * step);
+}
+
+/** Atualiza a lista de tokens selecionados (clique simples substitui; Shift+clique alterna). */
+export function toggleSelection(current: readonly string[], id: string, additive: boolean): string[] {
+  if (!additive) return [id];
+  return current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
 }

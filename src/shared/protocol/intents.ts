@@ -1,6 +1,6 @@
 import { AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, DiceSchema, EffectSchema, IdSchema, SizeSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
-import { ChatTextSchema, CreatureTargetSchema, DeathSavesSchema, HitDieSchema, SpellSlotRefSchema, InstanceIdSchema, TurnEdgeSchema, LabelSchema, MAX_EXHAUSTION_LEVEL, RollAgainstSchema, TableConditionSchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
+import { ChatTextSchema, CreatureTargetSchema, DeathSavesSchema, HitDieSchema, SpellSlotRefSchema, InstanceIdSchema, TurnEdgeSchema, LabelSchema, MAX_EXHAUSTION_LEVEL, RollAgainstSchema, TableConditionSchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, TokenElevationSchema, TokenRotationSchema, UuidSchema } from './common';
 import { MAX_ADJUSTMENT_EFFECTS, MAX_COINS, MAX_COMBATANTS, MAX_FOG_PAINT_CELLS, MAX_FORMULA_DICE, MAX_FORMULA_LENGTH, MAX_HIT_POINTS, MAX_ITEM_QUANTITY, MAX_SAVE_TARGETS, MAX_SPELL_OPTIONS, MAX_SPELL_PARTS } from './constants';
 import { FogCellSchema, FogModeSchema, VisionFeetSchema } from './fog';
 import { InitiativeSchema, VisibilitySchema } from './state';
@@ -42,6 +42,16 @@ export const IntentSchema = z.discriminatedUnion('kind', [
     data: z.strictObject({ formula: FormulaSchema, label: LabelSchema.optional(), visibility: VisibilitySchema }),
   }),
   z.strictObject({ kind: z.literal('token.move'), data: z.strictObject({ tokenId: UuidSchema, to: PointSchema }) }),
+  z.strictObject({
+    kind: z.literal('token.update'),
+    data: z
+      .strictObject({
+        tokenId: UuidSchema,
+        rotation: TokenRotationSchema.optional(),
+        elevation: TokenElevationSchema.optional(),
+      })
+      .refine((d) => d.rotation !== undefined || d.elevation !== undefined, { message: 'nada para alterar' }),
+  }),
   z.strictObject({
     kind: z.literal('map.create'),
     data: z.strictObject({

@@ -1,7 +1,7 @@
 import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, DiceSchema, EffectSchema, IdSchema, SpellConditionEndSchema, InventorySchema, SizeSchema, TriggerMomentSchema, WeaponMasterySchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_COMBATANTS, MAX_HIT_POINTS, MAX_INITIATIVE, MAX_SAVE_TARGETS, MAX_SPELL_OPTIONS, MAX_SPELL_PARTS, MAX_TURN_TRIGGER_ITEMS, MIN_INITIATIVE } from './constants';
-import { ChatTextSchema, ConcentrationSchema, ConditionSpellSchema, HitDiceSpentSchema, HitDieSchema, SpellSlotRefSchema, SpellSlotsSpentSchema, ResourcesSpentSchema, ConditionStateSchema, DeathSavesSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
+import { ChatTextSchema, ConcentrationSchema, ConditionSpellSchema, HitDiceSpentSchema, HitDieSchema, SpellSlotRefSchema, SpellSlotsSpentSchema, ResourcesSpentSchema, ConditionStateSchema, DeathSavesSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, TokenElevationSchema, TokenRotationSchema, UuidSchema } from './common';
 import { MapFogSchema, VisionFeetSchema } from './fog';
 
 /** `SessionState` (docs/network-protocol.md, seção 5). */
@@ -576,6 +576,10 @@ export const TokenSchema = z.strictObject({
   conditions: ConditionStateSchema,
   /** Alcance de visão próprio em pés (5–300), ou `null` para usar o padrão do mapa (nota 0056). */
   visionFeet: VisionFeetSchema.nullable(),
+  /** Orientação do token em graus (0..359, sentido horário). */
+  rotation: TokenRotationSchema.default(0),
+  /** Elevação do token em pés (−1000..1000). */
+  elevation: TokenElevationSchema.default(0),
 });
 export type Token = z.infer<typeof TokenSchema>;
 
