@@ -16,7 +16,8 @@
     "build:unpack": "electron-vite build && electron-builder --dir",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc -p tsconfig.node.json --noEmit --composite false && tsc -p tsconfig.web.json --noEmit --composite false && pnpm --filter rules-engine typecheck",
+    "test:e2e": "electron-vite build && playwright test",
+    "typecheck": "tsc -p tsconfig.node.json --noEmit --composite false && tsc -p tsconfig.web.json --noEmit --composite false && tsc -p tsconfig.e2e.json --noEmit --composite false && pnpm --filter rules-engine typecheck",
     "lint": "eslint ."
   },
   "dependencies": {
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.65.1",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
