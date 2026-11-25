@@ -1,6 +1,7 @@
 import { applyHitPointChange, clampHitPoints, currentHitPoints, d20StepNotes, type DerivedSheet, effectiveConditions, deathAfterDamage, deathAfterHealing, type DeathSaveState, type HitPointChange, type HitPointResult, resolveDeathSave, concentrationDc, rollD20, sheetD20, withoutDependents } from 'rules-engine';
 import { type ChatEntry, type ConditionState, type IntentData, type PatchOp, type Role, type SessionCharacter, type SessionState, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
+import { tokenDamaged } from './monster-concentration';
 import { liftSpellConditions } from './spell-effects';
 
 /** Pontos de vida, Salvaguardas contra a Morte (nota 0044) e Concentração (nota 0045). Funções do executor da sessão (`HostSession`), sobre o `SessionContext`. */
@@ -29,7 +30,8 @@ export function changeHp(ctx: SessionContext, playerId: string, role: Role, data
   }
   if (token.hp === null) throw violation(token.characterId ? 'Mude os PV no personagem' : 'Este token não tem PV (defina os PV máximos)');
   const result = applyHitPointChange(token.hp.max, token.hp, { kind: change.kind, amount: change.amount });
-  return [{ op: 'replace', path, value: { max: token.hp.max, ...result.state } }];
+  const hp = { max: token.hp.max, ...result.state };
+  return [{ op: 'replace', path, value: hp }, ...(change.kind === 'damage' ? tokenDamaged(ctx, playerId, token, hp, Math.trunc(change.amount)) : [])];
 }
 
 /** Algum token do personagem está no combate. */

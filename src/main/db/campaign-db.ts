@@ -89,6 +89,8 @@ const MIGRATIONS = [
   `ALTER TABLE tokens ADD COLUMN spell_effects TEXT NOT NULL DEFAULT '[]';`,
   // Usos limitados do monstro (JSON; nota 0064).
   `ALTER TABLE tokens ADD COLUMN uses TEXT NOT NULL DEFAULT '{"spent":{},"lair":false}';`,
+  // Concentração do monstro (JSON ou null; nota 0068).
+  `ALTER TABLE tokens ADD COLUMN concentration TEXT NOT NULL DEFAULT 'null';`,
 ] as const;
 
 export const CAMPAIGN_DB_SCHEMA_VERSION = MIGRATIONS.length;
@@ -121,6 +123,7 @@ const TokenRow = z.object({
   elevation: z.number(),
   spell_effects: z.string(),
   uses: z.string(),
+  concentration: z.string(),
 });
 const ChatRow = z.object({ entry: z.string() });
 const CharacterRow = z.object({ id: z.string(), owner_id: z.string(), name: z.string(), build: z.string(), inventory: z.string(), adjustments: z.string(), hp: z.string(), conditions: z.string(), death_saves: z.string(), concentration: z.string(), hit_dice_spent: z.string(), spell_slots_spent: z.string(), resources_spent: z.string() });
@@ -192,7 +195,7 @@ export class CampaignDb {
     );
     const tokens = Object.fromEntries(
       this.db
-        .prepare('SELECT id, map_id, name, x, y, size, monster_id, image, owner_ids, character_id, hp, conditions, vision_feet, rotation, elevation, spell_effects, uses FROM tokens')
+        .prepare('SELECT id, map_id, name, x, y, size, monster_id, image, owner_ids, character_id, hp, conditions, vision_feet, rotation, elevation, spell_effects, uses, concentration FROM tokens')
         .all()
         .map((row) => {
           const t = TokenRow.parse(row);
@@ -216,6 +219,7 @@ export class CampaignDb {
               elevation: t.elevation,
               spellEffects: JSON.parse(t.spell_effects) as unknown,
               uses: JSON.parse(t.uses) as unknown,
+              concentration: JSON.parse(t.concentration) as unknown,
             },
           ];
         }),
@@ -272,13 +276,13 @@ export class CampaignDb {
       );
       for (const m of Object.values(state.maps)) upsertMap.run(m.id, m.name, m.width, m.height, m.background, m.cellPx, m.scene3d, JSON.stringify(m.fog));
       const upsertToken = db.prepare(
-        `INSERT INTO tokens (id, map_id, name, x, y, size, monster_id, image, owner_ids, character_id, hp, conditions, vision_feet, rotation, elevation, spell_effects, uses) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO tokens (id, map_id, name, x, y, size, monster_id, image, owner_ids, character_id, hp, conditions, vision_feet, rotation, elevation, spell_effects, uses, concentration) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (id) DO UPDATE SET map_id = excluded.map_id, name = excluded.name, x = excluded.x, y = excluded.y, size = excluded.size,
            monster_id = excluded.monster_id, image = excluded.image, owner_ids = excluded.owner_ids, character_id = excluded.character_id, hp = excluded.hp,
-           conditions = excluded.conditions, vision_feet = excluded.vision_feet, rotation = excluded.rotation, elevation = excluded.elevation, spell_effects = excluded.spell_effects, uses = excluded.uses`,
+           conditions = excluded.conditions, vision_feet = excluded.vision_feet, rotation = excluded.rotation, elevation = excluded.elevation, spell_effects = excluded.spell_effects, uses = excluded.uses, concentration = excluded.concentration`,
       );
       for (const t of Object.values(state.tokens)) {
-        upsertToken.run(t.id, t.mapId, t.name, t.position.x, t.position.y, t.size, t.monsterId, t.image, JSON.stringify(t.ownerIds), t.characterId, t.hp === null ? null : JSON.stringify(t.hp), JSON.stringify(t.conditions), t.visionFeet, t.rotation, t.elevation, JSON.stringify(t.spellEffects), JSON.stringify(t.uses));
+        upsertToken.run(t.id, t.mapId, t.name, t.position.x, t.position.y, t.size, t.monsterId, t.image, JSON.stringify(t.ownerIds), t.characterId, t.hp === null ? null : JSON.stringify(t.hp), JSON.stringify(t.conditions), t.visionFeet, t.rotation, t.elevation, JSON.stringify(t.spellEffects), JSON.stringify(t.uses), JSON.stringify(t.concentration));
       }
 
       this.removeMissing('characters', Object.keys(state.characters));

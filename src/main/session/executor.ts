@@ -12,6 +12,7 @@ import { changeResource } from './resources';
 import { castMonsterSpell, castSpell, useSpellEffect } from './casting';
 import { clearFogMemory, configureFog, fillManualFog, paintManualFog, rectManualFog, setTokenVision } from './fog';
 import { removeTokenEffect } from './spell-effects';
+import { endTokenConcentration } from './monster-concentration';
 import { multiattackStep, requireMultiattack } from './multiattack';
 import { changeMonsterUse, restMonster, setMonsterLair } from './monsters';
 import { createMap, createToken, moveToken, roll, updateMap, updateToken } from './map-tokens';
@@ -181,8 +182,8 @@ export class HostSession extends SessionContext {
         return createToken(this, intent.data);
       case 'token.remove':
         this.requireGm(role);
-        this.token(intent.data.tokenId);
-        return [{ op: 'remove', path: toPointer('tokens', intent.data.tokenId) }, ...leaveCombat(this, playerId, intent.data.tokenId)];
+        // O que a Concentração do monstro mantinha sai com ele (nota 0068).
+        return [...endTokenConcentration(this, playerId, this.token(intent.data.tokenId), 'ended'), { op: 'remove', path: toPointer('tokens', intent.data.tokenId) }, ...leaveCombat(this, playerId, intent.data.tokenId)];
       case 'character.create':
         return createCharacter(this, playerId, role, intent.data);
       case 'character.update':
@@ -272,6 +273,12 @@ export class HostSession extends SessionContext {
       case 'concentration.set':
         return concentrate(this, playerId, role, intent.data.characterId, intent.data.spellId);
       case 'concentration.end': {
+        if ('tokenId' in intent.data) {
+          const token = this.token(intent.data.tokenId);
+          if (role !== 'gm' && !token.ownerIds.includes(playerId)) throw notAllowed('Você não controla este token');
+          if (!token.concentration) throw violation(`${token.name} não está concentrado`);
+          return endTokenConcentration(this, playerId, token, 'ended');
+        }
         const character = this.ownCharacter(playerId, role, intent.data.characterId);
         if (!character.concentration) throw violation(`${character.name} não está concentrado`);
         return endConcentration(this, playerId, character, 'ended');

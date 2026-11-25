@@ -3,6 +3,7 @@ import { type ChatEntry, type IntentData, type PatchOp, type Role, type SpellEff
 import { attackCircumstances, autoCriticalNotes, rollSaves, rollTargetDamage, targetDamageOf, targetOf, withCircumstances } from './attacks';
 import { notAllowed, type SessionContext, violation } from './context';
 import { applyBuff, applyConditionPart, applyHealing, ConditionLedger, conditionTiming, imposeConditions, putSpellEffects } from './spell-effects';
+import { concentrateToken } from './monster-concentration';
 import { spendMonsterUse } from './monsters';
 import { changeResource } from './resources';
 import { changeSpellSlot } from './spell-slots';
@@ -110,6 +111,8 @@ export function castMonsterSpell(ctx: SessionContext, playerId: string, role: Ro
   if (!known || !spell) throw violation(`${token.name} não conjura essa magia`);
   const useOps = known.use ? spendMonsterUse(ctx, token, known.use.id) : [];
   const level = known.level ?? spell.level;
+  const concentration = spell.concentration && !known.noConcentration;
+  const concentrationOps = concentration ? concentrateToken(ctx, playerId, token, spell) : [];
   const parts = resolveSpellParts(spell, { slotLevel: level, characterLevel: 1, modifier: known.modifier });
   return [
     ctx.appendChat({
@@ -123,13 +126,12 @@ export function castMonsterSpell(ctx: SessionContext, playerId: string, role: Ro
       castingTime: spell.castingTime.slice(0, 100),
       range: spell.range.slice(0, 100),
       duration: spell.duration.slice(0, 100),
-      concentration: spell.concentration,
+      concentration,
       description: spell.description.slice(0, 6000),
       // Os usos que restam são só do mestre: ficam no bloco.
       notes: [
         ...(level > spell.level ? [`Conjurada em círculo maior (${level}º)`] : []),
         ...(known.note !== undefined ? [known.note.slice(0, 200)] : []),
-        ...(spell.concentration ? ['Concentração do monstro: o mestre acompanha'] : []),
       ],
       ...(parts.length > 0
         ? {
@@ -144,6 +146,7 @@ export function castMonsterSpell(ctx: SessionContext, playerId: string, role: Ro
         : {}),
     }),
     ...useOps,
+    ...concentrationOps,
   ];
 }
 
@@ -151,8 +154,8 @@ export function castMonsterSpell(ctx: SessionContext, playerId: string, role: Ro
 interface SpellUser {
   name: string;
   link: SpellLink;
-  /** A magia em que está concentrado; `undefined` nos monstros, que o mestre acompanha. */
-  concentration: string | null | undefined;
+  /** A magia em que está concentrado. */
+  concentration: string | null;
   /** Token de quem conjurou no mapa do alvo, se houver. */
   tokenOn(mapId: string): Token | undefined;
   attackD20(attackBonus: number, declared: { advantage?: boolean | undefined; disadvantage?: boolean | undefined }): SheetD20;
@@ -166,7 +169,7 @@ function spellUser(ctx: SessionContext, playerId: string, role: Role, entry: Cas
     return {
       name: token.name,
       link: { tokenId, spellId: effect.spellId },
-      concentration: undefined,
+      concentration: token.concentration?.spellId ?? null,
       tokenOn: (mapId) => (token.mapId === mapId ? token : undefined),
       attackD20: (attackBonus, declared) =>
         creatureD20({ label: 'Bônus de ataque de magia', modifier: attackBonus }, ctx.conditionsOf(token), { kind: 'attack', attackKind: 'spell' }, declared, token.spellEffects),
@@ -225,7 +228,7 @@ export function useSpellEffect(ctx: SessionContext, playerId: string, role: Role
   if (entry.duration === 'Instantaneous' && ctx.current.chat.some((e) => 'spellOf' in e && e.spellOf?.entryId === entry.id && e.spellOf.part === data.part)) {
     throw violation('Esta parte da magia já foi usada');
   }
-  if (entry.concentration && user.concentration !== undefined && user.concentration !== effect.spellId) throw violation(`${user.name} não está mais concentrado em ${entry.spellName}`);
+  if (entry.concentration && user.concentration !== effect.spellId) throw violation(`${user.name} não está mais concentrado em ${entry.spellName}`);
   if (part.kind !== 'attack' && part.kind !== 'save' && (data.advantage !== undefined || data.disadvantage !== undefined)) {
     throw violation('Vantagem e Desvantagem só valem nos ataques e nas salvaguardas');
   }

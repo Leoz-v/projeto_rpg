@@ -12,6 +12,7 @@ import { sendIntent } from '../store/table';
 import { tokenHealth } from '../canvas/health';
 import { usesLabel } from './MonsterBlock';
 import { Multiattack } from './Multiattack';
+import { TokenConcentration } from './Concentration';
 import { TokenEffects } from './TokenEffects';
 import { tokenConditions } from '../canvas/conditions';
 import { combatantOptions } from '../canvas/conditions';
@@ -501,6 +502,7 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
               )}
               <HitPointsControl key={selected.id} target={{ tokenId: selected.id }} health={selectedHealth} allowMax />
               <ConditionsControl key={`conditions:${selected.id}`} target={{ tokenId: selected.id }} state={selected.conditions} canEdit combatants={combatantOptions(state)} />
+              <TokenConcentration tokenId={selected.id} current={selected.concentration} canEdit />
               <TokenEffects token={selected} canEdit />
               {selected.monsterId !== null && (
                 <Multiattack

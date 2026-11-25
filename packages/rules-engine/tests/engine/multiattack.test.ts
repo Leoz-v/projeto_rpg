@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { multiattackFits, multiattackSlots } from '../../src/engine/multiattack';
+import { monsterSpells, monsterSpellUseId } from '../../src/engine';
 import { loadSrdCompendium } from '../../src/srd';
 
 const srd = loadSrdCompendium();
@@ -46,10 +47,21 @@ describe('Multiattack (note 0066)', () => {
     expect(multiattackSlots(chimera, 0).map((s) => s.replacements)).toEqual([[], [], ['fire_breath']]);
   });
 
+  it('replacements by a spell of the block', () => {
+    const red = multi('adult_red_dragon');
+    expect(multiattackFits(red, 0, ['rend', 'spell_scorching_ray', 'rend'])).toBe(true);
+    expect(multiattackFits(red, 0, ['spell_scorching_ray', 'spell_scorching_ray'])).toBe(false);
+    expect(multiattackFits(red, 0, ['spell_fireball'])).toBe(false);
+    expect(multi('adult_bronze_dragon').replace?.actions).toEqual(['repulsion_breath', 'spell_guiding_bolt']);
+    expect(multi('oni').replace?.actions.every((id) => id.startsWith('spell_'))).toBe(true);
+    expect(multi('dryad').options[0]?.steps).toHaveLength(2);
+  });
+
   it('every structured Multiattack uses attack or save actions of its own block', () => {
     let count = 0;
     for (const creature of srd.creatures) {
       const usable = new Set(creature.actions.filter((a) => a.kind === 'attack' || a.kind === 'save').map((a) => a.id));
+      for (const s of monsterSpells(creature)) usable.add(monsterSpellUseId(s.spellId));
       for (const a of creature.actions) {
         if (a.kind !== 'text' || !a.multiattack) continue;
         count++;

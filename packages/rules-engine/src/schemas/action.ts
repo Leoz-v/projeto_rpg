@@ -102,7 +102,7 @@ export const SpellcastingActionSchema = z.strictObject({
 
 /**
  * Multiattack (nota 0066): opções de passos, cada passo com quantas vezes e
- * quais ações de ataque ou salvaguarda. `replace`: até `max` trocas, cada uma
+ * quais ações de ataque ou salvaguarda, ou magias do bloco (`spell_<id>`). `replace`: até `max` trocas, cada uma
  * no lugar de `cost` usos (só da ação `from`, se houver).
  */
 export const MultiattackSchema = z.strictObject({

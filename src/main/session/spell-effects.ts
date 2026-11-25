@@ -2,6 +2,7 @@ import { applyHitPointChange, CONDITION_NAME, type Condition, type Effect, hasUn
 import { type ChatEntry, type ConditionState, type IntentData, MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, type PatchOp, type Role, sameSpellLink, type SpellLink, type SessionCharacter, type TableCondition, type Token, toPointer } from '../../shared/protocol';
 import { notAllowed, type SessionContext, violation } from './context';
 import { untilNextTurn } from './conditions';
+import { tokenConcentrationBreaks } from './monster-concentration';
 import { changeCharacterHp, concentrationBreaks } from './vitality';
 
 /**
@@ -120,6 +121,7 @@ export function imposeConditions(
     ),
   ];
   if (holder.character) ops.push(...concentrationBreaks(ctx, playerId, holder.character, state, holder.character.deathSaves));
+  else ops.push(...tokenConcentrationBreaks(ctx, playerId, target, state));
   return { ops, notes };
 }
 
@@ -419,7 +421,7 @@ export function liftSpellConditions(ctx: SessionContext, playerId: string, link:
     }
   }
   for (const token of Object.values(ctx.current.tokens)) {
-    if (token.characterId === null) lift(toPointer('tokens', token.id, 'conditions'), token.conditions, token.name, { tokenId: token.id });
+    if (token.characterId === null) lift(toPointer('tokens', token.id, 'conditions'), 'tokenId' in link && token.id === link.tokenId && own ? own : token.conditions, token.name, { tokenId: token.id });
     const linked = token.spellEffects.filter((e) => sameSpellLink(e.spell, link));
     if (linked.length > 0) {
       ops.push({ op: 'replace', path: toPointer('tokens', token.id, 'spellEffects'), value: token.spellEffects.filter((e) => !linked.includes(e)) });

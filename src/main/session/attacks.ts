@@ -2,6 +2,7 @@ import { type Ability, applyDamage, applyHitPointChange, attackedByEffects, atta
 import { type ChatEntry, type TimedEffect, type IntentData, type PatchOp, type Role, type SessionState, type Token, sameCaster, toPointer, type Visibility } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
 import { timedEffectEntry } from './combat';
+import { tokenDamaged } from './monster-concentration';
 import { imposeFromAction } from './spell-effects';
 import { spendMonsterUse } from './monsters';
 import { changeCharacterHp } from './vitality';
@@ -457,7 +458,8 @@ export function applyProposal(ctx: SessionContext, playerId: string, proposalId:
   } else {
     if (!token.hp) throw violation('O alvo não tem PV (defina os PV máximos no painel)');
     result = applyHitPointChange(token.hp.max, token.hp, { kind: 'damage', amount });
-    ops = [{ op: 'replace', path: toPointer('tokens', token.id, 'hp'), value: { max: token.hp.max, ...result.state } }];
+    const hp = { max: token.hp.max, ...result.state };
+    ops = [{ op: 'replace', path: toPointer('tokens', token.id, 'hp'), value: hp }, ...tokenDamaged(ctx, playerId, token, hp, amount)];
   }
   const notes = [
     ...(result.absorbed > 0 ? [`${result.absorbed} absorvido(s) pelos PV temporários`] : []),
