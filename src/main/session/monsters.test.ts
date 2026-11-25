@@ -302,7 +302,6 @@ describe('HostSession: monster spells (note 0067)', () => {
   it('links the effects to the token that cast it', () => {
     const t = setupCaster('mage', [10]);
     t.cast('invisibility');
-    expect(t.entry().notes).toEqual(['Concentração do monstro: o mestre acompanha']);
     expect(applied(t.use([t.caster]))).toBe(true);
     expect(t.session.state.tokens[t.caster]?.conditions.active).toEqual([{ condition: 'invisible', spell: { tokenId: t.caster, spellId: 'invisibility' } }]);
     expect(SessionStateSchema.safeParse(t.session.state).success).toBe(true);
@@ -315,5 +314,105 @@ describe('HostSession: monster spells (note 0067)', () => {
     expect(rejection(t.use([t.goblin], {}, ANA.playerId))).toBe('not_allowed');
     // Os usos não aparecem para os jogadores.
     expect(t.session.viewFor(ANA.playerId).tokens[t.caster]?.uses.spent).toEqual({});
+  });
+});
+
+describe('HostSession: monster concentration (note 0068)', () => {
+  /** Um Mage invisível (Concentração) com dados fixos. */
+  function concentrating(rolls: number[]) {
+    const t = table(rolls);
+    const mapId = t.session.state.activeMapId ?? '';
+    t.session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Mago', position: { x: 1100, y: 0 }, size: 'medium', monsterId: 'mage' } });
+    const mage = Object.values(t.session.state.tokens).find((x) => x.name === 'Mago')?.id ?? '';
+    const cast = (spellId: string) => t.session.handle(GM.playerId, { kind: 'monster.cast', data: { tokenId: mage, spellId } });
+    const use = (targets: string[]) => {
+      const entry = t.session.state.chat.findLast((e) => e.kind === 'spell_cast');
+      return t.session.handle(GM.playerId, { kind: 'spell.effect', data: { entryId: entry?.id ?? '', part: 0, targetTokenIds: targets } });
+    };
+    cast('invisibility');
+    use([t.goblin]);
+    const token = () => t.session.state.tokens[mage];
+    const goblin = () => t.session.state.tokens[t.goblin]?.conditions.active ?? [];
+    const hurt = (amount: number) => t.session.handle(GM.playerId, { kind: 'hp.change', data: { target: { tokenId: mage }, change: { kind: 'damage', amount } } });
+    return { ...t, mage, cast, use, token, goblinConditions: goblin, hurt };
+  }
+
+  it('starts with the cast and a new spell replaces it, ending what it kept', () => {
+    const t = concentrating([10]);
+    expect(t.token()?.concentration).toEqual({ spellId: 'invisibility', name: 'Invisibility' });
+    expect(t.goblinConditions()).toHaveLength(1);
+    t.cast('fly');
+    expect(t.token()?.concentration?.spellId).toBe('fly');
+    expect(t.goblinConditions()).toEqual([]);
+    expect(t.session.state.chat.some((e) => e.kind === 'concentration' && e.reason === 'replaced' && e.tokenId === t.mage)).toBe(true);
+    expect(SessionStateSchema.safeParse(t.session.state).success).toBe(true);
+  });
+
+  it('damage forces a Constitution save: kept on a success, ended on a failure', () => {
+    const rolls = [20];
+    const t = concentrating(rolls);
+    t.hurt(4);
+    expect(t.session.state.chat.findLast((e) => e.kind === 'concentration_save')).toMatchObject({ tokenId: t.mage, dc: 10, success: true });
+    expect(t.token()?.concentration).not.toBeNull();
+    rolls[0] = 1;
+    t.hurt(4);
+    expect(t.token()?.concentration).toBeNull();
+    expect(t.goblinConditions()).toEqual([]);
+    expect(t.session.state.chat.findLast((e) => e.kind === 'concentration')).toMatchObject({ event: 'ended', reason: 'failed_save' });
+  });
+
+  it('healing does not roll; 0 hit points and Incapacitated end it', () => {
+    const t = concentrating([20]);
+    t.session.handle(GM.playerId, { kind: 'hp.change', data: { target: { tokenId: t.mage }, change: { kind: 'healing', amount: 5 } } });
+    expect(t.session.state.chat.some((e) => e.kind === 'concentration_save')).toBe(false);
+    t.hurt(999);
+    expect(t.token()?.concentration).toBeNull();
+    expect(t.session.state.chat.findLast((e) => e.kind === 'concentration')).toMatchObject({ reason: 'dead' });
+
+    const s = concentrating([20]);
+    s.session.handle(GM.playerId, { kind: 'condition.add', data: { target: { tokenId: s.mage }, condition: 'stunned' } });
+    expect(s.token()?.concentration).toBeNull();
+    expect(s.token()?.conditions.active).toEqual([{ condition: 'stunned' }]);
+    expect(s.goblinConditions()).toEqual([]);
+    expect(rejection(s.cast('fly'))).toBe('rule_violation');
+  });
+
+  it('keeps the new condition when the spell was on the caster itself', () => {
+    const t = concentrating([20]);
+    t.use([t.mage]);
+    t.session.handle(GM.playerId, { kind: 'condition.add', data: { target: { tokenId: t.mage }, condition: 'stunned' } });
+    expect(t.token()?.conditions.active).toEqual([{ condition: 'stunned' }]);
+  });
+
+  it('the GM ends it, the parts stop working, and removing the token ends what it kept', () => {
+    const t = concentrating([20]);
+    expect(rejection(t.session.handle(ANA.playerId, { kind: 'concentration.end', data: { tokenId: t.mage } }))).toBe('not_allowed');
+    expect(applied(t.session.handle(GM.playerId, { kind: 'concentration.end', data: { tokenId: t.mage } }))).toBe(true);
+    expect(t.goblinConditions()).toEqual([]);
+    expect(rejection(t.use([t.goblin]))).toBe('rule_violation');
+    expect(rejection(t.session.handle(GM.playerId, { kind: 'concentration.end', data: { tokenId: t.mage } }))).toBe('rule_violation');
+
+    const r = concentrating([20]);
+    expect(applied(r.session.handle(GM.playerId, { kind: 'token.remove', data: { tokenId: r.mage } }))).toBe(true);
+    expect(r.goblinConditions()).toEqual([]);
+  });
+
+  it('the damage of a proposal also counts', () => {
+    const t = concentrating([1]);
+    const rend = t.session.handle(GM.playerId, { kind: 'save.force', data: { source: { tokenId: t.dragon, actionId: 'fire_breath' }, targetTokenIds: [t.mage], visibility: 'public' } });
+    expect(applied(rend)).toBe(true);
+    const proposalId = Object.keys(t.session.state.proposals)[0] ?? '';
+    t.session.handle(GM.playerId, { kind: 'damage.apply', data: { proposalId, amount: 30 } });
+    expect(t.session.state.chat.findLast((e) => e.kind === 'concentration_save')).toMatchObject({ dc: 15, success: false });
+    expect(t.token()?.concentration).toBeNull();
+  });
+
+  it('a spell replaces an attack of the Multiattack, with its targets in the chat', () => {
+    const t = table([10]);
+    const multi = (steps: { actionId: string; targetTokenIds: string[] }[]) => t.session.handle(GM.playerId, { kind: 'attack.multi', data: { tokenId: t.dragon, option: 0, steps, visibility: 'public' } });
+    expect(rejection(multi([{ actionId: 'spell_scorching_ray', targetTokenIds: [t.goblin] }]))).toBe('rule_violation');
+    expect(applied(multi([{ actionId: 'rend', targetTokenIds: [t.goblin] }, { actionId: 'spell_scorching_ray', targetTokenIds: [] }]))).toBe(true);
+    expect(t.session.state.chat.slice(-2).map((e) => e.kind)).toEqual(['attack_roll', 'spell_cast']);
+    expect(rejection(multi([{ actionId: 'rend', targetTokenIds: [] }]))).toBe('rule_violation');
   });
 });

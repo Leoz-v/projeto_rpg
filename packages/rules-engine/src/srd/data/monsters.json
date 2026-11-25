@@ -2613,7 +2613,14 @@
                 }
               ]
             }
-          ]
+          ],
+          "replace": {
+            "cost": 1,
+            "actions": [
+              "spell_acid_arrow"
+            ],
+            "max": 1
+          }
         }
       },
       {
@@ -2828,7 +2835,14 @@
                 }
               ]
             }
-          ]
+          ],
+          "replace": {
+            "cost": 1,
+            "actions": [
+              "spell_acid_arrow"
+            ],
+            "max": 1
+          }
         }
       },
       {
@@ -3489,7 +3503,14 @@
                 }
               ]
             }
-          ]
+          ],
+          "replace": {
+            "cost": 1,
+            "actions": [
+              "spell_shatter"
+            ],
+            "max": 1
+          }
         }
       },
       {
@@ -3691,7 +3712,14 @@
                 }
               ]
             }
-          ]
+          ],
+          "replace": {
+            "cost": 1,
+            "actions": [
+              "spell_shatter"
+            ],
+            "max": 1
+          }
         }
       },
       {
@@ -4340,7 +4368,8 @@
           "replace": {
             "cost": 1,
             "actions": [
-              "sleep_breath"
+              "sleep_breath",
+              "spell_scorching_ray"
             ],
             "max": 1
           }
@@ -4589,7 +4618,8 @@
           "replace": {
             "cost": 1,
             "actions": [
-              "sleep_breath"
+              "sleep_breath",
+              "spell_scorching_ray"
             ],
             "max": 1
           }
@@ -5145,7 +5175,8 @@
           "replace": {
             "cost": 1,
             "actions": [
-              "repulsion_breath"
+              "repulsion_breath",
+              "spell_guiding_bolt"
             ],
             "max": 1
           }
@@ -5408,7 +5439,8 @@
           "replace": {
             "cost": 1,
             "actions": [
-              "repulsion_breath"
+              "repulsion_breath",
+              "spell_guiding_bolt"
             ],
             "max": 1
           }
@@ -6985,7 +7017,14 @@
                 }
               ]
             }
-          ]
+          ],
+          "replace": {
+            "cost": 1,
+            "actions": [
+              "spell_fog_cloud"
+            ],
+            "max": 1
+          }
         }
       },
       {
@@ -7565,7 +7604,8 @@
           "replace": {
             "cost": 1,
             "actions": [
-              "slowing_breath"
+              "slowing_breath",
+              "spell_mind_spike"
             ],
             "max": 1
           }
@@ -7799,7 +7839,8 @@
           "replace": {
             "cost": 1,
             "actions": [
-              "slowing_breath"
+              "slowing_breath",
+              "spell_mind_spike"
             ],
             "max": 1
           }
@@ -9862,6 +9903,12 @@
                   "actions": [
                     "vine_lash",
                     "thorn_burst"
+                  ]
+                },
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_charm_monster"
                   ]
                 }
               ]
@@ -12378,7 +12425,13 @@
                 {
                   "count": 1,
                   "actions": [
-                    "pummel"
+                    "pummel",
+                    "spell_darkness",
+                    "spell_detect_magic",
+                    "spell_dispel_magic",
+                    "spell_confusion",
+                    "spell_fly",
+                    "spell_power_word_stun"
                   ]
                 }
               ]
@@ -13412,6 +13465,7 @@
           "replace": {
             "cost": 1,
             "actions": [
+              "spell_guiding_bolt",
               "weakening_breath"
             ],
             "max": 1
@@ -13651,6 +13705,7 @@
           "replace": {
             "cost": 1,
             "actions": [
+              "spell_guiding_bolt",
               "weakening_breath"
             ],
             "max": 1
@@ -14377,7 +14432,14 @@
                 }
               ]
             }
-          ]
+          ],
+          "replace": {
+            "cost": 1,
+            "actions": [
+              "spell_mind_spike"
+            ],
+            "max": 1
+          }
         }
       },
       {
@@ -14586,7 +14648,14 @@
                 }
               ]
             }
-          ]
+          ],
+          "replace": {
+            "cost": 1,
+            "actions": [
+              "spell_mind_spike"
+            ],
+            "max": 1
+          }
         }
       },
       {
@@ -21675,7 +21744,17 @@
                 }
               ]
             }
-          ]
+          ],
+          "replace": {
+            "cost": 1,
+            "actions": [
+              "spell_charm_person",
+              "spell_darkness",
+              "spell_gaseous_form",
+              "spell_sleep"
+            ],
+            "max": 1
+          }
         }
       },
       {
@@ -24128,7 +24207,14 @@
                 }
               ]
             }
-          ]
+          ],
+          "replace": {
+            "cost": 1,
+            "actions": [
+              "spell_scorching_ray"
+            ],
+            "max": 1
+          }
         }
       },
       {
@@ -24321,7 +24407,14 @@
                 }
               ]
             }
-          ]
+          ],
+          "replace": {
+            "cost": 1,
+            "actions": [
+              "spell_scorching_ray"
+            ],
+            "max": 1
+          }
         }
       },
       {
@@ -26231,7 +26324,14 @@
                 }
               ]
             }
-          ]
+          ],
+          "replace": {
+            "cost": 1,
+            "actions": [
+              "spell_ice_knife"
+            ],
+            "max": 1
+          }
         }
       },
       {
@@ -26453,7 +26553,14 @@
                 }
               ]
             }
-          ]
+          ],
+          "replace": {
+            "cost": 1,
+            "actions": [
+              "spell_ice_knife"
+            ],
+            "max": 1
+          }
         }
       },
       {

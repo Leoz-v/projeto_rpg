@@ -17,6 +17,8 @@ export interface MonsterSpell {
   /** Círculo fixado pelo bloco. */
   level?: number | undefined;
   note?: string | undefined;
+  /** O bloco dispensa a Concentração ("no Concentration [...] required", Shapechange dos dragões). */
+  noConcentration: boolean;
   /** Usos por dia; ausente, à vontade. */
   use?: { id: string; perDay: number } | undefined;
 }
@@ -39,6 +41,7 @@ export function monsterSpells(creature: Creature): MonsterSpell[] {
       attackBonus,
       level: s.level,
       note: s.note,
+      noConcentration: s.note !== undefined && /\bno Concentration\b/.test(s.note),
       use: s.uses === 'at_will' ? undefined : { id: monsterSpellUseId(s.spellId), perDay: s.uses.count },
     }));
   });

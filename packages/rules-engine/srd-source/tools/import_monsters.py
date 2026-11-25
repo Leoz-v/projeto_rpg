@@ -307,10 +307,26 @@ def parse_multiattack(text, actions):
     """Multiattack como opções de passos (nota 0066). Partes só de texto ficam na descrição; None se nada é resolvido."""
     usable = {a["name"].split(" (")[0]: a["id"] for a in actions if a["kind"] in ("attack", "save")}
 
+    known = {s["spellId"]: s for a in actions if a["kind"] == "spellcasting" for s in a["spells"]}
+
     def ids(names):
         names = re.sub(r"\([A-Z]\) ", "", names)
-        names = re.sub(r" to cast .*", "", names)
-        return [usable[n.strip()] for n in re.split(r", or |, and |, | or | and ", names) if n.strip() in usable]
+        out = []
+        for n in re.split(r", or |, and |, | or | and ", names):
+            n = n.strip()
+            spell = re.match(r"Spellcasting to cast ([^(]+?)(?: \(level (\d) version\))?$", n)
+            if n in usable:
+                out.append(usable[n])
+            elif n == "Spellcasting":
+                # Qualquer magia do bloco.
+                out += [f"spell_{sid}" for sid in known]
+            elif spell:
+                sid = SPELLS.get(spell.group(1).lower())
+                if sid not in known or (spell.group(2) and known[sid].get("level") != int(spell.group(2))):
+                    problems.append(f"Multiattack: magia fora do Spellcasting do bloco: {n}")
+                else:
+                    out.append(f"spell_{sid}")
+        return out
 
     sentences = re.split(r"(?<=\.) ", text)
     main = sentences[0]
@@ -337,7 +353,7 @@ def parse_multiattack(text, actions):
         m = re.match(r"It can replace (one attack|two attacks|any attack|the (?P<from>[A-Z]\w+) attack) with an? (?:use of )?(?P<by>.*?)(?: attack)?(?: if available)?\.$", s)
         if not m:
             continue
-        by = ids(re.sub(r"Spellcasting to cast [^()]*(?:\(level \d version\))?", "Spellcasting", m.group("by")))
+        by = ids(m.group("by"))
         if by:
             replace = {"cost": 2 if m.group(1) == "two attacks" else 1, "actions": by}
             if m.group(1) == "any attack":

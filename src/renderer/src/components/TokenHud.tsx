@@ -6,6 +6,7 @@ import { normalizeRotation } from '../canvas/geometry';
 import { tokenHealth } from '../canvas/health';
 import { sendIntent } from '../store/table';
 import { ConditionsControl } from './Conditions';
+import { TokenConcentration } from './Concentration';
 import { TokenEffects } from './TokenEffects';
 import { HitPointsControl, HitPointsSummary } from './HitPoints';
 
@@ -173,6 +174,7 @@ export function TokenHud({ view, token, maxima, position, isTargeted, onToggleTa
 
       <div className="token-hud-section">
         <ConditionsControl target={target} state={conditions} canEdit={canControl} combatants={combatants} />
+        <TokenConcentration tokenId={token.id} current={token.concentration} canEdit={canControl} />
         <TokenEffects token={token} canEdit={canControl} />
       </div>
 

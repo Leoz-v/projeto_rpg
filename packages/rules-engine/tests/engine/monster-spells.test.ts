@@ -15,6 +15,8 @@ describe('monster spells (note 0067)', () => {
     expect(spellsOf('lich').find((s) => s.spellId === 'fireball')).toMatchObject({ ability: 'int', saveDc: 20, level: 5, use: undefined });
     expect(spellsOf('lich').find((s) => s.spellId === 'chain_lightning')?.use).toEqual({ id: 'spell_chain_lightning', perDay: 1 });
     expect(spellsOf('mage').find((s) => s.spellId === 'mage_armor')?.note).toBe('included in AC');
+    expect(spellsOf('adult_silver_dragon').find((s) => s.spellId === 'shapechange')?.noConcentration).toBe(true);
+    expect(spellsOf('mage').find((s) => s.spellId === 'fly')?.noConcentration).toBe(false);
     expect(spellsOf('wolf')).toEqual([]);
   });
 

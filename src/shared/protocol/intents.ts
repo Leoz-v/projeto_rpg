@@ -194,7 +194,8 @@ export const IntentSchema = z.discriminatedUnion('kind', [
         .array(
           z.strictObject({
             actionId: IdSchema,
-            targetTokenIds: z.array(UuidSchema).min(1).max(MAX_SAVE_TARGETS),
+            /** Vazio numa magia: os alvos são escolhidos no chat. */
+            targetTokenIds: z.array(UuidSchema).max(MAX_SAVE_TARGETS),
             advantage: z.boolean().optional(),
             disadvantage: z.boolean().optional(),
           }),
@@ -294,7 +295,7 @@ export const IntentSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('rest.cancel'), data: z.strictObject({}) }),
   z.strictObject({ kind: z.literal('hit_dice.spend'), data: z.strictObject({ characterId: UuidSchema, die: HitDieSchema }) }),
   z.strictObject({ kind: z.literal('concentration.set'), data: z.strictObject({ characterId: UuidSchema, spellId: IdSchema }) }),
-  z.strictObject({ kind: z.literal('concentration.end'), data: z.strictObject({ characterId: UuidSchema }) }),
+  z.strictObject({ kind: z.literal('concentration.end'), data: z.union([z.strictObject({ characterId: UuidSchema }), z.strictObject({ tokenId: UuidSchema })]) }),
   z.strictObject({ kind: z.literal('death.set'), data: z.strictObject({ characterId: UuidSchema, deathSaves: DeathSavesSchema }) }),
   z.strictObject({ kind: z.literal('combat.start'), data: CombatJoinSchema }),
   z.strictObject({ kind: z.literal('combat.add'), data: CombatJoinSchema }),

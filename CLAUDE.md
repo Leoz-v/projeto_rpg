@@ -213,7 +213,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - ✅ Condições das ações (`PROTOCOL_VERSION = 31`): 122 ações do SRD impõem as condições direto no acerto ou na falha, com tamanho máximo, duração por turno e as que saem junto (Impedido enquanto Agarrado). Ver `docs/decisions/0065-condicoes-das-acoes-de-monstro.md`.
    - ✅ Multiattack (`attack.multi`, `PROTOCOL_VERSION = 32`, `engine/multiattack.ts`): 177 dos 178 do SRD estruturados (opções, combinações e trocas), com um alvo por ataque e todos rolados de uma vez. Ver `docs/decisions/0066-multiattack.md`.
    - ✅ Magias de monstro, conjurar (PR 4a, `monster.cast`, `PROTOCOL_VERSION = 33`, `engine/monster-spells.ts`): pelo bloco, com usos por dia, CD e bônus do bloco e as partes estruturadas contra os alvos. Ver `docs/decisions/0067-magias-de-monstro.md`.
-   - PR 4b: Concentração dos monstros e trocas por magia no Multiattack.
+   - ✅ Concentração dos monstros e trocas por magia no Multiattack (PR 4b, `PROTOCOL_VERSION = 34`, `<campanha>.db` v19): salvaguarda de CON ao sofrer dano, fim com 0 PV ou Incapacitado, e o que a magia mantinha sai junto. Ver `docs/decisions/0068-concentracao-dos-monstros.md`.
    - Ações lendárias e Resistência Lendária.
 9. **Ferramentas de mapa (reservada para outro contribuidor, [issue #59](https://github.com/Leoz-v/projeto_rpg/issues/59)):**
    - ✅ Régua de distância local (linha com curvas via `Shift`, raio de área de impacto e alternância `ft`/`m`) no mapa 2D (`MapStage`) e no mapa 3D (`Map3DView` / `RulerTool3d`), com medições unificadas por `rules-engine/space` (`cellDistanceFeet`/`distanceFeet` e `FEET_PER_SQUARE`). Ver `docs/decisions/0057-regua-de-distancia.md`.

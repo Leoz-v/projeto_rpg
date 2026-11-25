@@ -14,7 +14,7 @@ const token = (overrides: Partial<Token>): Token => ({
   characterId: null,
   hp: null,
   conditions: { active: [{ condition: 'prone' }], exhaustion: 0 },
-  visionFeet: null, spellEffects: [], uses: { spent: {}, lair: false },
+  visionFeet: null, spellEffects: [], uses: { spent: {}, lair: false }, concentration: null,
   rotation: 0,
   elevation: 0,
   ...overrides,

@@ -49,7 +49,7 @@ function makeToken(id: string, col: number, row: number, opts?: Partial<Token>):
     characterId: null,
     hp: null,
     conditions: NO_CONDITIONS,
-    visionFeet: null, spellEffects: [], uses: { spent: {}, lair: false },
+    visionFeet: null, spellEffects: [], uses: { spent: {}, lair: false }, concentration: null,
     rotation: 0,
     elevation: 0,
     ...opts,

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import type { Creature, Multiattack as MultiattackData } from 'rules-engine/schemas';
-import { availableMonsterUses } from 'rules-engine/monster-uses';
+import type { Multiattack as MultiattackData } from 'rules-engine/schemas';
+import { availableMonsterUses, monsterSpellUseId } from 'rules-engine/monster-uses';
 import { multiattackFits, multiattackSlots } from 'rules-engine/multiattack';
+import type { MonsterBlockView } from '../../../shared/ipc';
 import type { Token } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
 import { type TargetOption, TargetChecklist } from './SaveEffect';
@@ -16,11 +17,18 @@ interface Row {
   mode: Mode;
 }
 
-function MultiattackForm({ token, creature, data, description, targets, onError }: { token: Token; creature: Creature; data: MultiattackData; description: string; targets: readonly TargetOption[]; onError: (m: string | null) => void }) {
+function MultiattackForm({ token, block, data, description, targets, onError }: { token: Token; block: MonsterBlockView; data: MultiattackData; description: string; targets: readonly TargetOption[]; onError: (m: string | null) => void }) {
   const [option, setOption] = useState(0);
+  const { creature } = block;
   const actionOf = (id: string) => creature.actions.find((a) => a.id === id);
+  const spellOf = (id: string) => block.spells.find((s) => monsterSpellUseId(s.spellId) === id);
+  const nameOf = (id: string): string => {
+    const spell = spellOf(id);
+    return actionOf(id)?.name ?? (spell ? `${spell.name} (magia)` : id);
+  };
   const spent = (id: string): boolean => {
-    const limit = actionOf(id)?.limit;
+    const use = spellOf(id)?.use;
+    const limit = use ? { per: 'day', count: use.perDay } : actionOf(id)?.limit;
     return limit !== undefined && availableMonsterUses({ id, limit }, token.uses) === 0;
   };
   const isSave = (row: Row): boolean => actionOf(row.actionId)?.kind === 'save';
@@ -35,7 +43,7 @@ function MultiattackForm({ token, creature, data, description, targets, onError 
   const ready =
     used.length > 0 &&
     multiattackFits(data, option, used.map((r) => r.actionId)) &&
-    used.every((r) => !spent(r.actionId) && (isSave(r) ? r.saveTargets.some((id) => targets.some((t) => t.id === id)) : targetOf(r) !== ''));
+    used.every((r) => !spent(r.actionId) && (spellOf(r.actionId) ? true : isSave(r) ? r.saveTargets.some((id) => targets.some((t) => t.id === id)) : targetOf(r) !== ''));
   const change = (index: number, patch: Partial<Row>): void => {
     setRows(rows.map((r, i) => (i === index ? { ...r, ...patch } : r)));
   };
@@ -48,8 +56,8 @@ function MultiattackForm({ token, creature, data, description, targets, onError 
         option,
         steps: used.map((r) => ({
           actionId: r.actionId,
-          targetTokenIds: isSave(r) ? r.saveTargets.filter((id) => targets.some((t) => t.id === id)) : [targetOf(r)],
-          ...(!isSave(r) && r.mode !== 'normal' ? { [r.mode]: true } : {}),
+          targetTokenIds: spellOf(r.actionId) ? [] : isSave(r) ? r.saveTargets.filter((id) => targets.some((t) => t.id === id)) : [targetOf(r)],
+          ...(!isSave(r) && !spellOf(r.actionId) && r.mode !== 'normal' ? { [r.mode]: true } : {}),
         })),
         visibility: 'public',
       },
@@ -58,7 +66,7 @@ function MultiattackForm({ token, creature, data, description, targets, onError 
       onError(refused);
     });
   };
-  const label = (o: number): string => multiattackSlots(data, o).map((s) => s.actions.map((id) => actionOf(id)?.name ?? id).join(' ou ')).join(', ');
+  const label = (o: number): string => multiattackSlots(data, o).map((s) => s.actions.map(nameOf).join(' ou ')).join(', ');
   return (
     <div className="multiattack stack">
       <h3>Multiattack</h3>
@@ -88,7 +96,7 @@ function MultiattackForm({ token, creature, data, description, targets, onError 
             <select aria-label={`Ação ${i + 1}`} value={row.actionId} onChange={(e) => { change(i, { actionId: e.target.value }); }}>
               {[...slot.actions, ...slot.replacements].map((id) => (
                 <option key={id} value={id} disabled={spent(id)}>
-                  {actionOf(id)?.name ?? id}
+                  {nameOf(id)}
                   {slot.replacements.includes(id) ? ' (troca)' : ''}
                   {spent(id) ? ' (sem usos)' : ''}
                 </option>
@@ -96,7 +104,8 @@ function MultiattackForm({ token, creature, data, description, targets, onError 
               <option value="">não usar</option>
             </select>
             {row.actionId !== '' && isSave(row) && <TargetChecklist targets={targets} selected={row.saveTargets} onChange={(ids) => { change(i, { saveTargets: ids }); }} />}
-            {row.actionId !== '' && !isSave(row) && (
+            {spellOf(row.actionId) && <span className="hint">alvos no chat</span>}
+            {row.actionId !== '' && !isSave(row) && !spellOf(row.actionId) && (
               <>
                 <select aria-label={`Alvo ${i + 1}`} value={targetOf(row)} onChange={(e) => { change(i, { target: e.target.value }); }}>
                   {targets.map((t) => (
@@ -133,19 +142,19 @@ function MultiattackForm({ token, creature, data, description, targets, onError 
 
 export function Multiattack({ token, targets, onError }: { token: Token; targets: readonly TargetOption[]; onError: (m: string | null) => void }) {
   const { monsterId } = token;
-  const [creature, setCreature] = useState<Creature | null>(null);
+  const [block, setBlock] = useState<MonsterBlockView | null>(null);
   useEffect(() => {
     let alive = true;
     if (monsterId !== null) {
       void window.vtt.monsterBlock(monsterId).then((r) => {
-        if (alive && r.ok) setCreature(r.value?.creature ?? null);
+        if (alive && r.ok) setBlock(r.value);
       });
     }
     return () => {
       alive = false;
     };
   }, [monsterId]);
-  const action = creature?.actions.find((a) => a.kind === 'text' && a.multiattack !== undefined);
-  if (!creature || action?.kind !== 'text' || !action.multiattack) return null;
-  return <MultiattackForm token={token} creature={creature} data={action.multiattack} description={action.description} targets={targets} onError={onError} />;
+  const action = block?.creature.actions.find((a) => a.kind === 'text' && a.multiattack !== undefined);
+  if (!block || action?.kind !== 'text' || !action.multiattack) return null;
+  return <MultiattackForm token={token} block={block} data={action.multiattack} description={action.description} targets={targets} onError={onError} />;
 }

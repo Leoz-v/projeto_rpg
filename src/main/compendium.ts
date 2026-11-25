@@ -62,7 +62,7 @@ export function monsterBlock({ creatures, spells }: Pick<Compendium, 'creatures'
         spellId: s.spellId,
         name: spell.name,
         level: s.level ?? spell.level,
-        concentration: spell.concentration,
+        concentration: spell.concentration && !s.noConcentration,
         structured: spell.resolution.length > 0,
         ...(s.note !== undefined ? { note: s.note } : {}),
         ...(s.use ? { use: s.use } : {}),

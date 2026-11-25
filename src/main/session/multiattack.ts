@@ -1,5 +1,6 @@
-import { multiattackFits } from 'rules-engine';
+import { monsterSpells, monsterSpellUseId, multiattackFits } from 'rules-engine';
 import type { IntentData, PatchOp, Role } from '../../shared/protocol';
+import { castMonsterSpell } from './casting';
 import { forceSave, makeAttack } from './attacks';
 import { notAllowed, type SessionContext, violation } from './context';
 
@@ -15,12 +16,20 @@ export function requireMultiattack(ctx: SessionContext, playerId: string, role: 
   if (!multiattackFits(action.multiattack, data.option, data.steps.map((s) => s.actionId))) throw violation('Estes ataques não cabem no Multiattack do monstro');
 }
 
-/** Um uso: o ataque contra o alvo dele, ou a salvaguarda dos alvos dela. */
+/** Um uso: o ataque contra o alvo dele, a magia do bloco, ou a salvaguarda dos alvos dela. */
 export function multiattackStep(ctx: SessionContext, playerId: string, role: Role, data: IntentData<'attack.multi'>, step: IntentData<'attack.multi'>['steps'][number]): PatchOp[] {
   const token = ctx.token(data.tokenId);
-  const action = token.monsterId !== null ? ctx.deps.creature(token.monsterId)?.actions.find((a) => a.id === step.actionId) : undefined;
+  const creature = token.monsterId !== null ? ctx.deps.creature(token.monsterId) : undefined;
+  const action = creature?.actions.find((a) => a.id === step.actionId);
+  const spell = creature && !action ? monsterSpells(creature).find((s) => monsterSpellUseId(s.spellId) === step.actionId) : undefined;
+  if (spell) {
+    // A magia vai ao chat, e os alvos são escolhidos lá.
+    if (step.targetTokenIds.length > 0 || step.advantage !== undefined || step.disadvantage !== undefined) throw violation('Os alvos da magia são escolhidos no chat');
+    return castMonsterSpell(ctx, playerId, role, { tokenId: token.id, spellId: spell.spellId });
+  }
   if (action?.kind === 'save') {
     if (step.advantage !== undefined || step.disadvantage !== undefined) throw violation('Vantagem e Desvantagem só valem nos ataques do Multiattack');
+    if (step.targetTokenIds.length === 0) throw violation('Escolha os alvos da salvaguarda');
     if (new Set(step.targetTokenIds).size !== step.targetTokenIds.length) throw violation('Alvo repetido');
     return forceSave(ctx, playerId, role, { source: { tokenId: token.id, actionId: action.id }, targetTokenIds: step.targetTokenIds, visibility: data.visibility });
   }

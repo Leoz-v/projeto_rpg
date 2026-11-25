@@ -108,6 +108,7 @@ export function createToken(ctx: SessionContext, data: IntentData<'token.create'
     conditions: NO_CONDITIONS,
     spellEffects: [],
     uses: { spent: {}, lair: false },
+    concentration: null,
     visionFeet: null,
     rotation: 0,
     elevation: 0,

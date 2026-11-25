@@ -455,7 +455,9 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('concentration'),
     ...entryBase,
-    characterId: UuidSchema,
+    /** O personagem, ou o token do monstro (nota 0068). */
+    characterId: UuidSchema.optional(),
+    tokenId: UuidSchema.optional(),
     characterName: NameSchema,
     spellName: NameSchema,
     event: z.enum(['started', 'ended', 'kept']),
@@ -467,7 +469,9 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('concentration_save'),
     ...entryBase,
-    characterId: UuidSchema,
+    /** O personagem, ou o token do monstro (nota 0068). */
+    characterId: UuidSchema.optional(),
+    tokenId: UuidSchema.optional(),
     characterName: NameSchema,
     spellName: NameSchema,
     dc: z.int().min(10).max(30),
@@ -623,6 +627,8 @@ export const TokenSchema = z.strictObject({
   conditions: ConditionStateSchema,
   /** Efeitos de magia sobre o token (nota 0062); vazios num token de personagem (vão nos ajustes dele). */
   spellEffects: z.array(SessionAdjustmentSchema).max(MAX_ADJUSTMENTS).default([]),
+  /** Magia em que o monstro se concentra (nota 0068); `null` num token de personagem (vale a dele). */
+  concentration: ConcentrationSchema.nullable().default(null),
   /** Usos limitados do monstro; para quem não vê os PV do token, chega vazio (seção 2.12). */
   uses: MonsterUsesSchema.default(NO_MONSTER_USES),
   /** Alcance de visão próprio em pés (5–300), ou `null` para usar o padrão do mapa (nota 0056). */

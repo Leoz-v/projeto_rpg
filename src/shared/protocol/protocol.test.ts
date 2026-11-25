@@ -72,7 +72,7 @@ const state: SessionState = {
   maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: SHA, cellPx: 70, scene3d: null, fog: defaultMapFog(30, 20) } },
   activeMapId: MAP,
   tokens: {
-    [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [], characterId: null, hp: { max: 7, damage: 2, temp: 0 }, conditions: { active: [], exhaustion: 0 }, visionFeet: null, spellEffects: [], uses: { spent: {}, lair: false }, rotation: 0, elevation: 0 },
+    [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [], characterId: null, hp: { max: 7, damage: 2, temp: 0 }, conditions: { active: [], exhaustion: 0 }, visionFeet: null, spellEffects: [], uses: { spent: {}, lair: false }, concentration: null, rotation: 0, elevation: 0 },
   },
   characters: {
     [HERO]: {
