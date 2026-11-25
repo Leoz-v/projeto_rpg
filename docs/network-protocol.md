@@ -2,7 +2,7 @@
 
 > **Contrato fechado.** Só existem as mensagens e os tipos de `Intent` listados aqui. Para criar um novo, primeiro atualize este documento (e `PROTOCOL_VERSION`, se a mudança for incompatível) e só depois o código. Os schemas Zod em `src/shared/protocol/` devem seguir este arquivo exatamente.
 
-- **Versão do protocolo:** `PROTOCOL_VERSION = 26`
+- **Versão do protocolo:** `PROTOCOL_VERSION = 27`
 - **Transporte:** WebSocket puro (`ws://`) sobre rede virtual (Tailscale/ZeroTier). Porta padrão do Host: `47820`.
 - **Formato:** um objeto JSON (UTF-8) por frame de texto. Frames binários não são usados.
 - **Validação:** toda mensagem recebida, nos dois lados, passa pelo schema Zod antes de qualquer processamento. Mensagem inválida gera `Error` com `code: "invalid_message"` e é descartada. A conexão **não** cai por causa disso.
@@ -243,6 +243,7 @@ Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do
 | `chat.message`    | 2    | `{ text: string (1..2000) }` | todos |
 | `dice.roll`       | 2    | `{ formula: string, label?: string, visibility: "public" \| "gm" }` | todos |
 | `token.move`      | 2    | `{ tokenId: string, to: { x: int, y: int } }` | mestre; jogador só nos próprios tokens |
+| `token.update`    | 27   | `{ tokenId: string, rotation?: int (0..359), elevation?: int (-1000..1000) }` (ao menos um campo além do id) | mestre; jogador só nos próprios tokens |
 | `map.create`      | 2    | `{ name: string (1..100), width: int (1..200), height: int (1..200), background?: sha256, cellPx?: int (1..4096), scene3d?: sha256 }` | mestre |
 | `map.update`      | 23   | `{ mapId: string, name?: string (1..100), width?: int (1..200), height?: int (1..200), scene3d?: sha256 }` (ao menos um campo além do id) | mestre |
 | `map.activate`    | 2    | `{ mapId: string }` | mestre |
@@ -303,6 +304,7 @@ Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do
 - **`token.create`:** `size` é o tamanho da criatura (`tiny` … `gargantuan`). `monsterId` é o id do monstro no compêndio: quando vem, o Host confere que ele existe. `ownerIds` são os `playerId` que podem mover o token. `image`, quando vem, precisa ser um asset que o Host tem (senão, `rule_violation`). O Host gera o `id`.
 - **Ids gerados pelo Host** (mapas, tokens, entradas do chat) são UUID.
 - **`token.move`:** o mestre move qualquer token; o jogador, só os tokens em que está em `ownerIds`.
+- **`token.update`:** altera `rotation` (graus, 0–359) e/ou `elevation` (pés, −1000..1000) de um token; mesma permissão de `token.move`.
 - **`token.create`:** os `ownerIds` precisam ser jogadores que já entraram na sessão (estão em `players`).
 - **`session.resync`:** responde `applied` com o `rev` atual, seguido de um `StateSnapshot` só para quem pediu.
 - **Personagens** (nota 0029): o personagem guarda só as escolhas de construção; a ficha é calculada pelo motor em cada app (o cálculo é determinístico). `BaseScores` e `BuildStep` são os schemas do motor (`rules-engine/schemas`), e o Host confere só a estrutura: a construção pode ficar incompleta enquanto o jogador monta o personagem.

@@ -2437,3 +2437,37 @@ describe('HostSession: spell buffs on the sheet (note 0060)', () => {
     expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'spell_effect_ended', reason: 'removed' });
   });
 });
+
+describe('HostSession: token.update (rotation & elevation)', () => {
+  it('allows GM and token owners to update rotation and elevation, and rejects other players', () => {
+    const session = setup();
+    session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Arena', width: 10, height: 10 } });
+    const mapId = session.state.activeMapId;
+    expect(mapId).not.toBeNull();
+    if (mapId === null) return;
+    session.handle(GM.playerId, {
+      kind: 'token.create',
+      data: { mapId, name: 'Ana', position: { x: 100, y: 100 }, size: 'medium', ownerIds: [ANA.playerId] },
+    });
+    session.handle(GM.playerId, {
+      kind: 'token.create',
+      data: { mapId, name: 'Goblin', position: { x: 300, y: 300 }, size: 'small' },
+    });
+    const tokens = Object.values(session.state.tokens);
+    const anaToken = tokens.find((t) => t.name === 'Ana');
+    const goblinToken = tokens.find((t) => t.name === 'Goblin');
+    expect(anaToken).toBeDefined();
+    expect(goblinToken).toBeDefined();
+    if (!anaToken || !goblinToken) return;
+
+    expect(anaToken.rotation).toBe(0);
+    expect(anaToken.elevation).toBe(0);
+
+    expect(applied(session.handle(ANA.playerId, { kind: 'token.update', data: { tokenId: anaToken.id, rotation: 135, elevation: 15 } }))).toBe(true);
+    expect(session.state.tokens[anaToken.id]).toMatchObject({ rotation: 135, elevation: 15 });
+
+    expect(rejection(session.handle(ANA.playerId, { kind: 'token.update', data: { tokenId: goblinToken.id, rotation: 90 } }))).toBe('not_allowed');
+    expect(applied(session.handle(GM.playerId, { kind: 'token.update', data: { tokenId: goblinToken.id, rotation: 270, elevation: -10 } }))).toBe(true);
+    expect(session.state.tokens[goblinToken.id]).toMatchObject({ rotation: 270, elevation: -10 });
+  });
+});

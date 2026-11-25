@@ -2359,3 +2359,74 @@ button.fog-tool.active {
   gap: 0.5rem;
   font-size: 0.85rem;
 }
+
+.token-hud {
+  position: absolute;
+  z-index: 25;
+  width: 280px;
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+  background: rgba(31, 30, 37, 0.96);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.token-hud-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.token-hud-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.token-hud-actions button.active {
+  border-color: var(--error);
+  background: rgba(255, 90, 95, 0.2);
+  color: var(--text);
+}
+
+.token-hud-section {
+  border-top: 1px solid var(--border);
+  padding-top: 0.45rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.token-hud-stepper,
+.token-hud-hp-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.token-hud-stepper-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.token-hud-stepper-controls strong {
+  min-width: 3.4rem;
+  text-align: center;
+}
+
+.token-hud-footer {
+  border-top: 1px solid var(--border);
+  padding-top: 0.4rem;
+  display: flex;
+  justify-content: flex-end;
+}
+

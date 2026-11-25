@@ -12,6 +12,12 @@ export const Sha256Schema = z.string().regex(/^[0-9a-f]{64}$/, 'SHA-256 inválid
 export const PointSchema = z.strictObject({ x: z.int().nonnegative(), y: z.int().nonnegative() });
 export type Point = z.infer<typeof PointSchema>;
 
+/** Orientação do token em graus (0..359, sentido horário). */
+export const TokenRotationSchema = z.int().min(0).max(359);
+
+/** Elevação do token em pés (−1000..1000). */
+export const TokenElevationSchema = z.int().min(-1000).max(1000);
+
 /** Id de uma entrada do inventário (gerado pelo Host). */
 export const InstanceIdSchema = z.string().min(1).max(64);
 

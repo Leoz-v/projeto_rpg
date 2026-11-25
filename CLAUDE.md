@@ -210,6 +210,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 8. **Ferramentas de mapa (reservada para outro contribuidor, [issue #59](https://github.com/Leoz-v/projeto_rpg/issues/59)):**
    - ✅ Régua de distância local (linha com curvas via `Shift`, raio de área de impacto e alternância `ft`/`m`) no mapa 2D (`MapStage`) e no mapa 3D (`Map3DView` / `RulerTool3d`), com medições unificadas por `rules-engine/space` (`cellDistanceFeet`/`distanceFeet` e `FEET_PER_SQUARE`). Ver `docs/decisions/0057-regua-de-distancia.md`.
    - ✅ Névoa de guerra (`fog.*`, `token.vision`, `PROTOCOL_VERSION = 25`, `<campanha>.db` v15; névoa manual por células e névoa automática por alcance de visão com memória explorada e limpeza pelo mestre, nos mapas 2D e 3D). Ver `docs/decisions/0059-nevoa-de-guerra.md`.
+   - ✅ Controles do mouse em 2D e 3D, HUD do token, seleção múltipla, alvo local, orientação e elevação (`token.update`, `PROTOCOL_VERSION = 27`, `<campanha>.db` v16). Ver `docs/decisions/0061-controles-do-mouse-e-orientacao-dos-tokens.md`.
    - Tokens ocultos e indicação de morto.
 9. **Mapas 3D (`@pixi/3d`, nota 0056):**
    - ✅ Integração do motor e editor 3D (`PROTOCOL_VERSION = 23`, `<campanha>.db` v14, `vtt-3d://`, `map.create`/`map.update` com `scene3d` via `AssetStore`), visualização de mesa (`Map3DView`) integrada ao fluxo natural de mapas com tokens 3D (planos no modo Topo, billboard em 3D/Ortho, arrasto e movimento por teclado) e editor completo (`Map3DEditorModal`) exclusivo do mestre.

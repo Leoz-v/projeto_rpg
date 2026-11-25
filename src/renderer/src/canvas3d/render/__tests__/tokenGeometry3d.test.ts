@@ -24,6 +24,8 @@ function makeToken(overrides: Partial<Token> = {}): Token {
     hp: null,
     conditions: { active: [], exhaustion: 0 },
     visionFeet: null,
+    rotation: 0,
+    elevation: 0,
     ...overrides,
   };
 }
@@ -60,6 +62,10 @@ describe('tokenGeometry3d', () => {
 
     // Camera target converts directly to logical 2D world units
     expect(cameraTargetToWorld2d(8 * TILE_SIZE_METERS, 6 * TILE_SIZE_METERS)).toEqual({ x: 800, y: 600 });
+
+    // Free drop (Shift held: snapToGrid = false) preserves sub-cell coordinates
+    const free = world3dToTokenCorner(3.25 * TILE_SIZE_METERS, 4.75 * TILE_SIZE_METERS, 'medium', map, false);
+    expect(free).toEqual({ x: 275, y: 425 });
   });
 
   it('picks tokens on ground disc in top_down and on vertical billboard in perspective/orthographic', () => {

@@ -85,12 +85,28 @@ function SelectedCharacter({ view, tokenId, onOpen }: { view: TableView; tokenId
 export function TableScreen({ view }: { view: TableView }) {
   const [leaving, setLeaving] = useState(false);
   const [stage, setStage] = useState<MapStageHandle | null>(null);
-  const [selected, setSelectedId] = useState<string | null>(null);
+  const [selected, setSelectedIds] = useState<string[]>([]);
+  const [targeted, setTargetedIds] = useState<string[]>([]);
   const [fogTool, setFogTool] = useState<FogTool>('none');
-  // Um token removido deixa de estar selecionado.
-  const selectedId = selected !== null && selected in view.state.tokens ? selected : null;
+  // Tokens removidos deixam de estar selecionados ou marcados como alvo.
+  const selectedIds = selected.filter((id) => id in view.state.tokens);
+  const targetedIds = targeted.filter((id) => id in view.state.tokens);
+  const selectedId = selectedIds[selectedIds.length - 1] ?? null;
+  const selectSingle = useCallback((tokenId: string | null) => {
+    setSelectedIds(tokenId === null ? [] : [tokenId]);
+  }, []);
+  const toggleTarget = useCallback((tokenId: string) => {
+    setTargetedIds((prev) => (prev.includes(tokenId) ? prev.filter((id) => id !== tokenId) : [...prev, tokenId]));
+  }, []);
   const isHost = view.info.mode === 'host';
   const [openCharacterId, setOpenCharacterId] = useState<string | null>(null);
+  const openTokenSheet = useCallback(
+    (tokenId: string) => {
+      const chId = view.state.tokens[tokenId]?.characterId;
+      if (chId) setOpenCharacterId(chId);
+    },
+    [view.state.tokens],
+  );
   const [editor3d, setEditor3d] = useState<{ map: GameMap | null } | null>(null);
   const is3dEditorOpen = view.info.role === 'gm' && editor3d !== null;
   const [viewerByMap, setViewerByMap] = useState<Record<string, MapViewerMode>>({});
@@ -135,7 +151,7 @@ export function TableScreen({ view }: { view: TableView }) {
         </button>
       </header>
       <aside className="sidebar">
-        <CombatTracker view={view} onSelect={setSelectedId} />
+        <CombatTracker view={view} onSelect={selectSingle} />
         <Players view={view} />
         <Characters view={view} onOpen={setOpenCharacterId} />
         {selectedId !== null && <SelectedCharacter view={view} tokenId={selectedId} onOpen={setOpenCharacterId} />}
@@ -160,10 +176,13 @@ export function TableScreen({ view }: { view: TableView }) {
           view={view}
           viewerMode={activeViewerMode}
           onViewerModeChange={handleActiveViewerChange}
-          selectedId={selectedId}
+          selectedIds={selectedIds}
+          targetedIds={targetedIds}
           fogTool={fogTool}
           onFogTool={setFogTool}
-          onSelect={setSelectedId}
+          onSelect={setSelectedIds}
+          onToggleTarget={toggleTarget}
+          onOpenSheet={openTokenSheet}
           onStage={setStage}
           {...(view.info.role === 'gm' ? { onEdit3dMap: open3dEditor } : {})}
         />

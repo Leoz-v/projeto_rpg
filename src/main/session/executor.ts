@@ -11,7 +11,7 @@ import { changeSpellSlot } from './spell-slots';
 import { changeResource } from './resources';
 import { castSpell, useSpellEffect } from './casting';
 import { clearFogMemory, configureFog, fillManualFog, paintManualFog, rectManualFog, setTokenVision } from './fog';
-import { createMap, createToken, moveToken, roll, updateMap } from './map-tokens';
+import { createMap, createToken, moveToken, roll, updateMap, updateToken } from './map-tokens';
 import { changeHp, concentrate, concentrationBreaks, deathStateEntry, endConcentration, inCombat, rollDeathSave } from './vitality';
 
 export type { Identity, IntentOutcome, IntentResultPayload, SessionDeps, StateChange } from './context';
@@ -140,6 +140,8 @@ export class HostSession extends SessionContext {
         return [this.appendChat(roll(this, playerId, intent.data))];
       case 'token.move':
         return moveToken(this, playerId, role, intent.data);
+      case 'token.update':
+        return updateToken(this, playerId, role, intent.data);
       case 'map.create':
         this.requireGm(role);
         return createMap(this, intent.data);

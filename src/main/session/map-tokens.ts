@@ -29,6 +29,15 @@ export function moveToken(ctx: SessionContext, playerId: string, role: Role, dat
   return ops;
 }
 
+export function updateToken(ctx: SessionContext, playerId: string, role: Role, data: IntentData<'token.update'>): PatchOp[] {
+  const token = ctx.token(data.tokenId);
+  if (role !== 'gm' && !token.ownerIds.includes(playerId)) throw notAllowed('Você não controla este token');
+  const ops: PatchOp[] = [];
+  if (data.rotation !== undefined) ops.push({ op: 'replace', path: toPointer('tokens', token.id, 'rotation'), value: data.rotation });
+  if (data.elevation !== undefined) ops.push({ op: 'replace', path: toPointer('tokens', token.id, 'elevation'), value: data.elevation });
+  return ops;
+}
+
 export function createMap(ctx: SessionContext, data: IntentData<'map.create'>): PatchOp[] {
   ctx.requireAsset(data.background);
   ctx.requireAsset(data.scene3d);
@@ -98,6 +107,8 @@ export function createToken(ctx: SessionContext, data: IntentData<'token.create'
     hp: hpMax !== undefined ? { max: hpMax, damage: 0, temp: 0 } : null,
     conditions: NO_CONDITIONS,
     visionFeet: null,
+    rotation: 0,
+    elevation: 0,
   };
   const ops: PatchOp[] = [{ op: 'add', path: toPointer('tokens', token.id), value: token }];
   ops.push(...recordExploredOps(map, [...Object.values(ctx.current.tokens), token], ownerIds.length > 0 ? ownerIds : [token.id]));
