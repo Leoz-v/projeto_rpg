@@ -210,7 +210,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - ✅ Alvo marcado, armas e um turno (PR 4b2, `PROTOCOL_VERSION = 29`): efeito `target_damage` (Hex, Hunter's Mark, Conjure Minor Elementals), ajuste ligado a uma arma (Magic Weapon, Shillelagh), duração por turno (Shield) e opções na salvaguarda (Bestow Curse, Enlarge/Reduce). 162 magias estruturadas; a fila `phase_7` ficou vazia. Ver `docs/decisions/0063-alvo-marcado-armas-e-turno.md`.
 8. **Fase 8 — Ações de monstro:** o turno dos monstros resolvido pela mesa. Dividida em 5 PRs (ver `docs/decisions/0064-bloco-e-usos-dos-monstros.md`); usos só para o mestre (e donos do token), condições aplicadas direto, Multiattack rolado de uma vez, Resistência Lendária oferecida ao mestre:
    - ✅ Bloco completo e usos limitados (`monster.*`, `PROTOCOL_VERSION = 30`, `<campanha>.db` v18, `engine/monster-uses.ts`): o bloco inteiro pelo token, usos por dia (com os do covil) e recarga rolada pelo Host no início do turno.
-   - Condições das ações: no acerto e na falha, direto.
+   - ✅ Condições das ações (`PROTOCOL_VERSION = 31`): 122 ações do SRD impõem as condições direto no acerto ou na falha, com tamanho máximo, duração por turno e as que saem junto (Impedido enquanto Agarrado). Ver `docs/decisions/0065-condicoes-das-acoes-de-monstro.md`.
    - Multiattack: curadoria e todos os ataques de uma vez, um alvo por ataque.
    - Magias de monstro: conjurar pelo bloco, com usos por dia e Concentração.
    - Ações lendárias e Resistência Lendária.

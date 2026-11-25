@@ -192,7 +192,60 @@ def parse_damage_chain(s):
 
 
 def conditions_in(sentence):
-    return [c for c in CONDITIONS if re.search(r"\b(?:has|have) the " + c.capitalize() + r" condition", sentence)]
+    # O que acontece quando o monstro solta quem engoliu ("exits with the Prone condition") não é da falha.
+    sentence = re.split(r" If the [\w ]+? takes \d+", sentence)[0]
+    return [c for c in CONDITIONS if re.search(r"\b(?:has|have) the (?:\w+ and )?" + c.capitalize() + r"(?: and \w+)? conditions?\b", sentence)]
+
+
+# Textos em que a condição depende de algo que a mesa não resolve (nota 0065): ficam com o mestre.
+IMPOSE_SKIP = re.compile(r"swallow|engulf|possess|demiplane|Hit Points or fewer|song ends|until the end of its turn\b")
+IMPOSE_SKIP_SENTENCE = re.compile(r" moved \d+\+ feet|reduce[sd]? the target to 0|is reduced to 0|attach")
+
+
+def imposes_in(text):
+    """Condições que o acerto ou a falha impõe na hora, com tamanho máximo, duração e as que duram junto (nota 0065)."""
+    text = re.split(r" (?:Second Failure|Failure by 5 or More|Failure or Success):", text)[0]
+    if IMPOSE_SKIP.search(text):
+        return []
+    out = []
+    for sentence in re.split(r"(?<=\.) ", text):
+        if "Saving Throw" in sentence or "First Failure" in sentence or "is subjected to" in sentence:
+            break
+        if IMPOSE_SKIP_SENTENCE.search(sentence):
+            continue
+        later = re.match(r"(?:Until the grapple ends|While (\w+)), the target (?:also )?has the (\w+)(?: and (\w+))? conditions?", sentence)
+        if later:
+            anchor = (later.group(1) or "Grappled").lower()
+            for entry in out:
+                if entry["conditions"][0] == anchor:
+                    entry["while"] = entry.get("while", []) + [c.lower() for c in later.groups()[1:] if c]
+            continue
+        size = re.match(r"If (?:the )?target is (?:an? )?(\w+) or smaller(?: creature)?, ", sentence)
+        if not (size or re.match(r"\d|The target (?:has|is pushed|takes)", sentence)):
+            continue
+        found = list(re.finditer(r"ha(?:s|ve) the (\w+)(?: and (\w+))? conditions?(?: \(escape DC (\d+)\))?([^.]*)", re.sub(r"(, and (?:it|the target) has the )", r".\1", sentence)))
+        if not found:
+            continue
+        first = found[0]
+        conditions = [c.lower() for c in first.groups()[:2] if c]
+        if not all(c in CONDITIONS and c != "exhaustion" for c in conditions):
+            continue
+        entry = {"conditions": conditions}
+        if size:
+            entry["maxSize"] = size.group(1).lower()
+        if first.group(3):
+            entry["escapeDc"] = int(first.group(3))
+        end = re.match(r" until the (start|end) of (its|the [^,.]+?'s) next turn", first.group(4))
+        if end:
+            entry["end"] = f"{'target' if end.group(2) == 'its' else 'actor'}_turn_{end.group(1)}"
+        for m in found[1:]:
+            if "until the grapple ends" in m.group(4):
+                entry["while"] = entry.get("while", []) + [c.lower() for c in m.groups()[:2] if c]
+        out.append(entry)
+    if "repeats the save at the end of each of its turns" in text:
+        for entry in out:
+            entry["repeatSave"] = True
+    return out
 
 
 def check_damage(who, parsed):
@@ -265,6 +318,9 @@ def parse_action(who, entry, body):
         hit = m.group(4)
         action["damage"] = check_damage(who, parse_damage_chain(hit))
         action["onHitConditions"] = conditions_in(re.split(r"(?<=\.) ", hit)[0])
+        imposes = imposes_in(hit)
+        if imposes:
+            action["imposes"] = imposes
         return action
     # A salvaguarda pode vir depois de um texto de movimento ("The bulette spends 5 feet..."), que
     # fica só na descrição. "Strength or Dexterity Saving Throw" e "First Failure" ficam como texto.
@@ -276,6 +332,9 @@ def parse_action(who, entry, body):
         success = m.group(4) or ""
         action["onSuccess"] = "half" if success.startswith("Half damage") else "none"
         action["onFailConditions"] = conditions_in(fail.split(" Failure or Success:")[0])
+        imposes = imposes_in(fail)
+        if imposes:
+            action["imposes"] = imposes
         return action
     if body.startswith("The ") and "casts one of the following spells" in first:
         sc = parse_spellcasting(who, entry, body)

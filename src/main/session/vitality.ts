@@ -1,4 +1,4 @@
-import { applyHitPointChange, clampHitPoints, currentHitPoints, d20StepNotes, type DerivedSheet, effectiveConditions, deathAfterDamage, deathAfterHealing, type DeathSaveState, type HitPointChange, type HitPointResult, resolveDeathSave, concentrationDc, rollD20, sheetD20 } from 'rules-engine';
+import { applyHitPointChange, clampHitPoints, currentHitPoints, d20StepNotes, type DerivedSheet, effectiveConditions, deathAfterDamage, deathAfterHealing, type DeathSaveState, type HitPointChange, type HitPointResult, resolveDeathSave, concentrationDc, rollD20, sheetD20, withoutDependents } from 'rules-engine';
 import { type ChatEntry, type ConditionState, type IntentData, type PatchOp, type Role, type SessionCharacter, type SessionState, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
 import { liftSpellConditions } from './spell-effects';
@@ -130,7 +130,7 @@ export function changeCharacterHp(
   } else if (change.kind === 'healing' && result.hpChange > 0 && currentHitPoints(max, character.hp) === 0) {
     deathSaves = deathAfterHealing(deathSaves);
     if (hasUnconscious) {
-      conditions = { ...conditions, active: conditions.active.filter((c) => c.condition !== 'unconscious') };
+      conditions = { ...conditions, active: withoutDependents(conditions.active.filter((c) => c.condition !== 'unconscious')) };
       condition = { kind: 'removed', note: 'Recuperou PV' };
     }
     notes.push('Recuperou PV: contagem zerada');

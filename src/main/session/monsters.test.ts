@@ -113,3 +113,66 @@ describe('HostSession: monster limited uses (note 0064)', () => {
     expect(t.spent()).toEqual({ fire_breath: 1 });
   });
 });
+
+describe('HostSession: conditions imposed by monster actions (note 0065)', () => {
+  /** Um monstro que ataca um goblin (Small) e um dragão (Huge), com dados fixos. */
+  function arena(monsterId: string, rolls: number[]) {
+    const t = table(rolls);
+    const mapId = t.session.state.activeMapId ?? '';
+    t.session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Monstro', position: { x: 1100, y: 0 }, size: 'medium', monsterId } });
+    const monster = Object.values(t.session.state.tokens).find((x) => x.name === 'Monstro')?.id ?? '';
+    const attack = (actionId: string, target: string) => t.session.handle(GM.playerId, { kind: 'attack.make', data: { attacker: { tokenId: monster, actionId }, targetTokenId: target, visibility: 'public' } });
+    const force = (actionId: string, target: string) => t.session.handle(GM.playerId, { kind: 'save.force', data: { source: { tokenId: monster, actionId }, targetTokenIds: [target], visibility: 'public' } });
+    const active = (id: string) => t.session.state.tokens[id]?.conditions.active ?? [];
+    return { ...t, monster, attack, force, active };
+  }
+
+  it('a hit knocks the target Prone, within the size limit', () => {
+    const a = arena('wolf', [20]);
+    expect(applied(a.attack('bite', a.goblin))).toBe(true);
+    expect(a.active(a.goblin)).toEqual([{ condition: 'prone' }]);
+    expect(a.session.state.chat.findLast((e) => e.kind === 'attack_roll')).toMatchObject({ notes: ['No acerto: Caído'] });
+    a.attack('bite', a.dragon);
+    expect(a.active(a.dragon)).toEqual([]);
+    expect(a.session.state.chat.findLast((e) => e.kind === 'attack_roll')).toMatchObject({ notes: ['No acerto: Grande demais para a condição'] });
+  });
+
+  it('a miss and a successful save impose nothing', () => {
+    const a = arena('wolf', [1]);
+    a.attack('bite', a.goblin);
+    expect(a.active(a.goblin)).toEqual([]);
+    const s = arena('lion', [20]);
+    s.force('roar', s.goblin);
+    expect(s.active(s.goblin)).toEqual([]);
+  });
+
+  it('Restrained goes away with the grapple', () => {
+    const a = arena('crocodile', [20]);
+    a.attack('bite', a.goblin);
+    expect(a.active(a.goblin)).toEqual([{ condition: 'grappled' }, { condition: 'restrained', with: 'grappled' }]);
+    a.session.handle(GM.playerId, { kind: 'condition.remove', data: { target: { tokenId: a.goblin }, condition: 'grappled' } });
+    expect(a.active(a.goblin)).toEqual([]);
+    expect(a.session.state.chat.at(-1)).toMatchObject({ kind: 'condition_changed', notes: ['Também acabou: Impedido'] });
+    expect(SessionStateSchema.safeParse(a.session.state).success).toBe(true);
+  });
+
+  it('a target already Grappled by something else is not tied to the new grapple', () => {
+    const a = arena('crocodile', [20]);
+    a.session.handle(GM.playerId, { kind: 'condition.add', data: { target: { tokenId: a.goblin }, condition: 'grappled' } });
+    a.attack('bite', a.goblin);
+    expect(a.active(a.goblin)).toEqual([{ condition: 'grappled' }]);
+  });
+
+  it('a failed save imposes the condition until the turn of the monster; without combat, a note', () => {
+    const a = arena('lion', [1]);
+    a.force('roar', a.goblin);
+    expect(a.active(a.goblin)).toEqual([{ condition: 'frightened' }]);
+    expect(a.session.state.chat.findLast((e) => e.kind === 'save_roll')).toMatchObject({ results: [{ notes: ['Na falha: Amedrontado', 'Na falha: Sem Monstro no combate: a duração por turno fica com o mestre'] }] });
+    a.session.handle(GM.playerId, { kind: 'condition.remove', data: { target: { tokenId: a.goblin }, condition: 'frightened' } });
+    a.session.handle(GM.playerId, { kind: 'combat.start', data: { tokenIds: [a.monster, a.goblin] } });
+    a.force('roar', a.goblin);
+    expect(a.active(a.goblin)).toMatchObject([{ condition: 'frightened', until: { at: 'turn_start', tokenId: a.monster } }]);
+    for (let i = 0; i < 2; i++) a.session.handle(GM.playerId, { kind: 'combat.next', data: {} });
+    expect(a.active(a.goblin)).toEqual([]);
+  });
+});
