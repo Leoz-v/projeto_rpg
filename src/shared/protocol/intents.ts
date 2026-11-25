@@ -143,6 +143,7 @@ export const IntentSchema = z.discriminatedUnion('kind', [
     kind: z.literal('adjustment.add'),
     data: z.strictObject({ characterId: UuidSchema, name: NameSchema, effects: z.array(EffectSchema).min(1).max(MAX_ADJUSTMENT_EFFECTS) }),
   }),
+  z.strictObject({ kind: z.literal('token.effect_remove'), data: z.strictObject({ tokenId: UuidSchema, effectId: UuidSchema }) }),
   z.strictObject({ kind: z.literal('adjustment.remove'), data: z.strictObject({ characterId: UuidSchema, adjustmentId: UuidSchema }) }),
   z.strictObject({
     kind: z.literal('roll.d20'),

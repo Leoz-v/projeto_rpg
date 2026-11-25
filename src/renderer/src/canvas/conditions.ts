@@ -22,6 +22,12 @@ export function timedEffectLabels(token: Token, state: Pick<SessionState, 'comba
     .map((e) => (e.kind === 'vex' ? `Vex (${state.tokens[e.sourceTokenId]?.name ?? '?'})` : TIMED_LABEL[e.kind]));
 }
 
+/** Nomes dos efeitos de magia sobre o token (num personagem, os ajustes ligados a magias). */
+export function spellEffectLabels(token: Token, characters: SessionState['characters']): string[] {
+  const list = token.characterId === null ? token.spellEffects : (characters[token.characterId]?.adjustments ?? []).filter((a) => a.spell);
+  return list.map((e) => e.name);
+}
+
 /** Combatentes do combate em andamento, para escolher a duração de uma condição. */
 export function combatantOptions(state: Pick<SessionState, 'combat' | 'tokens'>): { tokenId: string; name: string }[] {
   return (state.combat?.combatants ?? []).map((c) => ({ tokenId: c.tokenId, name: state.tokens[c.tokenId]?.name ?? 'Token removido' }));

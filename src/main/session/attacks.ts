@@ -1,4 +1,4 @@
-import { type Ability, applyDamage, applyHitPointChange, attackedConditions, cleaveDamageBonus, conditionDefenses, creatureD20, type Condition, CONDITION_NAME, creatureDefenses, creatureSaveBonus, d20Mode, d20StepNotes, damageNotes, type DamageType, type Defenses, grazeDamage, MASTERY_NAME, masteryOutcome, nextTurnRound, resolveAttack, resolveSave, rollActionDamage, type RollAgainst, rollD20, rollWeaponDamage, sheetD20, type SheetD20, TIMED_MASTERY_UNTIL, timedMastery, timedMasteryNote, toppleDc } from 'rules-engine';
+import { type Ability, applyDamage, applyHitPointChange, attackedByEffects, attackedConditions, type AttacksAgainst, cleaveDamageBonus, creatureAttacksAgainst, creatureD20, type CreatureType, type Condition, CONDITION_NAME, creatureSaveBonus, d20Mode, d20StepNotes, damageNotes, type DamageType, type Defenses, grazeDamage, MASTERY_NAME, masteryOutcome, nextTurnRound, resolveAttack, resolveSave, rollActionDamage, type RollAgainst, rollD20, rollWeaponDamage, sheetD20, type SheetD20, TIMED_MASTERY_UNTIL, timedMastery, timedMasteryNote, toppleDc } from 'rules-engine';
 import { type ChatEntry, type TimedEffect, type IntentData, type PatchOp, type Role, type SessionState, type Token, toPointer, type Visibility } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
 import { timedEffectEntry } from './combat';
@@ -73,10 +73,9 @@ export function targetOf(ctx: SessionContext, token: Token): { ac: number; defen
     if (!sheet) throw violation('O personagem do alvo ainda não tem ficha');
     return { ac: sheet.ac.total, defenses: sheet.defenses, reminders: [] };
   }
-  const creature = token.monsterId !== null ? ctx.deps.creature(token.monsterId) : undefined;
-  if (!creature) throw violation('O alvo não tem CA conhecida (não é personagem nem monstro do compêndio)');
-  const { defenses, reminders } = creatureDefenses(creature);
-  return { ac: creature.ac, defenses: conditionDefenses(ctx.conditionsOf(token).conditions, defenses), reminders };
+  const block = ctx.creatureOf(token);
+  if (!block) throw violation('O alvo não tem CA conhecida (não é personagem nem monstro do compêndio)');
+  return { ac: block.ac, defenses: block.defenses, reminders: block.reminders };
 }
 
 /** O que pesa num ataque além da ficha do atacante: as condições do alvo e os efeitos de maestria do combate. */
@@ -90,6 +89,20 @@ export interface AttackCircumstances {
   used: Set<string>;
 }
 
+/** `attacks_against` que pesam no token: da ficha do personagem ligado ou dos efeitos de magia do monstro. */
+function attacksAgainst(ctx: SessionContext, token: Token): AttacksAgainst[] {
+  const character = token.characterId !== null ? ctx.current.characters[token.characterId] : undefined;
+  if (character) return ctx.deps.characterSheet(character)?.attacksAgainst ?? [];
+  return creatureAttacksAgainst(token.spellEffects);
+}
+
+/** Tipo de criatura do token: o do bloco, ou Humanoide (as espécies do SRD); `undefined` fora do mapa ou sem bloco. */
+function creatureTypeOf(ctx: SessionContext, token: Token | undefined): CreatureType | undefined {
+  if (!token) return undefined;
+  if (token.characterId !== null) return 'humanoid';
+  return token.monsterId !== null ? ctx.deps.creature(token.monsterId)?.type : undefined;
+}
+
 /**
  * Condições do alvo (Vantagem contra Impedido, Caído pela distância, crítico
  * automático contra Paralisado a até 5 ft) e efeitos temporários das
@@ -98,10 +111,11 @@ export interface AttackCircumstances {
  */
 export function attackCircumstances(ctx: SessionContext, attackerToken: Token | undefined, target: Token, spent: ReadonlySet<string> = new Set()): AttackCircumstances {
   const against = attackedConditions(ctx.conditionsOf(target).conditions, ctx.distanceBetween(attackerToken, target));
+  const effects = attackedByEffects(attacksAgainst(ctx, target), creatureTypeOf(ctx, attackerToken));
   const result: AttackCircumstances = {
-    advantage: against.advantage.map((s) => s.name),
-    disadvantage: against.disadvantage.map((s) => s.name),
-    reminders: against.reminders,
+    advantage: [...against.advantage.map((s) => s.name), ...effects.advantage],
+    disadvantage: [...against.disadvantage.map((s) => s.name), ...effects.disadvantage],
+    reminders: [...against.reminders, ...effects.reminders],
     autoCritical: against.autoCritical.map((s) => s.name),
     used: new Set(),
   };
@@ -191,7 +205,7 @@ export function makeAttack(ctx: SessionContext, playerId: string, role: Role, da
     const action = creature?.actions.find((a) => a.id === actionId);
     if (!creature || action?.kind !== 'attack') throw violation('Ação de ataque não encontrada no bloco do monstro');
     // Bônus do bloco, com a Exaustão e as condições do monstro (Envenenado, Caído…).
-    d20 = creatureD20({ label: 'Bônus de ataque', modifier: action.toHit }, ctx.conditionsOf(token), { kind: 'attack' }, declared);
+    d20 = creatureD20({ label: 'Bônus de ataque', modifier: action.toHit }, ctx.conditionsOf(token), { kind: 'attack', ...(action.attackKind !== 'melee_or_ranged' ? { attackKind: action.attackKind } : {}) }, declared, token.spellEffects);
     attackerToken = token;
     attackerName = token.name;
     label = action.name;
@@ -567,11 +581,11 @@ export function saveOf(
     if (!sheet || !roll) throw violation(`${token.name}: o personagem ainda não tem ficha`);
     return { ...roll, defenses: sheet.defenses };
   }
-  const creature = token.monsterId !== null ? ctx.deps.creature(token.monsterId) : undefined;
-  if (!creature) throw violation(`${token.name}: sem salvaguarda conhecida (não é personagem nem monstro do compêndio)`);
-  const { defenses, reminders } = creatureDefenses(creature);
+  const block = ctx.creatureOf(token);
+  if (!block) throw violation(`${token.name}: sem salvaguarda conhecida (não é personagem nem monstro do compêndio)`);
+  const { creature, defenses, reminders } = block;
   const state = ctx.conditionsOf(token);
   // Bônus do bloco, com a Exaustão e as condições (Paralisado falha em FOR e DES).
-  const roll = creatureD20({ label: 'Salvaguarda do bloco', modifier: creatureSaveBonus(creature, ability) }, state, { kind: 'save', ability }, declared);
-  return { ...roll, reminders: [...roll.reminders, ...reminders], defenses: conditionDefenses(state.conditions, defenses) };
+  const roll = creatureD20({ label: 'Salvaguarda do bloco', modifier: creatureSaveBonus(creature, ability) }, state, { kind: 'save', ability }, declared, token.spellEffects);
+  return { ...roll, reminders: [...roll.reminders, ...reminders], defenses };
 }

@@ -2351,12 +2351,22 @@ describe('HostSession: spell buffs on the sheet (note 0060)', () => {
   };
 
   /** Morg (bruxo golias 5, Bless e Guidance pelo Magic Initiate) e um Goblin Warrior. */
-  function table(rolls: number[] = [10]) {
+  function table(rolls: number[] = [10], resolutionOf?: string) {
+    const spell = (id: string) => compendium.spells.find((s) => s.id === id);
     const session = setup({
       rng: sequence(rolls),
       itemProblems: () => [],
       monsterExists: (id) => compendium.creatures.some((c) => c.id === id),
       monsterHpMax: (id) => compendium.creatures.find((c) => c.id === id)?.hp.average,
+      // Morg só conhece Bless e Guidance: o teste troca a resolução do Bless pela de outra magia.
+      ...(resolutionOf !== undefined
+        ? {
+            spell: (id: string) => {
+              const found = spell(id);
+              return found && id === 'bless' ? { ...found, resolution: spell(resolutionOf)?.resolution ?? [] } : found;
+            },
+          }
+        : {}),
     });
     session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10 } });
     const mapId = Object.keys(session.state.maps)[0] ?? '';
@@ -2424,17 +2434,56 @@ describe('HostSession: spell buffs on the sheet (note 0060)', () => {
     expect(t.character().adjustments[0]).toMatchObject({ name: 'Guidance: Furtividade (Morg)', effects: [{ type: 'd20_bonus', target: 'skill.stealth' }] });
   });
 
-  it('a monster token is left to the GM with a note; the owner can end a spell effect but not a GM adjustment', () => {
+  it('a monster token holds the effect; the owner can end a spell effect but not a GM adjustment', () => {
     const t = table();
     const entryId = t.cast('bless', 'free');
     t.use(entryId, [t.goblin, t.morg]);
-    expect(t.session.state.chat.at(-1)).toMatchObject({ results: [{ targetName: 'Goblin 1', notes: ['Efeito de magia em monstro: o mestre acompanha (ainda não entra no bloco)'] }, { targetName: 'Morg' }] });
+    expect(t.session.state.chat.at(-1)).toMatchObject({ results: [{ targetName: 'Goblin 1', notes: ['Efeito no token'] }, { targetName: 'Morg' }] });
     t.session.handle(GM.playerId, { kind: 'adjustment.add', data: { characterId: t.id, name: 'Bênção do Templo', effects: [{ type: 'flat_bonus', target: 'ac', value: 1 }] } });
     const [spellEffect, blessing] = t.character().adjustments;
     expect(rejection(t.session.handle(ANA.playerId, { kind: 'adjustment.remove', data: { characterId: t.id, adjustmentId: blessing?.id ?? '' } }))).toBe('not_allowed');
     expect(applied(t.session.handle(ANA.playerId, { kind: 'adjustment.remove', data: { characterId: t.id, adjustmentId: spellEffect?.id ?? '' } }))).toBe(true);
     expect(t.character().adjustments.map((a) => a.name)).toEqual(['Bênção do Templo']);
     expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'spell_effect_ended', reason: 'removed' });
+  });
+
+  it("Bane's failed save lowers the monster's attacks; a success leaves no effect", () => {
+    // Salvaguarda 2 (falha); ataque: d20 = 15, Bane 1d4 = 3.
+    const t = table([2, 15, 3], 'bane');
+    t.use(t.cast('bless', 'free'), [t.goblin]);
+    expect(t.session.state.tokens[t.goblin]?.spellEffects).toHaveLength(1);
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'spell_applied', results: [{ targetName: 'Goblin 1', notes: ['Efeito no token'] }] });
+    t.session.handle(GM.playerId, { kind: 'attack.make', data: { attacker: { tokenId: t.goblin, actionId: 'scimitar' }, targetTokenId: t.morg, visibility: 'public' } });
+    expect(t.session.state.chat.findLast((e) => e.kind === 'attack_roll')).toMatchObject({ natural: 15, notes: ['Bless (Morg): −3 (−1d4)'], total: 16 });
+
+    const saved = table([20], 'bane');
+    saved.use(saved.cast('bless', 'free'), [saved.goblin]);
+    expect(saved.session.state.tokens[saved.goblin]?.spellEffects).toEqual([]);
+  });
+
+  it('Blur on a character gives the monster Disadvantage on the attack', () => {
+    const t = table([12], 'blur');
+    t.use(t.cast('bless', 'free'), [t.morg]);
+    t.session.handle(GM.playerId, { kind: 'attack.make', data: { attacker: { tokenId: t.goblin, actionId: 'scimitar' }, targetTokenId: t.morg, visibility: 'public' } });
+    expect(t.session.state.chat.findLast((e) => e.kind === 'attack_roll')).toMatchObject({ mode: 'disadvantage', disadvantage: ['Bless (Morg)'] });
+  });
+
+  it('on a monster token: only the GM or its controller ends the effect, and the Concentration ending lifts it', () => {
+    const t = table();
+    t.use(t.cast('bless', 'free'), [t.goblin]);
+    const effects = () => t.session.state.tokens[t.goblin]?.spellEffects ?? [];
+    expect(effects()).toMatchObject([{ name: 'Bless (Morg)', spell: { characterId: t.id, spellId: 'bless' } }]);
+    const effectId = effects()[0]?.id ?? '';
+    expect(rejection(t.session.handle(ANA.playerId, { kind: 'token.effect_remove', data: { tokenId: t.goblin, effectId } }))).toBe('not_allowed');
+    t.session.handle(ANA.playerId, { kind: 'concentration.end', data: { characterId: t.id } });
+    expect(effects()).toEqual([]);
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'spell_effect_ended', tokenId: t.goblin, characterName: 'Goblin 1', reason: 'concentration' });
+
+    t.use(t.cast('bless', { slot: 'pact' }), [t.goblin]);
+    expect(applied(t.session.handle(GM.playerId, { kind: 'token.effect_remove', data: { tokenId: t.goblin, effectId: effects()[0]?.id ?? '' } }))).toBe(true);
+    expect(effects()).toEqual([]);
+    expect(rejection(t.session.handle(GM.playerId, { kind: 'token.effect_remove', data: { tokenId: t.goblin, effectId } }))).toBe('rule_violation');
+    expect(SessionStateSchema.safeParse(t.session.state).success).toBe(true);
   });
 });
 

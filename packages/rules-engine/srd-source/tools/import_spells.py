@@ -94,8 +94,8 @@ def check_resolution(spell, parts, quotes, upgrade):
                     found.append(f"{who}: modificador de conjuração fora do texto")
             if ("Temporary Hit Points" in flat) != bool(part.get("temporary")):
                 found.append(f"{who}: PV temporários divergem do texto")
-        if part["kind"] == "buff":
-            effects = part.get("effects", []) + [e for o in part.get("options", []) for e in o["effects"]] + part.get("upcast", [])
+        if part["kind"] == "buff" or part.get("onFailEffects"):
+            effects = part.get("onFailEffects", []) + part.get("effects", []) + [e for o in part.get("options", []) for e in o["effects"]] + part.get("upcast", [])
             for e in effects:
                 if e["type"] in ("resistance", "damage_reduction") and e["damageType"].capitalize() not in flat and "Resistance to all damage" not in flat:
                     found.append(f"{who}: tipo {e['damageType']} fora do texto")

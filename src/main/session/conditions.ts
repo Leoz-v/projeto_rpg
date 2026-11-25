@@ -1,4 +1,4 @@
-import { conditionDefenses, CONDITION_NAME, creatureDefenses, nextTurnRound, type TurnExpiry } from 'rules-engine';
+import { CONDITION_NAME, nextTurnRound, type TurnExpiry } from 'rules-engine';
 import { type ChatEntry, type ConditionState, type TableCondition, type Intent, type IntentData, type PatchOp, type Role, type SessionCharacter, MAX_EXHAUSTION_LEVEL, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
 import { concentrationBreaks, deathStateEntry } from './vitality';
@@ -28,8 +28,7 @@ export function conditionHolder(
       character = linked;
     } else {
       if (role !== 'gm' && !token.ownerIds.includes(playerId)) throw notAllowed('Você não controla este token');
-      const creature = token.monsterId !== null ? ctx.deps.creature(token.monsterId) : undefined;
-      const defenses = creature ? conditionDefenses(ctx.conditionsOf(token).conditions, creatureDefenses(creature).defenses) : undefined;
+      const defenses = ctx.creatureOf(token)?.defenses;
       // Do bloco, e as que vêm das condições (Petrificado é imune a Envenenado).
       const immune = new Set<string>(defenses ? defenses.conditionImmunities.map((c) => c.condition) : ctx.conditionsOf(token).conditions.has('petrified') ? ['poisoned'] : []);
       return { path: toPointer('tokens', token.id, 'conditions'), state: token.conditions, name: token.name, immune, logTarget: { tokenId: token.id } };

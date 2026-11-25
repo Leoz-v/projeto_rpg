@@ -399,12 +399,38 @@ Dado somado (ou subtraído) a um Teste d20, rolado a cada rolagem (nota 0060).
 - Vários `d20_bonus` se somam. A mesma magia não se acumula porque o efeito de magia é substituído (nota 0060), não por regra deste efeito.
 - O `when` segue a regra das vantagens: desconhecido na ficha estática vira lembrete e vale quando a rolagem confirma o contexto.
 
+### 3.26 `attacks_against`
+
+Vantagem ou Desvantagem de quem ataca a criatura (nota 0062).
+
+```json
+{ "type": "attacks_against", "mode": "advantage", "note": "se o atacante puder ver o alvo" }
+{ "type": "attacks_against", "mode": "disadvantage", "from": ["fiend", "undead"] }
+```
+
+- `mode`: `advantage` (Faerie Fire) ou `disadvantage` (Blur).
+- `from`: só vale para atacantes destes tipos de criatura. O tipo vem do bloco do monstro; um personagem é Humanoide. Sem o tipo (atacante fora do mapa ou sem bloco), vira lembrete.
+- `note`: ressalva do texto, publicada como lembrete no ataque. O efeito vale; quem ataca desfaz com a Vantagem ou a Desvantagem declarada.
+- Vale nos ataques com arma, de monstro e de magia contra o token.
+
+### 3.27 `minimum_ac`
+
+CA mínima (Barkskin, nota 0062). Aplicada depois das fórmulas e dos bônus de CA, escudo incluído.
+
+```json
+{ "type": "minimum_ac", "value": 17 }
+```
+
+### Efeitos num monstro
+
+Um token de monstro guarda os efeitos de magia em `spellEffects` (nota 0062). O bloco publicado fica intacto. Valem por cima dele, sem `when`: `flat_bonus` inteiro em `ac`, `initiative`, `save.*` e `attack.*`; `advantage`, `disadvantage` e `d20_bonus`; `resistance`, `vulnerability` e `immunity`; `minimum_ac`, `attacks_against` e `reminder`. O resto fica com o mestre, com nota.
+
 ## 4. Ordem de cálculo da ficha
 
 1. Valores base dos atributos (lista de escolhas: ASIs do antecedente e de talentos e aumentos fixos de classe, como Primal Champion).
 2. `ability_increase` (com o teto de cada um), depois `set_minimum_score`.
 3. Modificadores, bônus de proficiência (pelo nível de personagem, mais `flat_bonus` em `proficiency_bonus`) e proficiências (`grant_proficiency`).
-4. `set_base_ac` (maior fórmula) + `flat_bonus` em `ac`.
+4. `set_base_ac` (maior fórmula) + `flat_bonus` em `ac`, e por fim `minimum_ac`.
 5. Demais `flat_bonus`, `half_proficiency`, deslocamentos (`grant_speed`), sentidos, resistências e imunidades.
 6. Condições (incluindo exaustão) por último.
 

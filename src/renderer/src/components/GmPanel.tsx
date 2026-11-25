@@ -9,6 +9,7 @@ import { defaultCellPx, gridDimensionsForImage } from '../canvas/map-grid';
 import { parseMapDocument } from '../canvas3d/map/mapDocument';
 import { sendIntent } from '../store/table';
 import { tokenHealth } from '../canvas/health';
+import { TokenEffects } from './TokenEffects';
 import { tokenConditions } from '../canvas/conditions';
 import { combatantOptions } from '../canvas/conditions';
 import { ConditionsControl } from './Conditions';
@@ -497,6 +498,7 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
               )}
               <HitPointsControl key={selected.id} target={{ tokenId: selected.id }} health={selectedHealth} allowMax />
               <ConditionsControl key={`conditions:${selected.id}`} target={{ tokenId: selected.id }} state={selected.conditions} canEdit combatants={combatantOptions(state)} />
+              <TokenEffects token={selected} canEdit />
               {selected.monsterId !== null && (
                 <MonsterActions
                   key={`actions:${selected.id}`}

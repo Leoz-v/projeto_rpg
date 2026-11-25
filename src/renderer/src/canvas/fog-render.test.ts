@@ -50,7 +50,7 @@ describe('fog-render', () => {
       characterId: null,
       hp: null,
       conditions: NO_CONDITIONS,
-      visionFeet: null,
+      visionFeet: null, spellEffects: [],
       rotation: 0,
       elevation: 0,
     };

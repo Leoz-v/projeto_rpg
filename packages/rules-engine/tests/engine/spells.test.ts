@@ -53,7 +53,7 @@ describe('resolveSpellParts', () => {
   it('Fireball: 8d6 Fire, Dexterity save for half, +1d6 per slot above 3', () => {
     const at3 = resolveSpellParts(spell('fireball'), { characterLevel: 5, modifier: 4 });
     // Salvaguarda sem `count`: quantos alvos a mesa marcar.
-    expect(at3).toEqual([{ kind: 'save', ability: 'dex', onSuccess: 'half', onFailConditions: [], damage: [{ dice: '8d6', type: 'fire' }] }]);
+    expect(at3).toEqual([{ kind: 'save', ability: 'dex', onSuccess: 'half', onFailConditions: [], onFailEffects: [], damage: [{ dice: '8d6', type: 'fire' }] }]);
     expect(damageOf(resolveSpellParts(spell('fireball'), { slotLevel: 5, characterLevel: 9, modifier: 4 })[0])).toEqual([{ dice: '10d6', type: 'fire' }]);
   });
 
@@ -145,7 +145,7 @@ describe('resolveSpellParts', () => {
 
   it('condition saves: no damage, the targets per slot and how long the condition lasts', () => {
     expect(resolveSpellParts(spell('hold_person'), { slotLevel: 4, characterLevel: 7, modifier: 4 })).toEqual([
-      { kind: 'save', ability: 'wis', onSuccess: 'none', onFailConditions: ['paralyzed'], conditionsEnd: 'spell', damage: [], count: 3 },
+      { kind: 'save', ability: 'wis', onSuccess: 'none', onFailConditions: ['paralyzed'], onFailEffects: [], conditionsEnd: 'spell', damage: [], count: 3 },
     ]);
     expect(resolveSpellParts(spell('blindness_deafness'), { characterLevel: 3, modifier: 3 })[0]).toMatchObject({ conditionChoice: true, onFailConditions: ['blinded', 'deafened'] });
     expect(resolveSpellParts(spell('color_spray'), { characterLevel: 1, modifier: 3 })[0]).toMatchObject({ conditionsEnd: 'caster_turn_end' });
@@ -196,8 +196,8 @@ describe('spellDamageWith', () => {
 describe('spells with structured resolution in the SRD compendium', () => {
   const structured = srd.spells.filter((s) => s.resolution.length > 0);
 
-  it('covers the damage, healing, condition and buff spells (146 of 339)', () => {
-    expect(structured).toHaveLength(146);
+  it('covers the damage, healing, condition and buff spells (154 of 339)', () => {
+    expect(structured).toHaveLength(154);
   });
 
   it('every damaging cantrip upgrades with the character level', () => {
