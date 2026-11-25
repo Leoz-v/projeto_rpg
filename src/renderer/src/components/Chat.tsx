@@ -198,6 +198,16 @@ function Entry({ entry, author, context }: { entry: ChatEntry; author: string; c
       return <DeathSaveBody entry={entry} header={header} />;
     case 'death_state':
       return <DeathStateBody entry={entry} header={header} />;
+    case 'recharge_roll':
+      return (
+        <li className="entry condition-event">
+          {header}
+          <p>
+            {entry.name}: recarga de {entry.actionName}, 1d6 = {entry.roll} (precisa de {entry.min})
+            <span className="hint"> {entry.roll >= entry.min ? 'recuperada' : 'continua gasta'}</span>
+          </p>
+        </li>
+      );
     case 'turn_trigger': {
       const moment = { initiative: 'Iniciativa', turn_start: 'Início do turno', turn_end: 'Fim do turno' }[entry.on];
       return (

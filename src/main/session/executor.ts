@@ -12,6 +12,7 @@ import { changeResource } from './resources';
 import { castSpell, useSpellEffect } from './casting';
 import { clearFogMemory, configureFog, fillManualFog, paintManualFog, rectManualFog, setTokenVision } from './fog';
 import { removeTokenEffect } from './spell-effects';
+import { changeMonsterUse, restMonster, setMonsterLair } from './monsters';
 import { createMap, createToken, moveToken, roll, updateMap, updateToken } from './map-tokens';
 import { changeHp, concentrate, concentrationBreaks, deathStateEntry, endConcentration, inCombat, rollDeathSave } from './vitality';
 
@@ -177,6 +178,14 @@ export class HostSession extends SessionContext {
       case 'adjustment.add':
         this.requireGm(role);
         return addAdjustment(this, playerId, role, intent.data);
+      case 'monster.use':
+        return changeMonsterUse(this, playerId, role, intent.data);
+      case 'monster.rest':
+        this.requireGm(role);
+        return restMonster(this, intent.data);
+      case 'monster.lair':
+        this.requireGm(role);
+        return setMonsterLair(this, intent.data);
       case 'token.effect_remove':
         return removeTokenEffect(this, playerId, role, intent.data);
       case 'adjustment.remove': {

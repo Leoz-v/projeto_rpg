@@ -1,5 +1,5 @@
 import type { AppInfo, HostTableRequest, IpcError, JoinTableRequest, Preferences } from './ipc-schemas';
-import type { DerivedSheet } from 'rules-engine';
+import type { Creature, DerivedSheet } from 'rules-engine';
 import type { Ability, Condition, DamageType, Size } from 'rules-engine/schemas';
 import type { Intent, IntentResultSchema, Role, SessionState } from './protocol';
 import type { z } from 'zod';
@@ -24,6 +24,7 @@ export const IpcChannel = {
   searchItems: 'compendium:search-items',
   characterHpMaxima: 'table:character-hp-maxima',
   monsterActions: 'compendium:monster-actions',
+  monsterBlock: 'compendium:monster-block',
   sendIntent: 'table:intent',
   chatHistory: 'table:chat-history',
   tableEvent: 'table:event',
@@ -79,6 +80,15 @@ export interface ItemSummary {
 }
 
 /** Ação de um monstro do compêndio que o mestre usa com o token: ataque ou salvaguarda. */
+/** Bloco de um monstro com os modificadores e salvaguardas calculados pelo motor. */
+export interface MonsterBlockView {
+  creature: Creature;
+  abilities: Record<Ability, { modifier: number; save: number }>;
+}
+
+/** Limite de uso publicado no bloco. */
+type ActionLimit = NonNullable<Creature['actions'][number]['limit']>;
+
 export type MonsterAction =
   | {
       kind: 'attack';
@@ -89,6 +99,7 @@ export type MonsterAction =
       damage: { dice: string; type: DamageType }[];
       reach?: number;
       range?: number;
+      limit?: ActionLimit;
     }
   | {
       kind: 'save';
@@ -99,6 +110,7 @@ export type MonsterAction =
       damage: { dice: string; type: DamageType }[];
       onSuccess: 'half' | 'none';
       conditions: Condition[];
+      limit?: ActionLimit;
     };
 
 /** Um asset importado ou salvo: use `vtt-asset://<sha256>` para exibir/carregar e o `sha256` nos `Intent`. */
@@ -183,6 +195,8 @@ export interface VttApi {
   searchItems(query: string): Promise<IpcResult<ItemSummary[]>>;
   /** Ações de ataque e de salvaguarda do bloco de estatísticas de um monstro. */
   monsterActions(monsterId: string): Promise<IpcResult<MonsterAction[]>>;
+  /** Bloco de estatísticas inteiro de um monstro; `null` se não existe. */
+  monsterBlock(monsterId: string): Promise<IpcResult<MonsterBlockView | null>>;
   /** PV máximos da ficha de cada personagem da mesa atual (os sem atributos ficam de fora). */
   characterHpMaxima(): Promise<IpcResult<Record<string, number>>>;
   /** Espécies, antecedentes e classes do compêndio. */

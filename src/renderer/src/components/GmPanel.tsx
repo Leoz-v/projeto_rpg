@@ -1,4 +1,5 @@
 import { type ChangeEvent, type SyntheticEvent, useEffect, useRef, useState } from 'react';
+import { availableMonsterUses } from 'rules-engine/monster-uses';
 import type { Size } from 'rules-engine/schemas';
 import type { ImportedAsset, MonsterAction, MonsterSummary, TableView } from '../../../shared/ipc';
 import { type GameMap, MAX_VISION_FEET, MIN_VISION_FEET, type Token } from '../../../shared/protocol';
@@ -9,6 +10,7 @@ import { defaultCellPx, gridDimensionsForImage } from '../canvas/map-grid';
 import { parseMapDocument } from '../canvas3d/map/mapDocument';
 import { sendIntent } from '../store/table';
 import { tokenHealth } from '../canvas/health';
+import { usesLabel } from './MonsterBlock';
 import { TokenEffects } from './TokenEffects';
 import { tokenConditions } from '../canvas/conditions';
 import { combatantOptions } from '../canvas/conditions';
@@ -503,6 +505,7 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
                 <MonsterActions
                   key={`actions:${selected.id}`}
                   tokenId={selected.id}
+                  uses={selected.uses}
                   monsterId={selected.monsterId}
                   targets={Object.values(state.tokens).filter((t) => t.mapId === selected.mapId && t.id !== selected.id)}
                   onError={onError}
@@ -638,7 +641,7 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
 }
 
 /** Ações do monstro do token selecionado: ataques contra um alvo e salvaguardas contra vários (o dano vira proposta no chat). */
-function MonsterActions({ tokenId, monsterId, targets, onError }: { tokenId: string; monsterId: string; targets: readonly TargetOption[]; onError: (m: string | null) => void }) {
+function MonsterActions({ tokenId, uses, monsterId, targets, onError }: { tokenId: string; uses: Token['uses']; monsterId: string; targets: readonly TargetOption[]; onError: (m: string | null) => void }) {
   const [actions, setActions] = useState<MonsterAction[]>([]);
   const [targetId, setTargetId] = useState('');
   const [saveTargets, setSaveTargets] = useState<string[]>([]);
@@ -657,6 +660,9 @@ function MonsterActions({ tokenId, monsterId, targets, onError }: { tokenId: str
   const saves = actions.filter((a) => a.kind === 'save');
   const target = targets.find((t) => t.id === targetId) ?? targets[0];
   const damageText = (damage: MonsterAction['damage']): string => damage.map((d) => `${d.dice} ${DAMAGE_LABEL[d.type].toLowerCase()}`).join(' + ');
+
+  const spent = (a: MonsterAction): boolean => a.limit !== undefined && availableMonsterUses({ id: a.id, limit: a.limit }, uses) === 0;
+  const limitText = (a: MonsterAction): string => (a.limit !== undefined ? ` · ${usesLabel({ id: a.id, limit: a.limit }, uses)}` : '');
 
   const attack = (actionId: string): void => {
     if (!target) return;
@@ -706,11 +712,11 @@ function MonsterActions({ tokenId, monsterId, targets, onError }: { tokenId: str
           <ul>
             {attacks.map((a) => (
               <li key={a.id}>
-                <button type="button" className="secondary small" disabled={!target} onClick={() => { attack(a.id); }}>
+                <button type="button" className="secondary small" disabled={!target || spent(a)} onClick={() => { attack(a.id); }}>
                   {a.name}
                 </button>
                 <span className="hint">
-                  {signed(a.toHit)} · {damageText(a.damage)}
+                  {signed(a.toHit)} · {damageText(a.damage)}{limitText(a)}
                 </span>
               </li>
             ))}
@@ -727,7 +733,7 @@ function MonsterActions({ tokenId, monsterId, targets, onError }: { tokenId: str
                   <button
                     type="button"
                     className="secondary small"
-                    disabled={saveTargets.length === 0}
+                    disabled={saveTargets.length === 0 || spent(a)}
                     onClick={() => {
                       void forceSave({ tokenId, actionId: a.id }, saveTargets, false).then(onError);
                     }}
@@ -738,6 +744,7 @@ function MonsterActions({ tokenId, monsterId, targets, onError }: { tokenId: str
                     {ABILITY_LABEL[a.ability].short} CD {a.dc}
                     {a.damage.length > 0 && ` · ${damageText(a.damage)}${a.onSuccess === 'half' ? ' (metade no sucesso)' : ''}`}
                     {a.conditions.length > 0 && ` · ${a.conditions.map((c) => CONDITION_LABEL[c]).join(', ')}`}
+                    {limitText(a)}
                   </span>
                 </li>
             ))}
