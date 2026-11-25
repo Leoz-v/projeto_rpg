@@ -17,7 +17,7 @@ export interface SessionDeps {
   /** Tira dos passos as seleções que nenhuma escolha usa mais (`pruneSelections` do motor, com o compêndio). */
   pruneSteps(steps: SessionCharacter['steps']): SessionCharacter['steps'];
   /** Problemas de uma entrada nova do inventário (`inventoryEntryProblems` do motor); vazio = pode entrar. */
-  itemProblems(entry: { itemId: string; baseItemId?: string | undefined; variantId?: string | undefined }): string[];
+  itemProblems(entry: { itemId: string; baseItemId?: string | undefined; variantId?: string | undefined; spellId?: string | undefined }): string[];
   /** Ficha calculada pelo motor; `undefined` sem ficha (atributos não definidos). */
   characterSheet(character: SessionCharacter): DerivedSheet | undefined;
   /** PV médios do bloco de estatísticas de um monstro do compêndio. */

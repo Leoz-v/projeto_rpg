@@ -75,7 +75,8 @@ export interface ItemSummary {
   rarity?: string[];
   attunement: boolean;
   attunementBy?: string;
-  variants: { id: string; name: string }[];
+  /** `spells`: as magias que cabem, na variante de um pergaminho (nota 0076). */
+  variants: { id: string; name: string; spells?: { id: string; name: string }[] }[];
   bases: { id: string; name: string }[];
 }
 

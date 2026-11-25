@@ -211,7 +211,7 @@ for fid in dict.fromkeys(features):
 
 # Itens mágicos sem efeito.
 for it in load("magic-items.json"):
-    if it.get("effects") or it.get("use") or it.get("casting") or any(v["effects"] or v.get("use") for v in it.get("variants", [])):
+    if it.get("effects") or it.get("use") or it.get("casting") or any(v["effects"] or v.get("use") or v.get("scroll") for v in it.get("variants", [])):
         continue
     key = f"item:{it['id']}"
     if it["id"] in ITEM["automate"]:

@@ -230,7 +230,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 11. **Fase 9 — Ações dos personagens e itens:** o que aparece em quase toda sessão da fila `phase_4` do backlog. Dividida em 6 PRs (ver `docs/decisions/0074-usar-itens.md`); cura e efeitos entram direto, dano vira proposta, dano extra é automático quando a regra é objetiva:
    - ✅ Usar itens (`item.use`, `PROTOCOL_VERSION = 38`, `engine/item-use.ts`): 21 itens consumíveis do SRD (poções, frascos, pós) com alvos, curados em `srd-source/tools/item_use.py`. Ver `docs/decisions/0074-usar-itens.md`.
    - ✅ Cargas e magias de itens (PR 2a, `item.cast`, `item.charges`, `items.dawn`, `PROTOCOL_VERSION = 39`, `engine/item-charges.ts`): cargas por cópia do item, recarga no amanhecer do mestre, última carga com d20 e 24 itens que conjuram, curados em `srd-source/tools/item_casting.py`. Ver `docs/decisions/0075-cargas-e-magias-de-itens.md`.
-   - Pergaminhos (PR 2b): qual magia cada um contém e o teste de conjuração.
+   - ✅ Pergaminhos (PR 2b, `item.read`, `PROTOCOL_VERSION = 40`, `engine/scrolls.ts`): a magia fica na entrada do inventário, com a lista da classe, o teste de círculo alto e a CD do pergaminho. Ver `docs/decisions/0076-pergaminhos.md`.
    - Dano extra nos ataques (Sneak Attack com caixa no ataque, Colossus Slayer, Flame Tongue).
    - Características que curam ou reforçam (Rage, Lay On Hands, Second Wind, Bardic Inspiration).
    - Características com salvaguarda (Stunning Strike, Breath Weapon, Channel Divinity).
@@ -238,7 +238,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 
 **Nos intervalos:** os extras de conforto do mestre.
 
-*Extras futuros:* exportar e abrir campanha de arquivo, criação de token a partir de imagem com recorte/moldura automáticos, spawn de vários inimigos de uma vez (a numeração Goblin 1, Goblin 2… já existe, um por vez), colar texto de ficha de monstro e converter para o schema.
+*Extras futuros:* tela de compêndio (navegar e buscar monstros, magias, itens e o glossário de regras do SRD num lugar só), venenos, armadilhas e cálculo de encontros do SRD (pp. 197–202), exportar e abrir campanha de arquivo, criação de token a partir de imagem com recorte/moldura automáticos, spawn de vários inimigos de uma vez (a numeração Goblin 1, Goblin 2… já existe, um por vez), colar texto de ficha de monstro e converter para o schema.
 
 ## Comandos
 

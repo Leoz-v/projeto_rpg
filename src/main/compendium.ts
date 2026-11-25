@@ -1,4 +1,4 @@
-import { abilityModifier, baseItemOptions, type Compendium, type Creature, creatureSaveBonus, monsterSpells } from 'rules-engine';
+import { abilityModifier, baseItemOptions, type Compendium, type Creature, creatureSaveBonus, monsterSpells, scrollSpells } from 'rules-engine';
 import type { ItemSummary, MonsterAction, MonsterBlockView, MonsterSummary } from '../shared/ipc';
 
 /**
@@ -43,7 +43,7 @@ export function searchItems(compendium: Compendium, query: string, limit = 30): 
         rarity,
         attunement: item.attunement !== undefined,
         ...(item.attunement?.by !== undefined ? { attunementBy: item.attunement.by } : {}),
-        variants: item.variants.map((v) => ({ id: v.id, name: v.name })),
+        variants: item.variants.map((v) => ({ id: v.id, name: v.name, ...(v.scroll ? { spells: scrollSpells(v.scroll, compendium.spells).map((s) => ({ id: s.id, name: s.name })) } : {}) })),
         bases: baseItemOptions(item, compendium).map((b) => ({ id: b.id, name: b.name })),
       };
     });

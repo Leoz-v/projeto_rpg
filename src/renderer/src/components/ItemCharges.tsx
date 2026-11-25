@@ -2,6 +2,7 @@ import { type ReactNode, useState } from 'react';
 import type { InventoryLine } from 'rules-engine';
 import type { ChatEntry, SessionCharacter } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
+import { ABILITY_LABEL, signed } from './sheet-labels';
 
 /** Cargas e magias de itens (nota 0075): a conta, o gasto à mão, conjurar pelo item e as entradas do chat. */
 
@@ -122,6 +123,32 @@ export function DawnBody({ entry, header }: { entry: Extract<ChatEntry, { kind: 
       {entry.items.map((r, i) => (
         <p key={i} className="hint">
           {r.itemName}, de {r.characterName}: {r.dice} = {r.rolled} ({r.available}/{r.max})
+        </p>
+      ))}
+    </li>
+  );
+}
+
+export function ScrollCheckBody({ entry, header }: { entry: Extract<ChatEntry, { kind: 'scroll_check' }>; header: ReactNode }) {
+  return (
+    <li className="entry roll">
+      {header}
+      <p>
+        <span className="roll-label">{entry.characterName}</span> · pergaminho de {entry.spellName}: teste de {ABILITY_LABEL[entry.ability].long}, CD {entry.dc}
+      </p>
+      <p className="roll-result">
+        {entry.dice.map((d, i) => (
+          <span key={i} className="die">
+            {d}
+          </span>
+        ))}
+        <span className="modifier">{signed(entry.modifier)}</span>
+        <span className="total">= {entry.total}</span>
+        <span className="tag">{entry.success ? 'sucesso' : 'falha: o pergaminho se perdeu'}</span>
+      </p>
+      {[...entry.advantage.map((a) => `Vantagem: ${a}`), ...entry.disadvantage.map((d) => `Desvantagem: ${d}`), ...entry.notes].map((n, i) => (
+        <p key={i} className="hint">
+          {n}
         </p>
       ))}
     </li>

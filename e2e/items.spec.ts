@@ -76,3 +76,19 @@ test('a wand: the player casts with charges, the GM resolves the damage and the 
   await expect(chat(player)).toContainText('Amanheceu.');
   await expect(wand).not.toContainText('Cargas 4/7');
 });
+
+test('a spell scroll: the player picks the spell when adding it and reads it', async ({ table: { gm, player } }) => {
+  await createCharacter(player, 'elf-wizard-7', 'Lia');
+  const inventory = await openInventory(player, 'Lia');
+  await inventory.getByLabel('Adicionar item do compêndio').fill('spell scroll');
+  await inventory.getByRole('button', { name: 'Spell Scroll', exact: true }).click();
+  await inventory.getByLabel('Variante').selectOption({ label: 'Spell Scroll (Level 3)' });
+  await inventory.getByLabel('Magia').selectOption({ label: 'Fireball' });
+  await inventory.getByRole('button', { name: 'Adicionar', exact: true }).click();
+
+  const scroll = inventory.getByRole('listitem').filter({ hasText: 'Spell Scroll (Level 3): Fireball' });
+  await scroll.getByRole('button', { name: 'ler' }).click();
+  await expect(scroll).toHaveCount(0);
+  await expect(chat(gm)).toContainText('Fireball');
+  await expect(chat(gm)).toContainText('por item');
+});

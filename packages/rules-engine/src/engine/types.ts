@@ -198,6 +198,8 @@ export interface InventoryLine {
   active: boolean;
   /** O item pode ser usado (nota 0074): quantos alvos e as opções à escolha. */
   use?: { targets: 'one' | 'many'; options: string[] } | undefined;
+  /** A magia do pergaminho (nota 0076); `null` se a entrada não tem magia. `problem`: por que não dá para ler. `checkDc`: o teste exigido. */
+  scroll?: { spell: string | null; problem?: string | undefined; checkDc?: number | undefined } | undefined;
   /** Cargas desta cópia e as magias que elas conjuram (nota 0075). */
   charges?:
     | {
@@ -301,6 +303,8 @@ export interface DerivedSheet {
   speed: { walk: Stat; fly: Stat; swim: Stat; climb: Stat; burrow: Stat };
   saves: Record<Ability, SaveStat>;
   skills: Record<Skill, SkillStat>;
+  /** Testes de atributo sem perícia. */
+  checks: Record<Ability, RollStat>;
   senses: { sense: Sense; range: number; source: SourceLabel }[];
   defenses: Defenses;
   attacksAgainst: AttacksAgainst[];
