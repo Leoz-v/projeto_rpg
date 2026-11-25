@@ -2,6 +2,7 @@ import type { IntentData, PatchOp, PendingSave, Token } from '../../shared/proto
 import { toPointer } from '../../shared/protocol';
 import { applySpellFailure } from './casting';
 import { type SessionContext, violation } from './context';
+import { applyItemFailure } from './items';
 import { endTokenConcentration } from './monster-concentration';
 import { spendMonsterUse } from './monsters';
 import { imposeFromAction } from './spell-effects';
@@ -39,6 +40,7 @@ function failure(ctx: SessionContext, playerId: string, pending: PendingSave, to
     if (actor && action?.kind === 'save') ops.push(...imposeFromAction(ctx, playerId, action.imposes, actor, token, `${action.name} (${actor.name})`).ops);
   }
   if (pending.spell) ops.push(...applySpellFailure(ctx, playerId, pending.spell, [token]));
+  if (pending.item) ops.push(...applyItemFailure(ctx, playerId, pending.item, [token]));
   // A magia pode ter trocado enquanto a falha esperava.
   if (pending.concentration !== undefined && token.concentration?.spellId === pending.concentration) ops.push(...endTokenConcentration(ctx, playerId, token, 'failed_save'));
   return ops;

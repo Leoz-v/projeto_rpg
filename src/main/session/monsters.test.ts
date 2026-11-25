@@ -26,6 +26,7 @@ function table(rolls: number[]) {
     characterSheet: () => undefined,
     monsterHpMax: (id) => compendium.creatures.find((c) => c.id === id)?.hp.average,
     creature: (id) => compendium.creatures.find((c) => c.id === id),
+    item: () => undefined,
     spell: (id) => compendium.spells.find((s) => s.id === id),
   });
   session.connect(ANA);

@@ -211,7 +211,7 @@ for fid in dict.fromkeys(features):
 
 # Itens mágicos sem efeito.
 for it in load("magic-items.json"):
-    if it.get("effects") or any(v["effects"] for v in it.get("variants", [])):
+    if it.get("effects") or it.get("use") or any(v["effects"] or v.get("use") for v in it.get("variants", [])):
         continue
     key = f"item:{it['id']}"
     if it["id"] in ITEM["automate"]:
@@ -223,6 +223,8 @@ for it in load("magic-items.json"):
 # Entradas parciais (`<chave>#<aspecto>`): a fonte já tem efeitos, mas parte da mecânica segue pendente.
 # Valor: (categoria, motivo, mecânica só para `automate`).
 PARTIAL = {
+    "item:potion_of_vitality#hit_dice": ("phase_4", "Dados de Vida recuperam o máximo por 24 horas: muda a rolagem do descanso.", None),
+    "item:bead_of_force#sphere": ("gm", "A esfera que prende ou empurra depende de quem está na área: o mestre conduz.", None),
     "item:sun_blade#undead_damage": ("phase_4", "+1d8 Radiant ao acertar um Undead: dano que depende do alvo (resolução do ataque).", None),
     "item:boots_of_striding_and_springing#jump": ("gm", "Salto de 30 ft gastando 10 ft de movimento, uma vez por turno: o movimento não é controlado pelo Host.",
                                                   None),

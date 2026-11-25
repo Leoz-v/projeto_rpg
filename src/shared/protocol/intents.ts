@@ -133,6 +133,18 @@ export const IntentSchema = z.discriminatedUnion('kind', [
       .refine((d) => d.equipped !== undefined || d.attuned !== undefined || d.quantity !== undefined, { message: 'nada para alterar' }),
   }),
   z.strictObject({
+    kind: z.literal('item.use'),
+    data: z.strictObject({
+      characterId: UuidSchema,
+      instanceId: InstanceIdSchema,
+      /** Quem usa também é alvo (beber a poção), com ou sem token no mapa. */
+      self: z.boolean(),
+      targetTokenIds: z.array(UuidSchema).max(MAX_SAVE_TARGETS),
+      /** A opção à escolha (Potion of Resistance: o tipo). */
+      option: z.int().min(0).max(MAX_SPELL_OPTIONS - 1).optional(),
+    }),
+  }),
+  z.strictObject({
     kind: z.literal('inventory.currency'),
     data: z.strictObject({
       characterId: UuidSchema,

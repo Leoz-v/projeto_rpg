@@ -1,8 +1,9 @@
 import { type SyntheticEvent, useEffect, useState } from 'react';
 import type { DerivedSheet, InventoryLine } from 'rules-engine';
 import type { ItemSummary } from '../../../shared/ipc';
-import type { SessionCharacter } from '../../../shared/protocol';
+import type { SessionCharacter, SessionState } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
+import { ItemUseForm } from './ItemUse';
 
 /**
  * Inventário na ficha. A lista e o que está ativo vêm do motor (`sheet.inventory`);
@@ -231,7 +232,8 @@ function AddItem({ character, onError }: { character: SessionCharacter; onError:
   );
 }
 
-export function Inventory({ character, sheet, canEdit }: { character: SessionCharacter; sheet: DerivedSheet; canEdit: boolean }) {
+export function Inventory({ character, sheet, state, canEdit }: { character: SessionCharacter; sheet: DerivedSheet; state: SessionState; canEdit: boolean }) {
+  const [usingId, setUsingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const id = character.id;
   const update = (line: InventoryLine, change: { equipped?: boolean; attuned?: boolean; quantity?: number }): void => {
@@ -287,6 +289,17 @@ export function Inventory({ character, sheet, canEdit }: { character: SessionCha
                       sintonizado
                     </label>
                   )}
+                  {line.use && (
+                    <button
+                      type="button"
+                      className="link"
+                      onClick={() => {
+                        setUsingId(usingId === line.instanceId ? null : line.instanceId);
+                      }}
+                    >
+                      usar
+                    </button>
+                  )}
                   {line.quantity > 1 && (
                     <button
                       type="button"
@@ -310,6 +323,17 @@ export function Inventory({ character, sheet, canEdit }: { character: SessionCha
                 </span>
               ) : (
                 <span className="hint">{[line.equipped ? 'equipado' : '', line.attuned ? 'sintonizado' : ''].filter(Boolean).join(', ')}</span>
+              )}
+              {canEdit && line.use && usingId === line.instanceId && (
+                <ItemUseForm
+                  character={character}
+                  line={line}
+                  use={line.use}
+                  state={state}
+                  onDone={() => {
+                    setUsingId(null);
+                  }}
+                />
               )}
             </li>
           ))}

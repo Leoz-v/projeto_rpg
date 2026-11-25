@@ -4,6 +4,7 @@ import { sendIntent } from '../store/table';
 import { CHAT_HELP, parseChatInput } from './chat-command';
 import { type RollPart, rollParts } from './roll-parts';
 import { addToChatLog, type ChatLog, chatLogEntries, chatLogWithWindow, EMPTY_CHAT_LOG, firstChatIndex } from './chat-log';
+import { ItemUsedBody } from './ItemUse';
 import { PendingSaveActions, AttackRollBody, D20RollBody, DamageAppliedBody, DamageRollBody, MasteryDamageBody, SaveRollBody } from './SheetRollEntries';
 import { CONDITION_LABEL } from './sheet-labels';
 import { DeathSaveBody, DeathStateBody } from './DeathSaves';
@@ -179,6 +180,8 @@ function Entry({ entry, author, context }: { entry: ChatEntry; author: string; c
       return <SpellCastBody entry={entry} header={header} state={context.state} viewer={context.viewer} />;
     case 'spell_damage':
       return <SpellDamageBody entry={entry} header={header} proposals={proposals} />;
+    case 'item_used':
+      return <ItemUsedBody entry={entry} header={header} />;
     case 'spell_applied':
       return <SpellAppliedBody entry={entry} header={header} />;
     case 'spell_effect_ended':

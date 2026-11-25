@@ -485,6 +485,22 @@
     "category": "wondrous",
     "rarity": "rare",
     "consumable": true,
+    "use": {
+      "targets": "many",
+      "parts": [
+        {
+          "kind": "save",
+          "ability": "dex",
+          "dc": 15,
+          "damage": [
+            {
+              "dice": "5d4",
+              "type": "force"
+            }
+          ]
+        }
+      ]
+    },
     "description": "This small black sphere measures 3/4 of an inch in diameter and weighs an ounce. Typically, 1d4 + 4 Beads of Force are found together.\nYou can take a Magic action to throw the bead up to 60 feet. The bead explodes in a 10-foot-radius Sphere on impact and is destroyed. Each creature in the Sphere must succeed on a DC 15 Dexterity saving throw or take 5d4 Force damage. A sphere of transparent force then encloses the area for 1 minute. Any creature that failed the save and is completely within the area is trapped inside this sphere. Creatures that succeeded on the save or are partially within the area are pushed away from the center of the sphere until they are no longer inside it. Only breathable air can pass through the sphere's wall. No attack or other effect can pass through.\nAn enclosed creature can take a Utilize action to push against the sphere's wall, moving the sphere up to half the creature's Speed. The sphere can be picked up, and its magic causes it to weigh only 1 pound, regardless of the weight of creatures inside."
   },
   {
@@ -1373,6 +1389,18 @@
     "category": "wondrous",
     "rarity": "uncommon",
     "consumable": true,
+    "use": {
+      "targets": "many",
+      "duration": "2d4 minutos; acaba ao atacar, causar dano ou conjurar",
+      "parts": [
+        {
+          "kind": "condition",
+          "conditions": [
+            "invisible"
+          ]
+        }
+      ]
+    },
     "description": "This powder resembles fine sand. There is enough of it for one use. When you take a Utilize action to throw the dust into the air, you and each creature and object within a 10-foot Emanation originating from you have the Invisible condition for 2d4 minutes. The duration is the same for all subjects, and the dust is consumed when its magic takes effect.\nImmediately after an affected creature makes an attack roll, deals damage, or casts a spell, the Invisible condition ends for that creature."
   },
   {
@@ -1391,6 +1419,27 @@
     "category": "wondrous",
     "rarity": "uncommon",
     "consumable": true,
+    "use": {
+      "targets": "many",
+      "duration": "repete a salvaguarda no fim de cada turno",
+      "parts": [
+        {
+          "kind": "save",
+          "ability": "con",
+          "dc": 15,
+          "onFailConditions": [
+            "incapacitated"
+          ],
+          "exceptTypes": [
+            "construct",
+            "elemental",
+            "ooze",
+            "plant",
+            "undead"
+          ]
+        }
+      ]
+    },
     "description": "Found in a small container, this powder resembles Dust of Disappearance, and Identify reveals it to be such. There is enough of it for one use.\nAs a Utilize action, you can throw the dust into the air, forcing yourself and every creature in a 30-foot Emanation originating from you to make a DC 15 Constitution saving throw. Constructs, Elementals, Oozes, Plants, and Undead succeed on the save automatically.\nOn a failed save, a creature begins sneezing uncontrollably; it has the Incapacitated condition and is suffocating. The creature repeats the save at the end of each of its turns, ending the effect on itself on a success. The effect also ends on any creature targeted by a Lesser Restoration spell."
   },
   {
@@ -1476,6 +1525,19 @@
     "category": "potion",
     "rarity": "rare",
     "consumable": true,
+    "use": {
+      "parts": [
+        {
+          "kind": "restore",
+          "conditions": [
+            "blinded",
+            "deafened",
+            "paralyzed",
+            "poisoned"
+          ]
+        }
+      ]
+    },
     "description": "When you drink this potion, you are cured of all magical contagions. In addition, the following conditions end on you: Blinded, Deafened, Paralyzed, and Poisoned.\nThe clear, red liquid has tiny bubbles of light in it."
   },
   {
@@ -2805,6 +2867,26 @@
     "category": "potion",
     "rarity": "common",
     "consumable": true,
+    "use": {
+      "duration": "1 hora",
+      "parts": [
+        {
+          "kind": "buff",
+          "effects": [
+            {
+              "type": "grant_speed",
+              "speed": "climb",
+              "value": "walk"
+            },
+            {
+              "type": "advantage",
+              "target": "skill.athletics",
+              "note": "Só para escalar."
+            }
+          ]
+        }
+      ]
+    },
     "description": "When you drink this potion, you gain a Climb Speed equal to your Speed for 1 hour. During this time, you have Advantage on Strength (Athletics) checks to climb.\nThis potion is separated into brown, silver, and gray layers resembling bands of stone. Shaking the bottle fails to mix the colors."
   },
   {
@@ -2814,6 +2896,24 @@
     "category": "potion",
     "rarity": "rare",
     "consumable": true,
+    "use": {
+      "duration": "1d4 horas",
+      "parts": [
+        {
+          "kind": "buff",
+          "effects": [
+            {
+              "type": "disadvantage",
+              "target": "check.str"
+            },
+            {
+              "type": "disadvantage",
+              "target": "save.str"
+            }
+          ]
+        }
+      ]
+    },
     "description": "When you drink this potion, you gain the \"reduce\" effect of the Enlarge/Reduce spell for 1d4 hours (no Concentration required).\nThe red in the potion's liquid continuously contracts to a tiny bead and then expands to color the clear liquid around it. Shaking the bottle fails to interrupt this process."
   },
   {
@@ -2823,6 +2923,21 @@
     "category": "potion",
     "rarity": "very_rare",
     "consumable": true,
+    "use": {
+      "duration": "1 hora",
+      "parts": [
+        {
+          "kind": "buff",
+          "effects": [
+            {
+              "type": "grant_speed",
+              "speed": "fly",
+              "value": "walk"
+            }
+          ]
+        }
+      ]
+    },
     "description": "When you drink this potion, you gain a Fly Speed equal to your Speed for 1 hour and can hover. If you're in the air when the potion wears off, you fall unless you have some other means of staying aloft.\nThis potion's clear liquid floats at the top of its container and has cloudy white impurities drifting in it."
   },
   {
@@ -2844,31 +2959,106 @@
         "id": "hill",
         "name": "Potion of Giant Strength (hill)",
         "rarity": "uncommon",
-        "effects": []
+        "effects": [],
+        "use": {
+          "duration": "1 hora",
+          "parts": [
+            {
+              "kind": "buff",
+              "effects": [
+                {
+                  "type": "set_minimum_score",
+                  "ability": "str",
+                  "value": 21
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "frost_or_stone",
         "name": "Potion of Giant Strength (frost or stone)",
         "rarity": "rare",
-        "effects": []
+        "effects": [],
+        "use": {
+          "duration": "1 hora",
+          "parts": [
+            {
+              "kind": "buff",
+              "effects": [
+                {
+                  "type": "set_minimum_score",
+                  "ability": "str",
+                  "value": 23
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "fire",
         "name": "Potion of Giant Strength (fire)",
         "rarity": "rare",
-        "effects": []
+        "effects": [],
+        "use": {
+          "duration": "1 hora",
+          "parts": [
+            {
+              "kind": "buff",
+              "effects": [
+                {
+                  "type": "set_minimum_score",
+                  "ability": "str",
+                  "value": 25
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "cloud",
         "name": "Potion of Giant Strength (cloud)",
         "rarity": "very_rare",
-        "effects": []
+        "effects": [],
+        "use": {
+          "duration": "1 hora",
+          "parts": [
+            {
+              "kind": "buff",
+              "effects": [
+                {
+                  "type": "set_minimum_score",
+                  "ability": "str",
+                  "value": 27
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "storm",
         "name": "Potion of Giant Strength (storm)",
         "rarity": "legendary",
-        "effects": []
+        "effects": [],
+        "use": {
+          "duration": "1 hora",
+          "parts": [
+            {
+              "kind": "buff",
+              "effects": [
+                {
+                  "type": "set_minimum_score",
+                  "ability": "str",
+                  "value": 29
+                }
+              ]
+            }
+          ]
+        }
       }
     ],
     "consumable": true,
@@ -2881,6 +3071,28 @@
     "category": "potion",
     "rarity": "uncommon",
     "consumable": true,
+    "use": {
+      "duration": "10 minutos",
+      "parts": [
+        {
+          "kind": "buff",
+          "effects": [
+            {
+              "type": "advantage",
+              "target": "check.str"
+            },
+            {
+              "type": "advantage",
+              "target": "save.str"
+            },
+            {
+              "type": "extra_damage",
+              "dice": "1d4"
+            }
+          ]
+        }
+      ]
+    },
     "description": "When you drink this potion, you gain the \"enlarge\" effect of the Enlarge/Reduce spell for 10 minutes (no Concentration required).\nThe red in the potion's liquid continuously expands from a tiny bead to color the clear liquid around it and then contracts. Shaking the bottle fails to interrupt this process."
   },
   {
@@ -2898,25 +3110,57 @@
           "amount": 50,
           "coin": "gp"
         },
-        "effects": []
+        "effects": [],
+        "use": {
+          "parts": [
+            {
+              "kind": "heal",
+              "dice": "2d4+2"
+            }
+          ]
+        }
       },
       {
         "id": "greater",
         "name": "Potion of Healing (greater)",
         "rarity": "uncommon",
-        "effects": []
+        "effects": [],
+        "use": {
+          "parts": [
+            {
+              "kind": "heal",
+              "dice": "4d4+4"
+            }
+          ]
+        }
       },
       {
         "id": "superior",
         "name": "Potion of Healing (superior)",
         "rarity": "rare",
-        "effects": []
+        "effects": [],
+        "use": {
+          "parts": [
+            {
+              "kind": "heal",
+              "dice": "8d4+8"
+            }
+          ]
+        }
       },
       {
         "id": "supreme",
         "name": "Potion of Healing (supreme)",
         "rarity": "very_rare",
-        "effects": []
+        "effects": [],
+        "use": {
+          "parts": [
+            {
+              "kind": "heal",
+              "dice": "10d4+20"
+            }
+          ]
+        }
       }
     ],
     "consumable": true,
@@ -2929,6 +3173,31 @@
     "category": "potion",
     "rarity": "rare",
     "consumable": true,
+    "use": {
+      "duration": "1 hora",
+      "parts": [
+        {
+          "kind": "heal",
+          "dice": "10",
+          "temporary": true
+        },
+        {
+          "kind": "buff",
+          "effects": [
+            {
+              "type": "d20_bonus",
+              "dice": "1d4",
+              "target": "attack.all"
+            },
+            {
+              "type": "d20_bonus",
+              "dice": "1d4",
+              "target": "save.all"
+            }
+          ]
+        }
+      ]
+    },
     "description": "When you drink this potion, you gain 10 Temporary Hit Points that last for 1 hour. For the same duration, you are under the effect of the Bless spell (no Concentration required).\nThis potion's blue liquid bubbles and steams as if boiling."
   },
   {
@@ -2938,6 +3207,17 @@
     "category": "potion",
     "rarity": "rare",
     "consumable": true,
+    "use": {
+      "duration": "1 hora; acaba ao atacar, causar dano ou conjurar",
+      "parts": [
+        {
+          "kind": "condition",
+          "conditions": [
+            "invisible"
+          ]
+        }
+      ]
+    },
     "description": "This potion's container looks empty but feels as though it holds liquid. When you drink the potion, you have the Invisible condition for 1 hour. The effect ends early if you make an attack roll, deal damage, or cast a spell."
   },
   {
@@ -2947,6 +3227,68 @@
     "category": "potion",
     "rarity": "rare",
     "consumable": true,
+    "use": {
+      "duration": "1 minuto",
+      "parts": [
+        {
+          "kind": "buff",
+          "effects": [
+            {
+              "type": "resistance",
+              "damageType": "bludgeoning"
+            },
+            {
+              "type": "resistance",
+              "damageType": "piercing"
+            },
+            {
+              "type": "resistance",
+              "damageType": "slashing"
+            },
+            {
+              "type": "resistance",
+              "damageType": "acid"
+            },
+            {
+              "type": "resistance",
+              "damageType": "cold"
+            },
+            {
+              "type": "resistance",
+              "damageType": "fire"
+            },
+            {
+              "type": "resistance",
+              "damageType": "force"
+            },
+            {
+              "type": "resistance",
+              "damageType": "lightning"
+            },
+            {
+              "type": "resistance",
+              "damageType": "necrotic"
+            },
+            {
+              "type": "resistance",
+              "damageType": "poison"
+            },
+            {
+              "type": "resistance",
+              "damageType": "psychic"
+            },
+            {
+              "type": "resistance",
+              "damageType": "radiant"
+            },
+            {
+              "type": "resistance",
+              "damageType": "thunder"
+            }
+          ]
+        }
+      ]
+    },
     "description": "For 1 minute after you drink this potion, you have Resistance to all damage.\nThis potion's syrupy liquid looks like liquefied iron."
   },
   {
@@ -2974,6 +3316,28 @@
     "category": "potion",
     "rarity": "uncommon",
     "consumable": true,
+    "use": {
+      "duration": "1 hora",
+      "parts": [
+        {
+          "kind": "damage",
+          "damage": [
+            {
+              "dice": "4d6",
+              "type": "poison"
+            }
+          ]
+        },
+        {
+          "kind": "save",
+          "ability": "con",
+          "dc": 13,
+          "onFailConditions": [
+            "poisoned"
+          ]
+        }
+      ]
+    },
     "description": "This concoction looks, smells, and tastes like a Potion of Healing or another beneficial potion. However, it is actually poison masked by illusion magic.\nIdentify reveals its true nature.\nIf you drink this potion, you take 4d6 Poison damage and must succeed on a DC 13 Constitution saving throw or have the Poisoned condition for 1 hour."
   },
   {
@@ -2983,6 +3347,106 @@
     "category": "potion",
     "rarity": "uncommon",
     "consumable": true,
+    "use": {
+      "duration": "1 hora",
+      "parts": [
+        {
+          "kind": "buff",
+          "options": [
+            {
+              "label": "Ácido",
+              "effects": [
+                {
+                  "type": "resistance",
+                  "damageType": "acid"
+                }
+              ]
+            },
+            {
+              "label": "Frio",
+              "effects": [
+                {
+                  "type": "resistance",
+                  "damageType": "cold"
+                }
+              ]
+            },
+            {
+              "label": "Fogo",
+              "effects": [
+                {
+                  "type": "resistance",
+                  "damageType": "fire"
+                }
+              ]
+            },
+            {
+              "label": "Energia",
+              "effects": [
+                {
+                  "type": "resistance",
+                  "damageType": "force"
+                }
+              ]
+            },
+            {
+              "label": "Elétrico",
+              "effects": [
+                {
+                  "type": "resistance",
+                  "damageType": "lightning"
+                }
+              ]
+            },
+            {
+              "label": "Necrótico",
+              "effects": [
+                {
+                  "type": "resistance",
+                  "damageType": "necrotic"
+                }
+              ]
+            },
+            {
+              "label": "Veneno",
+              "effects": [
+                {
+                  "type": "resistance",
+                  "damageType": "poison"
+                }
+              ]
+            },
+            {
+              "label": "Psíquico",
+              "effects": [
+                {
+                  "type": "resistance",
+                  "damageType": "psychic"
+                }
+              ]
+            },
+            {
+              "label": "Radiante",
+              "effects": [
+                {
+                  "type": "resistance",
+                  "damageType": "radiant"
+                }
+              ]
+            },
+            {
+              "label": "Trovejante",
+              "effects": [
+                {
+                  "type": "resistance",
+                  "damageType": "thunder"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
     "description": "When you drink this potion, you have Resistance to one type of damage for 1 hour. The GM chooses the type or determines it randomly by rolling on the following table. 1d10 Damage Type 1d10 Damage Type 1 Acid 6 Necrotic 2 Cold 7 Poison 3 Fire 8 Psychic 4 Force 9 Radiant 5 Lightning 10 Thunder"
   },
   {
@@ -2992,6 +3456,30 @@
     "category": "potion",
     "rarity": "very_rare",
     "consumable": true,
+    "use": {
+      "duration": "1 minuto",
+      "parts": [
+        {
+          "kind": "buff",
+          "effects": [
+            {
+              "type": "flat_bonus",
+              "target": "ac",
+              "value": 2
+            },
+            {
+              "type": "advantage",
+              "target": "save.dex"
+            },
+            {
+              "type": "reminder",
+              "on": "turn_start",
+              "note": "Haste: Deslocamento dobrado e uma ação a mais neste turno (Atacar com um ataque, Disparada, Desengajar, Esconder ou Usar)."
+            }
+          ]
+        }
+      ]
+    },
     "description": "When you drink this potion, you gain the effect of the Haste spell for 1 minute (no Concentration required) without suffering the wave of lethargy that typically occurs when the effect ends.\nThis potion's yellow fluid is streaked with black and swirls on its own."
   },
   {
@@ -3001,6 +3489,18 @@
     "category": "potion",
     "rarity": "very_rare",
     "consumable": true,
+    "use": {
+      "duration": "24 horas (Dados de Vida no máximo)",
+      "parts": [
+        {
+          "kind": "restore",
+          "conditions": [
+            "poisoned"
+          ],
+          "exhaustion": true
+        }
+      ]
+    },
     "description": "When you drink this potion, it removes any Exhaustion levels you have and ends the Poisoned condition on you. For the next 24 hours, you regain the maximum number of Hit Points for any Hit Point Die you spend.\nThis potion's crimson liquid regularly pulses with dull light, calling to mind a heartbeat."
   },
   {

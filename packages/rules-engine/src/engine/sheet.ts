@@ -16,6 +16,7 @@ import type { Predicate } from '../schemas/predicate';
 import type { Compendium } from '../srd';
 import { resolveBuild, type SourcedEffect } from './build';
 import { type ConditionRoll, conditionDefenses, conditionSource, effectiveConditions, ownRollConditions, SPEED_ZERO_CONDITIONS } from './conditions';
+import { itemUse, itemUseOptions } from './item-use';
 import { type MagicPart, resolveInventory } from './items';
 import { isWeaponProficient } from './proficiency';
 import {
@@ -785,6 +786,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     const item = find(compendium.items, entry.itemId);
     const magicItem = item?.kind === 'magic_item' ? item : undefined;
     const base = r && r.magic && r.item.id !== r.magic.item.id ? ` (${r.item.name})` : '';
+    const use = item && r ? itemUse(item, entry.variantId) : undefined;
     const active = r === undefined ? false : r.magic ? magicActive(r.magic, entry) : isItemActive(r.item.activation, entry);
     return {
       instanceId: entry.instanceId,
@@ -796,6 +798,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       attuned: entry.attuned,
       requiresAttunement: magicItem?.attunement !== undefined || item?.activation === 'attuned',
       active,
+      ...(use ? { use: { targets: use.targets, options: itemUseOptions(use) } } : {}),
     };
   });
 

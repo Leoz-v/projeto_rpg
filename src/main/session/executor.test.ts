@@ -33,6 +33,7 @@ function setup(overrides: Partial<SessionDeps> = {}): HostSession {
     characterSheet: (c) => characterSheet(c, compendium).sheet ?? undefined,
     monsterHpMax: (id) => (id === 'goblin' ? 7 : undefined),
     creature: (id) => compendium.creatures.find((c) => c.id === id),
+    item: () => undefined,
     spell: (id) => compendium.spells.find((s) => s.id === id),
     assetExists: (sha) => sha === KNOWN_IMAGE,
     ...overrides,
@@ -377,7 +378,7 @@ describe('HostSession: characters', () => {
   it('restores saved characters', () => {
     const first = setup();
     const id = create(first, ANA.playerId);
-    const restored = new HostSession(CAMPAIGN, GM, { rng: cryptoRng, now: Date.now, newId: randomUUID, monsterExists: () => false, assetExists: () => false, pruneSteps: (s) => s, itemProblems: () => [], characterSheet: () => undefined, monsterHpMax: () => undefined, creature: () => undefined, spell: () => undefined }, first.state);
+    const restored = new HostSession(CAMPAIGN, GM, { rng: cryptoRng, now: Date.now, newId: randomUUID, monsterExists: () => false, assetExists: () => false, pruneSteps: (s) => s, itemProblems: () => [], characterSheet: () => undefined, monsterHpMax: () => undefined, creature: () => undefined, item: () => undefined, spell: () => undefined }, first.state);
     expect(restored.state.characters[id]?.name).toBe('Thorin');
   });
 });
@@ -2361,6 +2362,7 @@ describe('HostSession: spell buffs on the sheet (note 0060)', () => {
       // Morg só conhece Bless e Guidance: o teste troca a resolução do Bless pela de outra magia.
       ...(resolutionOf !== undefined
         ? {
+            item: () => undefined,
             spell: (id: string) => {
               const found = spell(id);
               return found && id === 'bless' ? { ...found, resolution: spell(resolutionOf)?.resolution ?? [] } : found;

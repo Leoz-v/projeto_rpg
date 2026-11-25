@@ -24,10 +24,13 @@ Ver docs/decisions/0014-itens-magicos.md.
 import json, re, subprocess, sys
 from pathlib import Path
 
+import item_use
+
 sys.stdout.reconfigure(encoding="utf-8")
 HERE = Path(__file__).resolve().parent
 DATA = HERE.parent.parent / "src" / "srd" / "data"
 PDF = sys.argv[1] if len(sys.argv) > 1 else str(HERE.parent / "SRD_CC_v5.2.1.pdf")
+used = set()
 problems = []
 
 CATEGORIES = {"Armor": "armor", "Weapon": "weapon", "Wondrous Item": "wondrous", "Potion": "potion", "Ring": "ring",
@@ -493,8 +496,12 @@ for n, h in enumerate(starts):
             if quote not in description.replace("\n", " "):
                 problems.append(f"{who}: efeito curado sem o texto de apoio '{quote}'")
     item["description"] = description
+    used |= item_use.put(item, item_use.MAGIC_USE, problems)
     items.append(item)
 
+for k in item_use.MAGIC_USE:
+    if k not in used:
+        problems.append(f"uso curado sem item: {k}")
 names = {i["name"] for i in items}
 for k in list(EFFECTS) + list(CHOICE_VARIANTS) + list(TABLE_VARIANTS) + list(PLUS) + [n for n, _ in VARIANT_EFFECTS]:
     if k not in names:
@@ -508,7 +515,7 @@ for it in items:
         problems.append(f"{it['name']}: descrição curta demais")
 
 ORDER = ["id", "name", "kind", "category", "rarity", "attunement", "activation", "weight", "base", "variants", "charges", "consumable",
-         "effects", "description"]
+         "use", "effects", "description"]
 items = [{k: it[k] for k in ORDER if k in it} for it in items]
 with open(DATA / "magic-items.json", "w", encoding="utf-8", newline="\n") as fh:
     json.dump(items, fh, indent=2, ensure_ascii=False)

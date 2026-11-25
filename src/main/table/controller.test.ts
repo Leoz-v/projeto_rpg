@@ -47,6 +47,7 @@ function app(): { controller: TableController; events: TableEvent[]; playerId: s
     characterSheet: () => undefined,
     monsterHpMax: () => 7,
     creature: () => undefined,
+    item: () => undefined,
     spell: () => undefined,
     addresses: () => ['100.64.0.7'],
     emit: (e) => events.push(e),
