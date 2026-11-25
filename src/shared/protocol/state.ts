@@ -375,7 +375,10 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('spell_cast'),
     ...entryBase,
-    characterId: UuidSchema,
+    /** Quem conjurou: o personagem, ou o token de um monstro (nota 0067). */
+    characterId: UuidSchema.optional(),
+    tokenId: UuidSchema.optional(),
+    /** Nome de quem conjurou. */
     characterName: NameSchema,
     spellName: NameSchema,
     /** Círculo da magia (0 = truque). */

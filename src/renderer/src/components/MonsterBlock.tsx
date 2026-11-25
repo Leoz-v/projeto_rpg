@@ -57,6 +57,37 @@ function Feature({ token, feature, onError }: { token: Token; feature: Creature[
   );
 }
 
+/** Magias do bloco (nota 0067): conjurar publica no chat, onde se escolhem os alvos. */
+function MonsterSpells({ token, spells, onError }: { token: Token; spells: MonsterBlockView['spells']; onError: (m: string | null) => void }) {
+  return (
+    <ul>
+      {spells.map((s) => {
+        const limited = s.use ? { id: s.use.id, limit: { per: 'day', count: s.use.perDay } } : undefined;
+        return (
+          <li key={s.spellId}>
+            <button
+              type="button"
+              className="secondary small"
+              disabled={limited !== undefined && availableMonsterUses(limited, token.uses) === 0}
+              onClick={() => void sendIntent({ kind: 'monster.cast', data: { tokenId: token.id, spellId: s.spellId } }).then(onError)}
+            >
+              Conjurar
+            </button>{' '}
+            <strong>{s.name}</strong>{' '}
+            <span className="hint">
+              {s.level === 0 ? 'truque' : `${s.level}º círculo`}
+              {s.concentration && ' · Concentração'}
+              {!s.structured && ' · só texto'}
+              {s.note !== undefined && ` · ${s.note}`}
+            </span>{' '}
+            {limited ? <Uses token={token} feature={limited} onError={onError} /> : <span className="tag">à vontade</span>}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export function MonsterBlock({ token, isGm, onClose }: { token: Token; isGm: boolean; onClose: () => void }) {
   const { monsterId } = token;
   const [block, setBlock] = useState<MonsterBlockView | null>(null);
@@ -170,6 +201,12 @@ export function MonsterBlock({ token, isGm, onClose }: { token: Token; isGm: boo
                       <Feature key={t.id} token={token} feature={t} onError={setError} />
                     ))}
                   </ul>
+                </section>
+              )}
+              {block && block.spells.length > 0 && (
+                <section>
+                  <h3>Magias</h3>
+                  <MonsterSpells token={token} spells={block.spells} onError={setError} />
                 </section>
               )}
               {GROUPS.map(({ activation, title }) => {

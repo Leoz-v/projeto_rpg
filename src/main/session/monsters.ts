@@ -1,4 +1,4 @@
-import { availableMonsterUses, type Creature, pendingRecharges, RECHARGE_DIE, withMonsterUse } from 'rules-engine';
+import { availableMonsterUses, type Creature, type LimitedFeature, monsterSpells, pendingRecharges, RECHARGE_DIE, withMonsterUse } from 'rules-engine';
 import { type IntentData, NO_MONSTER_USES, type PatchOp, type Role, type SessionState, type Token, toPointer } from '../../shared/protocol';
 import { notAllowed, type SessionContext, violation } from './context';
 
@@ -10,14 +10,18 @@ function creatureOfToken(ctx: SessionContext, token: Token): Creature {
   return creature;
 }
 
-/** Ações e traços do bloco, onde os limites de uso ficam. */
-const featuresOf = (creature: Creature): (Creature['actions'][number] | Creature['traits'][number])[] => [...creature.actions, ...creature.traits];
+/** Ações, traços e magias por dia do bloco, onde os limites de uso ficam. */
+const featuresOf = (ctx: SessionContext, creature: Creature): LimitedFeature[] => [
+  ...creature.actions,
+  ...creature.traits,
+  ...monsterSpells(creature).flatMap((s): LimitedFeature[] => (s.use ? [{ id: s.use.id, name: ctx.deps.spell(s.spellId)?.name ?? s.spellId, limit: { per: 'day', count: s.use.perDay } }] : [])),
+];
 
 const setSpent = (token: Token, spent: Record<string, number>): PatchOp => ({ op: 'replace', path: toPointer('tokens', token.id, 'uses', 'spent'), value: spent });
 
 /** Gasta um uso da ação, se ela é limitada; sem usos, recusa (o mestre recupera pelo bloco). */
 export function spendMonsterUse(ctx: SessionContext, token: Token, featureId: string): PatchOp[] {
-  const feature = featuresOf(creatureOfToken(ctx, token)).find((f) => f.id === featureId);
+  const feature = featuresOf(ctx, creatureOfToken(ctx, token)).find((f) => f.id === featureId);
   if (!feature) throw violation('Ação não encontrada no bloco do monstro');
   if (!feature.limit) return [];
   if (availableMonsterUses({ id: feature.id, limit: feature.limit }, token.uses) === 0) throw violation(`${token.name}: ${feature.name} sem usos (recupere no bloco do monstro)`);
@@ -28,7 +32,7 @@ export function spendMonsterUse(ctx: SessionContext, token: Token, featureId: st
 export function changeMonsterUse(ctx: SessionContext, playerId: string, role: Role, data: IntentData<'monster.use'>): PatchOp[] {
   const token = ctx.token(data.tokenId);
   if (role !== 'gm' && !token.ownerIds.includes(playerId)) throw notAllowed('Você não controla este token');
-  const feature = featuresOf(creatureOfToken(ctx, token)).find((f) => f.id === data.featureId);
+  const feature = featuresOf(ctx, creatureOfToken(ctx, token)).find((f) => f.id === data.featureId);
   if (!feature?.limit) throw violation('Esta ação não tem usos limitados');
   if (data.change === 'spend') return spendMonsterUse(ctx, token, feature.id);
   if ((token.uses.spent[feature.id] ?? 0) === 0) throw violation(`${feature.name}: nenhum uso gasto`);
@@ -58,7 +62,7 @@ export function rechargeMonster(ctx: SessionContext, playerId: string, state: Se
   if (!creature) return [];
   let { spent } = token.uses;
   const ops: PatchOp[] = [];
-  for (const { id, name, min } of pendingRecharges(featuresOf(creature), spent)) {
+  for (const { id, name, min } of pendingRecharges(featuresOf(ctx, creature), spent)) {
     const roll = ctx.deps.rng.roll(RECHARGE_DIE);
     if (roll >= min) spent = withMonsterUse(spent, id, -1);
     ops.push(ctx.appendChat({ kind: 'recharge_roll', ...ctx.entryBase(playerId), tokenId, name: token.name, actionName: name.slice(0, 100), roll, min }));

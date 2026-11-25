@@ -144,6 +144,7 @@ export const IntentSchema = z.discriminatedUnion('kind', [
     data: z.strictObject({ characterId: UuidSchema, name: NameSchema, effects: z.array(EffectSchema).min(1).max(MAX_ADJUSTMENT_EFFECTS) }),
   }),
   z.strictObject({ kind: z.literal('monster.use'), data: z.strictObject({ tokenId: UuidSchema, featureId: IdSchema, change: z.enum(['spend', 'restore']) }) }),
+  z.strictObject({ kind: z.literal('monster.cast'), data: z.strictObject({ tokenId: UuidSchema, spellId: IdSchema }) }),
   z.strictObject({ kind: z.literal('monster.rest'), data: z.strictObject({ tokenId: UuidSchema }) }),
   z.strictObject({ kind: z.literal('monster.lair'), data: z.strictObject({ tokenId: UuidSchema, lair: z.boolean() }) }),
   z.strictObject({ kind: z.literal('token.effect_remove'), data: z.strictObject({ tokenId: UuidSchema, effectId: UuidSchema }) }),

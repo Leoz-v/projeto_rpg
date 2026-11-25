@@ -9,7 +9,7 @@ import { changeConditions } from './conditions';
 import { cancelRest, finishRest, spendHitDie, startRest } from './rest';
 import { changeSpellSlot } from './spell-slots';
 import { changeResource } from './resources';
-import { castSpell, useSpellEffect } from './casting';
+import { castMonsterSpell, castSpell, useSpellEffect } from './casting';
 import { clearFogMemory, configureFog, fillManualFog, paintManualFog, rectManualFog, setTokenVision } from './fog';
 import { removeTokenEffect } from './spell-effects';
 import { multiattackStep, requireMultiattack } from './multiattack';
@@ -202,6 +202,8 @@ export class HostSession extends SessionContext {
         return addAdjustment(this, playerId, role, intent.data);
       case 'monster.use':
         return changeMonsterUse(this, playerId, role, intent.data);
+      case 'monster.cast':
+        return castMonsterSpell(this, playerId, role, intent.data);
       case 'monster.rest':
         this.requireGm(role);
         return restMonster(this, intent.data);

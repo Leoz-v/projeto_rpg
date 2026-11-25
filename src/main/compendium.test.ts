@@ -64,9 +64,10 @@ describe('monsterActions', () => {
 
 describe('monsterBlock', () => {
   it('gives the whole stat block with modifiers and saves', () => {
-    const block = monsterBlock(loadSrdCompendium().creatures, 'adult_red_dragon');
+    const block = monsterBlock(loadSrdCompendium(), 'adult_red_dragon');
     expect(block?.abilities).toMatchObject({ str: { modifier: 8, save: 8 }, dex: { modifier: 0, save: 6 } });
+    expect(block?.spells.find((s) => s.spellId === 'fireball')).toMatchObject({ name: 'Fireball', structured: true, use: { id: 'spell_fireball', perDay: 1 } });
     expect(block?.creature.traits.map((t) => t.id)).toContain('legendary_resistance');
-    expect(monsterBlock([], 'x')).toBeNull();
+    expect(monsterBlock({ creatures: [], spells: [] }, 'x')).toBeNull();
   });
 });

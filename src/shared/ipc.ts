@@ -84,6 +84,8 @@ export interface ItemSummary {
 export interface MonsterBlockView {
   creature: Creature;
   abilities: Record<Ability, { modifier: number; save: number }>;
+  /** Magias do bloco (nota 0067), com o nome e o que a mesa resolve. */
+  spells: { spellId: string; name: string; level: number; concentration: boolean; structured: boolean; note?: string; use?: { id: string; perDay: number } }[];
 }
 
 /** Limite de uso publicado no bloco. */

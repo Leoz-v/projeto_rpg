@@ -26,7 +26,7 @@ function table(rolls: number[]) {
     characterSheet: () => undefined,
     monsterHpMax: (id) => compendium.creatures.find((c) => c.id === id)?.hp.average,
     creature: (id) => compendium.creatures.find((c) => c.id === id),
-    spell: () => undefined,
+    spell: (id) => compendium.spells.find((s) => s.id === id),
   });
   session.connect(ANA);
   session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Covil', width: 20, height: 20 } });
@@ -241,5 +241,79 @@ describe('HostSession: Multiattack (note 0066)', () => {
     expect(rejection(t.multi([{ actionId: 'bite', targetTokenIds: [t.goblin] }], ANA.playerId))).toBe('not_allowed');
     expect(t.attacks()).toEqual([]);
     expect(rejection(setupMulti('hydra', [10]).multi([{ actionId: 'bite', targetTokenIds: [t.goblin] }]))).toBe('rule_violation');
+  });
+});
+
+describe('HostSession: monster spells (note 0067)', () => {
+  function setupCaster(monsterId: string, rolls: number[]) {
+    const t = table(rolls);
+    const mapId = t.session.state.activeMapId ?? '';
+    t.session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Conjurador', position: { x: 1100, y: 0 }, size: 'medium', monsterId } });
+    const caster = Object.values(t.session.state.tokens).find((x) => x.name === 'Conjurador')?.id ?? '';
+    const cast = (spellId: string, playerId = GM.playerId) => t.session.handle(playerId, { kind: 'monster.cast', data: { tokenId: caster, spellId } });
+    const entry = () => {
+      const e = t.session.state.chat.findLast((x) => x.kind === 'spell_cast');
+      if (e?.kind !== 'spell_cast') throw new Error('sem magia');
+      return e;
+    };
+    const use = (targetTokenIds: string[], extra: { option?: number } = {}, playerId = GM.playerId) =>
+      t.session.handle(playerId, { kind: 'spell.effect', data: { entryId: entry().id, part: 0, targetTokenIds, ...extra } });
+    return { ...t, caster, cast, entry, use };
+  }
+
+  it('casts at the level of the block, with its DC, and spends the uses per day', () => {
+    const t = setupCaster('mage', [3]);
+    expect(applied(t.cast('fireball'))).toBe(true);
+    expect(t.entry()).toMatchObject({ tokenId: t.caster, characterName: 'Conjurador', notes: ['Conjurada em círculo maior (4º)'], effect: { saveDc: 14, parts: [{ damage: [{ dice: '9d6', type: 'fire' }] }] } });
+    expect(t.entry().characterId).toBeUndefined();
+    expect(applied(t.cast('fireball'))).toBe(true);
+    expect(rejection(t.cast('fireball'))).toBe('rule_violation');
+    expect(t.session.state.tokens[t.caster]?.uses.spent).toEqual({ spell_fireball: 2 });
+    t.session.handle(GM.playerId, { kind: 'monster.use', data: { tokenId: t.caster, featureId: 'spell_fireball', change: 'restore' } });
+    expect(applied(t.cast('fireball'))).toBe(true);
+    // À vontade não gasta; magia fora do bloco é recusada.
+    expect(applied(t.cast('detect_magic'))).toBe(true);
+    expect(t.entry().effect).toBeUndefined();
+    expect(rejection(t.cast('wish'))).toBe('rule_violation');
+    expect(SessionStateSchema.safeParse(t.session.state).success).toBe(true);
+  });
+
+  it('forces the saves of the targets, with the damage as proposals', () => {
+    const t = setupCaster('mage', [3]);
+    t.cast('fireball');
+    expect(applied(t.use([t.goblin, t.dragon]))).toBe(true);
+    const save = t.session.state.chat.findLast((e) => e.kind === 'save_roll');
+    expect(save).toMatchObject({ actorName: 'Conjurador', dc: 14, results: [{ targetName: 'Goblin', success: false }, { targetName: 'Dragão' }] });
+    expect(Object.values(t.session.state.proposals).map((p) => p.targetName)).toEqual(['Goblin']);
+    expect(rejection(t.use([t.goblin]))).toBe('rule_violation');
+  });
+
+  it('attacks with the bonus of the block, derived from the DC when it is missing', () => {
+    const red = setupCaster('adult_red_dragon', [10]);
+    red.cast('scorching_ray');
+    red.use([red.goblin]);
+    expect(red.session.state.chat.findLast((e) => e.kind === 'attack_roll')).toMatchObject({ attackerName: 'Conjurador', modifier: 12, total: 22 });
+    const brass = setupCaster('adult_brass_dragon', [10]);
+    brass.cast('scorching_ray');
+    const effect = brass.entry().effect;
+    expect(effect?.attackBonus).toBe((effect?.saveDc ?? 0) - 8);
+  });
+
+  it('links the effects to the token that cast it', () => {
+    const t = setupCaster('mage', [10]);
+    t.cast('invisibility');
+    expect(t.entry().notes).toEqual(['Concentração do monstro: o mestre acompanha']);
+    expect(applied(t.use([t.caster]))).toBe(true);
+    expect(t.session.state.tokens[t.caster]?.conditions.active).toEqual([{ condition: 'invisible', spell: { tokenId: t.caster, spellId: 'invisibility' } }]);
+    expect(SessionStateSchema.safeParse(t.session.state).success).toBe(true);
+  });
+
+  it('only the GM and the token owners cast and use it', () => {
+    const t = setupCaster('mage', [3]);
+    expect(rejection(t.cast('fireball', ANA.playerId))).toBe('not_allowed');
+    t.cast('fireball');
+    expect(rejection(t.use([t.goblin], {}, ANA.playerId))).toBe('not_allowed');
+    // Os usos não aparecem para os jogadores.
+    expect(t.session.viewFor(ANA.playerId).tokens[t.caster]?.uses.spent).toEqual({});
   });
 });

@@ -169,7 +169,7 @@ function registerIpc(appDb: AppDb, table: TableController, library: CampaignLibr
   handle(IpcChannel.creationOptions, () => creationOptions(getCompendium()));
   handle(IpcChannel.monsterBlock, (payload) => {
     const id = parse(z.string().max(100), payload);
-    return monsterBlock(getCompendium().creatures, id);
+    return monsterBlock(getCompendium(), id);
   });
   handle(IpcChannel.monsterActions, (payload) => monsterActions(getCompendium().creatures, parse(z.string().max(100), payload)));
   handle(IpcChannel.characterHpMaxima, () => {

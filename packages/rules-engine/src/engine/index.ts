@@ -79,6 +79,7 @@ export {
 } from './conditions';
 export { attackedByEffects, creatureAc, creatureAttacksAgainst, creatureReminders, creatureRollEffects, hasUnsupportedCreatureEffect, type NamedEffects, withEffectDefenses } from './creature-effects';
 export { type TargetDamage, targetDamage } from './target-damage';
-export { availableMonsterUses, type LimitedFeature, monsterUseMax, type MonsterUseLimit, pendingRecharges, RECHARGE_DIE, withMonsterUse } from './monster-uses';
+export { availableMonsterUses, type LimitedFeature, monsterSpellUseId, monsterUseMax, type MonsterUseLimit, pendingRecharges, RECHARGE_DIE, withMonsterUse } from './monster-uses';
 export { multiattackFits, type MultiattackSlot, multiattackSlots } from './multiattack';
+export { type MonsterSpell, monsterSpells } from './monster-spells';
 export { CONDITION_NAME, DAMAGE_NAME } from './names';

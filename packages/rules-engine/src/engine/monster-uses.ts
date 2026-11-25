@@ -15,6 +15,9 @@ export interface LimitedFeature {
   limit?: MonsterUseLimit | undefined;
 }
 
+/** Id dos usos por dia de uma magia no registro do token (nota 0067). */
+export const monsterSpellUseId = (spellId: string): string => `spell_${spellId}`;
+
 export const RECHARGE_DIE = 6;
 
 /** Máximo de usos: 1 na recarga; por dia, o publicado (no covil, o do covil). */
