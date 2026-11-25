@@ -76,6 +76,57 @@ def heal(dice, per=None, mod=False, temp=False, ends=(), count=None, label=None)
     return p
 
 
+def buff(*effects, upcast=(), options=(), ends=(), count=None, label=None):
+    """Bônus ou penalidade enquanto a magia dura (nota 0060): efeitos do catálogo na ficha do alvo.
+    `upcast`: efeitos somados por círculo acima. `options`: (rótulo, [efeitos]) para quem conjura escolher."""
+    p = _base("buff", (), label, count)
+    if effects:
+        p["effects"] = list(effects)
+    if upcast:
+        p["upcast"] = list(upcast)
+    if options:
+        p["options"] = [{"label": lab, "effects": list(eff)} for lab, eff in options]
+    if ends:
+        p["endConditions"] = list(ends)
+    return p
+
+
+# Efeitos do catálogo (docs/effects-spec.md) para as partes `buff`.
+def fb(target, value):
+    return {"type": "flat_bonus", "target": target, "value": value}
+
+
+def adv(target, when=None):
+    return {"type": "advantage", "target": target, **({"when": when} if when else {})}
+
+
+def d20b(dice, target):
+    return {"type": "d20_bonus", "dice": dice, "target": target}
+
+
+def res(damage_type):
+    return {"type": "resistance", "damageType": damage_type}
+
+
+def immune(condition):
+    return {"type": "immunity", "condition": condition}
+
+
+def remind(note, on="turn_start"):
+    return {"type": "reminder", "on": on, "note": note}
+
+
+TYPE_PT = {"acid": "Ácido", "bludgeoning": "Concussão", "cold": "Frio", "fire": "Fogo", "force": "Energia", "lightning": "Elétrico",
+           "necrotic": "Necrótico", "piercing": "Perfurante", "poison": "Veneno", "psychic": "Psíquico", "radiant": "Radiante",
+           "slashing": "Cortante", "thunder": "Trovejante"}
+ABILITY_PT = {"str": "Força", "dex": "Destreza", "con": "Constituição", "int": "Inteligência", "wis": "Sabedoria", "cha": "Carisma"}
+SKILL_PT = {"acrobatics": "Acrobacia", "animal_handling": "Lidar com Animais", "arcana": "Arcanismo", "athletics": "Atletismo",
+            "deception": "Enganação", "history": "História", "insight": "Intuição", "intimidation": "Intimidação",
+            "investigation": "Investigação", "medicine": "Medicina", "nature": "Natureza", "perception": "Percepção",
+            "performance": "Atuação", "persuasion": "Persuasão", "religion": "Religião", "sleight_of_hand": "Prestidigitação",
+            "stealth": "Furtividade", "survival": "Sobrevivência"}
+
+
 def cond(*conditions, label=None, count=None, end=None):
     """Condição sem salvaguarda (Invisibility)."""
     p = _base("condition", (), label, count)
@@ -353,4 +404,60 @@ RESOLUTION = {
                      ["A creature you touch has the Invisible condition until the spell ends",
                       "You can target one additional creature for each spell slot level above 2"], None),
     "Greater Invisibility": ([cond("invisible", end="spell")], ["A creature you touch has the Invisible condition until the spell ends"], None),
+
+    # --- Bônus e penalidades enquanto a magia dura (Fase 7, PR 4a, nota 0060) ------------------------------------
+    "Aid": ([buff(fb("hp_max", 5), upcast=[fb("hp_max", 5)], count=(3,))],
+            ["Choose up to three creatures", "Each target's Hit Point maximum and current Hit Points increase by 5 for the duration",
+             "Each target's Hit Points increase by 5 for each spell slot level above 2"], None),
+    "Beacon of Hope": ([buff(adv("save.wis"), adv("death_save"))],
+                       ["each target has Advantage on Wisdom saving throws and Death Saving Throws"], None),
+    "Bless": ([buff(d20b("1d4", "attack.all"), d20b("1d4", "save.all"), count=(3, 1))],
+              ["You bless up to three creatures", "the target adds 1d4 to the attack roll or save",
+               "You can target one additional creature for each spell slot level above 1"], None),
+    "Divine Favor": ([buff({"type": "extra_damage", "dice": "1d4", "damageType": "radiant"}, count=(1,))],
+                     ["your attacks with weapons deal an extra 1d4 Radiant damage on a hit"], None),
+    "Enhance Ability": ([buff(options=[(ABILITY_PT[a], [adv(f"check.{a}")]) for a in ("str", "dex", "int", "wis", "cha")], count=(1, 1))],
+                        ["choose Strength, Dexterity, Intelligence, Wisdom, or Charisma", "the target has Advantage on ability checks using the chosen ability",
+                         "You can target one additional creature for each spell slot level above 2"], None),
+    "Foresight": ([buff(adv("attack.all"), adv("save.all"), adv("initiative"), adv("death_save"),
+                        *[adv(f"check.{a}") for a in ("str", "dex", "con", "int", "wis", "cha")], count=(1,))],
+                  ["the target has Advantage on D20 Tests"], None),
+    "Guidance": ([buff(options=[(SKILL_PT[k], [d20b("1d4", f"skill.{k}")]) for k in SKILL_PT], count=(1,))],
+                 ["choose a skill", "the creature adds 1d4 to any ability check using the chosen skill"], None),
+    "Haste": ([buff(fb("ac", 2), adv("save.dex"),
+                    remind("Haste: Deslocamento dobrado e uma ação a mais neste turno (Atacar com um ataque, Disparada, Desengajar, Esconder ou Usar)."),
+                    count=(1,))],
+              ["the target's Speed is doubled, it gains a +2 bonus to Armor Class, it has Advantage on Dexterity saving throws, and it gains an additional action"],
+              None),
+    "Heroism": ([buff(immune("frightened"), remind("Heroism: ganha PV temporários iguais ao modificador de conjuração de quem conjurou."), count=(1, 1))],
+                ["the creature is immune to the Frightened condition and gains Temporary Hit Points equal to your spellcasting ability modifier at the start of each of its turns",
+                 "You can target one additional creature for each spell slot level above 1"], None),
+    "Longstrider": ([buff(fb("speed.walk", 10), count=(1, 1))],
+                    ["The target's Speed increases by 10 feet", "You can target one additional creature for each spell slot level above 1"], None),
+    "Mage Armor": ([buff({"type": "set_base_ac", "base": 13, "abilities": ["dex"], "when": {"wearingArmor": False}}, count=(1,))],
+                   ["the target's base AC becomes 13 plus its Dexterity modifier", "The spell ends early if the target dons armor"], None),
+    "Pass without Trace": ([buff(fb("skill.stealth", 10))], ["you and each creature you choose have a +10 bonus to Dexterity (Stealth) checks"], None),
+    "Protection from Energy": ([buff(options=[(TYPE_PT[t], [res(t)]) for t in ("acid", "cold", "fire", "lightning", "thunder")], count=(1,))],
+                               ["has Resistance to one damage type of your choice: Acid, Cold, Fire, Lightning, or Thunder"], None),
+    "Protection from Poison": ([buff(adv("save.all", {"against": {"condition": "poisoned"}}), res("poison"), ends=["poisoned"], count=(1,))],
+                               ["end the Poisoned condition on it",
+                                "the target has Advantage on saving throws to avoid or end the Poisoned condition, and it has Resistance to Poison damage"], None),
+    "Resistance": ([buff(options=[(TYPE_PT[t], [{"type": "damage_reduction", "damageType": t, "amount": "1d4", "note": "Uma vez por turno."}])
+                                  for t in ("acid", "bludgeoning", "cold", "fire", "lightning", "necrotic", "piercing", "poison", "radiant", "slashing", "thunder")],
+                         count=(1,))],
+                   ["choose a damage type: Acid, Bludgeoning, Cold, Fire, Lightning, Necrotic, Piercing, Poison, Radiant, Slashing, or Thunder",
+                    "the creature reduces the total damage taken by 1d4", "A creature can benefit from this spell only once per turn"], None),
+    "Shield of Faith": ([buff(fb("ac", 2), count=(1,))], ["granting it a +2 bonus to AC for the duration"], None),
+    "Stoneskin": ([buff(res("bludgeoning"), res("piercing"), res("slashing"), count=(1,))],
+                  ["has Resistance to Bludgeoning, Piercing, and Slashing damage"], None),
+    "Warding Bond": ([buff(fb("ac", 1), fb("save.all", 1), *[res(t) for t in TYPE_PT],
+                           remind("Warding Bond: cada dano que sofrer, quem conjurou sofre também (a até 60 ft)."), count=(1,))],
+                     ["it gains a +1 bonus to AC and saving throws, and it has Resistance to all damage", "each time it takes damage, you take the same amount of damage"],
+                     None),
+    "Aura of Life": ([buff(res("necrotic"))], ["you and your allies have Resistance to Necrotic damage"], None),
+    "Heroes' Feast": ([buff(res("poison"), immune("frightened"), immune("poisoned"), count=(12,))],
+                      ["Up to twelve creatures can partake of the feast",
+                       "The creature has Resistance to Poison damage, and it has Immunity to the Frightened and Poisoned conditions"], None),
+    "Freedom of Movement": ([buff({"type": "grant_speed", "speed": "swim", "value": "walk"}, count=(1,))],
+                            ["The target also has a Swim Speed equal to its Speed"], None),
 }

@@ -102,7 +102,8 @@ export type ResolvedSpellPart =
   | (Omit<PartOf<'damage'>, 'damage' | 'count'> & { damage: ResolvedSpellDamage[]; count: number })
   | (Omit<PartOf<'save'>, 'damage' | 'count'> & { damage: ResolvedSpellDamage[]; count?: number | undefined })
   | (Omit<PartOf<'heal'>, 'healing' | 'count'> & { /** Expressão de dados, ou `full` (todos os PV). */ healing: string; count?: number | undefined })
-  | (Omit<PartOf<'condition'>, 'count'> & { count?: number | undefined });
+  | (Omit<PartOf<'condition'>, 'count'> & { count?: number | undefined })
+  | (Omit<PartOf<'buff'>, 'count' | 'upcast'> & { count?: number | undefined });
 
 export function resolveSpellParts(spell: Spell, options: SpellCastOptions): ResolvedSpellPart[] {
   const above = spell.level === 0 ? 0 : Math.max(0, (options.slotLevel ?? spell.level) - spell.level);
@@ -134,6 +135,11 @@ export function resolveSpellParts(spell: Spell, options: SpellCastOptions): Reso
       case 'condition': {
         const { count, ...rest } = part;
         return { ...rest, ...(count ? { count: total(count) } : {}) };
+      }
+      case 'buff': {
+        // Aid: +5 PV, e +5 por círculo acima (os `flat_bonus` do mesmo alvo se somam).
+        const { count, upcast, effects, ...rest } = part;
+        return { ...rest, effects: [...effects, ...Array.from({ length: above }, () => upcast).flat()], ...(count ? { count: total(count) } : {}) };
       }
     }
   });

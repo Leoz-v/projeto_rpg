@@ -356,7 +356,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     ruleTargets: readonly string[] = [],
     conditionRoll?: ConditionRoll,
   ): RollState => {
-    const state: RollState = { mode: 'normal', advantage: [], disadvantage: [], situational: [], rules: [], situationalRules: [], autoFail: [] };
+    const state: RollState = { mode: 'normal', advantage: [], disadvantage: [], situational: [], rules: [], situationalRules: [], autoFail: [], bonusDice: [], situationalBonusDice: [] };
     const allRuleTargets = [...targets, 'd20_test', ...ruleTargets];
     for (const e of ofType('d20_rule')) {
       const { effect } = e;
@@ -367,6 +367,16 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       const rule = resolveRule(effect, source);
       if (result === undefined || effect.note) state.situationalRules.push({ ...rule, when: effect.when, note: effect.note });
       else state.rules.push(rule);
+    }
+    // Dados no d20 (`d20_bonus`): os mesmos alvos das regras do d20.
+    for (const e of ofType('d20_bonus')) {
+      const { effect } = e;
+      if (!allRuleTargets.includes(effect.target)) continue;
+      const result = applies(effect, roll);
+      if (result === false) continue;
+      const bonus = { dice: effect.dice, subtract: effect.subtract === true, source: namedSource(e) };
+      if (result === undefined || effect.note) state.situationalBonusDice.push({ ...bonus, when: effect.when, note: effect.note });
+      else state.bonusDice.push(bonus);
     }
     for (const kind of ['advantage', 'disadvantage'] as const) {
       for (const e of ofType(kind)) {

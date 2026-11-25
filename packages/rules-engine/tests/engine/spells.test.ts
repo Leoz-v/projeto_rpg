@@ -155,6 +155,29 @@ describe('resolveSpellParts', () => {
     ]);
   });
 
+  it('buffs: Aid adds its effect once per slot above, Bless targets per slot, Guidance leaves the skill to choose', () => {
+    expect(resolveSpellParts(spell('aid'), { slotLevel: 4, characterLevel: 7, modifier: 3 })[0]).toMatchObject({
+      kind: 'buff',
+      count: 3,
+      effects: [
+        { type: 'flat_bonus', target: 'hp_max', value: 5 },
+        { type: 'flat_bonus', target: 'hp_max', value: 5 },
+        { type: 'flat_bonus', target: 'hp_max', value: 5 },
+      ],
+    });
+    expect(resolveSpellParts(spell('bless'), { slotLevel: 2, characterLevel: 3, modifier: 3 })[0]).toMatchObject({
+      count: 4,
+      effects: [
+        { type: 'd20_bonus', dice: '1d4', target: 'attack.all' },
+        { type: 'd20_bonus', dice: '1d4', target: 'save.all' },
+      ],
+    });
+    const guidance = resolveSpellParts(spell('guidance'), { characterLevel: 1, modifier: 3 })[0];
+    if (guidance?.kind !== 'buff') throw new Error('Guidance sem parte buff');
+    expect(guidance.options).toHaveLength(18);
+    expect(guidance.options.find((o) => o.label === 'Furtividade')?.effects).toEqual([{ type: 'd20_bonus', dice: '1d4', target: 'skill.stealth' }]);
+  });
+
   it('a text-only spell has no parts', () => {
     expect(resolveSpellParts(spell('light'), { characterLevel: 1, modifier: 3 })).toEqual([]);
   });
@@ -173,8 +196,8 @@ describe('spellDamageWith', () => {
 describe('spells with structured resolution in the SRD compendium', () => {
   const structured = srd.spells.filter((s) => s.resolution.length > 0);
 
-  it('covers the damage, healing and condition spells (125 of 339)', () => {
-    expect(structured).toHaveLength(125);
+  it('covers the damage, healing, condition and buff spells (146 of 339)', () => {
+    expect(structured).toHaveLength(146);
   });
 
   it('every damaging cantrip upgrades with the character level', () => {

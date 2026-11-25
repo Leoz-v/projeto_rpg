@@ -216,14 +216,18 @@ function NewAdjustment({ characterId, onDone }: { characterId: string; onDone: (
   );
 }
 
-export function Adjustments({ character, isGm }: { character: SessionCharacter; isGm: boolean }) {
+/**
+ * Ajustes do mestre e efeitos de magia (nota 0060): estes têm `spell` e o dono
+ * do personagem também pode tirá-los (Mage Armor ao vestir armadura).
+ */
+export function Adjustments({ character, isGm, canEdit = false }: { character: SessionCharacter; isGm: boolean; canEdit?: boolean }) {
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   if (character.adjustments.length === 0 && !isGm) return null;
   return (
-    <section className="adjustments" aria-label="Ajustes do mestre">
+    <section className="adjustments" aria-label="Ajustes do mestre e efeitos de magia">
       <div className="row inventory-heading">
-        <h3>Ajustes do mestre</h3>
+        <h3>Ajustes e efeitos de magia</h3>
         {isGm && !adding && (
           <button type="button" className="secondary" onClick={() => { setAdding(true); }}>
             Novo ajuste
@@ -236,14 +240,15 @@ export function Adjustments({ character, isGm }: { character: SessionCharacter; 
           <li key={a.id}>
             <div>
               <strong>{a.name}</strong>
+              {a.spell && <span className="tag">magia</span>}
               <p className="hint">{a.effects.map(describeEffect).join(' · ')}</p>
             </div>
-            {isGm && (
+            {(isGm || (a.spell !== undefined && canEdit)) && (
               <button
                 type="button"
                 className="link danger"
                 onClick={() => {
-                  if (!window.confirm(`Remover o ajuste "${a.name}"?`)) return;
+                  if (!window.confirm(a.spell ? `Encerrar o efeito "${a.name}"?` : `Remover o ajuste "${a.name}"?`)) return;
                   void sendIntent({ kind: 'adjustment.remove', data: { characterId: character.id, adjustmentId: a.id } }).then(setError);
                 }}
               >

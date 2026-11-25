@@ -1,4 +1,5 @@
-import type { Rng } from './dice';
+import { type Rng, rollDice } from './dice';
+import type { Dice } from '../schemas/common';
 import type { D20Rule, RollMode, SourceLabel } from './types';
 
 /**
@@ -22,6 +23,8 @@ export interface D20RollInput {
   dc?: number | undefined;
   /** Falha automática contra a CD (Paralisado em salvaguarda de FOR/DES): vence o sucesso automático. */
   autoFail?: readonly SourceLabel[] | undefined;
+  /** Dados somados ou subtraídos ao total (`d20_bonus`: Bless, Guidance), rolados a cada rolagem. */
+  bonusDice?: readonly { dice: Dice; subtract: boolean; source?: SourceLabel | undefined }[] | undefined;
 }
 
 export type D20Step =
@@ -31,6 +34,7 @@ export type D20Step =
   | { kind: 'count_as_20'; value: number; source?: SourceLabel | undefined }
   | { kind: 'minimum_die'; from: number; to: number; source?: SourceLabel | undefined }
   | { kind: 'modifier'; value: number; total: number }
+  | { kind: 'bonus_dice'; dice: string; subtract: boolean; rolls: number[]; value: number; total: number; source?: SourceLabel | undefined }
   | { kind: 'minimum_total'; from: number; to: number; source?: SourceLabel | undefined }
   | { kind: 'auto_success'; source?: SourceLabel | undefined }
   | { kind: 'auto_fail'; source?: SourceLabel | undefined };
@@ -105,6 +109,13 @@ export function rollD20(input: D20RollInput, rng: Rng): D20RollResult {
   // 5. Modificador; 6. `minimum_total`.
   let total = die + input.modifier;
   steps.push({ kind: 'modifier', value: input.modifier, total });
+  // 5.1. Dados de `d20_bonus` (Bless +1d4, Bane −1d4), antes do mínimo no total e da CD.
+  for (const bonus of input.bonusDice ?? []) {
+    const roll = rollDice(bonus.dice, rng);
+    const value = bonus.subtract ? -roll.total : roll.total;
+    total += value;
+    steps.push({ kind: 'bonus_dice', dice: bonus.dice, subtract: bonus.subtract, rolls: roll.rolls.map((r) => r.value), value, total, source: bonus.source });
+  }
   const minimumTotal = strongest(rules, 'minimum_total', (a, b) => a.value > b.value);
   if (minimumTotal && total < minimumTotal.value) {
     steps.push({ kind: 'minimum_total', from: total, to: minimumTotal.value, source: minimumTotal.source });

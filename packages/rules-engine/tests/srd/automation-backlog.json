@@ -2377,10 +2377,6 @@
       "category": "gm",
       "reason": "Exploração ou narrativa: o mestre decide."
     },
-    "spell:aid": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
-    },
     "spell:alarm": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
@@ -2437,9 +2433,9 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:aura_of_life": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    "spell:aura_of_life#zero_hp": {
+      "category": "gm",
+      "reason": "Aliado com 0 PV no início do turno na aura recupera 1 PV, e os PV máximos não diminuem: o mestre aplica."
     },
     "spell:awaken": {
       "category": "gm",
@@ -2447,7 +2443,7 @@
     },
     "spell:bane": {
       "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:banishment": {
       "category": "gm",
@@ -2455,19 +2451,15 @@
     },
     "spell:barkskin": {
       "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
-    "spell:beacon_of_hope": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    "spell:beacon_of_hope#max_healing": {
+      "category": "gm",
+      "reason": "A cura recupera o máximo possível: o mestre ajusta o valor da cura."
     },
     "spell:bestow_curse": {
       "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
-    },
-    "spell:bless": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:blink": {
       "category": "gm",
@@ -2475,7 +2467,7 @@
     },
     "spell:blur": {
       "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:calm_emotions": {
       "category": "gm",
@@ -2515,7 +2507,7 @@
     },
     "spell:conjure_minor_elementals": {
       "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:contact_other_plane": {
       "category": "gm",
@@ -2570,8 +2562,8 @@
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
     "spell:death_ward": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+      "category": "gm",
+      "reason": "Gatilho único ao cair a 0 PV ou diante de morte instantânea: o mestre aplica (fica 1 PV)."
     },
     "spell:demiplane": {
       "category": "gm",
@@ -2609,10 +2601,6 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:divine_favor": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
-    },
     "spell:divine_word": {
       "category": "gm",
       "reason": "Efeito pelos PV atuais de cada alvo e banimento por tipo de criatura: o mestre aplica."
@@ -2629,13 +2617,9 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:enhance_ability": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
-    },
     "spell:enlarge_reduce": {
       "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:enthrall": {
       "category": "gm",
@@ -2659,7 +2643,7 @@
     },
     "spell:faerie_fire": {
       "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:feather_fall": {
       "category": "gm",
@@ -2697,13 +2681,13 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:foresight": {
+    "spell:foresight#attacks_against": {
       "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+      "reason": "Outras criaturas têm Desvantagem nos ataques contra o alvo: ataques contra o alvo, PR 4b."
     },
-    "spell:freedom_of_movement": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    "spell:freedom_of_movement#restraints": {
+      "category": "gm",
+      "reason": "Magias e efeitos mágicos não reduzem o Deslocamento nem impõem Paralisado ou Impedido: o mestre confere a origem."
     },
     "spell:gaseous_form": {
       "category": "gm",
@@ -2745,10 +2729,6 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:guidance": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
-    },
     "spell:gust_of_wind": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
@@ -2761,29 +2741,25 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:haste": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    "spell:haste#lethargy": {
+      "category": "gm",
+      "reason": "No fim da magia, o alvo fica Incapacitado e com Deslocamento 0 até o fim do próximo turno: o mestre aplica."
     },
-    "spell:heroes_feast": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
-    },
-    "spell:heroism": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+    "spell:heroes_feast#hp_max": {
+      "category": "gm",
+      "reason": "PV máximos +2d10 (rolados uma vez, por 24 horas): o mestre rola e aplica como ajuste."
     },
     "spell:hex": {
       "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:holy_aura": {
       "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:hunters_mark": {
       "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:identify": {
       "category": "gm",
@@ -2837,14 +2813,6 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:longstrider": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
-    },
-    "spell:mage_armor": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
-    },
     "spell:mage_hand": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
@@ -2863,7 +2831,7 @@
     },
     "spell:magic_weapon": {
       "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:magnificent_mansion": {
       "category": "gm",
@@ -2925,10 +2893,6 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:pass_without_trace": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
-    },
     "spell:passwall": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
@@ -2981,17 +2945,9 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:protection_from_energy": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
-    },
     "spell:protection_from_evil_and_good": {
       "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
-    },
-    "spell:protection_from_poison": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:purify_food_and_drink": {
       "category": "gm",
@@ -3003,7 +2959,7 @@
     },
     "spell:ray_of_enfeeblement": {
       "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:reincarnate": {
       "category": "gm",
@@ -3016,10 +2972,6 @@
     "spell:resilient_sphere": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
-    },
-    "spell:resistance": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
     },
     "spell:resurrection": {
       "category": "gm",
@@ -3038,8 +2990,8 @@
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
     "spell:sanctuary": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+      "category": "gm",
+      "reason": "Salvaguarda de quem ataca o alvo protegido, decidida na hora da escolha do alvo: o mestre conduz."
     },
     "spell:scrying": {
       "category": "gm",
@@ -3071,15 +3023,11 @@
     },
     "spell:shield": {
       "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
-    },
-    "spell:shield_of_faith": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:shillelagh": {
       "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:silence": {
       "category": "gm",
@@ -3103,7 +3051,7 @@
     },
     "spell:slow": {
       "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:spare_the_dying": {
       "category": "gm",
@@ -3132,10 +3080,6 @@
     "spell:stone_shape": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
-    },
-    "spell:stoneskin": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
     },
     "spell:summon_dragon": {
       "category": "gm",
@@ -3190,8 +3134,8 @@
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
     "spell:true_strike": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
+      "category": "gm",
+      "reason": "Um ataque de arma com o atributo de conjuração e dano extra Radiante: o jogador ataca com a arma e o mestre ajusta."
     },
     "spell:unseen_servant": {
       "category": "gm",
@@ -3208,10 +3152,6 @@
     "spell:wall_of_stone": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
-    },
-    "spell:warding_bond": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054)."
     },
     "spell:water_breathing": {
       "category": "gm",

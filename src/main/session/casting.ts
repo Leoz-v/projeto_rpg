@@ -2,7 +2,7 @@ import { applyDamage, availableSpellSlots, availableUses, type DamageType, type 
 import { type ChatEntry, type IntentData, type PatchOp, type Role, type SessionCharacter, type SpellEffectPart, type Token, toPointer } from '../../shared/protocol';
 import { attackCircumstances, autoCriticalNotes, rollSaves, targetOf, withCircumstances } from './attacks';
 import { type SessionContext, violation } from './context';
-import { applyConditionPart, applyHealing, ConditionLedger, conditionTiming, imposeConditions, type SpellLink } from './spell-effects';
+import { applyBuff, applyConditionPart, applyHealing, ConditionLedger, conditionTiming, imposeConditions, type SpellLink } from './spell-effects';
 import { changeResource } from './resources';
 import { changeSpellSlot } from './spell-slots';
 import { concentrate } from './vitality';
@@ -131,14 +131,15 @@ export function useSpellEffect(ctx: SessionContext, playerId: string, role: Role
     throw violation('Vantagem e Desvantagem só valem nos ataques e nas salvaguardas');
   }
   if (data.condition !== undefined && !(part.kind === 'save' && part.conditionChoice)) throw violation('Esta parte não deixa a condição à escolha');
+  if (data.option !== undefined && !(part.kind === 'buff' && part.options.length > 0)) throw violation('Esta parte não tem opções');
   const targets = data.targetTokenIds.map((id) => ctx.token(id));
   const spellOf: SpellOf = { entryId: entry.id, part: data.part };
   const label = partLabel(entry, part);
   const link: SpellLink = { characterId: character.id, spellId: effect.spellId };
   const declared = { advantage: data.advantage, disadvantage: data.disadvantage };
 
-  // Salvaguarda, cura e condição: alvos distintos, até `count` (sem ele, sem limite).
-  if (part.kind === 'save' || part.kind === 'heal' || part.kind === 'condition') {
+  // Salvaguarda, cura, condição e bônus: alvos distintos, até `count` (sem ele, sem limite).
+  if (part.kind === 'save' || part.kind === 'heal' || part.kind === 'condition' || part.kind === 'buff') {
     if (new Set(data.targetTokenIds).size !== targets.length) throw violation('Alvo repetido');
     if (part.count !== undefined && targets.length > part.count) throw violation(`${label}: até ${part.count} alvo(s) neste círculo`);
   }
@@ -147,6 +148,17 @@ export function useSpellEffect(ctx: SessionContext, playerId: string, role: Role
   }
   if (part.kind === 'condition') {
     return applyConditionPart(ctx, playerId, { casterName: character.name, label, spellOf, conditions: part.conditions, timing: conditionTiming(ctx, part.conditionsEnd, link), targets });
+  }
+  if (part.kind === 'buff') {
+    let effects = part.effects;
+    let name = `${label} (${character.name})`;
+    if (part.options.length > 0) {
+      const option = data.option !== undefined ? part.options[data.option] : undefined;
+      if (!option) throw violation('Escolha uma das opções da magia');
+      effects = [...effects, ...option.effects];
+      name = `${label}: ${option.label} (${character.name})`;
+    }
+    return applyBuff(ctx, playerId, { casterName: character.name, label, spellOf, name, effects, endConditions: part.endConditions, link, targets });
   }
   const damage = spellDamageWith(part.damage, data.damageType);
   if (!damage) throw violation('Escolha o tipo de dano entre os da magia');

@@ -216,6 +216,20 @@ const D20RuleSchema = z.discriminatedUnion('rule', [
   z.strictObject({ ...d20Rule, rule: z.literal('count_as_20'), min: z.int().min(2).max(20) }),
 ]);
 
+// --- d20_bonus (3.25) --------------------------------------------------------
+
+/**
+ * Dado somado (ou subtraído, `subtract`) ao Teste d20, rolado a cada rolagem
+ * (Bless: "adds 1d4 to the attack roll or save"; Guidance, numa perícia).
+ */
+const D20BonusSchema = z.strictObject({
+  type: z.literal('d20_bonus'),
+  dice: DiceSchema,
+  target: D20RuleTargetSchema,
+  subtract: z.literal(true).optional(),
+  ...common,
+});
+
 const DamageDieMinimumSchema = z.strictObject({
   type: z.literal('damage_die_minimum'),
   /** Cada dado de dano abaixo disto vale isto (Great Weapon Fighting: 3). */
@@ -381,6 +395,7 @@ export const EffectSchema = z.discriminatedUnion('type', [
   ExtraDamageSchema,
   CritRangeSchema,
   D20RuleSchema,
+  D20BonusSchema,
   DamageDieMinimumSchema,
   MinimumSpeedSchema,
   BaseOverrideSchema,

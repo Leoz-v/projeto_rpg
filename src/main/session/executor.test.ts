@@ -2342,3 +2342,98 @@ describe('HostSession: spell healing and conditions (note 0058)', () => {
     expect(entry).toMatchObject({ results: [{ targetName: 'Goblin 1' }, { targetName: 'Morg', notes: ['Morto: o mestre o revive antes de curar'] }] });
   });
 });
+
+describe('HostSession: spell buffs on the sheet (note 0060)', () => {
+  type Fixture = { character: { baseScores: SessionCharacter['baseScores']; steps: SessionCharacter['steps'] } };
+  const sequence = (values: number[]) => {
+    let i = 0;
+    return { roll: () => values[i++ % values.length] ?? 1 };
+  };
+
+  /** Morg (bruxo golias 5, Bless e Guidance pelo Magic Initiate) e um Goblin Warrior. */
+  function table(rolls: number[] = [10]) {
+    const session = setup({
+      rng: sequence(rolls),
+      itemProblems: () => [],
+      monsterExists: (id) => compendium.creatures.some((c) => c.id === id),
+      monsterHpMax: (id) => compendium.creatures.find((c) => c.id === id)?.hp.average,
+    });
+    session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10 } });
+    const mapId = Object.keys(session.state.maps)[0] ?? '';
+    session.handle(ANA.playerId, { kind: 'character.create', data: { name: 'Morg' } });
+    const id = Object.keys(session.state.characters)[0] ?? '';
+    const fixture = goliathWarlock as Fixture;
+    session.handle(ANA.playerId, {
+      kind: 'character.update',
+      data: { characterId: id, baseScores: fixture.character.baseScores ?? undefined, steps: CharacterSchema.shape.steps.parse(fixture.character.steps) },
+    });
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Morg', position: { x: 0, y: 0 }, size: 'medium', characterId: id, ownerIds: [ANA.playerId] } });
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Goblin 1', position: { x: 600, y: 0 }, size: 'small', monsterId: 'goblin_warrior' } });
+    const token = (name: string) => Object.values(session.state.tokens).find((t) => t.name === name)?.id ?? '';
+    const cast = (spellId: string, using: { slot: 'pact' } | 'free') => {
+      session.handle(ANA.playerId, { kind: 'spell.cast', data: { characterId: id, spellId, using } });
+      return [...session.state.chat].reverse().find((e) => e.kind === 'spell_cast')?.id ?? '';
+    };
+    const use = (entryId: string, targetTokenIds: string[], option?: number) =>
+      session.handle(ANA.playerId, { kind: 'spell.effect', data: { entryId, part: 0, targetTokenIds, ...(option !== undefined ? { option } : {}) } });
+    const character = () => session.state.characters[id] as SessionCharacter;
+    return { session, id, cast, use, character, morg: token('Morg'), goblin: token('Goblin 1') };
+  }
+
+  it('Bless goes on the sheet as a spell effect, adds 1d4 to saves and ends with the Concentration', () => {
+    // Salvaguarda: d20 = 10, Bless 1d4 = 3.
+    const t = table([10, 3]);
+    const entryId = t.cast('bless', 'free');
+    expect(applied(t.use(entryId, [t.morg]))).toBe(true);
+    expect(t.character().adjustments).toEqual([
+      {
+        id: expect.any(String) as string,
+        name: 'Bless (Morg)',
+        effects: [
+          { type: 'd20_bonus', dice: '1d4', target: 'attack.all' },
+          { type: 'd20_bonus', dice: '1d4', target: 'save.all' },
+        ],
+        spell: { characterId: t.id, spellId: 'bless' },
+      },
+    ]);
+    t.session.handle(ANA.playerId, { kind: 'roll.d20', data: { characterId: t.id, target: { kind: 'save', ability: 'wis' }, visibility: 'public' } });
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'd20_roll', notes: ['Bless (Morg): +3 (1d4)'] });
+    t.session.handle(ANA.playerId, { kind: 'concentration.end', data: { characterId: t.id } });
+    expect(t.character().adjustments).toEqual([]);
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'spell_effect_ended', characterName: 'Morg', effectName: 'Bless (Morg)', reason: 'concentration' });
+    expect(SessionStateSchema.safeParse(t.session.state).success).toBe(true);
+  });
+
+  it('the same spell does not stack: using it again renews the effect', () => {
+    const t = table();
+    const first = t.cast('bless', 'free');
+    t.use(first, [t.morg]);
+    const second = t.cast('bless', { slot: 'pact' });
+    t.use(second, [t.morg]);
+    expect(t.character().adjustments).toHaveLength(1);
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'spell_applied', results: [{ notes: ['Efeito renovado (a mesma magia não se acumula)'] }] });
+  });
+
+  it('Guidance needs the skill to be chosen', () => {
+    const t = table();
+    const entryId = t.cast('guidance', 'free');
+    expect(rejection(t.use(entryId, [t.morg]))).toBe('rule_violation');
+    const stealth = compendium.spells.find((s) => s.id === 'guidance')?.resolution[0];
+    const index = stealth?.kind === 'buff' ? stealth.options.findIndex((o) => o.label === 'Furtividade') : -1;
+    expect(applied(t.use(entryId, [t.morg], index))).toBe(true);
+    expect(t.character().adjustments[0]).toMatchObject({ name: 'Guidance: Furtividade (Morg)', effects: [{ type: 'd20_bonus', target: 'skill.stealth' }] });
+  });
+
+  it('a monster token is left to the GM with a note; the owner can end a spell effect but not a GM adjustment', () => {
+    const t = table();
+    const entryId = t.cast('bless', 'free');
+    t.use(entryId, [t.goblin, t.morg]);
+    expect(t.session.state.chat.at(-1)).toMatchObject({ results: [{ targetName: 'Goblin 1', notes: ['Efeito de magia em monstro: o mestre acompanha (ainda não entra no bloco)'] }, { targetName: 'Morg' }] });
+    t.session.handle(GM.playerId, { kind: 'adjustment.add', data: { characterId: t.id, name: 'Bênção do Templo', effects: [{ type: 'flat_bonus', target: 'ac', value: 1 }] } });
+    const [spellEffect, blessing] = t.character().adjustments;
+    expect(rejection(t.session.handle(ANA.playerId, { kind: 'adjustment.remove', data: { characterId: t.id, adjustmentId: blessing?.id ?? '' } }))).toBe('not_allowed');
+    expect(applied(t.session.handle(ANA.playerId, { kind: 'adjustment.remove', data: { characterId: t.id, adjustmentId: spellEffect?.id ?? '' } }))).toBe(true);
+    expect(t.character().adjustments.map((a) => a.name)).toEqual(['Bênção do Templo']);
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'spell_effect_ended', reason: 'removed' });
+  });
+});

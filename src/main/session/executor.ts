@@ -175,11 +175,18 @@ export class HostSession extends SessionContext {
         this.requireGm(role);
         return addAdjustment(this, playerId, role, intent.data);
       case 'adjustment.remove': {
-        this.requireGm(role);
         const character = this.ownCharacter(playerId, role, intent.data.characterId);
         const index = character.adjustments.findIndex((a) => a.id === intent.data.adjustmentId);
-        if (index < 0) throw violation('Ajuste não encontrado');
-        return [{ op: 'remove', path: toPointer('characters', character.id, 'adjustments', String(index)) }];
+        const adjustment = character.adjustments[index];
+        if (!adjustment) throw violation('Ajuste não encontrado');
+        // Efeito de magia (nota 0060): o dono do personagem também tira (Mage Armor ao vestir armadura).
+        if (!adjustment.spell) this.requireGm(role);
+        return [
+          { op: 'remove', path: toPointer('characters', character.id, 'adjustments', String(index)) },
+          ...(adjustment.spell
+            ? [this.appendChat({ kind: 'spell_effect_ended', ...this.entryBase(playerId), characterId: character.id, characterName: character.name, effectName: adjustment.name.slice(0, 100), reason: 'removed' })]
+            : []),
+        ];
       }
       case 'roll.d20': {
         // Salvaguarda contra a Morte de quem está morrendo conta (fora do combate; no combate, o Host rola no início do turno).

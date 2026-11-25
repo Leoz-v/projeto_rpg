@@ -114,22 +114,22 @@ MONSTER_REASONS = {
 # As magias de dano, cura e condição têm resolução estruturada (`srd-source/tools/spell_resolution.py`, notas 0054
 # e 0056). As demais ficam aqui:
 SPELL = {
-    # PR 4: bônus e penalidades com número na ficha ou na rolagem, enquanto a magia dura.
+    # PR 4b (nota 0060): efeitos em monstros, "ataques contra o alvo", efeitos numa arma e durações de um turno.
     "temporary_effects": [
-        "aid", "bane", "barkskin", "beacon_of_hope", "bless", "blur", "divine_favor", "enhance_ability", "enlarge_reduce",
-        "faerie_fire", "foresight", "guidance", "haste", "hex", "hunters_mark", "heroism", "longstrider", "mage_armor",
-        "magic_weapon", "pass_without_trace", "protection_from_energy", "protection_from_evil_and_good", "protection_from_poison",
-        "ray_of_enfeeblement", "resistance", "shield", "shield_of_faith", "slow", "stoneskin", "true_strike", "shillelagh",
-        "warding_bond", "death_ward", "conjure_minor_elementals", "bestow_curse", "holy_aura", "sanctuary", "freedom_of_movement",
-        "aura_of_life", "heroes_feast",
+        "bane", "barkskin", "blur", "enlarge_reduce", "faerie_fire", "hex", "hunters_mark", "magic_weapon",
+        "protection_from_evil_and_good", "ray_of_enfeeblement", "shield", "slow", "shillelagh", "conjure_minor_elementals",
+        "bestow_curse", "holy_aura",
     ],
 }
 SPELL_REASONS = {
-    "temporary_effects": "Bônus ou penalidade enquanto a magia dura: efeito temporário ligado à duração ou à Concentração, Fase 7, PR 4 (nota 0054).",
+    "temporary_effects": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060).",
     "gm": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide.",
 }
 # Magias com dano, cura ou condição no texto que ficam sem resolução estruturada, com o motivo.
 SPELL_REASON_OVERRIDE = {
+    "true_strike": "Um ataque de arma com o atributo de conjuração e dano extra Radiante: o jogador ataca com a arma e o mestre ajusta.",
+    "death_ward": "Gatilho único ao cair a 0 PV ou diante de morte instantânea: o mestre aplica (fica 1 PV).",
+    "sanctuary": "Salvaguarda de quem ataca o alvo protegido, decidida na hora da escolha do alvo: o mestre conduz.",
     "mass_heal": "700 PV divididos à escolha de quem conjura entre os alvos: o mestre aplica a cura de cada um no painel de PV.",
     "spare_the_dying": "Estabiliza uma criatura com 0 PV: o mestre marca Estável nas Salvaguardas contra a Morte.",
     "lesser_restoration": "Quem conjura escolhe a condição que termina: o mestre (ou o dono do token) a remove.",
@@ -153,6 +153,12 @@ SPELL_REASON_OVERRIDE = {
 }
 # Partes pendentes de magias que já têm resolução estruturada.
 SPELL_PARTIAL = {
+    "spell:foresight#attacks_against": ("phase_7", "Outras criaturas têm Desvantagem nos ataques contra o alvo: ataques contra o alvo, PR 4b."),
+    "spell:beacon_of_hope#max_healing": ("gm", "A cura recupera o máximo possível: o mestre ajusta o valor da cura."),
+    "spell:heroes_feast#hp_max": ("gm", "PV máximos +2d10 (rolados uma vez, por 24 horas): o mestre rola e aplica como ajuste."),
+    "spell:freedom_of_movement#restraints": ("gm", "Magias e efeitos mágicos não reduzem o Deslocamento nem impõem Paralisado ou Impedido: o mestre confere a origem."),
+    "spell:aura_of_life#zero_hp": ("gm", "Aliado com 0 PV no início do turno na aura recupera 1 PV, e os PV máximos não diminuem: o mestre aplica."),
+    "spell:haste#lethargy": ("gm", "No fim da magia, o alvo fica Incapacitado e com Deslocamento 0 até o fim do próximo turno: o mestre aplica."),
     "spell:vampiric_touch#healing": ("gm", "Quem conjura recupera metade do dano Necrotic causado: o mestre aplica a cura depois do dano."),
 }
 

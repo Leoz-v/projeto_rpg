@@ -206,6 +206,16 @@ export function describeEffect(effect: Effect): string {
       return `${CONDITION_LABEL[effect.condition]}${effect.condition === 'exhaustion' ? ` nível ${effect.level}` : ''}${when}`;
     case 'extra_damage':
       return `+${effect.dice}${effect.damageType ? ` ${DAMAGE_LABEL[effect.damageType].toLowerCase()}` : ''} nos ataques${when}`;
+    case 'd20_bonus':
+      return `${effect.subtract ? '−' : '+'}${effect.dice} em ${targetLabel(effect.target, ROLL_TARGETS)}${when}`;
+    case 'set_base_ac':
+      return `CA base ${effect.base}${effect.abilities.map((a) => ` + ${ABILITY_LABEL[a].short}`).join('')}${when}`;
+    case 'damage_reduction':
+      return `Reduz ${effect.amount} do dano ${DAMAGE_LABEL[effect.damageType].toLowerCase()}${when}`;
+    case 'grant_speed':
+      return `Deslocamento de ${effect.speed === 'swim' ? 'natação' : effect.speed === 'fly' ? 'voo' : effect.speed === 'climb' ? 'escalada' : 'escavação'} ${effect.value === 'walk' ? 'igual ao a pé' : `${effect.value} ft`}${when}`;
+    case 'reminder':
+      return `Lembrete: ${effect.note}`;
     default:
       return `${humanizeId(effect.type)}: ${JSON.stringify(effect)}`;
   }
