@@ -133,6 +133,15 @@ export const IntentSchema = z.discriminatedUnion('kind', [
       .refine((d) => d.equipped !== undefined || d.attuned !== undefined || d.quantity !== undefined, { message: 'nada para alterar' }),
   }),
   z.strictObject({
+    kind: z.literal('item.cast'),
+    data: z.strictObject({ characterId: UuidSchema, instanceId: InstanceIdSchema, spellId: IdSchema, charges: z.int().min(0).max(50).optional() }),
+  }),
+  z.strictObject({
+    kind: z.literal('item.charges'),
+    data: z.strictObject({ characterId: UuidSchema, instanceId: InstanceIdSchema, change: z.enum(['spend', 'restore']), amount: z.int().min(1).max(50) }),
+  }),
+  z.strictObject({ kind: z.literal('items.dawn'), data: z.strictObject({}) }),
+  z.strictObject({
     kind: z.literal('item.use'),
     data: z.strictObject({
       characterId: UuidSchema,

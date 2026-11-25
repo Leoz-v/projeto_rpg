@@ -24,6 +24,7 @@ Ver docs/decisions/0014-itens-magicos.md.
 import json, re, subprocess, sys
 from pathlib import Path
 
+import item_casting
 import item_use
 
 sys.stdout.reconfigure(encoding="utf-8")
@@ -386,6 +387,7 @@ for _vid, _ability, _label in [("agility", "dex", "Dexterity"), ("fortitude", "c
     VARIANT_EFFECTS[("Ioun Stone", _vid)] = ([{"type": "ability_increase", "ability": _ability, "value": 2, "max": 20}],
                                              f"Your {_label} increases by 2, to a maximum of 20")
 
+SPELL_IDS = {sp["id"] for sp in load("spells.json")}
 # --- Leitura dos itens ---------------------------------------------------------------------------------------
 lines = text(209, 253)
 lines = lines[lines.index("Magic Items A-Z") + 1:]
@@ -497,8 +499,12 @@ for n, h in enumerate(starts):
                 problems.append(f"{who}: efeito curado sem o texto de apoio '{quote}'")
     item["description"] = description
     used |= item_use.put(item, item_use.MAGIC_USE, problems)
+    item_casting.put(item, SPELL_IDS, problems)
     items.append(item)
 
+for k in list(item_casting.CASTING) + [k for ids in item_casting.LAST_CHARGE.values() for k in ids]:
+    if k not in {i["id"] for i in items}:
+        problems.append(f"curadoria de cargas sem item: {k}")
 for k in item_use.MAGIC_USE:
     if k not in used:
         problems.append(f"uso curado sem item: {k}")
@@ -514,7 +520,7 @@ for it in items:
     if len(it["description"]) < 30:
         problems.append(f"{it['name']}: descrição curta demais")
 
-ORDER = ["id", "name", "kind", "category", "rarity", "attunement", "activation", "weight", "base", "variants", "charges", "consumable",
+ORDER = ["id", "name", "kind", "category", "rarity", "attunement", "activation", "weight", "base", "variants", "charges", "casting", "consumable",
          "use", "effects", "description"]
 items = [{k: it[k] for k in ORDER if k in it} for it in items]
 with open(DATA / "magic-items.json", "w", encoding="utf-8", newline="\n") as fh:

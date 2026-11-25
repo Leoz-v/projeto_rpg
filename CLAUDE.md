@@ -229,7 +229,8 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 
 11. **Fase 9 — Ações dos personagens e itens:** o que aparece em quase toda sessão da fila `phase_4` do backlog. Dividida em 6 PRs (ver `docs/decisions/0074-usar-itens.md`); cura e efeitos entram direto, dano vira proposta, dano extra é automático quando a regra é objetiva:
    - ✅ Usar itens (`item.use`, `PROTOCOL_VERSION = 38`, `engine/item-use.ts`): 21 itens consumíveis do SRD (poções, frascos, pós) com alvos, curados em `srd-source/tools/item_use.py`. Ver `docs/decisions/0074-usar-itens.md`.
-   - Cargas e magias de itens (varinhas, cajados, pergaminhos).
+   - ✅ Cargas e magias de itens (PR 2a, `item.cast`, `item.charges`, `items.dawn`, `PROTOCOL_VERSION = 39`, `engine/item-charges.ts`): cargas por cópia do item, recarga no amanhecer do mestre, última carga com d20 e 24 itens que conjuram, curados em `srd-source/tools/item_casting.py`. Ver `docs/decisions/0075-cargas-e-magias-de-itens.md`.
+   - Pergaminhos (PR 2b): qual magia cada um contém e o teste de conjuração.
    - Dano extra nos ataques (Sneak Attack com caixa no ataque, Colossus Slayer, Flame Tongue).
    - Características que curam ou reforçam (Rage, Lay On Hands, Second Wind, Bardic Inspiration).
    - Características com salvaguarda (Stunning Strike, Breath Weapon, Channel Divinity).

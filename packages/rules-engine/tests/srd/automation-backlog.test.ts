@@ -57,7 +57,7 @@ function featuresWithoutEffects(): Map<string, boolean> {
 const features = featuresWithoutEffects();
 const magic = srd.items.filter((i) => i.kind === 'magic_item');
 const itemKeys = new Set(
-  magic.filter((i) => i.effects.length === 0 && !i.use && i.variants.every((v) => v.effects.length === 0 && !v.use)).map((i) => `item:${i.id}`),
+  magic.filter((i) => i.effects.length === 0 && !i.use && !i.casting && i.variants.every((v) => v.effects.length === 0 && !v.use)).map((i) => `item:${i.id}`),
 );
 const variantKeys = new Set(magic.flatMap((i) => i.variants.filter((v) => v.effects.length === 0 && !v.use).map((v) => `item:${i.id}/${v.id}`)));
 const traitKeys = new Set(

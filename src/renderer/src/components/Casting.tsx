@@ -129,6 +129,7 @@ const usingLabel = (entry: Extract<ChatEntry, { kind: 'spell_cast' }>): string =
   if (using === 'ritual') return 'ritual';
   if (entry.tokenId !== undefined) return 'do bloco';
   if (using === 'free') return entry.level === 0 ? 'truque' : 'sem espaço';
+  if ('item' in using) return 'por item';
   return using.slot === 'pact' ? 'espaço de Pacto' : `espaço de ${using.slot.level}º`;
 };
 
