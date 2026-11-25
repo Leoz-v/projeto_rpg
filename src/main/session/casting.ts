@@ -1,6 +1,6 @@
 import { applyDamage, availableSpellSlots, availableUses, type DamageType, type DerivedSheet, damageNotes, resolveAttack, resolveSpellParts, rollActionDamage, spellAttackD20, spellDamageWith } from 'rules-engine';
 import { type ChatEntry, type IntentData, type PatchOp, type Role, type SessionCharacter, type SpellEffectPart, type Token, toPointer } from '../../shared/protocol';
-import { attackCircumstances, autoCriticalNotes, rollSaves, targetOf, withCircumstances } from './attacks';
+import { attackCircumstances, autoCriticalNotes, rollSaves, rollTargetDamage, targetDamageOf, targetOf, withCircumstances } from './attacks';
 import { type SessionContext, violation } from './context';
 import { applyBuff, applyConditionPart, applyHealing, ConditionLedger, conditionTiming, imposeConditions, putSpellEffects, type SpellLink } from './spell-effects';
 import { changeResource } from './resources';
@@ -106,6 +106,21 @@ type SpellDamage = { dice: string; type: DamageType }[];
 /** Nome de uma parte no log: a magia, e a parte quando ela tem nome ("Ice Knife: Explosão"). */
 const partLabel = (entry: CastEntry, part: SpellEffectPart): string => (part.label ? `${entry.spellName}: ${part.label}` : entry.spellName).slice(0, 100);
 
+/** Nome do efeito na ficha ou no token: "Hex: Força (Morg)". */
+const effectName = (label: string, option: string | undefined, caster: string): string => `${label}${option !== undefined ? `: ${option}` : ''} (${caster})`;
+
+/** A arma escolhida precisa estar empunhada por um único personagem alvo e servir para a magia. */
+function requireWeapon(ctx: SessionContext, rule: NonNullable<Extract<SpellEffectPart, { kind: 'buff' }>['weapon']>, targets: Token[], weaponId: string | undefined): void {
+  const [target] = targets;
+  const holder = target && target.characterId !== null ? ctx.current.characters[target.characterId] : undefined;
+  if (!holder || targets.length !== 1) throw violation('Escolha um personagem com a arma');
+  const attack = ctx.deps.characterSheet(holder)?.attacks.find((a) => a.instanceId === weaponId);
+  const entry = holder.inventory.items.find((i) => i.instanceId === weaponId);
+  if (!attack || !entry) throw violation('Escolha uma arma empunhada pelo alvo');
+  if (rule.nonmagical && entry.itemId !== attack.itemId) throw violation('A arma já é mágica');
+  if (rule.itemIds && !rule.itemIds.includes(attack.itemId)) throw violation('A magia não age nesta arma');
+}
+
 /**
  * Usa uma parte de uma magia conjurada (`spell.effect`): o Host rola os
  * ataques, as salvaguardas ou o dano direto com a CD e o bônus gravados no
@@ -131,7 +146,11 @@ export function useSpellEffect(ctx: SessionContext, playerId: string, role: Role
     throw violation('Vantagem e Desvantagem só valem nos ataques e nas salvaguardas');
   }
   if (data.condition !== undefined && !(part.kind === 'save' && part.conditionChoice)) throw violation('Esta parte não deixa a condição à escolha');
-  if (data.option !== undefined && !(part.kind === 'buff' && part.options.length > 0)) throw violation('Esta parte não tem opções');
+  const options = part.kind === 'buff' || part.kind === 'save' ? part.options : [];
+  if (data.option !== undefined && options.length === 0) throw violation('Esta parte não tem opções');
+  const option = data.option !== undefined ? options[data.option] : undefined;
+  if (options.length > 0 && !option) throw violation('Escolha uma das opções da magia');
+  if (data.weaponId !== undefined && !(part.kind === 'buff' && part.weapon)) throw violation('Esta parte não age numa arma');
   const targets = data.targetTokenIds.map((id) => ctx.token(id));
   const spellOf: SpellOf = { entryId: entry.id, part: data.part };
   const label = partLabel(entry, part);
@@ -150,15 +169,14 @@ export function useSpellEffect(ctx: SessionContext, playerId: string, role: Role
     return applyConditionPart(ctx, playerId, { casterName: character.name, label, spellOf, conditions: part.conditions, timing: conditionTiming(ctx, part.conditionsEnd, link), targets });
   }
   if (part.kind === 'buff') {
-    let effects = part.effects;
-    let name = `${label} (${character.name})`;
-    if (part.options.length > 0) {
-      const option = data.option !== undefined ? part.options[data.option] : undefined;
-      if (!option) throw violation('Escolha uma das opções da magia');
-      effects = [...effects, ...option.effects];
-      name = `${label}: ${option.label} (${character.name})`;
+    let effects = [...part.effects, ...(option?.effects ?? [])];
+    const name = effectName(label, option?.label, character.name);
+    if (part.weapon) {
+      requireWeapon(ctx, part.weapon, targets, data.weaponId);
+      if (part.weapon.spellcastingAbility) effects = [...effects, { type: 'attack_ability', ability: effect.ability, scope: 'weapon' }];
     }
-    return applyBuff(ctx, playerId, { casterName: character.name, label, spellOf, name, effects, endConditions: part.endConditions, link, targets });
+    const timing = conditionTiming(ctx, part.effectsEnd, link);
+    return applyBuff(ctx, playerId, { casterName: character.name, label, spellOf, name, effects, endConditions: part.endConditions, link, targets, weapon: data.weaponId, timing });
   }
   const damage = spellDamageWith(part.damage, data.damageType);
   if (!damage) throw violation('Escolha o tipo de dano entre os da magia');
@@ -182,8 +200,9 @@ export function useSpellEffect(ctx: SessionContext, playerId: string, role: Role
     });
     if (saves.failed.length === 0) return saves.ops;
     // Na falha, os efeitos entram na ficha ou no token (Bane, Slow; nota 0062).
-    if (part.onFailEffects.length > 0) {
-      const put = putSpellEffects(ctx, { name: `${label} (${character.name})`, effects: part.onFailEffects, link, targets: saves.failed });
+    const failEffects = [...part.onFailEffects, ...(option?.effects ?? [])];
+    if (failEffects.length > 0) {
+      const put = putSpellEffects(ctx, { name: effectName(label, option?.label, character.name), effects: failEffects, link, targets: saves.failed, playerId });
       const results = saves.failed.map((t) => ({ targetTokenId: t.id, targetName: t.name, notes: put.notes.get(t.id) ?? [] }));
       saves.ops.push(ctx.appendChat({ kind: 'spell_applied', ...ctx.entryBase(playerId), spellOf, casterName: character.name, label, results }), ...put.ops);
     }
@@ -229,12 +248,15 @@ function spellAttacks(
     const defender = targetOf(ctx, target);
     const around = attackCircumstances(ctx, attackerToken, target, spent);
     for (const id of around.used) spent.add(id);
+    // Hex e Hunter's Mark também valem nos ataques de magia (nota 0063).
+    const extra = targetDamageOf(ctx, character.id, attackerToken, target);
+    around.reminders.push(...extra.reminders);
     const d20 = withCircumstances(spellAttackD20(sheet, caster, declared), around);
     const result = resolveAttack(
       {
         d20: d20.input,
         targetAc: defender.ac,
-        rollDamage: (critical) => ({ groups: rollActionDamage(damage, critical, ctx.deps.rng), bonus: 0 }),
+        rollDamage: (critical, hit) => ({ groups: [...rollActionDamage(damage, critical, ctx.deps.rng), ...(hit ? rollTargetDamage(ctx, extra.damage, critical) : [])], bonus: 0 }),
         defenses: defender.defenses,
         autoCritical: around.autoCritical.length > 0,
         onMiss: part.onMiss,

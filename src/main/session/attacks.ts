@@ -1,4 +1,4 @@
-import { type Ability, applyDamage, applyHitPointChange, attackedByEffects, attackedConditions, type AttacksAgainst, cleaveDamageBonus, creatureAttacksAgainst, creatureD20, type CreatureType, type Condition, CONDITION_NAME, creatureSaveBonus, d20Mode, d20StepNotes, damageNotes, type DamageType, type Defenses, grazeDamage, MASTERY_NAME, masteryOutcome, nextTurnRound, resolveAttack, resolveSave, rollActionDamage, type RollAgainst, rollD20, rollWeaponDamage, sheetD20, type SheetD20, TIMED_MASTERY_UNTIL, timedMastery, timedMasteryNote, toppleDc } from 'rules-engine';
+import { type Ability, applyDamage, applyHitPointChange, attackedByEffects, attackedConditions, type AttacksAgainst, cleaveDamageBonus, creatureAttacksAgainst, creatureD20, type CreatureType, type Condition, CONDITION_NAME, creatureSaveBonus, d20Mode, d20StepNotes, damageNotes, type DamageType, type Defenses, grazeDamage, MASTERY_NAME, masteryOutcome, nextTurnRound, resolveAttack, resolveSave, rollActionDamage, type RollAgainst, rollD20, rollWeaponDamage, sheetD20, type SheetD20, type TargetDamage, targetDamage, TIMED_MASTERY_UNTIL, timedMastery, timedMasteryNote, toppleDc } from 'rules-engine';
 import { type ChatEntry, type TimedEffect, type IntentData, type PatchOp, type Role, type SessionState, type Token, toPointer, type Visibility } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
 import { timedEffectEntry } from './combat';
@@ -143,6 +143,21 @@ export function withCircumstances(d20: SheetD20, around: AttackCircumstances): S
   return { ...d20, input: { ...d20.input, mode: d20Mode(advantage.length > 0, disadvantage.length > 0) }, advantage, disadvantage, reminders: [...d20.reminders, ...around.reminders] };
 }
 
+/** O dano extra do conjurador contra o alvo: as marcas dele no alvo e os efeitos nele mesmo que dependem da distância. */
+export function targetDamageOf(ctx: SessionContext, characterId: string, attackerToken: Token | undefined, target: Token): ReturnType<typeof targetDamage> {
+  const onTarget = target.characterId !== null ? (ctx.current.characters[target.characterId]?.adjustments ?? []) : target.spellEffects;
+  return targetDamage(
+    onTarget.filter((a) => a.spell?.characterId === characterId),
+    ctx.current.characters[characterId]?.adjustments ?? [],
+    ctx.distanceBetween(attackerToken, target),
+  );
+}
+
+/** Rola o dano extra (dobrado no crítico), um grupo por fonte. */
+export function rollTargetDamage(ctx: SessionContext, damage: readonly TargetDamage[], critical: boolean): ReturnType<typeof rollActionDamage> {
+  return damage.flatMap((d) => rollActionDamage([{ dice: d.dice, type: d.type }], critical, ctx.deps.rng).map((g) => ({ ...g, source: d.source.slice(0, 100) })));
+}
+
 /** Nota do crítico que veio da condição do alvo, não do 20 natural. */
 export function autoCriticalNotes(result: { critical: boolean; roll: { critical: boolean } }, autoCritical: readonly string[]): string[] {
   return result.critical && !result.roll.critical ? [`Acerto Crítico: alvo ${autoCritical.join(', ')} a até 5 ft`] : [];
@@ -159,7 +174,7 @@ export function makeAttack(ctx: SessionContext, playerId: string, role: Role, da
   let attackerName: string;
   let label: string;
   let d20: SheetD20;
-  let rollDamage: (critical: boolean) => { groups: ReturnType<typeof rollActionDamage>; bonus: number };
+  let rollDamage: (critical: boolean, hit: boolean) => { groups: ReturnType<typeof rollActionDamage>; bonus: number };
   /** Token do atacante (para a distância até o alvo), se estiver no mapa. */
   let attackerToken: Token | undefined;
   /** Arma da ficha: o que a maestria dela permite depois do resultado. */
@@ -214,6 +229,14 @@ export function makeAttack(ctx: SessionContext, playerId: string, role: Role, da
   const defender = targetOf(ctx, target);
   const around = attackCircumstances(ctx, attackerToken, target);
   const used = around.used;
+  // Dano extra de quem conjurou contra este alvo (Hex, Hunter's Mark; nota 0063).
+  const extra = 'characterId' in data.attacker ? targetDamageOf(ctx, data.attacker.characterId, attackerToken, target) : { damage: [], reminders: [] };
+  const baseDamage = rollDamage;
+  rollDamage = (critical, hit) => {
+    const rolled = baseDamage(critical, hit);
+    return { ...rolled, groups: [...rolled.groups, ...rollTargetDamage(ctx, extra.damage, critical)] };
+  };
+  around.reminders.push(...extra.reminders);
   d20 = withCircumstances(d20, around);
   const result = resolveAttack(
     { d20: d20.input, targetAc: defender.ac, rollDamage, defenses: defender.defenses, autoCritical: around.autoCritical.length > 0 },

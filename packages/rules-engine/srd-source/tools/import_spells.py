@@ -94,16 +94,16 @@ def check_resolution(spell, parts, quotes, upgrade):
                     found.append(f"{who}: modificador de conjuração fora do texto")
             if ("Temporary Hit Points" in flat) != bool(part.get("temporary")):
                 found.append(f"{who}: PV temporários divergem do texto")
-        if part["kind"] == "buff" or part.get("onFailEffects"):
+        if part["kind"] == "buff" or part.get("onFailEffects") or part.get("options"):
             effects = part.get("onFailEffects", []) + part.get("effects", []) + [e for o in part.get("options", []) for e in o["effects"]] + part.get("upcast", [])
             for e in effects:
                 if e["type"] in ("resistance", "damage_reduction") and e["damageType"].capitalize() not in flat and "Resistance to all damage" not in flat:
                     found.append(f"{who}: tipo {e['damageType']} fora do texto")
-                if e["type"] == "d20_bonus" and e["dice"] not in flat:
+                if e["type"] in ("d20_bonus", "target_damage") and e["dice"] not in flat:
                     found.append(f"{who}: dado {e['dice']} fora do texto")
                 if e["type"] == "flat_bonus" and isinstance(e["value"], int) and str(abs(e["value"])) not in flat:
                     found.append(f"{who}: bônus {e['value']} fora do texto")
-            if part.get("upcast") and not upcast:
+            if (part.get("upcast") or any("slot" in v for v in part.get("variants", []))) and not upcast:
                 found.append(f"{who}: efeito por círculo sem 'Using a Higher-Level Spell Slot'")
         if part["kind"] == "save" and not part.get("damage") and part["onSuccess"] != "none":
             found.append(f"{who}: salvaguarda sem dano com metade no sucesso")

@@ -53,7 +53,7 @@ describe('resolveSpellParts', () => {
   it('Fireball: 8d6 Fire, Dexterity save for half, +1d6 per slot above 3', () => {
     const at3 = resolveSpellParts(spell('fireball'), { characterLevel: 5, modifier: 4 });
     // Salvaguarda sem `count`: quantos alvos a mesa marcar.
-    expect(at3).toEqual([{ kind: 'save', ability: 'dex', onSuccess: 'half', onFailConditions: [], onFailEffects: [], damage: [{ dice: '8d6', type: 'fire' }] }]);
+    expect(at3).toEqual([{ kind: 'save', ability: 'dex', onSuccess: 'half', onFailConditions: [], onFailEffects: [], options: [], damage: [{ dice: '8d6', type: 'fire' }] }]);
     expect(damageOf(resolveSpellParts(spell('fireball'), { slotLevel: 5, characterLevel: 9, modifier: 4 })[0])).toEqual([{ dice: '10d6', type: 'fire' }]);
   });
 
@@ -145,7 +145,7 @@ describe('resolveSpellParts', () => {
 
   it('condition saves: no damage, the targets per slot and how long the condition lasts', () => {
     expect(resolveSpellParts(spell('hold_person'), { slotLevel: 4, characterLevel: 7, modifier: 4 })).toEqual([
-      { kind: 'save', ability: 'wis', onSuccess: 'none', onFailConditions: ['paralyzed'], onFailEffects: [], conditionsEnd: 'spell', damage: [], count: 3 },
+      { kind: 'save', ability: 'wis', onSuccess: 'none', onFailConditions: ['paralyzed'], onFailEffects: [], options: [], conditionsEnd: 'spell', damage: [], count: 3 },
     ]);
     expect(resolveSpellParts(spell('blindness_deafness'), { characterLevel: 3, modifier: 3 })[0]).toMatchObject({ conditionChoice: true, onFailConditions: ['blinded', 'deafened'] });
     expect(resolveSpellParts(spell('color_spray'), { characterLevel: 1, modifier: 3 })[0]).toMatchObject({ conditionsEnd: 'caster_turn_end' });
@@ -153,6 +153,19 @@ describe('resolveSpellParts', () => {
     expect(resolveSpellParts(spell('invisibility'), { slotLevel: 3, characterLevel: 5, modifier: 3 })).toEqual([
       { kind: 'condition', conditions: ['invisible'], conditionsEnd: 'spell', count: 2 },
     ]);
+  });
+
+  it('Magic Weapon and Shillelagh use the strongest variant; Conjure Minor Elementals grows in each option', () => {
+    const effectsAt = (id: string, options: { slotLevel?: number; characterLevel: number }) => {
+      const [part] = resolveSpellParts(spell(id), { modifier: 3, ...options });
+      return part?.kind === 'buff' ? part : undefined;
+    };
+    expect(effectsAt('magic_weapon', { slotLevel: 2, characterLevel: 5 })?.effects).toMatchObject([{ value: 1 }, { value: 1 }]);
+    expect(effectsAt('magic_weapon', { slotLevel: 5, characterLevel: 9 })?.effects).toMatchObject([{ value: 2 }, { value: 2 }]);
+    expect(effectsAt('magic_weapon', { slotLevel: 6, characterLevel: 11 })?.effects).toMatchObject([{ value: 3 }, { value: 3 }]);
+    expect(effectsAt('shillelagh', { characterLevel: 4 })?.effects).toEqual([{ type: 'base_override', damageDice: '1d8' }]);
+    expect(effectsAt('shillelagh', { characterLevel: 17 })?.effects).toEqual([{ type: 'base_override', damageDice: '2d6' }]);
+    expect(effectsAt('conjure_minor_elementals', { slotLevel: 6, characterLevel: 11 })?.options[0]?.effects.map((e) => (e.type === 'target_damage' ? e.dice : ''))).toEqual(['2d8', '1d8', '1d8']);
   });
 
   it('buffs: Aid adds its effect once per slot above, Bless targets per slot, Guidance leaves the skill to choose', () => {
@@ -196,8 +209,8 @@ describe('spellDamageWith', () => {
 describe('spells with structured resolution in the SRD compendium', () => {
   const structured = srd.spells.filter((s) => s.resolution.length > 0);
 
-  it('covers the damage, healing, condition and buff spells (154 of 339)', () => {
-    expect(structured).toHaveLength(154);
+  it('covers the damage, healing, condition and buff spells (162 of 339)', () => {
+    expect(structured).toHaveLength(162);
   });
 
   it('every damaging cantrip upgrades with the character level', () => {

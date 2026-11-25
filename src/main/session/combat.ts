@@ -1,5 +1,5 @@
 import { creatureD20, creatureReminders, currentHitPoints, type D20RollInput, d20Mode, d20StepNotes, expiresAt, isDying, isBloodied, nextTurn, rollD20, sheetD20, sortByInitiative, type TriggerMoment, type TurnExpiry, turnAfterRemoval } from 'rules-engine';
-import { applyPatch, type ChatEntry, type Combat, type ConditionState, type TimedEffect, type IntentData, type PatchOp, type Role, type SessionState, MAX_TURN_TRIGGER_ITEMS, MAX_COMBATANTS, MAX_INITIATIVE, MIN_INITIATIVE, toPointer } from '../../shared/protocol';
+import { applyPatch, type ChatEntry, type Combat, type ConditionState, type TimedEffect, type IntentData, type PatchOp, type Role, type SessionCharacter, type SessionState, MAX_TURN_TRIGGER_ITEMS, MAX_COMBATANTS, MAX_INITIATIVE, MIN_INITIATIVE, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
 import { cancelRest } from './rest';
 import { changeCharacterHp, rollDeathSave } from './vitality';
@@ -237,10 +237,21 @@ export function expire(
       ops.push(ctx.appendChat({ kind: 'condition_changed', ...ctx.entryBase(playerId), target, targetName: name, change: { kind: 'removed', condition: c.condition }, notes: ['Fim da duração'] }));
     }
   };
+  // Efeitos de magia por um turno (Shield; nota 0063).
+  const pruneEffects = (list: SessionCharacter['adjustments'], path: string, who: { characterId: string } | { tokenId: string }, name: string): void => {
+    const over = list.filter((a) => a.until !== undefined && isOver(a.until));
+    if (over.length === 0) return;
+    ops.push({ op: 'replace', path, value: list.filter((a) => !over.includes(a)) });
+    for (const a of over) {
+      ops.push(ctx.appendChat({ kind: 'spell_effect_ended', ...ctx.entryBase(playerId), ...who, characterName: name, effectName: a.name.slice(0, 100), reason: 'duration' }));
+    }
+  };
   for (const character of Object.values(ctx.current.characters)) {
+    pruneEffects(character.adjustments, toPointer('characters', character.id, 'adjustments'), { characterId: character.id }, character.name);
     prune(character.conditions, toPointer('characters', character.id, 'conditions'), { characterId: character.id }, character.name);
   }
   for (const token of Object.values(ctx.current.tokens)) {
+    pruneEffects(token.spellEffects, toPointer('tokens', token.id, 'spellEffects'), { tokenId: token.id }, token.name);
     if (token.characterId === null) prune(token.conditions, toPointer('tokens', token.id, 'conditions'), { tokenId: token.id }, token.name);
   }
   const effects: TimedEffect[] = [];

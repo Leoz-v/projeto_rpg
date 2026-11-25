@@ -142,5 +142,7 @@ export const GmAdjustmentSchema = z.strictObject({
   id: IdSchema,
   name: TextSchema,
   effects: z.array(EffectSchema).min(1),
+  /** Entrada do inventário a que os efeitos pertencem (magia numa arma; nota 0063). */
+  weapon: z.string().min(1).optional(),
 });
 export type GmAdjustment = z.infer<typeof GmAdjustmentSchema>;

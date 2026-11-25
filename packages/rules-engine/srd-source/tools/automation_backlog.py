@@ -114,13 +114,9 @@ MONSTER_REASONS = {
 # As magias de dano, cura e condição têm resolução estruturada (`srd-source/tools/spell_resolution.py`, notas 0054
 # e 0056). As demais ficam aqui:
 SPELL = {
-    # PR 4b2 (nota 0062): dano extra contra um alvo marcado, efeitos numa arma, tamanho e durações de um turno.
-    "temporary_effects": [
-        "enlarge_reduce", "hex", "hunters_mark", "magic_weapon", "shield", "shillelagh", "conjure_minor_elementals", "bestow_curse",
-    ],
+    # Vazio desde a nota 0063: magia nova com mecânica entra aqui, por grupo.
 }
 SPELL_REASONS = {
-    "temporary_effects": "Bônus ou penalidade que depende do alvo marcado, de uma arma, do tamanho ou de um turno: Fase 7, PR 4b2 (nota 0062).",
     "gm": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide.",
 }
 # Magias com dano, cura ou condição no texto que ficam sem resolução estruturada, com o motivo.
@@ -151,6 +147,11 @@ SPELL_REASON_OVERRIDE = {
 }
 # Partes pendentes de magias que já têm resolução estruturada.
 SPELL_PARTIAL = {
+    "spell:enlarge_reduce#size_and_damage": ("gm", "O tamanho do token e o -1d4 no dano do Reduzir: o mestre ajusta. O +1d4 só entra na ficha de personagens."),
+    "spell:bestow_curse#spell_damage_and_slots": ("gm", "Dano extra nas magias sem ataque, e a duração sem Concentração com espaço de 5º círculo ou mais: o mestre acompanha."),
+    "spell:hex#duration": ("gm", "A Concentração dura mais em círculos maiores: a mesa controla o tempo."),
+    "spell:hunters_mark#perception": ("gm", "Vantagem em Percepção e Sobrevivência para achar o alvo: declarada na rolagem."),
+    "spell:shield#triggering_attack": ("gm", "O +5 vale contra o ataque que disparou e anula Magic Missile: o mestre descarta a proposta de dano."),
     "spell:faerie_fire#invisible": ("gm", "O alvo não se beneficia de Invisível: o mestre tira a condição ou ajusta a rolagem."),
     "spell:holy_aura#blinded": ("gm", "Um Corruptor ou Morto-vivo que acerta o alvo corpo a corpo salva contra Cego: o mestre conduz."),
     "spell:protection_from_evil_and_good#conditions": ("gm", "Não pode ser possuído nem Enfeitiçado ou Amedrontado por esses tipos: o mestre confere a origem."),

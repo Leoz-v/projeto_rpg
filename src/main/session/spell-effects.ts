@@ -250,11 +250,15 @@ export function applyConditionPart(
  */
 export function putSpellEffects(
   ctx: SessionContext,
-  options: { name: string; effects: readonly Effect[]; link: SpellLink; targets: Token[] },
+  options: { name: string; effects: readonly Effect[]; link: SpellLink; targets: Token[]; weapon?: string | undefined; until?: TurnExpiry | undefined; playerId: string },
 ): { ops: PatchOp[]; notes: Map<string, string[]> } {
   const ops: PatchOp[] = [];
   const notes = new Map<string, string[]>();
   const effects = options.effects.slice(0, MAX_ADJUSTMENT_EFFECTS);
+  // Uma marca (Hex) ou arma (Magic Weapon) por conjurador: a nova tira a anterior dos outros alvos (nota 0063).
+  if (options.weapon !== undefined || effects.some((e) => e.type === 'target_damage' && e.within === undefined)) {
+    ops.push(...liftFromOthers(ctx, options.playerId, options.link, options.targets));
+  }
   for (const target of options.targets) {
     const own: string[] = [];
     notes.set(target.id, own);
@@ -271,11 +275,32 @@ export function putSpellEffects(
       continue;
     }
     const path = character ? toPointer('characters', character.id, 'adjustments') : toPointer('tokens', target.id, 'spellEffects');
-    ops.push({ op: 'replace', path, value: [...kept, { id: ctx.deps.newId(), name: options.name.slice(0, 100), effects, spell: options.link }] });
+    ops.push({ op: 'replace', path, value: [...kept, { id: ctx.deps.newId(), name: options.name.slice(0, 100), effects, spell: options.link, ...(options.weapon !== undefined ? { weapon: options.weapon } : {}), ...(options.until ? { until: options.until } : {}) }] });
     own.push(kept.length < current.length ? 'Efeito renovado (a mesma magia não se acumula)' : character ? 'Efeito na ficha' : 'Efeito no token');
     if (!character && hasUnsupportedCreatureEffect(effects)) own.push('Parte do efeito não entra no bloco do monstro: o mestre acompanha');
   }
   return { ops, notes };
+}
+
+/** Tira o efeito da magia de quem não está entre os alvos novos. */
+function liftFromOthers(ctx: SessionContext, playerId: string, link: SpellLink, targets: Token[]): PatchOp[] {
+  const ops: PatchOp[] = [];
+  const tokens = new Set(targets.map((t) => t.id));
+  const characters = new Set(targets.map((t) => t.characterId));
+  const lift = (path: string, list: SessionCharacter['adjustments'], who: { characterId: string } | { tokenId: string }, name: string): void => {
+    const gone = list.filter((a) => a.spell?.characterId === link.characterId && a.spell.spellId === link.spellId);
+    const [first] = gone;
+    if (!first) return;
+    ops.push({ op: 'replace', path, value: list.filter((a) => !gone.includes(a)) });
+    ops.push(ctx.appendChat({ kind: 'spell_effect_ended', ...ctx.entryBase(playerId), ...who, characterName: name, effectName: first.name.slice(0, 100), reason: 'replaced' }));
+  };
+  for (const c of Object.values(ctx.current.characters)) {
+    if (!characters.has(c.id)) lift(toPointer('characters', c.id, 'adjustments'), c.adjustments, { characterId: c.id }, c.name);
+  }
+  for (const t of Object.values(ctx.current.tokens)) {
+    if (!tokens.has(t.id)) lift(toPointer('tokens', t.id, 'spellEffects'), t.spellEffects, { tokenId: t.id }, t.name);
+  }
+  return ops;
 }
 
 /** Bônus ou penalidade de magia sem salvaguarda, com as condições que ela termina. */
@@ -291,12 +316,14 @@ export function applyBuff(
     endConditions: readonly Condition[];
     link: SpellLink;
     targets: Token[];
+    weapon?: string | undefined;
+    timing: { until?: TurnExpiry; note?: string };
   },
 ): PatchOp[] {
   const ledger = new ConditionLedger(ctx);
-  const { ops, notes: putNotes } = putSpellEffects(ctx, options);
+  const { ops, notes: putNotes } = putSpellEffects(ctx, { ...options, until: options.timing.until, playerId });
   const results = options.targets.map((target) => {
-    const notes = putNotes.get(target.id) ?? [];
+    const notes = [...(putNotes.get(target.id) ?? []), ...(options.timing.note !== undefined ? [options.timing.note] : [])];
     if (options.endConditions.length > 0) {
       const lifted = liftConditions(ctx, playerId, ledger, target, options.endConditions, options.label);
       ops.push(...lifted.ops);

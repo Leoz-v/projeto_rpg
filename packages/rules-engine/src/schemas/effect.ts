@@ -242,6 +242,19 @@ const AttacksAgainstSchema = z.strictObject({
   ...common,
 });
 
+/**
+ * Dano extra de quem conjurou quando acerta com uma jogada de ataque (3.28).
+ * Sem `within`, o efeito fica no alvo marcado (Hex, Hunter's Mark); com ele,
+ * fica em quem conjurou e vale contra alvos até essa distância.
+ */
+const TargetDamageSchema = z.strictObject({
+  type: z.literal('target_damage'),
+  dice: DiceSchema,
+  damageType: DamageTypeSchema,
+  within: FeetSchema.positive().optional(),
+  ...common,
+});
+
 /** CA mínima, depois de fórmulas e bônus (Barkskin: 17). */
 const MinimumAcSchema = z.strictObject({
   type: z.literal('minimum_ac'),
@@ -275,6 +288,8 @@ const BaseOverrideSchema = z
     removeStealthDisadvantage: z.literal(true).optional(),
     addProperties: z.array(WeaponPropertySchema).min(1).optional(),
     damageType: DamageTypeSchema.optional(),
+    /** Troca o dado de dano, também com as duas mãos (Shillelagh). */
+    damageDice: DiceSchema.optional(),
     /** Proficiente se tiver proficiência com alguma destas armas. */
     proficiencyWith: z.array(IdSchema).min(1).optional(),
     ...common,
@@ -285,6 +300,7 @@ const BaseOverrideSchema = z
       e.removeStealthDisadvantage !== undefined ||
       e.addProperties !== undefined ||
       e.damageType !== undefined ||
+      e.damageDice !== undefined ||
       e.proficiencyWith !== undefined,
     { message: 'base_override exige pelo menos um campo' },
   );
@@ -331,6 +347,8 @@ const GrantSpeedSchema = z.strictObject({
 const AttackAbilitySchema = z.strictObject({
   type: z.literal('attack_ability'),
   ability: Ability,
+  /** Só na arma que carrega o efeito (Shillelagh). */
+  scope: z.literal('weapon').optional(),
   ...common,
 });
 
@@ -417,6 +435,7 @@ export const EffectSchema = z.discriminatedUnion('type', [
   D20BonusSchema,
   AttacksAgainstSchema,
   MinimumAcSchema,
+  TargetDamageSchema,
   DamageDieMinimumSchema,
   MinimumSpeedSchema,
   BaseOverrideSchema,

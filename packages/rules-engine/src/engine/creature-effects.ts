@@ -38,6 +38,9 @@ function supported(effect: Effect): boolean {
     case 'attacks_against':
     case 'reminder':
       return true;
+    case 'target_damage':
+      // A marca no alvo vale para quem conjurou; a distância dele não é do bloco.
+      return effect.within === undefined;
     default:
       return false;
   }
