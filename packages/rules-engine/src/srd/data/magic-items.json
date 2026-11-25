@@ -965,7 +965,8 @@
     "activation": "attuned",
     "charges": {
       "max": 3,
-      "regain": "1d3 daily at dawn"
+      "regain": "1d3 daily at dawn",
+      "regainDice": "1d3"
     },
     "description": "This cloak has 3 charges and regains 1d3 expended charges daily at dawn. While wearing the cloak, you can take a Magic action to pull its hood over your head and expend 1 charge to give yourself the Invisible condition for 1 hour. The effect ends early if you pull the hood down (no action required) or cease wearing the cloak."
   },
@@ -1082,7 +1083,21 @@
     "rarity": "legendary",
     "charges": {
       "max": 3,
-      "regain": "1d3 daily at dawn"
+      "regain": "1d3 daily at dawn",
+      "regainDice": "1d3"
+    },
+    "casting": {
+      "carried": true,
+      "spells": [
+        {
+          "spellId": "gate",
+          "charges": 1
+        },
+        {
+          "spellId": "plane_shift",
+          "charges": 1
+        }
+      ]
     },
     "description": "This cube is 3 inches across and radiates palpable magical energy. The six sides of the cube are each keyed to a different plane of existence, one of which is the Material Plane. The other sides are linked to planes determined by the GM.\nThe cube has 3 charges and regains 1d3 expended charges daily at dawn. As a Magic action, you can expend 1 of the cube's charges to cast one of the following spells using the cube.\nGate. Pressing one side of the cube, you cast Gate, opening a portal to the plane of existence keyed to that side.\nPlane Shift. Pressing one side of the cube twice, you cast Plane Shift, transporting the targets to the plane of existence keyed to that side."
   },
@@ -1217,7 +1232,35 @@
     "activation": "attuned",
     "charges": {
       "max": 7,
-      "regain": "1d4 + 3 daily at dawn"
+      "regain": "1d4 + 3 daily at dawn",
+      "regainDice": "1d4+3"
+    },
+    "casting": {
+      "saveDc": 18,
+      "carried": true,
+      "spells": [
+        {
+          "spellId": "cure_wounds",
+          "charges": 4,
+          "level": 9
+        },
+        {
+          "spellId": "daylight",
+          "charges": 1
+        },
+        {
+          "spellId": "death_ward",
+          "charges": 2
+        },
+        {
+          "spellId": "detect_magic",
+          "charges": 0
+        },
+        {
+          "spellId": "scrying",
+          "charges": 3
+        }
+      ]
     },
     "description": "An orb is an etched crystal globe about 10 inches in diameter. When used, it grows to about 20 inches in diameter, and mist swirls inside it.\nWhile attuned to an orb, you can take a Magic action to peer into the orb's depths. You must then make a DC 15 Charisma saving throw. On a successful save, you control the orb for as long as you remain attuned to it. On a failed save, the orb imposes the Charmed condition on you for as long as you remain attuned to it.\nWhile you are Charmed by the orb, you can't voluntarily end your Attunement to it, and the orb casts Suggestion on you at will (save DC 18), urging you to work toward the evil ends it desires. The dragon essence within the orb might want many things: the annihilation of a particular society or organization, freedom from the orb, to spread suffering in the world, to advance the worship of Tiamat, or something else the GM decides.\nSpells. The orb has 7 charges and regains 1d4 + 3 expended charges daily at dawn. If you control the orb, you can cast one of the spells on the following table from it. The table indicates how many charges you must expend to cast the spell.\nSpell Charge Cost Cure Wounds (level 9 version) 4 Daylight 1 Death Ward 2 Detect Magic 0 Scrying (save DC 18) 3 Call Dragons. While you control the orb, you can take a Magic action to cause the orb to issue a telepathic call that extends in all directions for 40 miles. Chromatic dragons in range feel compelled to come to the orb as soon as possible by the most direct route. Dragon deities such as Tiamat are unaffected by this call. Chromatic dragons drawn to the orb might be Hostile toward you for compelling them against their will. Once you have used this property, it can't be used again for 1 hour.\nDestroying an Orb. A Dragon Orb has AC 20 and is destroyed if it takes damage from a +3 Weapon or a Disintegrate spell. Nothing else can harm it."
   },
@@ -1751,9 +1794,6 @@
         "effects": []
       }
     ],
-    "charges": {
-      "max": 24
-    },
     "description": "A Figurine of Wondrous Power is a statuette small enough to fit in a pocket. If you take a Magic action to throw the figurine to a point on the ground within 60 feet of yourself, the figurine becomes a living creature specified in the figurine's description below. If the space where the creature would appear is occupied by other creatures or objects, or if there isn't enough space for the creature, the figurine doesn't become a creature.\nThe creature is Friendly to you and your allies.\nIt understands your languages, obeys your commands, and takes its turn immediately after you on your Initiative count. If you issue no commands, the creature defends itself but takes no other actions.\nThe creature exists for a duration specific to each figurine. At the end of the duration, the creature reverts to its figurine form. It reverts to a figurine early if its creature form drops to 0 Hit Points or if you take a Magic action while touching the creature to make it revert to figurine form. When the creature becomes a figurine again, its property can't be used again until a certain amount of time has passed, as specified in the figurine's description.\nBronze Griffon (Rare). This bronze statuette is of a griffon rampant. It can become a Griffon for up to 6 hours. Once it has been used, it can't be used again until 5 days have passed.\nEbony Fly (Rare). This ebony statuette, carved in the likeness of a horsefly, can become a Giant Fly (see the accompanying stat block) for up to 12 hours and can be ridden as a mount. Once it has been used, it can't be used again until 2 days have passed.\nGiant Fly Large Beast, Unaligned AC 11 Initiative +1 (11)\nHP 19 (3d10 + 3)\nSpeed 30 ft., Fly 60 ft.\nMOD SAVE MOD SAVE MOD SAVE Str 14 +2 +2 Dex 13 +1 +1 Con 13 +1 +1 Int 2 -4 -4 Wis 10 +0 +0 Cha 3 -4 -4 Senses Darkvision 60 ft., Passive Perception 10 Languages None CR 0 (XP 0; PB +2)\nGolden Lions (Rare). These gold statuettes of lions are always created in pairs. You can use one figurine or both simultaneously. Each can become a Lion for up to 1 hour. Once a lion has been used, it can't be used again until 7 days have passed.\nIvory Goats (Rare). These ivory statuettes of goats are always created in sets of three. Each goat looks unique and functions differently from the others. Their properties are as follows:\nGoat of Terror. This figurine can become a Giant Goat for up to 3 hours. The goat can't attack, but you can (harmlessly) remove its horns and use them as weapons. One horn becomes a +1 Lance, and the other becomes a +2 Longsword. Removing a horn requires a Magic action, and the weapons disappear and the horns return when the goat reverts to figurine form. While you ride the goat, any Hostile creature that starts its turn within a 30-foot Emanation originating from the goat must succeed on a DC 15 Wisdom saving throw or have the Frightened condition for 1 minute, until you are no longer riding the goat, or until the goat reverts to figurine form. The Frightened creature repeats the save at the end of each of its turns, ending the effect on itself on a success. Once it succeeds on the save, a creature is immune to this effect for the next 24 hours. Once the figurine has been used, it can't be used again until 15 days have passed.\nGoat of Traveling. This figurine can become a Large goat with the same statistics as a Riding Horse. It has 24 charges, and each hour or portion thereof it spends in goat form costs 1 charge.\nWhile it has charges, you can use it as often as you wish. When it runs out of charges, it reverts to a figurine and can't be used again until 7 days have passed, when it regains all expended charges.\nGoat of Travail. This figurine can become a Giant Goat for up to 3 hours. Once it has been used, it can't be used again until 30 days have passed.\nMarble Elephant (Rare). This marble statuette resembles a trumpeting elephant. It can become an Elephant for up to 24 hours. Once it has been used, it can't be used again until 7 days have passed.\nObsidian Steed (Very Rare). This polished obsidian horse can become a Nightmare for up to 24 hours. The nightmare fights only to defend itself.\nOnce it has been used, it can't be used again until 5 days have passed.\nThe figurine has a 10 percent chance each time you use it to ignore your orders, including a command to revert to figurine form. If you mount the nightmare while it is ignoring your orders, you and the nightmare are instantly transported to a random location on the plane of Hades, where the nightmare reverts to figurine form.\nOnyx Dog (Rare). This onyx statuette of a dog can become a Mastiff for up to 6 hours. The mastiff has an Intelligence of 8 and can speak Common. It also has Blindsight with a range of 60 feet. Once it has been used, it can't be used again until 7 days have passed.\nSerpentine Owl (Rare). This serpentine statuette of an owl can become a Giant Owl for up to 8 hours.\nThe owl can communicate telepathically with you at any range if you and it are on the same plane of existence. Once it has been used, it can't be used again until 2 days have passed.\nSilver Raven (Uncommon). This silver statuette of a raven can become a Raven for up to 12 hours.\nOnce it has been used, it can't be used again until 2 days have passed. While in raven form, the figurine grants you the ability to cast Animal Messenger on it."
   },
   {
@@ -1843,7 +1883,8 @@
     "activation": "attuned",
     "charges": {
       "max": 3,
-      "regain": "1d3 daily at dawn"
+      "regain": "1d3 daily at dawn",
+      "regainDice": "1d3"
     },
     "description": "This gem has 3 charges. As a Magic action, you can expend 1 charge. For the next 10 minutes, you have Truesight out to 120 feet when you peer through the gem.\nThe gem regains 1d3 expended charges daily at dawn."
   },
@@ -1975,7 +2016,8 @@
     },
     "charges": {
       "max": 5,
-      "regain": "1d4 + 1 daily at dawn"
+      "regain": "1d4 + 1 daily at dawn",
+      "regainDice": "1d4+1"
     },
     "effects": [
       {
@@ -2079,7 +2121,16 @@
     "activation": "attuned",
     "charges": {
       "max": 3,
-      "regain": "1d3 daily at dawn"
+      "regain": "1d3 daily at dawn",
+      "regainDice": "1d3"
+    },
+    "casting": {
+      "spells": [
+        {
+          "spellId": "teleport",
+          "charges": 1
+        }
+      ]
     },
     "description": "This helm has 3 charges. While wearing it, you can expend 1 charge to cast Teleport from it. The helm regains 1d3 expended charges daily at dawn."
   },
@@ -2494,7 +2545,8 @@
     },
     "charges": {
       "max": 3,
-      "regain": "1d3 daily at dawn"
+      "regain": "1d3 daily at dawn",
+      "regainDice": "1d3"
     },
     "description": "This magic weapon has 3 charges and regains 1d3 expended charges daily at dawn. While holding the weapon, you can take a Magic action and expend 1 charge to release a wave of terror from it.\nEach creature of your choice within 30 feet of you must succeed on a DC 15 Wisdom saving throw or have the Frightened condition for 1 minute. While Frightened in this way, a creature must spend its turns trying to move as far away from you as it can, and it can't make Opportunity Attacks. For its action, it can use only the Dash action or try to escape from an effect that prevents it from moving. If it has nowhere it can move, the creature can take the Dodge action. At the end of each of its turns, a creature repeats the save, ending the effect on itself on a success."
   },
@@ -2570,7 +2622,17 @@
     "activation": "attuned",
     "charges": {
       "max": 5,
-      "regain": "1d4 daily at dawn"
+      "regain": "1d4 daily at dawn",
+      "regainDice": "1d4"
+    },
+    "casting": {
+      "saveDc": 13,
+      "spells": [
+        {
+          "spellId": "detect_thoughts",
+          "charges": 1
+        }
+      ]
     },
     "description": "The medallion has 5 charges. While wearing it, you can expend 1 charge to cast Detect Thoughts (save DC 13) from it. The medallion regains 1d4 expended charges daily at dawn."
   },
@@ -3552,7 +3614,26 @@
     "rarity": "rare",
     "charges": {
       "max": 3,
-      "regain": "1d3 daily at dawn"
+      "regain": "1d3 daily at dawn",
+      "regainDice": "1d3"
+    },
+    "casting": {
+      "saveDc": 13,
+      "spells": [
+        {
+          "spellId": "animal_friendship",
+          "charges": 1
+        },
+        {
+          "spellId": "fear",
+          "charges": 1,
+          "note": "Só afeta Feras"
+        },
+        {
+          "spellId": "speak_with_animals",
+          "charges": 1
+        }
+      ]
     },
     "description": "This ring has 3 charges, and it regains 1d3 expended charges daily at dawn. While wearing the ring, you can expend 1 charge to cast one of the following spells (save DC 13) from it: • Animal Friendship • Fear (affects Beasts only) • Speak with Animals"
   },
@@ -3576,7 +3657,98 @@
     "activation": "attuned",
     "charges": {
       "max": 5,
-      "regain": "1d4 + 1 daily at dawn"
+      "regain": "1d4 + 1 daily at dawn",
+      "regainDice": "1d4+1"
+    },
+    "casting": {
+      "saveDc": 18,
+      "spells": [
+        {
+          "spellId": "chain_lightning",
+          "charges": 3,
+          "note": "Anel do ar"
+        },
+        {
+          "spellId": "feather_fall",
+          "charges": 0,
+          "note": "Anel do ar"
+        },
+        {
+          "spellId": "gust_of_wind",
+          "charges": 2,
+          "note": "Anel do ar"
+        },
+        {
+          "spellId": "wind_wall",
+          "charges": 1,
+          "note": "Anel do ar"
+        },
+        {
+          "spellId": "earthquake",
+          "charges": 5,
+          "note": "Anel da terra"
+        },
+        {
+          "spellId": "stone_shape",
+          "charges": 2,
+          "note": "Anel da terra"
+        },
+        {
+          "spellId": "stoneskin",
+          "charges": 3,
+          "note": "Anel da terra"
+        },
+        {
+          "spellId": "wall_of_stone",
+          "charges": 3,
+          "note": "Anel da terra"
+        },
+        {
+          "spellId": "burning_hands",
+          "charges": 1,
+          "note": "Anel do fogo"
+        },
+        {
+          "spellId": "fireball",
+          "charges": 2,
+          "note": "Anel do fogo"
+        },
+        {
+          "spellId": "fire_storm",
+          "charges": 4,
+          "note": "Anel do fogo"
+        },
+        {
+          "spellId": "wall_of_fire",
+          "charges": 3,
+          "note": "Anel do fogo"
+        },
+        {
+          "spellId": "create_or_destroy_water",
+          "charges": 1,
+          "note": "Anel da água"
+        },
+        {
+          "spellId": "ice_storm",
+          "charges": 2,
+          "note": "Anel da água"
+        },
+        {
+          "spellId": "tsunami",
+          "charges": 5,
+          "note": "Anel da água"
+        },
+        {
+          "spellId": "wall_of_ice",
+          "charges": 3,
+          "note": "Anel da água"
+        },
+        {
+          "spellId": "water_walk",
+          "charges": 2,
+          "note": "Anel da água"
+        }
+      ]
     },
     "description": "Each Ring of Elemental Command is linked to one of the four Elemental Planes. The GM chooses or randomly determines the linked plane. For example, a Ring of Elemental Command (air) is linked to the Elemental Plane of Air.\nEvery Ring of Elemental Command has the following two properties:\nElemental Bane. While wearing the ring, you have Advantage on attack rolls against Elementals and they have Disadvantage on attack rolls against you.\nElemental Compulsion. While wearing the ring, you can take a Magic action to try to compel an Elemental you see within 60 feet of yourself. The Elemental makes a DC 18 Wisdom saving throw.\nOn a failed save, the Elemental has the Charmed condition until the start your next turn, and you determine what it does with its move and action on its next turn.\nElemental Focus. While wearing the ring, you benefit from additional properties corresponding to the ring's linked Elemental Plane:\nAir. You know Auran, you have Resistance to Lightning damage, and you have a Fly Speed equal to your Speed and can hover.\nEarth. You know Terran, and you have Resistance to Acid damage. Terrain composed of rubble, rocks, or dirt isn't Difficult Terrain for you. In addition, you can move through solid earth or rock as if those areas were Difficult Terrain without disturbing the matter through which you pass. If you end your turn in solid earth or rock, you are shunted out to the nearest unoccupied space you last occupied.\nFire. You know Ignan, and you have Immunity to Fire damage.\nWater. You know Aquan, you gain a Swim Speed of 60 feet, and you can breathe underwater.\nSpellcasting. The ring has 5 charges and regains 1d4 + 1 expended charges daily at dawn.\nWhile wearing the ring, you can cast a spell from it. Choose the spell from the list of available spells based on the Elemental Plane the ring is linked to, as shown in the following table. The table indicates how many charges you must expend to cast the spell, which has a save DC of 18.\nPlane Spells (Charges)\nAir Chain Lightning (3 charges), Feather Fall (0 charges), Gust of Wind (2 charges), Wind Wall (1 charge)\nEarth Earthquake (5 charges), Stone Shape (2 charges), Stoneskin (3 charges), Wall of Stone (3 charges)\nFire Burning Hands (1 charge), Fireball (2 charges), Fire Storm (4 charges), Wall of Fire (3 charges)\nWater Create or Destroy Water (1 charge), Ice Storm (2 charges), Tsunami (5 charges), Wall of Ice (3 charges), Water Walk (2 charges)"
   },
@@ -3590,7 +3762,8 @@
     "activation": "attuned",
     "charges": {
       "max": 3,
-      "regain": "1d3 daily at dawn"
+      "regain": "1d3 daily at dawn",
+      "regainDice": "1d3"
     },
     "description": "This ring has 3 charges, and it regains 1d3 expended charges daily at dawn. When you fail a Dexterity saving throw while wearing the ring, you can take a Reaction to expend 1 charge to succeed on that save instead."
   },
@@ -3805,7 +3978,24 @@
     "activation": "attuned",
     "charges": {
       "max": 6,
-      "regain": "1d6 daily at dawn"
+      "regain": "1d6 daily at dawn",
+      "regainDice": "1d6"
+    },
+    "casting": {
+      "spells": [
+        {
+          "spellId": "dancing_lights",
+          "charges": 0
+        },
+        {
+          "spellId": "light",
+          "charges": 0
+        },
+        {
+          "spellId": "faerie_fire",
+          "charges": 1
+        }
+      ]
     },
     "description": "You can cast Dancing Lights or Light from the ring.\nThe ring has 6 charges and regains 1d6 expended charges daily at dawn. You can expend its charges to use the properties below.\nFaerie Fire. You can expend 1 charge to cast Faerie Fire from the ring.\nLightning Spheres. You can expend 2 charges as a Magic action to create up to four 3-foot-diameter spheres of lightning.\nEach sphere appears in an unoccupied space you can see within 120 feet of yourself. The spheres last as long as you maintain Concentration, up to 1 minute. Each sphere sheds Dim Light in a 30-foot radius.\nAs a Bonus Action, you can move each sphere up to 30 feet, but no farther than 120 feet away from yourself. The first time the sphere comes within 5 feet of a creature other than you that isn't behind Total Cover, the sphere discharges lightning at that creature and disappears. That creature makes a DC 15 Dexterity saving throw. On a failed save, the creature takes Lightning damage based on the number of spheres you created, as shown in the following table. On a successful save, the creature takes half as much damage.\nNumber of Spheres Lightning Damage Number of Spheres Lightning Damage 1 4d12 3 2d6 2 5d4 4 2d4 Shooting Stars. You can expend 1 to 3 charges as a Magic action. For every charge you expend, you launch a glowing mote of light from the ring at a point you can see within 60 feet of yourself. Each creature in a 15-foot Cube originating from that point is showered in sparks and makes a DC 15 Dexterity saving throw, taking 5d4 Radiant damage on a failed save or half as much damage on a successful one."
   },
@@ -3875,7 +4065,8 @@
     "activation": "attuned",
     "charges": {
       "max": 3,
-      "regain": "1d3 daily at dawn"
+      "regain": "1d3 daily at dawn",
+      "regainDice": "1d3"
     },
     "description": "This ring has 3 charges and regains 1d3 expended charges daily at dawn. While wearing the ring, you can take a Magic action to expend 1 to 3 charges to make a ranged spell attack against one creature you can see within 60 feet of yourself. The ring produces a spectral ram's head and makes its attack roll with a +7 bonus. On a hit, for each charge you spend, the target takes 2d10 Force damage and is pushed 5 feet away from you.\nAlternatively, you can expend 1 to 3 of the ring's charges as a Magic action to try to break a nonmagical object you can see within 60 feet of yourself that isn't being worn or carried. The ring makes a Strength check with a +5 bonus for each charge you spend."
   },
@@ -3959,7 +4150,8 @@
     "activation": "attuned",
     "charges": {
       "max": 3,
-      "regain": "1d3 daily at dawn"
+      "regain": "1d3 daily at dawn",
+      "regainDice": "1d3"
     },
     "description": "This robe has 3 charges, and it regains 1d3 expended charges daily at dawn. While you wear it, you can take a Magic action and expend 1 charge to cause the garment to display a shifting pattern of dazzling hues until the end of your next turn.\nDuring this time, the robe sheds Bright Light in a 30-foot radius and Dim Light for an additional 30 feet, and creatures that can see you have Disadvantage on attack rolls against you. Any creature in the Bright Light that can see you when the robe's power is activated must succeed on a DC 15 Wisdom saving throw or have the Stunned condition until the effect ends."
   },
@@ -4104,7 +4296,9 @@
     "activation": "attuned",
     "charges": {
       "max": 5,
-      "regain": "1 daily at dawn"
+      "regain": "1 daily at dawn",
+      "regainDice": "1",
+      "lastCharge": "destroyed_on_1"
     },
     "description": "The rod has 5 charges. While you hold it, you can cast one of the following spells from it: Heal (expends 1 charge) or Resurrection (expends 5 charges).\nThe rod regains 1 expended charge daily at dawn.\nIf you expend the last charge, roll 1d20. On a 1, the rod disappears in a harmless burst of radiance."
   },
@@ -4151,7 +4345,8 @@
     "attunement": {},
     "activation": "attuned",
     "charges": {
-      "max": 12
+      "max": 12,
+      "lastCharge": "destroyed"
     },
     "effects": [
       {
@@ -4481,7 +4676,25 @@
     "activation": "attuned",
     "charges": {
       "max": 10,
-      "regain": "1d8 + 2 daily at dawn"
+      "regain": "1d8 + 2 daily at dawn",
+      "regainDice": "1d8+2",
+      "lastCharge": "destroyed_on_1"
+    },
+    "casting": {
+      "spells": [
+        {
+          "spellId": "charm_person",
+          "charges": 1
+        },
+        {
+          "spellId": "command",
+          "charges": 1
+        },
+        {
+          "spellId": "comprehend_languages",
+          "charges": 1
+        }
+      ]
     },
     "description": "This staff has 10 charges. While holding the staff, you can use any of its properties:\nCast Spell. You can expend 1 of the staff's charges to cast Charm Person, Command, or Comprehend Languages from it using your spell save DC.\nReflect Enchantment. If you succeed on a saving throw against an Enchantment spell that targets only you, you can take a Reaction to expend 1 charge from the staff and turn the spell back on its caster as if you had cast the spell.\nResist Enchantment. If you fail a saving throw against an Enchantment spell that targets only you, you can turn your failed save into a successful one. You can't use this property of the staff again until the next dawn.\nRegaining Charges. The staff regains 1d8 + 2 expended charges daily at dawn. If you expend the last charge, roll 1d20. On a 1, the staff crumbles to dust and is destroyed."
   },
@@ -4503,7 +4716,25 @@
     "activation": "attuned",
     "charges": {
       "max": 10,
-      "regain": "1d6 + 4 daily at dawn"
+      "regain": "1d6 + 4 daily at dawn",
+      "regainDice": "1d6+4",
+      "lastCharge": "destroyed_on_1"
+    },
+    "casting": {
+      "spells": [
+        {
+          "spellId": "burning_hands",
+          "charges": 1
+        },
+        {
+          "spellId": "wall_of_fire",
+          "charges": 4
+        },
+        {
+          "spellId": "fireball",
+          "charges": 3
+        }
+      ]
     },
     "effects": [
       {
@@ -4531,7 +4762,29 @@
     "activation": "attuned",
     "charges": {
       "max": 10,
-      "regain": "1d6 + 4 daily at dawn"
+      "regain": "1d6 + 4 daily at dawn",
+      "regainDice": "1d6+4",
+      "lastCharge": "destroyed_on_1"
+    },
+    "casting": {
+      "spells": [
+        {
+          "spellId": "cone_of_cold",
+          "charges": 5
+        },
+        {
+          "spellId": "ice_storm",
+          "charges": 4
+        },
+        {
+          "spellId": "fog_cloud",
+          "charges": 1
+        },
+        {
+          "spellId": "wall_of_ice",
+          "charges": 4
+        }
+      ]
     },
     "effects": [
       {
@@ -4558,7 +4811,26 @@
     "activation": "attuned",
     "charges": {
       "max": 10,
-      "regain": "1d6 + 4 daily at dawn"
+      "regain": "1d6 + 4 daily at dawn",
+      "regainDice": "1d6+4",
+      "lastCharge": "destroyed_on_1"
+    },
+    "casting": {
+      "spells": [
+        {
+          "spellId": "cure_wounds",
+          "charges": 1,
+          "maxCharges": 4
+        },
+        {
+          "spellId": "lesser_restoration",
+          "charges": 2
+        },
+        {
+          "spellId": "mass_cure_wounds",
+          "charges": 5
+        }
+      ]
     },
     "description": "This staff has 10 charges. While holding the staff, you can cast one of the spells on the following table from it, using your spellcasting ability modifier. The table indicates how many charges you must expend to cast the spell.\nSpell Charge Cost Cure Wounds 1 charge per spell level (maximum 4 for a level 4 spell)\nLesser Restoration 2 Mass Cure Wounds 5 Regaining Charges. The staff regains 1d6 + 4 expended charges daily at dawn. If you expend the last charge, roll 1d20. On a 1, the staff vanishes in a flash of light, lost forever."
   },
@@ -4585,7 +4857,51 @@
     },
     "charges": {
       "max": 20,
-      "regain": "2d8 + 4 daily at dawn"
+      "regain": "2d8 + 4 daily at dawn",
+      "regainDice": "2d8+4",
+      "lastCharge": "gm"
+    },
+    "casting": {
+      "spells": [
+        {
+          "spellId": "cone_of_cold",
+          "charges": 5
+        },
+        {
+          "spellId": "fireball",
+          "charges": 5,
+          "level": 5
+        },
+        {
+          "spellId": "globe_of_invulnerability",
+          "charges": 6
+        },
+        {
+          "spellId": "hold_monster",
+          "charges": 5
+        },
+        {
+          "spellId": "levitate",
+          "charges": 2
+        },
+        {
+          "spellId": "lightning_bolt",
+          "charges": 5,
+          "level": 5
+        },
+        {
+          "spellId": "magic_missile",
+          "charges": 1
+        },
+        {
+          "spellId": "ray_of_enfeeblement",
+          "charges": 1
+        },
+        {
+          "spellId": "wall_of_force",
+          "charges": 5
+        }
+      ]
     },
     "effects": [
       {
@@ -4632,7 +4948,9 @@
     },
     "charges": {
       "max": 10,
-      "regain": "1d6 + 4 daily at dawn"
+      "regain": "1d6 + 4 daily at dawn",
+      "regainDice": "1d6+4",
+      "lastCharge": "gm"
     },
     "effects": [
       {
@@ -4668,7 +4986,21 @@
     "activation": "attuned",
     "charges": {
       "max": 10,
-      "regain": "1d6 + 4 daily at dawn"
+      "regain": "1d6 + 4 daily at dawn",
+      "regainDice": "1d6+4",
+      "lastCharge": "destroyed_on_1"
+    },
+    "casting": {
+      "spells": [
+        {
+          "spellId": "giant_insect",
+          "charges": 4
+        },
+        {
+          "spellId": "insect_plague",
+          "charges": 5
+        }
+      ]
     },
     "description": "This staff has 10 charges.\nInsect Cloud. While holding the staff, you can take a Magic action and expend 1 charge to cause a swarm of harmless flying insects to fill a 30foot Emanation originating from you. The insects remain for 10 minutes, making the area Heavily Obscured for creatures other than you. A strong wind (like that created by Gust of Wind) disperses the swarm and ends the effect.\nSpells. While holding the staff, you can cast one of the spells on the following table from it, using your spell save DC and spell attack modifier. The table indicates how many charges you must expend to cast the spell.\nSpell Charge Cost Giant Insect 4 Insect Plague 5 Regaining Charges. The staff regains 1d6 + 4 expended charges daily at dawn. If you expend the last charge, roll 1d20. On a 1, a swarm of insects consumes and destroys the staff, then disperses."
   },
@@ -4695,7 +5027,91 @@
     },
     "charges": {
       "max": 50,
-      "regain": "4d6 + 2 daily at dawn"
+      "regain": "4d6 + 2 daily at dawn",
+      "regainDice": "4d6+2",
+      "lastCharge": "gm"
+    },
+    "casting": {
+      "spells": [
+        {
+          "spellId": "arcane_lock",
+          "charges": 0
+        },
+        {
+          "spellId": "conjure_elemental",
+          "charges": 7
+        },
+        {
+          "spellId": "detect_magic",
+          "charges": 0
+        },
+        {
+          "spellId": "dispel_magic",
+          "charges": 3
+        },
+        {
+          "spellId": "enlarge_reduce",
+          "charges": 0
+        },
+        {
+          "spellId": "fireball",
+          "charges": 7,
+          "level": 7
+        },
+        {
+          "spellId": "flaming_sphere",
+          "charges": 2
+        },
+        {
+          "spellId": "ice_storm",
+          "charges": 4
+        },
+        {
+          "spellId": "invisibility",
+          "charges": 2
+        },
+        {
+          "spellId": "knock",
+          "charges": 2
+        },
+        {
+          "spellId": "light",
+          "charges": 0
+        },
+        {
+          "spellId": "lightning_bolt",
+          "charges": 7,
+          "level": 7
+        },
+        {
+          "spellId": "mage_hand",
+          "charges": 0
+        },
+        {
+          "spellId": "passwall",
+          "charges": 5
+        },
+        {
+          "spellId": "plane_shift",
+          "charges": 7
+        },
+        {
+          "spellId": "protection_from_evil_and_good",
+          "charges": 0
+        },
+        {
+          "spellId": "telekinesis",
+          "charges": 5
+        },
+        {
+          "spellId": "wall_of_fire",
+          "charges": 4
+        },
+        {
+          "spellId": "web",
+          "charges": 2
+        }
+      ]
     },
     "effects": [
       {
@@ -4756,7 +5172,45 @@
     },
     "charges": {
       "max": 6,
-      "regain": "1d6 daily at dawn"
+      "regain": "1d6 daily at dawn",
+      "regainDice": "1d6",
+      "lastCharge": "gm"
+    },
+    "casting": {
+      "spells": [
+        {
+          "spellId": "animal_friendship",
+          "charges": 1
+        },
+        {
+          "spellId": "awaken",
+          "charges": 5
+        },
+        {
+          "spellId": "barkskin",
+          "charges": 2
+        },
+        {
+          "spellId": "locate_animals_or_plants",
+          "charges": 2
+        },
+        {
+          "spellId": "pass_without_trace",
+          "charges": 2
+        },
+        {
+          "spellId": "speak_with_animals",
+          "charges": 1
+        },
+        {
+          "spellId": "speak_with_plants",
+          "charges": 3
+        },
+        {
+          "spellId": "wall_of_thorns",
+          "charges": 6
+        }
+      ]
     },
     "effects": [
       {
@@ -4821,7 +5275,8 @@
     },
     "charges": {
       "max": 3,
-      "regain": "1d3 daily at dawn"
+      "regain": "1d3 daily at dawn",
+      "regainDice": "1d3"
     },
     "description": "This staff has 3 charges and regains 1d3 expended charges daily at dawn.\nThe staff can be wielded as a magic Quarterstaff.\nOn a hit, it deals damage as a normal Quarterstaff, and you can expend 1 charge to deal an extra 2d10 Necrotic damage to the target and force it to make a DC 15 Constitution saving throw. On a failed save, the target has Disadvantage for 1 hour on any ability check or saving throw that uses Strength or Constitution."
   },
@@ -4995,7 +5450,8 @@
     },
     "activation": "attuned",
     "charges": {
-      "max": 7
+      "max": 7,
+      "lastCharge": "destroyed"
     },
     "description": "This talisman is a mighty symbol of goodness. A Fiend or an Undead that touches the talisman takes 8d6 Radiant damage and takes the damage again each time it ends its turn holding or carrying the talisman.\nHoly Symbol. You can use the talisman as a Holy Symbol. You gain a +2 bonus to spell attack rolls while you wear or hold it.\nPure Rebuke. The talisman has 7 charges. While wearing or holding the talisman, you can take a Magic action to expend 1 charge and target one creature you can see on the ground within 120 feet of yourself. A flaming fissure opens under the target, and the target makes a DC 20 Dexterity saving throw. If the target is a Fiend or an Undead, it has Disadvantage on the save. On a failed save, the target falls into the fissure and is destroyed, leaving no remains. On a successful save, the target isn't cast into the fissure but takes 4d6 Psychic damage from the ordeal. In either case, the fissure then closes, leaving no trace of its existence. When you expend the last charge, the talisman disperses into motes of golden light and is destroyed."
   },
@@ -5025,7 +5481,8 @@
     "attunement": {},
     "activation": "attuned",
     "charges": {
-      "max": 6
+      "max": 6,
+      "lastCharge": "destroyed"
     },
     "description": "This item symbolizes unrepentant evil. A creature that isn't a Fiend or an Undead that touches the talisman takes 8d6 Necrotic damage and takes the damage again each time it ends its turn holding or carrying the talisman.\nHoly Symbol. You can use the talisman as a Holy Symbol. You gain a +2 bonus to spell attack rolls while you wear or hold it.\nUltimate End. The talisman has 6 charges. While wearing or holding the talisman, you can take a Magic action to expend 1 charge and target one creature you can see on the ground within 120 feet of yourself. A flaming fissure opens under the target, and the target makes a DC 20 Dexterity saving throw. If the target is a Celestial, it has Disadvantage on the save. On a failed save, the target falls into the fissure and is destroyed, leaving no remains. On a successful save, the target isn't cast into the fissure but takes 4d6 Psychic damage from the ordeal. In either case, the fissure then closes, leaving no trace of its existence. When you expend the last charge, the talisman dissolves into foul-smelling slime and is destroyed."
   },
@@ -5092,7 +5549,19 @@
     },
     "charges": {
       "max": 3,
-      "regain": "1d3 daily at dawn"
+      "regain": "1d3 daily at dawn",
+      "regainDice": "1d3"
+    },
+    "casting": {
+      "saveDc": 15,
+      "carried": true,
+      "spells": [
+        {
+          "spellId": "dominate_beast",
+          "charges": 1,
+          "note": "Só uma Fera com deslocamento de natação"
+        }
+      ]
     },
     "description": "This magic weapon has 3 charges, and it regains 1d3 expended charges daily at dawn. While you carry it, you can expend 1 charge to cast Dominate Beast (save DC 15) from it on a Beast that has a Swim Speed."
   },
@@ -5168,7 +5637,22 @@
     "activation": "attuned",
     "charges": {
       "max": 7,
-      "regain": "1d6 + 1 daily at dawn"
+      "regain": "1d6 + 1 daily at dawn",
+      "regainDice": "1d6+1",
+      "lastCharge": "destroyed_on_1"
+    },
+    "casting": {
+      "saveDc": 17,
+      "spells": [
+        {
+          "spellId": "hold_monster",
+          "charges": 5
+        },
+        {
+          "spellId": "hold_person",
+          "charges": 2
+        }
+      ]
     },
     "description": "This wand has 7 charges.\nSpells. While holding the wand, you can cast one of the spells (save DC 17) on the following table from it. The table indicates how many charges you must expend to cast the spell.\nSpell Charge Cost Hold Monster 5 Hold Person 2 Regaining Charges. The wand regains 1d6 + 1 expended charges daily at dawn. If you expend the wand's last charge, roll 1d20. On a 1, the wand crumbles into ashes and is destroyed."
   },
@@ -5182,7 +5666,9 @@
     "activation": "attuned",
     "charges": {
       "max": 7,
-      "regain": "1d6 + 1 daily at dawn"
+      "regain": "1d6 + 1 daily at dawn",
+      "regainDice": "1d6+1",
+      "lastCharge": "destroyed_on_1"
     },
     "description": "This wand has 7 charges. While holding it, you can take a Magic action to expend 1 charge. For 1 minute, you know the direction of the nearest creature Hostile to you within 60 feet, but not its distance from you. The wand can sense the presence of Hostile creatures that are Invisible, ethereal, disguised, or hidden, as well as those in plain sight. The effect ends if you stop holding the wand.\nRegaining Charges. The wand regains 1d6 + 1 expended charges daily at dawn. If you expend the wand's last charge, roll 1d20. On a 1, the wand crumbles into ashes and is destroyed."
   },
@@ -5196,7 +5682,24 @@
     "activation": "attuned",
     "charges": {
       "max": 7,
-      "regain": "1d6 + 1 daily at dawn"
+      "regain": "1d6 + 1 daily at dawn",
+      "regainDice": "1d6+1",
+      "lastCharge": "destroyed_on_1"
+    },
+    "casting": {
+      "saveDc": 15,
+      "spells": [
+        {
+          "spellId": "command",
+          "charges": 1,
+          "note": "Só \"flee\" ou \"grovel\""
+        },
+        {
+          "spellId": "fear",
+          "charges": 3,
+          "note": "Cone de 60 ft"
+        }
+      ]
     },
     "description": "This wand has 7 charges.\nSpells. While holding the wand, you can cast one of the spells (save DC 15) on the following table from it. The table indicates how many charges you must expend to cast the spell.\nSpell Charge Cost Command (\"flee\" or \"grovel\" only) 1 Fear (60-foot Cone) 3 Regaining Charges. The wand regains 1d6 + 1 expended charges daily at dawn. If you expend the wand's last charge, roll 1d20. On a 1, the wand crumbles into ashes and is destroyed."
   },
@@ -5213,7 +5716,19 @@
     "activation": "attuned",
     "charges": {
       "max": 7,
-      "regain": "1d6 + 1 daily at dawn"
+      "regain": "1d6 + 1 daily at dawn",
+      "regainDice": "1d6+1",
+      "lastCharge": "destroyed_on_1"
+    },
+    "casting": {
+      "saveDc": 15,
+      "spells": [
+        {
+          "spellId": "fireball",
+          "charges": 1,
+          "maxCharges": 3
+        }
+      ]
     },
     "description": "This wand has 7 charges. While holding it, you can expend no more than 3 charges to cast Fireball (save DC 15) from it. For 1 charge, you cast the level 3 version of the spell. You can increase the spell's level by 1 for each additional charge you expend.\nRegaining Charges. The wand regains 1d6 + 1 expended charges daily at dawn. If you expend the wand's last charge, roll 1d20. On a 1, the wand crumbles into ashes and is destroyed."
   },
@@ -5230,7 +5745,19 @@
     "activation": "attuned",
     "charges": {
       "max": 7,
-      "regain": "1d6 + 1 daily at dawn"
+      "regain": "1d6 + 1 daily at dawn",
+      "regainDice": "1d6+1",
+      "lastCharge": "destroyed_on_1"
+    },
+    "casting": {
+      "saveDc": 15,
+      "spells": [
+        {
+          "spellId": "lightning_bolt",
+          "charges": 1,
+          "maxCharges": 3
+        }
+      ]
     },
     "description": "This wand has 7 charges. While holding it, you can expend no more than 3 charges to cast Lightning Bolt (save DC 15) from it. For 1 charge, you cast the level 3 version of the spell. You can increase the spell's level by 1 for each additional charge you expend.\nRegaining Charges. The wand regains 1d6 + 1 expended charges daily at dawn. If you expend the wand's last charge, roll 1d20. On a 1, the wand crumbles into ashes and is destroyed."
   },
@@ -5242,7 +5769,16 @@
     "rarity": "uncommon",
     "charges": {
       "max": 3,
-      "regain": "1d3 daily at dawn"
+      "regain": "1d3 daily at dawn",
+      "regainDice": "1d3"
+    },
+    "casting": {
+      "spells": [
+        {
+          "spellId": "detect_magic",
+          "charges": 1
+        }
+      ]
     },
     "description": "This wand has 3 charges. While holding it, you can expend 1 charge to cast Detect Magic from it. The wand regains 1d3 expended charges daily at dawn."
   },
@@ -5254,7 +5790,18 @@
     "rarity": "uncommon",
     "charges": {
       "max": 7,
-      "regain": "1d6 + 1 daily at dawn"
+      "regain": "1d6 + 1 daily at dawn",
+      "regainDice": "1d6+1",
+      "lastCharge": "destroyed_on_1"
+    },
+    "casting": {
+      "spells": [
+        {
+          "spellId": "magic_missile",
+          "charges": 1,
+          "maxCharges": 3
+        }
+      ]
     },
     "description": "This wand has 7 charges. While holding it, you can expend no more than 3 charges to cast Magic Missile from it. For 1 charge, you cast the level 1 version of the spell. You can increase the spell's level by 1 for each additional charge you expend.\nRegaining Charges. The wand regains 1d6 + 1 expended charges daily at dawn. If you expend the wand's last charge, roll 1d20. On a 1, the wand crumbles into ashes and is destroyed."
   },
@@ -5271,7 +5818,9 @@
     "activation": "attuned",
     "charges": {
       "max": 7,
-      "regain": "1d6 + 1 daily at dawn"
+      "regain": "1d6 + 1 daily at dawn",
+      "regainDice": "1d6+1",
+      "lastCharge": "destroyed_on_1"
     },
     "description": "This wand has 7 charges. While holding it, you can take a Magic action to expend 1 charge to cause a thin blue ray to streak from the tip toward a creature you can see within 60 feet of yourself. The target must succeed on a DC 15 Constitution saving throw or have the Paralyzed condition for 1 minute.\nAt the end of each of the target's turns, it repeats the save, ending the effect on itself on a success.\nRegaining Charges. The wand regains 1d6 + 1 expended charges daily at dawn. If you expend the wand's last charge, roll 1d20. On a 1, the wand crumbles into ashes and is destroyed."
   },
@@ -5288,7 +5837,18 @@
     "activation": "attuned",
     "charges": {
       "max": 7,
-      "regain": "1d6 + 1 daily at dawn"
+      "regain": "1d6 + 1 daily at dawn",
+      "regainDice": "1d6+1",
+      "lastCharge": "destroyed_on_1"
+    },
+    "casting": {
+      "saveDc": 15,
+      "spells": [
+        {
+          "spellId": "polymorph",
+          "charges": 1
+        }
+      ]
     },
     "description": "This wand has 7 charges. While holding it, you can expend 1 charge to cast Polymorph (save DC 15) from it.\nRegaining Charges. The wand regains 1d6 + 1 expended charges daily at dawn. If you expend the wand's last charge, roll 1d20. On a 1, the wand crumbles into ashes and is destroyed."
   },
@@ -5300,7 +5860,8 @@
     "rarity": "uncommon",
     "charges": {
       "max": 3,
-      "regain": "1d3 daily at dawn"
+      "regain": "1d3 daily at dawn",
+      "regainDice": "1d3"
     },
     "description": "This wand has 3 charges and regains 1d3 expended charges daily at dawn. While holding it, you can take a Magic action to expend 1 charge, and if a secret door or trap is within 60 feet of you, the wand pulses and points at the one nearest to you."
   },
@@ -5367,7 +5928,18 @@
     "activation": "attuned",
     "charges": {
       "max": 7,
-      "regain": "1d6 + 1 daily at dawn"
+      "regain": "1d6 + 1 daily at dawn",
+      "regainDice": "1d6+1",
+      "lastCharge": "destroyed_on_1"
+    },
+    "casting": {
+      "saveDc": 13,
+      "spells": [
+        {
+          "spellId": "web",
+          "charges": 1
+        }
+      ]
     },
     "description": "This wand has 7 charges. While holding it, you can expend 1 charge to cast Web (save DC 13) from it.\nRegaining Charges. The wand regains 1d6 + 1 expended charges daily at dawn. If you expend the wand's last charge, roll 1d20. On a 1, the wand crumbles into ashes and is destroyed."
   },
@@ -5381,7 +5953,9 @@
     "activation": "attuned",
     "charges": {
       "max": 7,
-      "regain": "1d6 + 1 daily at dawn"
+      "regain": "1d6 + 1 daily at dawn",
+      "regainDice": "1d6+1",
+      "lastCharge": "destroyed_on_1"
     },
     "description": "This wand has 7 charges. While holding it, you can take a Magic action to expend 1 charge while choosing a point within 120 feet of yourself. That location becomes the point of origin of a spell or other magical effect determined by rolling on the Wand of Wonder Effects table. Spells cast from the wand have a save DC of 15. If a spell's maximum range is normally less than 120 feet, it becomes 120 feet when cast from the wand. If an effect has multiple possible subjects, the GM determines randomly which among them are affected.\nRegaining Charges. The wand regains 1d6 + 1 expended charges daily at dawn. If you expend the wand's last charge, roll 1d20. On a 1, the wand crumbles into dust and is destroyed.\nWand of Wonder Effects 1d100 Effect 01-20 You cast a spell originating from the chosen point. Roll 1d10 to determine the spell: on a 1-2, Darkness; on a 3-4, Faerie Fire; on a 5-6, Fireball; on a 7-8, Slow; on a 9-10, Stinking Cloud. 21-25 Nothing happens at the chosen point of origin.\nInstead, you have the Stunned condition until the start of your next turn, believing something awesome just happened. 26-30 You cast Gust of Wind. The Line created by the spell extends from you to the chosen point of origin. 31-35 Nothing happens at the chosen point of origin.\nInstead, you take 1d6 Psychic damage. 36-40 Heavy rain falls for 1 minute in a 120-foothigh, 60-foot-radius Cylinder centered on the chosen point of origin. During that time, the area of effect is Lightly Obscured. 41-45 A cloud of 600 oversized butterflies fills a 60-foot-high, 30-foot-radius Cylinder centered on the chosen point of origin. The butterflies remain for 10 minutes, during which time the area of effect is Heavily Obscured. 46-50 You cast Lightning Bolt. The Line created by the spell extends from you to the chosen point of origin. 51-55 The creature closest to the chosen point of origin is enlarged as if you had cast Enlarge/ Reduce on it. If the target isn't you and can't be affected by that spell, you become the target instead. 56-60 A magically formed creature appears in an unoccupied space as close to the chosen point of origin as possible. The creature isn't under your control, acts as it normally would, and disappears after 1 hour or when it drops to 0 Hit Points. Roll 1d4 to determine which creature appears. On a 1, a Rhinoceros appears; on a 2, an Elephant appears; and on a 3-4, a Rat appears. 61-64 Grass covers a 60-foot-radius circle of ground, with the center of that circle as close to the chosen point of origin as possible. Grass that's already there grows to ten times its normal size and remains overgrown for 1 minute. 1d100 Effect 65-68 An object of the GM's choice disappears into the Ethereal Plane. The object must be neither worn nor carried, within 120 feet of the chosen point of origin, and no larger than 10 feet in any dimension. If there are no such objects in range, nothing happens. 69-72 Nothing happens at the chosen point of origin.\nInstead, you shrink as if you had cast Enlarge/ Reduce on yourself and remain in that state for 1 minute. 73-77 Leaves grow from the creature nearest to the chosen point of origin. Unless they are picked off, the leaves turn brown and fall off after 24 hours. 78-82 Nothing happens at the chosen point of origin.\nInstead, a burst of colorful, shimmering light extends from you in a 30-foot Emanation.\nEach creature in the area must succeed on a DC 15 Constitution saving throw or have the Blinded condition for 1 minute. A creature repeats the save at the end of each of its turns, ending the effect on itself on a success. 83-87 Nothing happens at the chosen point of origin.\nInstead, you cast Invisibility on yourself. 88-92 Nothing happens at the chosen point of origin. Instead, a stream of 1d4 × 10 gems, each worth 1 GP, shoots from the wand's tip in a Line 30 feet long and 5 feet wide toward the chosen point of origin. Each gem deals 1 Bludgeoning damage, and the total damage of the gems is divided equally among all creatures in the Line. 93-97 You cast Polymorph, targeting the creature closest to the chosen point of origin. Roll 1d4 to determine the target's new form. On a 1, the new form is a Black Bear; on a 2, the new form is a Giant Wasp; on a 3-4, the new form is a Frog. 98-00 The creature closest to the chosen point of origin makes a DC 15 Constitution saving throw. On a failed save, the creature has the Restrained condition and begins to turn to stone. While Restrained in this way, the creature repeats the save at the end of its next turn. On a successful save, the effect ends.\nOn a failed save, the creature has the Petrified condition instead of the Restrained condition.\nThe petrification lasts until the creature is freed by the Greater Restoration spell or similar magic."
   },

@@ -16,6 +16,7 @@ import type { Predicate } from '../schemas/predicate';
 import type { Compendium } from '../srd';
 import { resolveBuild, type SourcedEffect } from './build';
 import { type ConditionRoll, conditionDefenses, conditionSource, effectiveConditions, ownRollConditions, SPEED_ZERO_CONDITIONS } from './conditions';
+import { availableCharges, type ChargedItem, chargedItem, itemSpellCosts, itemSpellLevel } from './item-charges';
 import { itemUse, itemUseOptions } from './item-use';
 import { type MagicPart, resolveInventory } from './items';
 import { isWeaponProficient } from './proficiency';
@@ -781,11 +782,22 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
   }
 
   const resolved = new Map(entries.map((e) => [e.entry.instanceId, e]));
+  const chargesLine = (charged: ChargedItem, entry: Inventory['items'][number]): NonNullable<InventoryLine['charges']> => ({
+    max: charged.max,
+    available: availableCharges(charged.max, entry),
+    ...(charged.regain !== undefined ? { regain: charged.regain } : {}),
+    spells: (charged.item.casting?.spells ?? []).flatMap((s) => {
+      const spell = find(compendium.spells, s.spellId);
+      if (!spell) return [];
+      return [{ spellId: s.spellId, name: spell.name, level: spell.level, ...(s.note !== undefined ? { note: s.note } : {}), costs: itemSpellCosts(s).map((charges) => ({ charges, level: itemSpellLevel(s, spell.level, charges) })) }];
+    }),
+  });
   const inventoryLines: InventoryLine[] = inventory.items.map((entry) => {
     const r = resolved.get(entry.instanceId);
     const item = find(compendium.items, entry.itemId);
     const magicItem = item?.kind === 'magic_item' ? item : undefined;
     const base = r && r.magic && r.item.id !== r.magic.item.id ? ` (${r.item.name})` : '';
+    const charged = chargedItem(item);
     const use = item && r ? itemUse(item, entry.variantId) : undefined;
     const active = r === undefined ? false : r.magic ? magicActive(r.magic, entry) : isItemActive(r.item.activation, entry);
     return {
@@ -798,6 +810,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       attuned: entry.attuned,
       requiresAttunement: magicItem?.attunement !== undefined || item?.activation === 'attuned',
       active,
+      ...(r && charged ? { charges: chargesLine(charged, entry) } : {}),
       ...(use ? { use: { targets: use.targets, options: itemUseOptions(use) } } : {}),
     };
   });

@@ -1013,10 +1013,6 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:cubic_gate": {
-      "category": "gm",
-      "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
-    },
     "item:dancing_sword": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
@@ -1033,9 +1029,9 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:dragon_orb": {
+    "item:dragon_orb#control": {
       "category": "gm",
-      "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
+      "reason": "Controlar o orbe, o chamado dos dragões e o Suggestion dele: o mestre conduz."
     },
     "item:dust_of_dryness": {
       "category": "phase_4",
@@ -1113,10 +1109,6 @@
       "category": "gm",
       "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
     },
-    "item:helm_of_teleportation": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
     "item:horn_of_blasting": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
@@ -1184,10 +1176,6 @@
     "item:marvelous_pigments": {
       "category": "gm",
       "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
-    },
-    "item:medallion_of_thoughts": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
     "item:mirror_of_life_trapping": {
       "category": "gm",
@@ -1281,17 +1269,13 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:ring_of_animal_influence": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
     "item:ring_of_djinni_summoning": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:ring_of_elemental_command": {
+    "item:ring_of_elemental_command#focus": {
       "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
+      "reason": "Elemental Bane, Compulsion e as propriedades do plano ligado: dependem do plano e do alvo."
     },
     "item:ring_of_evasion": {
       "category": "phase_4",
@@ -1321,9 +1305,9 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:ring_of_shooting_stars": {
+    "item:ring_of_shooting_stars#spheres": {
       "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
+      "reason": "Lightning Spheres e Shooting Stars: salvaguardas com cargas variáveis."
     },
     "item:ring_of_spell_storing": {
       "category": "phase_4",
@@ -1401,17 +1385,13 @@
       "category": "gm",
       "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
     },
-    "item:staff_of_charming": {
+    "item:staff_of_charming#enchantment": {
       "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
+      "reason": "Reflect Enchantment e Resist Enchantment: reações a uma salvaguarda."
     },
-    "item:staff_of_healing": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:staff_of_swarming_insects": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
+    "item:staff_of_swarming_insects#insect_cloud": {
+      "category": "gm",
+      "reason": "A nuvem de insetos muda a visibilidade da área: o mestre conduz."
     },
     "item:staff_of_the_python": {
       "category": "phase_4",
@@ -1461,39 +1441,11 @@
       "category": "gm",
       "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
     },
-    "item:trident_of_fish_command": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
     "item:universal_solvent": {
       "category": "gm",
       "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
     },
-    "item:wand_of_binding": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
     "item:wand_of_enemy_detection": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:wand_of_fear": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:wand_of_fireballs": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:wand_of_lightning_bolts": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:wand_of_magic_detection": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:wand_of_magic_missiles": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
@@ -1501,15 +1453,7 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:wand_of_polymorph": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
     "item:wand_of_secrets": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:wand_of_web": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },

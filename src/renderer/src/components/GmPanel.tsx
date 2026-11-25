@@ -21,6 +21,7 @@ import { FogPanel } from './FogPanel';
 import { HitPointsControl, HitPointsSummary } from './HitPoints';
 import { MapGridModal } from './MapGridModal';
 import type { MapViewerMode } from './MapView';
+import { DawnPanel } from './ItemCharges';
 import { RestPanel } from './Rest';
 import { forceSave, SaveEffectForm, TargetChecklist, type TargetOption } from './SaveEffect';
 import { ABILITY_LABEL, CONDITION_LABEL, DAMAGE_LABEL, signed } from './sheet-labels';
@@ -933,6 +934,7 @@ export function GmPanel({
       />
       <FogPanel view={view} fogTool={fogTool} onFogTool={onFogTool} onError={setError} />
       <RestPanel state={view.state} />
+      <DawnPanel />
       <CharacterTokens view={view} stage={stage} onError={setError} />
       <Tokens view={view} stage={stage} selectedId={selectedId} onError={setError} />
       {view.state.activeMapId !== null && (

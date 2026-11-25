@@ -198,6 +198,16 @@ export interface InventoryLine {
   active: boolean;
   /** O item pode ser usado (nota 0074): quantos alvos e as opções à escolha. */
   use?: { targets: 'one' | 'many'; options: string[] } | undefined;
+  /** Cargas desta cópia e as magias que elas conjuram (nota 0075). */
+  charges?:
+    | {
+        max: number;
+        available: number;
+        /** Dados recuperados ao amanhecer. */
+        regain?: string | undefined;
+        spells: { spellId: string; name: string; level: number; note?: string | undefined; costs: { charges: number; level: number }[] }[];
+      }
+    | undefined;
 }
 
 export interface PendingChoice {

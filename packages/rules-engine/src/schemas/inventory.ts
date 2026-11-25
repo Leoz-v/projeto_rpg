@@ -20,6 +20,8 @@ export const InventoryEntrySchema = z.strictObject({
   quantity: z.int().positive().default(1),
   equipped: z.boolean().default(false),
   attuned: z.boolean().default(false),
+  /** Cargas gastas desta cópia (nota 0075); ausente, nenhuma. */
+  chargesSpent: z.int().nonnegative().max(1000).optional(),
 });
 export type InventoryEntry = z.infer<typeof InventoryEntrySchema>;
 

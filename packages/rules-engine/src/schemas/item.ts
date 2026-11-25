@@ -160,6 +160,22 @@ export const MagicVariantSchema = z.strictObject({
   use: ItemUseSchema.optional(),
 });
 
+/** Magia que o item conjura (nota 0075). */
+export const ItemSpellSchema = z
+  .strictObject({
+    spellId: IdSchema,
+    /** Cargas gastas (0: à vontade). */
+    charges: z.int().nonnegative(),
+    /** Círculo fixado pelo item ("level 5 version"). */
+    level: z.int().min(1).max(9).optional(),
+    /** Até quantas cargas: cada uma a mais sobe um círculo. */
+    maxCharges: z.int().positive().optional(),
+    /** Ressalva do texto, como nota ("Só afeta Feras"). */
+    note: TextSchema.optional(),
+  })
+  .refine((s) => s.maxCharges === undefined || s.maxCharges > s.charges, { message: 'maxCharges menor que charges' });
+export type ItemSpell = z.infer<typeof ItemSpellSchema>;
+
 export const MagicItemSchema = z
   .strictObject({
     ...itemBase,
@@ -171,8 +187,18 @@ export const MagicItemSchema = z
     attunement: AttunementSchema.optional(),
     base: MagicBaseSchema.optional(),
     variants: z.array(MagicVariantSchema).default([]),
-    /** Cargas máximas e recuperação, como publicadas (o gasto é estado de sessão, Fase 4). */
-    charges: z.strictObject({ max: z.int().positive(), regain: z.string().optional() }).optional(),
+    /** Cargas máximas e recuperação, como publicada (`regain`) e em dados (`regainDice`). O gasto fica no inventário. */
+    charges: z
+      .strictObject({
+        max: z.int().positive(),
+        regain: z.string().optional(),
+        regainDice: DiceSchema.optional(),
+        /** Ao gastar a última: destruído, destruído com 1 no d20, ou outra consequência (com 1 ou 20) que o mestre aplica. */
+        lastCharge: z.enum(['destroyed', 'destroyed_on_1', 'gm']).optional(),
+      })
+      .optional(),
+    /** Magias conjuradas com as cargas (nota 0075). `saveDc`: CD do item; ausente, a de quem o segura. `carried`: basta carregar. */
+    casting: z.strictObject({ saveDc: z.int().min(1).max(40).optional(), carried: z.literal(true).optional(), spells: z.array(ItemSpellSchema).min(1) }).optional(),
     consumable: z.boolean().default(false),
     /** O que acontece ao usar (nota 0074). */
     use: ItemUseSchema.optional(),

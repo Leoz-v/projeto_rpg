@@ -86,7 +86,7 @@ ITEM = {
         "cloak_of_displacement", "lantern_of_revealing", "sending_stones", "sovereign_glue", "universal_solvent", "decanter_of_endless_water",
         "immovable_rod", "folding_boat", "instant_fortress", "apparatus_of_the_crab", "sphere_of_annihilation", "talisman_of_pure_good",
         "talisman_of_ultimate_evil", "mirror_of_life_trapping", "mysterious_deck", "deck_of_illusions", "robe_of_useful_items",
-        "bag_of_beans", "bag_of_devouring", "marvelous_pigments", "cubic_gate", "dragon_orb", "ring_of_three_wishes",
+        "bag_of_beans", "bag_of_devouring", "marvelous_pigments", "ring_of_three_wishes",
     ],
 }
 ITEM_REASONS = {
@@ -211,7 +211,7 @@ for fid in dict.fromkeys(features):
 
 # Itens mágicos sem efeito.
 for it in load("magic-items.json"):
-    if it.get("effects") or it.get("use") or any(v["effects"] or v.get("use") for v in it.get("variants", [])):
+    if it.get("effects") or it.get("use") or it.get("casting") or any(v["effects"] or v.get("use") for v in it.get("variants", [])):
         continue
     key = f"item:{it['id']}"
     if it["id"] in ITEM["automate"]:
@@ -223,6 +223,11 @@ for it in load("magic-items.json"):
 # Entradas parciais (`<chave>#<aspecto>`): a fonte já tem efeitos, mas parte da mecânica segue pendente.
 # Valor: (categoria, motivo, mecânica só para `automate`).
 PARTIAL = {
+    "item:dragon_orb#control": ("gm", "Controlar o orbe, o chamado dos dragões e o Suggestion dele: o mestre conduz.", None),
+    "item:ring_of_elemental_command#focus": ("phase_4", "Elemental Bane, Compulsion e as propriedades do plano ligado: dependem do plano e do alvo.", None),
+    "item:ring_of_shooting_stars#spheres": ("phase_4", "Lightning Spheres e Shooting Stars: salvaguardas com cargas variáveis.", None),
+    "item:staff_of_charming#enchantment": ("phase_4", "Reflect Enchantment e Resist Enchantment: reações a uma salvaguarda.", None),
+    "item:staff_of_swarming_insects#insect_cloud": ("gm", "A nuvem de insetos muda a visibilidade da área: o mestre conduz.", None),
     "item:potion_of_vitality#hit_dice": ("phase_4", "Dados de Vida recuperam o máximo por 24 horas: muda a rolagem do descanso.", None),
     "item:bead_of_force#sphere": ("gm", "A esfera que prende ou empurra depende de quem está na área: o mestre conduz.", None),
     "item:sun_blade#undead_damage": ("phase_4", "+1d8 Radiant ao acertar um Undead: dano que depende do alvo (resolução do ataque).", None),

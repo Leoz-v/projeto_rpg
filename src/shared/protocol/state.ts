@@ -404,7 +404,8 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     spellName: NameSchema,
     /** Círculo da magia (0 = truque). */
     level: z.int().min(0).max(9),
-    using: z.union([z.strictObject({ slot: SpellSlotRefSchema }), z.literal('free'), z.literal('ritual')]),
+    /** `item`: pelo item, com as cargas dele (nota 0075). */
+    using: z.union([z.strictObject({ slot: SpellSlotRefSchema }), z.literal('free'), z.literal('ritual'), z.strictObject({ item: LabelSchema })]),
     castingTime: LabelSchema,
     range: LabelSchema,
     duration: LabelSchema,
@@ -437,6 +438,39 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     left: z.int().nonnegative(),
     duration: LabelSchema.optional(),
     description: z.string().min(1).max(6000),
+  }),
+  /** Cargas gastas ou devolvidas à mão, e o que a última carga fez (nota 0075). */
+  z.strictObject({
+    kind: z.literal('item_charges'),
+    ...entryBase,
+    characterId: UuidSchema,
+    characterName: NameSchema,
+    itemName: LabelSchema,
+    event: z.enum(['spent', 'restored', 'last', 'destroyed']),
+    amount: z.int().nonnegative(),
+    available: z.int().nonnegative(),
+    max: z.int().positive(),
+    /** O d20 da última carga. */
+    d20: z.int().min(1).max(20).optional(),
+    notes: LogList,
+  }),
+  /** Amanhecer: as cargas que cada item recuperou (nota 0075). */
+  z.strictObject({
+    kind: z.literal('dawn'),
+    ...entryBase,
+    items: z
+      .array(
+        z.strictObject({
+          characterId: UuidSchema,
+          characterName: NameSchema,
+          itemName: LabelSchema,
+          dice: z.string().min(1).max(100),
+          rolled: z.int().nonnegative(),
+          available: z.int().nonnegative(),
+          max: z.int().positive(),
+        }),
+      )
+      .max(200),
   }),
   /** Recurso gasto ou recuperado (nota 0052). */
   z.strictObject({

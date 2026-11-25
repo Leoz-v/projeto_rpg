@@ -3,6 +3,7 @@ import type { DerivedSheet, InventoryLine } from 'rules-engine';
 import type { ItemSummary } from '../../../shared/ipc';
 import type { SessionCharacter, SessionState } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
+import { ItemChargesControl } from './ItemCharges';
 import { ItemUseForm } from './ItemUse';
 
 /**
@@ -324,6 +325,7 @@ export function Inventory({ character, sheet, state, canEdit }: { character: Ses
               ) : (
                 <span className="hint">{[line.equipped ? 'equipado' : '', line.attuned ? 'sintonizado' : ''].filter(Boolean).join(', ')}</span>
               )}
+              {canEdit && line.charges && <ItemChargesControl character={character} line={line} charges={line.charges} />}
               {canEdit && line.use && usingId === line.instanceId && (
                 <ItemUseForm
                   character={character}

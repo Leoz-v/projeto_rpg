@@ -17,6 +17,7 @@ import { dropPendingSaves, resolvePendingSave } from './legendary';
 import { multiattackStep, requireMultiattack } from './multiattack';
 import { changeMonsterUse, restMonster, setMonsterLair } from './monsters';
 import { createMap, createToken, moveToken, roll, setTokenDead, setTokenHidden, updateMap, updateToken } from './map-tokens';
+import { castFromItem, changeCharges, dawn } from './item-charges';
 import { useItem } from './items';
 import { changeHp, concentrate, concentrationBreaks, deathStateEntry, endConcentration, inCombat, rollDeathSave } from './vitality';
 
@@ -202,6 +203,13 @@ export class HostSession extends SessionContext {
         return removeItem(this, playerId, role, intent.data);
       case 'inventory.update':
         return updateItem(this, playerId, role, intent.data);
+      case 'item.cast':
+        return castFromItem(this, playerId, role, intent.data);
+      case 'item.charges':
+        return changeCharges(this, playerId, role, intent.data);
+      case 'items.dawn':
+        this.requireGm(role);
+        return dawn(this, playerId);
       case 'item.use':
         return useItem(this, playerId, role, intent.data);
       case 'adjustment.add':
