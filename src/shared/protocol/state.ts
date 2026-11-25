@@ -19,7 +19,13 @@ export const PlayerSchema = z.strictObject({
 });
 export type Player = z.infer<typeof PlayerSchema>;
 
-const entryBase = { id: UuidSchema, at: z.int().nonnegative(), authorId: UuidSchema };
+const entryBase = {
+  id: UuidSchema,
+  at: z.int().nonnegative(),
+  authorId: UuidSchema,
+  /** Tokens ocultos citados na entrada quando ela aconteceu (nota 0071). Nunca chega aos jogadores. */
+  concealed: z.array(z.strictObject({ tokenId: UuidSchema, name: NameSchema })).max(MAX_COMBATANTS).optional(),
+};
 
 /** Textos curtos do log de uma rolagem (rótulos da conta, fontes, notas). */
 const LogText = z.string().min(1).max(200);
@@ -128,7 +134,12 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     total: z.int(),
   }),
   /** Rolagem do mestre vista por um jogador (seção 2.12): sem fórmula, rótulo nem resultado. */
-  z.strictObject({ kind: z.literal('hidden_roll'), ...entryBase }),
+  z.strictObject({
+    kind: z.literal('hidden_roll'),
+    ...entryBase,
+    /** Entrada sobre um token oculto: ocupa a posição no log, mas não aparece na tela (nota 0071). */
+    silent: z.boolean().optional(),
+  }),
   /** Teste d20 a partir da ficha (`roll.d20`): perícia, salvaguarda, iniciativa, morte ou ataque. */
   z.strictObject({
     kind: z.literal('d20_roll'),
@@ -756,6 +767,8 @@ export const CombatSchema = z
   .strictObject({
     round: z.int().min(1),
     turn: z.int().min(0),
+    /** Na visão de um jogador, a vez é de um token oculto: `turn` não vale (seção 2.12, nota 0071). */
+    hiddenTurn: z.boolean().optional(),
     combatants: z.array(CombatantSchema).min(1).max(MAX_COMBATANTS),
     /** Combates gravados antes da versão 13 não têm o campo: começam sem efeitos. */
     effects: z.array(TimedEffectSchema).max(MAX_COMBATANTS * 4).default([]),

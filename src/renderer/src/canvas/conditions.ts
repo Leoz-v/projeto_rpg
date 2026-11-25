@@ -30,5 +30,5 @@ export function spellEffectLabels(token: Token, characters: SessionState['charac
 
 /** Combatentes do combate em andamento, para escolher a duração de uma condição. */
 export function combatantOptions(state: Pick<SessionState, 'combat' | 'tokens'>): { tokenId: string; name: string }[] {
-  return (state.combat?.combatants ?? []).map((c) => ({ tokenId: c.tokenId, name: state.tokens[c.tokenId]?.name ?? 'Token removido' }));
+  return (state.combat?.combatants ?? []).map((c) => ({ tokenId: c.tokenId, name: state.tokens[c.tokenId]?.name ?? 'Fora da visão' }));
 }

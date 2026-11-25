@@ -491,7 +491,7 @@ export function Map3DView({ view, map, maxima, selectedIds, targetedIds, fogTool
       canDrag: (token) => info.role === 'gm' || token.ownerIds.includes(info.playerId),
       selectedIds,
       targetedIds,
-      activeId: state.combat?.combatants[state.combat.turn]?.tokenId ?? null,
+      activeId: state.combat && !state.combat.hiddenTurn ? (state.combat.combatants[state.combat.turn]?.tokenId ?? null) : null,
       conditions: (token) => [
         ...conditionLabels(tokenConditions(token, state.characters)),
         ...spellEffectLabels(token, state.characters),
