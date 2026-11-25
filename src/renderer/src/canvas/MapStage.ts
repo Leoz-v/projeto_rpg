@@ -120,14 +120,47 @@ async function loadTexture(sha256: string): Promise<Texture | null> {
   return new Texture({ source: new ImageSource({ resource: img }) });
 }
 
+export interface WorldLayers {
+  world: Container;
+  backgroundLayer: Container;
+  gridLayer: Graphics;
+  tokenLayer: Container;
+  fogLayer: Container;
+  fogPreviewLayer: Graphics;
+  rulerLayer: Graphics;
+}
+
+/**
+ * Monta as camadas do mundo 2D na ordem de desenho e desativa o hit-testing nas
+ * camadas não interativas (principalmente névoa e régua, acima dos tokens): com
+ * `app.stage.eventMode = 'static'`, o PixiJS v8 propaga o modo para baixo e o
+ * sprite da névoa engoliria os cliques nos tokens se ficasse em `'passive'`.
+ */
+export function createWorldLayers(): WorldLayers {
+  const world = new Container();
+  const backgroundLayer = new Container();
+  const gridLayer = new Graphics();
+  const tokenLayer = new Container();
+  const fogLayer = new Container();
+  const fogPreviewLayer = new Graphics();
+  const rulerLayer = new Graphics();
+  backgroundLayer.eventMode = 'none';
+  gridLayer.eventMode = 'none';
+  fogLayer.eventMode = 'none';
+  fogPreviewLayer.eventMode = 'none';
+  rulerLayer.eventMode = 'none';
+  world.addChild(backgroundLayer, gridLayer, tokenLayer, fogLayer, fogPreviewLayer, rulerLayer);
+  return { world, backgroundLayer, gridLayer, tokenLayer, fogLayer, fogPreviewLayer, rulerLayer };
+}
+
 export class MapStage {
-  private readonly world = new Container();
-  private readonly backgroundLayer = new Container();
-  private readonly gridLayer = new Graphics();
-  private readonly tokenLayer = new Container();
-  private readonly fogLayer = new Container();
-  private readonly fogPreviewLayer = new Graphics();
-  private readonly rulerLayer = new Graphics();
+  private readonly world: Container;
+  private readonly backgroundLayer: Container;
+  private readonly gridLayer: Graphics;
+  private readonly tokenLayer: Container;
+  private readonly fogLayer: Container;
+  private readonly fogPreviewLayer: Graphics;
+  private readonly rulerLayer: Graphics;
   private readonly rulerHud = new Container();
   private readonly rulerBadgeBg = new Graphics();
   private readonly rulerBadgeText: Text;
@@ -164,7 +197,14 @@ export class MapStage {
     private readonly app: Application,
     private readonly events: MapStageEvents,
   ) {
-    this.world.addChild(this.backgroundLayer, this.gridLayer, this.tokenLayer, this.fogLayer, this.fogPreviewLayer, this.rulerLayer);
+    const layers = createWorldLayers();
+    this.world = layers.world;
+    this.backgroundLayer = layers.backgroundLayer;
+    this.gridLayer = layers.gridLayer;
+    this.tokenLayer = layers.tokenLayer;
+    this.fogLayer = layers.fogLayer;
+    this.fogPreviewLayer = layers.fogPreviewLayer;
+    this.rulerLayer = layers.rulerLayer;
     this.rulerBadgeText = new Text({
       text: '',
       style: {
