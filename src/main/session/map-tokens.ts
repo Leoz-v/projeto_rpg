@@ -2,6 +2,8 @@ import { rollDice } from 'rules-engine';
 import { type ChatEntry, defaultMapFog, NO_CONDITIONS, type GameMap, type IntentData, type PatchOp, type Role, type Token, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
 import { recordExploredOps } from './fog';
+import { endTokenConcentration } from './monster-concentration';
+import { concentrationBreaks, deathStateEntry } from './vitality';
 
 /** Mapas, tokens e rolagens livres do chat. Funções do executor da sessão (`HostSession`), sobre o `SessionContext`. */
 
@@ -112,8 +114,37 @@ export function createToken(ctx: SessionContext, data: IntentData<'token.create'
     visionFeet: null,
     rotation: 0,
     elevation: 0,
+    hidden: false,
+    dead: false,
   };
   const ops: PatchOp[] = [{ op: 'add', path: toPointer('tokens', token.id), value: token }];
   ops.push(...recordExploredOps(map, [...Object.values(ctx.current.tokens), token], ownerIds.length > 0 ? ownerIds : [token.id]));
+  return ops;
+}
+
+/** O mestre esconde ou revela um token para os jogadores (seção 2.12, nota 0070). */
+export function setTokenHidden(ctx: SessionContext, data: IntentData<'token.hidden'>): PatchOp[] {
+  const token = ctx.token(data.tokenId);
+  return [{ op: 'replace', path: toPointer('tokens', token.id, 'hidden'), value: data.hidden }];
+}
+
+/**
+ * O mestre marca ou desmarca um token como morto (override manual, nota 0070).
+ * Em um token ligado a personagem, mantém `deathSaves.dead` sincronizado.
+ */
+export function setTokenDead(ctx: SessionContext, playerId: string, data: IntentData<'token.dead'>): PatchOp[] {
+  const token = ctx.token(data.tokenId);
+  const ops: PatchOp[] = [{ op: 'replace', path: toPointer('tokens', token.id, 'dead'), value: data.dead }];
+  if (token.characterId !== null) {
+    const character = ctx.current.characters[token.characterId];
+    if (character && character.deathSaves.dead !== data.dead) {
+      const deathSaves = { ...character.deathSaves, dead: data.dead };
+      ops.push({ op: 'replace', path: toPointer('characters', character.id, 'deathSaves'), value: deathSaves });
+      ops.push(deathStateEntry(ctx, playerId, character, 'gm', deathSaves, [data.dead ? 'Marcado como morto pelo mestre' : 'Revivido pelo mestre']));
+      ops.push(...concentrationBreaks(ctx, playerId, character, character.conditions, deathSaves));
+    }
+  } else if (data.dead) {
+    ops.push(...endTokenConcentration(ctx, playerId, token, 'dead'));
+  }
   return ops;
 }

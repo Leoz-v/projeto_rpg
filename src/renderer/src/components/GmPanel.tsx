@@ -9,7 +9,7 @@ import { placeToken, tokenSide } from '../canvas/geometry';
 import { defaultCellPx, gridDimensionsForImage } from '../canvas/map-grid';
 import { parseMapDocument } from '../canvas3d/map/mapDocument';
 import { sendIntent } from '../store/table';
-import { tokenHealth } from '../canvas/health';
+import { isTokenDead, tokenHealth } from '../canvas/health';
 import { usesLabel } from './MonsterBlock';
 import { Multiattack } from './Multiattack';
 import { TokenConcentration } from './Concentration';
@@ -488,10 +488,34 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
           <div className="row">
             <span>
               Selecionado: <strong>{selected.name}</strong>
+              {selected.hidden && <span className="tag">oculto</span>}
+              {isTokenDead(selected, state.characters) && <span className="tag">morto</span>}
             </span>
             <button type="button" className="link danger" onClick={() => void sendIntent({ kind: 'token.remove', data: { tokenId: selected.id } }).then(onError)}>
               Remover token
             </button>
+          </div>
+          <div className="row">
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={selected.hidden}
+                onChange={(e) => {
+                  void sendIntent({ kind: 'token.hidden', data: { tokenId: selected.id, hidden: e.target.checked } }).then(onError);
+                }}
+              />
+              Oculto dos jogadores
+            </label>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={isTokenDead(selected, state.characters)}
+                onChange={(e) => {
+                  void sendIntent({ kind: 'token.dead', data: { tokenId: selected.id, dead: e.target.checked } }).then(onError);
+                }}
+              />
+              Morto
+            </label>
           </div>
           {selected.characterId === null ? (
             <>

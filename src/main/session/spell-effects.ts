@@ -1,4 +1,4 @@
-import { applyHitPointChange, CONDITION_NAME, type Condition, type Effect, hasUnsupportedCreatureEffect, type ImposedConditions, sizeAtMost, rollDice, type TurnExpiry, withoutDependents } from 'rules-engine';
+import { applyHitPointChange, CONDITION_NAME, type Condition, currentHitPoints, type Effect, hasUnsupportedCreatureEffect, type ImposedConditions, sizeAtMost, rollDice, type TurnExpiry, withoutDependents } from 'rules-engine';
 import { type ChatEntry, type ConditionState, type IntentData, MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, type PatchOp, type Role, sameSpellLink, type SpellLink, type SessionCharacter, type TableCondition, type Token, toPointer } from '../../shared/protocol';
 import { notAllowed, type SessionContext, violation } from './context';
 import { untilNextTurn } from './conditions';
@@ -228,6 +228,9 @@ export function applyHealing(
       const amount = full ? target.hp.max : rolled;
       const result = applyHitPointChange(target.hp.max, target.hp, { kind: options.temporary ? 'temp' : 'healing', amount });
       ops.push({ op: 'replace', path: toPointer('tokens', target.id, 'hp'), value: { max: target.hp.max, ...result.state } });
+      if (!options.temporary && currentHitPoints(target.hp.max, result.state) > 0 && target.dead) {
+        ops.push({ op: 'replace', path: toPointer('tokens', target.id, 'dead'), value: false });
+      }
       notes.push(options.temporary ? `${amount} PV temporários` : `+${result.hpChange} PV`);
     }
     if (options.endConditions.length > 0) {

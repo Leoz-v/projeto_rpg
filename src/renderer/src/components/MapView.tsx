@@ -3,7 +3,7 @@ import type { TableView } from '../../../shared/ipc';
 import type { GameMap, Point } from '../../../shared/protocol';
 import { conditionLabels, spellEffectLabels, timedEffectLabels, tokenConditions } from '../canvas/conditions';
 import type { FogTool } from '../canvas/fog-render';
-import { tokenHealth } from '../canvas/health';
+import { isTokenDead, tokenHealth } from '../canvas/health';
 import { MapStage, type MapStageHandle, type RenderedMapBackground } from '../canvas/MapStage';
 import { DEFAULT_RULER_OPTIONS, type RulerOptions } from '../canvas/ruler';
 import { render3dMapTo2dCanvas } from '../canvas3d/render/mapConversion';
@@ -82,6 +82,9 @@ function Map2DView({ view, maxima, selectedIds, targetedIds, fogTool, onFogTool,
     { key: string; bg: RenderedMapBackground } | { key: string; error: string } | null
   >(null);
 
+  const { state, info } = view;
+  const isGm = info.role === 'gm';
+
   // O palco é criado uma vez; os callbacks leem sempre a versão atual.
   const latest = useRef({ onSelect, onStage, onOpenSheet, onToggleTarget });
   useLayoutEffect(() => {
@@ -144,9 +147,7 @@ function Map2DView({ view, maxima, selectedIds, targetedIds, fogTool, onFogTool,
     };
   }, []);
 
-  const { state, info } = view;
   const map = state.activeMapId !== null ? (state.maps[state.activeMapId] ?? null) : null;
-  const isGm = info.role === 'gm';
   const primarySelectedId = selectedIds[selectedIds.length - 1] ?? null;
   const selectedToken = primarySelectedId !== null ? (state.tokens[primarySelectedId] ?? null) : null;
   const hudToken = hudState !== null ? (state.tokens[hudState.tokenId] ?? null) : null;
@@ -193,6 +194,7 @@ function Map2DView({ view, maxima, selectedIds, targetedIds, fogTool, onFogTool,
       activeId: state.combat?.combatants[state.combat.turn]?.tokenId ?? null,
       conditions: (token) => [...conditionLabels(tokenConditions(token, state.characters)), ...spellEffectLabels(token, state.characters), ...timedEffectLabels(token, { combat: state.combat, tokens: state.tokens })],
       health: (token) => tokenHealth(token, state.characters, maxima),
+      isDead: (token) => isTokenDead(token, state.characters),
       viewer: { role: info.role, playerId: info.playerId, previewTokenId: isGm && previewTokenVision ? primarySelectedId : null },
       fogTool: isGm ? fogTool : 'none',
     });

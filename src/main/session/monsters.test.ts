@@ -361,6 +361,21 @@ describe('HostSession: monster concentration (note 0068)', () => {
     expect(t.session.state.chat.findLast((e) => e.kind === 'concentration')).toMatchObject({ event: 'ended', reason: 'failed_save' });
   });
 
+  it('marked dead by the GM, at 0 HP or by Exhaustion 6, it ends once', () => {
+    const ends = (t: ReturnType<typeof concentrating>): number => t.session.state.chat.filter((e) => e.kind === 'concentration' && e.event === 'ended').length;
+    const byGm = concentrating([20]);
+    byGm.session.handle(GM.playerId, { kind: 'token.dead', data: { tokenId: byGm.mage, dead: true } });
+    const byDamage = concentrating([20]);
+    byDamage.hurt(999);
+    const byExhaustion = concentrating([20]);
+    byExhaustion.session.handle(GM.playerId, { kind: 'exhaustion.set', data: { target: { tokenId: byExhaustion.mage }, level: 6 } });
+    for (const t of [byGm, byDamage, byExhaustion]) {
+      expect(t.token()).toMatchObject({ dead: true, concentration: null });
+      expect(t.goblinConditions()).toEqual([]);
+      expect(ends(t)).toBe(1);
+    }
+  });
+
   it('healing does not roll; 0 hit points and Incapacitated end it', () => {
     const t = concentrating([20]);
     t.session.handle(GM.playerId, { kind: 'hp.change', data: { target: { tokenId: t.mage }, change: { kind: 'healing', amount: 5 } } });

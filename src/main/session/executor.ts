@@ -16,7 +16,7 @@ import { endTokenConcentration } from './monster-concentration';
 import { dropPendingSaves, resolvePendingSave } from './legendary';
 import { multiattackStep, requireMultiattack } from './multiattack';
 import { changeMonsterUse, restMonster, setMonsterLair } from './monsters';
-import { createMap, createToken, moveToken, roll, updateMap, updateToken } from './map-tokens';
+import { createMap, createToken, moveToken, roll, setTokenDead, setTokenHidden, updateMap, updateToken } from './map-tokens';
 import { changeHp, concentrate, concentrationBreaks, deathStateEntry, endConcentration, inCombat, rollDeathSave } from './vitality';
 
 export type { Identity, IntentOutcome, IntentResultPayload, SessionDeps, StateChange } from './context';
@@ -360,6 +360,12 @@ export class HostSession extends SessionContext {
       case 'token.vision':
         this.requireGm(role);
         return setTokenVision(this, intent.data);
+      case 'token.hidden':
+        this.requireGm(role);
+        return setTokenHidden(this, intent.data);
+      case 'token.dead':
+        this.requireGm(role);
+        return setTokenDead(this, playerId, intent.data);
     }
   }
 }

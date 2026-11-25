@@ -48,6 +48,8 @@ export interface Scene {
   conditions: (token: Token) => readonly string[];
   /** PV para a barra do token, ou `null` (sem barra). */
   health: (token: Token) => Health | null;
+  /** Se o token deve exibir a marca visual de morto (0 PV / `deathSaves.dead` / override do mestre). */
+  isDead: (token: Token) => boolean;
   /** Quem está vendo o mapa (mestre ou jogador), para a névoa de guerra. */
   viewer: FogViewer;
   /** Ferramenta de edição de névoa ativa (só para o mestre). */
@@ -91,6 +93,8 @@ const COLORS = {
   rulerEnd: 0xff7849,
   rulerArea: 0xff7849,
   rulerBadgeBg: 0x0f131a,
+  deadCross: 0xff5555,
+  hiddenRing: 0xa799ff,
 };
 
 const ZOOM_SPEED = 0.0015;
@@ -230,6 +234,7 @@ export class MapStage {
     activeId: null,
     conditions: () => [],
     health: () => null,
+    isDead: () => false,
     viewer: { role: 'player', playerId: '' },
     fogTool: 'none',
   };
@@ -568,11 +573,12 @@ export class MapStage {
     const targetedSet = new Set(this.scene.targetedIds);
     for (const token of visible) {
       const conditions = this.scene.conditions(token);
-      const signature = [token.name, token.size, token.image ?? '', token.ownerIds.length > 0, conditions.join(',')].join('|');
+      const dead = this.scene.isDead(token);
+      const signature = [token.name, token.size, token.image ?? '', token.ownerIds.length > 0, token.hidden, dead, conditions.join(',')].join('|');
       let view = this.views.get(token.id);
       if (view?.signature !== signature) {
         const old = view?.container;
-        view = { ...this.drawToken(token, conditions), signature };
+        view = { ...this.drawToken(token, conditions, dead), signature };
         // Redesenhado no meio de um arrasto: continua onde o ponteiro está.
         if (old && this.drag?.items.some((item) => item.id === token.id)) view.container.position.copyFrom(old.position);
         old?.destroy({ children: true });
@@ -599,7 +605,7 @@ export class MapStage {
     }
   }
 
-  private drawToken(token: Token, conditions: readonly string[]): Omit<TokenView, 'signature'> {
+  private drawToken(token: Token, conditions: readonly string[], dead: boolean): Omit<TokenView, 'signature'> {
     const side = tokenSide(token.size);
     const radius = side / 2;
     const container = new Container();
@@ -611,7 +617,8 @@ export class MapStage {
     const disc = new Graphics()
       .circle(radius, radius, radius * 0.92)
       .fill(color)
-      .stroke({ width: Math.max(3, side * 0.04), color: COLORS.outline });
+      .stroke({ width: Math.max(3, side * 0.04), color: token.hidden ? COLORS.hiddenRing : COLORS.outline });
+    if (token.hidden) body.alpha = 0.5;
     // Indicador discreto de frente no topo do disco (gira junto com o corpo do token).
     const arrowTipY = radius - radius * 0.92;
     const arrowHalfW = Math.max(6, radius * 0.16);
@@ -664,11 +671,30 @@ export class MapStage {
       });
     }
 
+    if (dead) {
+      const crossInset = radius * 0.45;
+      const deadOverlay = new Graphics()
+        .circle(radius, radius, radius * 0.88)
+        .fill({ color: COLORS.outline, alpha: 0.55 })
+        .moveTo(radius - crossInset, radius - crossInset)
+        .lineTo(radius + crossInset, radius + crossInset)
+        .moveTo(radius + crossInset, radius - crossInset)
+        .lineTo(radius - crossInset, radius + crossInset)
+        .stroke({ width: Math.max(10, side * 0.14), color: COLORS.outline, cap: 'round' })
+        .moveTo(radius - crossInset, radius - crossInset)
+        .lineTo(radius + crossInset, radius + crossInset)
+        .moveTo(radius + crossInset, radius - crossInset)
+        .lineTo(radius - crossInset, radius + crossInset)
+        .stroke({ width: Math.max(6, side * 0.08), color: COLORS.deadCross, cap: 'round' });
+      container.addChild(deadOverlay);
+    }
+
     const label = new Text({
-      text: token.name,
+      text: token.hidden ? `${token.name} (oculto)` : token.name,
       style: { fill: COLORS.label, fontSize: 24, fontFamily: 'system-ui, sans-serif', stroke: { color: COLORS.background, width: 6 } },
       resolution: 2,
     });
+    if (token.hidden) label.alpha = 0.7;
     label.anchor.set(0.5, 0);
     label.position.set(radius, side + 4 + HEALTH_BAR_HEIGHT + 4);
     const bar = new Graphics();

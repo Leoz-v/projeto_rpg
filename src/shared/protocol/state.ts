@@ -647,6 +647,10 @@ export const TokenSchema = z.strictObject({
   rotation: TokenRotationSchema.default(0),
   /** Elevação do token em pés (−1000..1000). */
   elevation: TokenElevationSchema.default(0),
+  /** Se o token está oculto dos jogadores pelo mestre (seção 2.12, nota 0070). */
+  hidden: z.boolean(),
+  /** Se o token está marcado como morto (automático a 0 PV em monstros ou override do mestre; nota 0070). */
+  dead: z.boolean(),
 });
 export type Token = z.infer<typeof TokenSchema>;
 

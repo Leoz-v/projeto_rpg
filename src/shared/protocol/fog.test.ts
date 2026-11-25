@@ -52,6 +52,8 @@ function makeToken(id: string, col: number, row: number, opts?: Partial<Token>):
     visionFeet: null, spellEffects: [], uses: { spent: {}, lair: false }, concentration: null,
     rotation: 0,
     elevation: 0,
+    hidden: false,
+    dead: false,
     ...opts,
   };
 }

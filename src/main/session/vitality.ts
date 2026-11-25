@@ -26,12 +26,24 @@ export function changeHp(ctx: SessionContext, playerId: string, role: Role, data
   if (change.kind === 'max') {
     if (change.amount < 1) throw violation('PV máximos precisam ser pelo menos 1');
     const state = clampHitPoints(change.amount, token.hp ?? { damage: 0, temp: 0 });
-    return [{ op: 'replace', path, value: { max: change.amount, ...state } }];
+    const ops: PatchOp[] = [{ op: 'replace', path, value: { max: change.amount, ...state } }];
+    if (currentHitPoints(change.amount, state) === 0 && !token.dead) {
+      ops.push({ op: 'replace', path: toPointer('tokens', token.id, 'dead'), value: true });
+    }
+    return ops;
   }
   if (token.hp === null) throw violation(token.characterId ? 'Mude os PV no personagem' : 'Este token não tem PV (defina os PV máximos)');
   const result = applyHitPointChange(token.hp.max, token.hp, { kind: change.kind, amount: change.amount });
   const hp = { max: token.hp.max, ...result.state };
-  return [{ op: 'replace', path, value: hp }, ...(change.kind === 'damage' ? tokenDamaged(ctx, playerId, token, hp, Math.trunc(change.amount)) : [])];
+  const current = currentHitPoints(token.hp.max, result.state);
+  const ops: PatchOp[] = [{ op: 'replace', path, value: hp }];
+  if (current === 0 && !token.dead) {
+    ops.push({ op: 'replace', path: toPointer('tokens', token.id, 'dead'), value: true });
+  } else if (change.kind === 'healing' && current > 0 && token.dead) {
+    ops.push({ op: 'replace', path: toPointer('tokens', token.id, 'dead'), value: false });
+  }
+  if (change.kind === 'damage') ops.push(...tokenDamaged(ctx, playerId, token, hp, Math.trunc(change.amount)));
+  return ops;
 }
 
 /** Algum token do personagem está no combate. */

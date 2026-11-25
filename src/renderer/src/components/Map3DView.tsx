@@ -5,7 +5,7 @@ import type { TableView } from '../../../shared/ipc';
 import type { GameMap, Point } from '../../../shared/protocol';
 import { conditionLabels, spellEffectLabels, timedEffectLabels, tokenConditions } from '../canvas/conditions';
 import type { FogTool } from '../canvas/fog-render';
-import { tokenHealth } from '../canvas/health';
+import { isTokenDead, tokenHealth } from '../canvas/health';
 import type { MapStageHandle } from '../canvas/MapStage';
 import { DEFAULT_RULER_OPTIONS, type RulerOptions } from '../canvas/ruler';
 import {
@@ -498,6 +498,7 @@ export function Map3DView({ view, map, maxima, selectedIds, targetedIds, fogTool
         ...timedEffectLabels(token, { combat: state.combat, tokens: state.tokens }),
       ],
       health: (token) => tokenHealth(token, state.characters, maxima),
+      isDead: (token) => isTokenDead(token, state.characters),
       viewer: viewerInfo,
       fogTool: isGm ? fogTool : 'none',
     });

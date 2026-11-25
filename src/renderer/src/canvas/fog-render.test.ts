@@ -53,6 +53,8 @@ describe('fog-render', () => {
       visionFeet: null, spellEffects: [], uses: { spent: {}, lair: false }, concentration: null,
       rotation: 0,
       elevation: 0,
+      hidden: false,
+      dead: false,
     };
 
     const data = new Uint8ClampedArray(6 * 1 * 4);

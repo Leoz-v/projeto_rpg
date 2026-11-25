@@ -1,4 +1,4 @@
-import { type Ability, applyDamage, applyHitPointChange, attackedByEffects, attackedConditions, type AttacksAgainst, cleaveDamageBonus, creatureAttacksAgainst, creatureD20, type CreatureType, type Condition, CONDITION_NAME, creatureSaveBonus, d20Mode, d20StepNotes, damageNotes, type DamageType, type Defenses, grazeDamage, type ImposedConditions, MASTERY_NAME, masteryOutcome, nextTurnRound, resolveAttack, resolveSave, rollActionDamage, type RollAgainst, rollD20, rollWeaponDamage, saveDamage, sheetD20, type SheetD20, type TargetDamage, targetDamage, TIMED_MASTERY_UNTIL, timedMastery, timedMasteryNote, toppleDc } from 'rules-engine';
+import { type Ability, applyDamage, applyHitPointChange, attackedByEffects, attackedConditions, type AttacksAgainst, cleaveDamageBonus, creatureAttacksAgainst, creatureD20, type CreatureType, type Condition, CONDITION_NAME, creatureSaveBonus, currentHitPoints, d20Mode, d20StepNotes, damageNotes, type DamageType, type Defenses, grazeDamage, type ImposedConditions, MASTERY_NAME, masteryOutcome, nextTurnRound, resolveAttack, resolveSave, rollActionDamage, type RollAgainst, rollD20, rollWeaponDamage, saveDamage, sheetD20, type SheetD20, type TargetDamage, targetDamage, TIMED_MASTERY_UNTIL, timedMastery, timedMasteryNote, toppleDc } from 'rules-engine';
 import { type ChatEntry, type TimedEffect, type IntentData, type PatchOp, type PendingSave, type Role, type SessionState, type Token, sameCaster, toPointer, type Visibility } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
 import { timedEffectEntry } from './combat';
@@ -461,6 +461,9 @@ export function applyProposal(ctx: SessionContext, playerId: string, proposalId:
     result = applyHitPointChange(token.hp.max, token.hp, { kind: 'damage', amount });
     const hp = { max: token.hp.max, ...result.state };
     ops = [{ op: 'replace', path: toPointer('tokens', token.id, 'hp'), value: hp }, ...tokenDamaged(ctx, playerId, token, hp, amount)];
+    if (currentHitPoints(token.hp.max, result.state) === 0 && !token.dead) {
+      ops.push({ op: 'replace', path: toPointer('tokens', token.id, 'dead'), value: true });
+    }
   }
   const notes = [
     ...(result.absorbed > 0 ? [`${result.absorbed} absorvido(s) pelos PV temporários`] : []),

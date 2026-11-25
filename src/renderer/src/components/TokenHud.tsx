@@ -3,7 +3,7 @@ import type { TableView } from '../../../shared/ipc';
 import type { CreatureTarget, Point, Token } from '../../../shared/protocol';
 import { combatantOptions, tokenConditions } from '../canvas/conditions';
 import { normalizeRotation } from '../canvas/geometry';
-import { tokenHealth } from '../canvas/health';
+import { isTokenDead, tokenHealth } from '../canvas/health';
 import { sendIntent } from '../store/table';
 import { ConditionsControl } from './Conditions';
 import { TokenConcentration } from './Concentration';
@@ -169,6 +169,31 @@ export function TokenHud({ view, token, maxima, position, isTargeted, onToggleTa
             </div>
           )}
           {canControl && <HitPointsControl target={target} health={health} allowMax={isGm && token.characterId === null} />}
+        </div>
+      )}
+
+      {isGm && (
+        <div className="token-hud-section">
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={token.hidden}
+              onChange={(e) => {
+                void sendIntent({ kind: 'token.hidden', data: { tokenId: token.id, hidden: e.target.checked } }).then(setError);
+              }}
+            />
+            Oculto dos jogadores
+          </label>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={isTokenDead(token, state.characters)}
+              onChange={(e) => {
+                void sendIntent({ kind: 'token.dead', data: { tokenId: token.id, dead: e.target.checked } }).then(setError);
+              }}
+            />
+            Morto
+          </label>
         </div>
       )}
 

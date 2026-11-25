@@ -28,6 +28,7 @@ import {
  * - a iniciativa de tokens que não são personagens só chega ao mestre e aos
  *   donos do token: a ordem do combate é de todos, o valor não;
  * - em `maps[id].fog.explored`, cada jogador só recebe a própria entrada;
+ * - tokens ocultos pelo mestre (`hidden: true`) nunca chegam a jogadores;
  * - tokens que o jogador não controla só chegam quando ao menos uma célula do
  *   token está atualmente visível (fora da névoa manual e, com névoa automática,
  *   dentro do alcance de visão atual de algum token do jogador).
@@ -111,6 +112,7 @@ function visionCacheFor(state: SessionState, playerId: string): Map<string, Uint
 function tokenVisibleInState(state: SessionState, token: Token | undefined, viewer: Viewer, visionCache: Map<string, Uint8Array>): boolean {
   if (!token) return false;
   if (viewer.role === 'gm') return true;
+  if (token.hidden) return false;
   const map = state.maps[token.mapId];
   return isTokenVisibleToPlayer(map, Object.values(state.tokens), token, viewer.playerId, visionCache.get(token.mapId));
 }
