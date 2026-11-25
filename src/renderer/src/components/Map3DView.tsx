@@ -280,6 +280,16 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
         scene.destroy();
         return;
       }
+      scene.onContextLost = () => {
+        if (!isCancelled()) {
+          setError('Contexto gráfico 3D (WebGL) perdido. Aguardando restauração…');
+        }
+      };
+      scene.onContextRestored = () => {
+        if (!isCancelled()) {
+          setError(null);
+        }
+      };
 
       // Controles padrão de mesa 3D: botão esquerdo arrasta/faz pan (ou arrasta token), direito orbita, meio faz pan.
       scene.setLeftButtonAction('pan');
@@ -382,6 +392,10 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
           fog3d.destroy();
           ruler3d.destroy();
           tokens3d.destroy();
+          lighting.destroy();
+          liquids.destroy();
+          surfaceRenderer.destroy();
+          interiorRenderer.destroy();
           assets.destroy();
           scene.destroy();
         },

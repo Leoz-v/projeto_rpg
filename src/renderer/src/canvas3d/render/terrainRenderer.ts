@@ -100,8 +100,8 @@ export class TerrainRenderer {
     this.chunkCache = new Array<BuiltChunkMesh | null>(totalChunks).fill(null);
 
     this.syncDirtyChunks();
-    this.rebuildGridOverlay();
-    this.rebuildSkirt();
+    if (!this.gridMesh) this.rebuildGridOverlay();
+    if (!this.skirtMesh) this.rebuildSkirt();
   }
 
   get triangleCount(): number {
@@ -198,12 +198,12 @@ export class TerrainRenderer {
 
     nextGrid.markAllDirty();
     this.syncDirtyChunks();
-    this.rebuildGridOverlay();
-    this.rebuildHoleOverlay();
-    this.rebuildSkirt();
+    if (!this.gridMesh) this.rebuildGridOverlay();
+    if (this.showHoleMarkers && !this.holeOverlayMesh) this.rebuildHoleOverlay();
+    if (!this.skirtMesh) this.rebuildSkirt();
   }
 
-  /** Rebuilds any dirty 8x8 chunks and updates the conforming 5ft grid lines if heights changed. */
+  /** Rebuilds any dirty 8x8 chunks and updates height/cutout-conforming overlays only when needed. */
   syncDirtyChunks(): number {
     let rebuilt = 0;
     for (let cz = 0; cz < this.grid.chunksZ; cz++) {
@@ -224,9 +224,18 @@ export class TerrainRenderer {
         if (c) tris += c.triangleCount;
       }
       this.totalTriangles = tris;
-      this.rebuildGridOverlay();
-      this.rebuildHoleOverlay();
-      this.rebuildSkirt();
+      const heightsChanged = this.grid.heightsDirty;
+      const cutoutsChanged = this.grid.cutoutsDirty;
+      if (heightsChanged || cutoutsChanged) {
+        this.rebuildGridOverlay();
+        if (this.showHoleMarkers) {
+          this.rebuildHoleOverlay();
+        }
+      }
+      if (heightsChanged) {
+        this.rebuildSkirt();
+      }
+      this.grid.clearOverlayGeometryDirty();
     }
     return rebuilt;
   }
@@ -284,6 +293,7 @@ export class TerrainRenderer {
       normals: skirt.normals,
       colors: skirt.colors,
       indices: skirt.indices,
+      dynamic: true,
     });
     if (this.skirtMesh) {
       const old = this.skirtMesh.geometry;
@@ -380,6 +390,7 @@ export class TerrainRenderer {
       positions: new Float32Array(positions),
       colors: new Float32Array(colors),
       topology: 'line-list',
+      dynamic: true,
     });
 
     if (this.gridMesh) {
@@ -450,6 +461,7 @@ export class TerrainRenderer {
       positions: new Float32Array(positions),
       colors: new Float32Array(colors),
       topology: 'line-list',
+      dynamic: true,
     });
 
     if (this.holeOverlayMesh) {
@@ -583,6 +595,7 @@ export class TerrainRenderer {
       positions: new Float32Array(positions),
       colors: new Float32Array(colors),
       topology: 'line-list',
+      dynamic: true,
     });
 
     if (this.brushPreviewMesh) {
@@ -696,6 +709,7 @@ export class TerrainRenderer {
       positions,
       colors,
       topology: 'line-list',
+      dynamic: true,
     });
 
     if (this.rulerMesh) {
@@ -745,6 +759,7 @@ export class TerrainRenderer {
       positions: new Float32Array(positions),
       colors: new Float32Array(colors),
       topology: 'line-list',
+      dynamic: true,
     });
 
     if (this.selectionRingMesh) {
@@ -762,5 +777,38 @@ export class TerrainRenderer {
       });
       this.overlayRoot.addChild(this.selectionRingMesh);
     }
+  }
+
+  destroy(): void {
+    for (let i = 0; i < this.chunkMeshes.length; i++) {
+      const mesh = this.chunkMeshes[i];
+      if (!mesh) continue;
+      this.terrainRoot.removeChild(mesh);
+      mesh.geometry.destroy(true);
+      mesh.destroy();
+      this.chunkMeshes[i] = null;
+    }
+    this.chunkCache.fill(null);
+
+    const disposeMesh = (mesh: Mesh3D | null, root: Container3D): null => {
+      if (!mesh) return null;
+      root.removeChild(mesh);
+      mesh.geometry.destroy(true);
+      mesh.destroy();
+      return null;
+    };
+
+    this.skirtMesh = disposeMesh(this.skirtMesh, this.terrainRoot);
+    this.gridMesh = disposeMesh(this.gridMesh, this.terrainRoot);
+    this.holeOverlayMesh = disposeMesh(this.holeOverlayMesh, this.terrainRoot);
+    this.brushPreviewMesh = disposeMesh(this.brushPreviewMesh, this.overlayRoot);
+    this.rulerMesh = disposeMesh(this.rulerMesh, this.overlayRoot);
+    this.selectionRingMesh = disposeMesh(this.selectionRingMesh, this.overlayRoot);
+
+    this.rs2Material.destroy();
+    this.pbrMaterial.destroy();
+    this.skirtMaterial.destroy();
+    this.gridMaterial.destroy();
+    this.lineMaterial.destroy();
   }
 }
