@@ -81,6 +81,7 @@ function Entry({ entry, author, context }: { entry: ChatEntry; author: string; c
         </li>
       );
     case 'hidden_roll':
+      if (entry.silent) return null;
       return (
         <li className="entry hidden">
           {header}

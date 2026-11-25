@@ -1,6 +1,6 @@
 import { currentHitPoints, isDying, previousTurn } from 'rules-engine';
 import { applyPatch, chatBefore, type ChatEntry, chatWindow, type Intent, type IntentData, type PatchOp, type Role, type SessionState, toPointer } from '../../shared/protocol';
-import { opsFor, viewOf } from './visibility';
+import { opsFor, viewOf, concealEntries } from './visibility';
 import { type Identity, type IntentOutcome, Rejection, SessionContext, type SessionDeps, type StateChange, notAllowed, violation } from './context';
 import { applyProposal, forceSave, makeAttack, proposalOf, rollDamage, rollFromSheet, useMastery } from './attacks';
 import { addAdjustment, addItem, createCharacter, removeCharacter, removeItem, rollScores, updateCharacter, updateItem } from './characters';
@@ -149,9 +149,10 @@ export class HostSession extends SessionContext {
     return all;
   }
 
-  private commit(ops: PatchOp[]): StateChange {
+  private commit(raw: PatchOp[]): StateChange {
     // Aplica antes de mudar a revisão: se o patch falhar, nada muda.
     const before = this.current;
+    const ops = concealEntries(raw, before.tokens);
     this.current = applyPatch(this.current, ops);
     this.previous = before;
     const baseRev = this.revision;

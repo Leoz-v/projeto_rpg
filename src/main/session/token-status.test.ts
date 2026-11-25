@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import { seededRng } from 'rules-engine';
+import { loadSrdCompendium, seededRng } from 'rules-engine';
 import { describe, expect, it } from 'vitest';
-import { applyPatch, type Intent, type SessionState, SessionStateSchema } from '../../shared/protocol';
+import { applyPatch, ChatEntrySchema, type Intent, type SessionState, SessionStateSchema } from '../../shared/protocol';
 import { HostSession } from './executor';
+import { concealEntries, redactEntry } from './visibility';
 
+const compendium = loadSrdCompendium();
 const CAMPAIGN = { id: randomUUID(), name: 'A Mina Perdida' };
 const GM = { playerId: randomUUID(), displayName: 'Mestre' };
 const ANA = { playerId: randomUUID(), displayName: 'Ana' };
@@ -18,7 +20,7 @@ function setup(): HostSession {
     itemProblems: () => [],
     characterSheet: () => undefined,
     monsterHpMax: (id) => (id === 'goblin' ? 7 : undefined),
-    creature: () => undefined,
+    creature: (id) => compendium.creatures.find((c) => c.id === (id === 'goblin' ? 'goblin_warrior' : id)),
     spell: () => undefined,
     assetExists: () => false,
   });
@@ -96,6 +98,81 @@ describe('HostSession: hidden tokens and dead indicator', () => {
     expect(views[ANA.playerId]?.tokens[goblinId]?.position).toEqual({ x: 400, y: 400 });
     expect(views[ANA.playerId]?.tokens[goblinId]?.hp).toBeNull();
     expect(views[ANA.playerId]?.tokens[goblinId]?.hidden).toBe(false);
+  });
+
+  it('keeps hidden tokens out of the combat order and the chat of players', () => {
+    const session = setup();
+    const views: Record<string, SessionState> = { [GM.playerId]: session.viewFor(GM.playerId), [ANA.playerId]: session.viewFor(ANA.playerId) };
+    const gm = (intent: Intent): void => {
+      applyAndCheckViews(session, GM.playerId, intent, views);
+    };
+    const ana = (): SessionState => views[ANA.playerId] ?? session.state;
+    gm({ kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10 } });
+    const mapId = Object.keys(session.state.maps)[0] ?? '';
+    for (const [i, name] of ['Guarda', 'Assassino'].entries()) {
+      gm({ kind: 'token.create', data: { mapId, name, position: { x: i * 200, y: 0 }, size: 'small', monsterId: 'goblin' } });
+    }
+    const idOf = (name: string): string => Object.values(session.state.tokens).find((t) => t.name === name)?.id ?? '';
+    const [guard, assassin] = [idOf('Guarda'), idOf('Assassino')];
+    gm({ kind: 'token.hidden', data: { tokenId: assassin, hidden: true } });
+
+    gm({ kind: 'combat.start', data: { tokenIds: [guard, assassin] } });
+    gm({ kind: 'combat.set_initiative', data: { tokenId: assassin, initiative: 20 } });
+    gm({ kind: 'combat.set_initiative', data: { tokenId: guard, initiative: 1 } });
+    gm({ kind: 'condition.add', data: { target: { tokenId: assassin }, condition: 'prone' } });
+    gm({ kind: 'condition.add', data: { target: { tokenId: guard }, condition: 'prone' } });
+    gm({
+      kind: 'save.force',
+      data: {
+        source: { custom: { name: 'Fogo', ability: 'dex', dc: 12, damage: [{ dice: '1d6', type: 'fire' }], onSuccess: 'none' } },
+        targetTokenIds: [guard, assassin],
+        visibility: 'public',
+      },
+    });
+    expect(ana().combat?.combatants.map((c) => c.tokenId)).toEqual([guard]);
+    expect(JSON.stringify(ana())).not.toContain('Assassino');
+    expect(JSON.stringify(ana())).not.toContain(assassin);
+    expect(ana().chat.length).toBe(session.state.chat.length);
+    expect(ana().chat.some((e) => e.kind === 'condition_changed' && e.targetName === 'Guarda')).toBe(true);
+    expect(ana().chat.some((e) => e.kind === 'hidden_roll' && e.silent === true)).toBe(true);
+    const save = ana().chat.find((e) => e.kind === 'save_roll');
+    expect(save?.kind === 'save_roll' ? save.results.map((r) => r.targetTokenId) : []).toEqual([guard]);
+
+    // A vez passa pelos dois: só a do oculto chega como `hiddenTurn`.
+    const turns = [0, 1].map(() => {
+      const current = session.state.combat?.combatants[session.state.combat.turn]?.tokenId;
+      const seen = ana().combat?.hiddenTurn === true;
+      gm({ kind: 'combat.next', data: {} });
+      return current === assassin ? seen : !seen;
+    });
+    expect(turns).toEqual([true, true]);
+
+    // Revelar devolve o combatente, sem expor o passado; esconder tudo tira o combate.
+    gm({ kind: 'token.hidden', data: { tokenId: assassin, hidden: false } });
+    expect(ana().combat?.combatants).toHaveLength(2);
+    expect(ana().chat.some((e) => e.kind === 'condition_changed' && e.targetName === 'Assassino')).toBe(false);
+    gm({ kind: 'token.hidden', data: { tokenId: assassin, hidden: true } });
+    gm({ kind: 'token.hidden', data: { tokenId: guard, hidden: true } });
+    expect(ana().combat).toBeNull();
+  });
+
+  it('masks a hidden actor and keeps the visible target', () => {
+    const base = { id: randomUUID(), at: 1, authorId: GM.playerId };
+    const tokens: SessionState['tokens'] = {};
+    const session = setup();
+    session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10 } });
+    const mapId = Object.keys(session.state.maps)[0] ?? '';
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Assassino', position: { x: 0, y: 0 }, size: 'small' } });
+    for (const t of Object.values(session.state.tokens)) tokens[t.id] = { ...t, hidden: true };
+    const [op] = concealEntries(
+      [{ op: 'add', path: '/chat/-', value: { kind: 'timed_effect', ...base, event: 'started', effect: 'sap', sourceName: 'Assassino', targetTokenId: randomUUID(), targetName: 'Thorin' } }],
+      tokens,
+    );
+    const entry = ChatEntrySchema.parse(op && 'value' in op ? op.value : undefined);
+    expect(redactEntry(entry, { playerId: ANA.playerId, role: 'player' }, tokens)).toEqual({
+      kind: 'timed_effect', ...base, event: 'started', effect: 'sap', sourceName: 'Desconhecido', targetTokenId: expect.any(String) as string, targetName: 'Thorin',
+    });
+    expect(redactEntry(entry, { playerId: GM.playerId, role: 'gm' }, tokens)).toMatchObject({ sourceName: 'Assassino' });
   });
 
   it('automatically marks monster tokens dead at 0 PV, clears on healing, and allows GM manual override', () => {
