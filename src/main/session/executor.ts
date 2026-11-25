@@ -18,6 +18,7 @@ import { multiattackStep, requireMultiattack } from './multiattack';
 import { changeMonsterUse, restMonster, setMonsterLair } from './monsters';
 import { createMap, createToken, moveToken, roll, setTokenDead, setTokenHidden, updateMap, updateToken } from './map-tokens';
 import { castFromItem, changeCharges, dawn } from './item-charges';
+import { endedFeatures, useFeature } from './features';
 import { useItem } from './items';
 import { readScroll } from './scrolls';
 import { changeHp, concentrate, concentrationBreaks, deathStateEntry, endConcentration, inCombat, rollDeathSave } from './vitality';
@@ -155,7 +156,9 @@ export class HostSession extends SessionContext {
   private commit(raw: PatchOp[]): StateChange {
     // Aplica antes de mudar a revisão: se o patch falhar, nada muda.
     const before = this.current;
-    const ops = concealEntries(raw, before.tokens);
+    const next = applyPatch(this.current, raw);
+    // Estados que a mudança encerrou (Rage ao ficar Incapacitado; nota 0078).
+    const ops = concealEntries([...raw, ...endedFeatures(this, this.gm.playerId, next)], before.tokens);
     this.current = applyPatch(this.current, ops);
     this.previous = before;
     const baseRev = this.revision;
@@ -204,6 +207,8 @@ export class HostSession extends SessionContext {
         return removeItem(this, playerId, role, intent.data);
       case 'inventory.update':
         return updateItem(this, playerId, role, intent.data);
+      case 'feature.use':
+        return useFeature(this, playerId, role, intent.data);
       case 'item.read':
         return readScroll(this, playerId, role, intent.data);
       case 'item.cast':
@@ -239,10 +244,12 @@ export class HostSession extends SessionContext {
         const adjustment = character.adjustments[index];
         if (!adjustment) throw violation('Ajuste não encontrado');
         // Efeito de magia (nota 0060): o dono do personagem também tira (Mage Armor ao vestir armadura).
-        if (!adjustment.spell) this.requireGm(role);
+        // O estado de uma característica (nota 0078), também.
+        const own = adjustment.spell !== undefined || adjustment.feature !== undefined;
+        if (!own) this.requireGm(role);
         return [
           { op: 'remove', path: toPointer('characters', character.id, 'adjustments', String(index)) },
-          ...(adjustment.spell
+          ...(own
             ? [this.appendChat({ kind: 'spell_effect_ended', ...this.entryBase(playerId), characterId: character.id, characterName: character.name, effectName: adjustment.name.slice(0, 100), reason: 'removed' })]
             : []),
         ];

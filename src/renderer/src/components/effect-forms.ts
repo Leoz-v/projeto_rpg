@@ -210,6 +210,10 @@ export function describeEffect(effect: Effect): string {
       return `${effect.subtract ? '−' : '+'}${effect.dice} em ${targetLabel(effect.target, ROLL_TARGETS)}${when}`;
     case 'attacks_against':
       return `${effect.mode === 'advantage' ? 'Vantagem' : 'Desvantagem'} em ataques contra o alvo${effect.from ? ' (de certos tipos de criatura)' : ''}${when}`;
+    case 'feature_use':
+      return `Usar: ${effect.name}`;
+    case 'feature_use_part':
+      return `Parte de ${humanizeId(effect.use)}`;
     case 'attack_rider':
       return `${effect.name}: +${typeof effect.dice === 'string' ? effect.dice : effect.dice.byLevel[0]} nos ataques`;
     case 'target_damage':

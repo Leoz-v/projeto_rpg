@@ -22,6 +22,7 @@ const withoutChat = (ops: PatchOp[]): PatchOp[] => ops.filter((op) => !op.path.s
 export function castSpell(ctx: SessionContext, playerId: string, role: Role, data: IntentData<'spell.cast'>): PatchOp[] {
   const { character, sheet } = ctx.sheetOf(playerId, role, data.characterId);
   const { spellcasting } = sheet;
+  ctx.requireCanCastNow(character);
   if (!spellcasting.canCast) throw violation(`${character.name} não pode conjurar vestindo armadura sem treinamento`);
   const castable = spellcasting.castable.find((c) => c.spellId === data.spellId);
   const spell = ctx.deps.spell(data.spellId);

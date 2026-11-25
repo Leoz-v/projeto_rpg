@@ -28,7 +28,7 @@ interface Using {
  * Quem usa como alvo: um token dele (o do mapa na tela primeiro) ou, sem
  * token, um alvo só com o personagem, para beber uma poção fora do mapa.
  */
-function selfTarget(ctx: SessionContext, character: SessionCharacter): { token: Token; onMap: boolean } {
+export function selfTarget(ctx: SessionContext, character: SessionCharacter): { token: Token; onMap: boolean } {
   const own = Object.values(ctx.current.tokens).filter((t) => t.characterId === character.id);
   const token = own.find((t) => t.mapId === ctx.current.activeMapId) ?? own[0];
   if (token) return { token, onMap: true };

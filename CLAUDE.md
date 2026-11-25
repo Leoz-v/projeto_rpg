@@ -232,7 +232,8 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - ✅ Cargas e magias de itens (PR 2a, `item.cast`, `item.charges`, `items.dawn`, `PROTOCOL_VERSION = 39`, `engine/item-charges.ts`): cargas por cópia do item, recarga no amanhecer do mestre, última carga com d20 e 24 itens que conjuram, curados em `srd-source/tools/item_casting.py`. Ver `docs/decisions/0075-cargas-e-magias-de-itens.md`.
    - ✅ Pergaminhos (PR 2b, `item.read`, `PROTOCOL_VERSION = 40`, `engine/scrolls.ts`): a magia fica na entrada do inventário, com a lista da classe, o teste de círculo alto e a CD do pergaminho. Ver `docs/decisions/0076-pergaminhos.md`.
    - ✅ Dano extra nos ataques (PR 3, efeito `attack_rider`, `PROTOCOL_VERSION = 41`, `engine/attack-riders.ts`): 10 características e 13 armas mágicas, automático quando a regra é objetiva, caixas na ficha para o resto, e uma vez por turno no combate. Ver `docs/decisions/0077-dano-extra-nos-ataques.md`.
-   - Características que curam ou reforçam (Rage, Lay On Hands, Second Wind, Bardic Inspiration).
+   - ✅ Características que curam ou reforçam (PR 4a, `feature.use`, efeitos `feature_use` e `feature_use_part`, `PROTOCOL_VERSION = 42`, `engine/feature-uses.ts`): 18 características, com os estados (Rage) na ficha até serem encerrados. Ver `docs/decisions/0078-usar-caracteristicas.md`.
+   - Bardic Inspiration (PR 4b): o dado guardado por quem recebe, usado depois de ver a rolagem.
    - Características com salvaguarda (Stunning Strike, Breath Weapon, Channel Divinity).
    - Reações e mudanças na rolagem (Uncanny Dodge, Evasion, Indomitable): a redesenhar depois dos outros.
 

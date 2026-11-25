@@ -345,7 +345,8 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     characterName: NameSchema,
     effectName: LabelSchema,
     /** `duration`: o turno chegou; `replaced`: quem conjurou usou a magia de novo. */
-    reason: z.enum(['concentration', 'removed', 'duration', 'replaced']),
+    /** `broken`: uma condição, a armadura ou a morte encerrou o estado (nota 0078). */
+    reason: z.enum(['concentration', 'removed', 'duration', 'replaced', 'broken']),
   }),
   /** Iniciativa rolada pelo Host (`combat.start`, `combat.add`): o resultado de cada token. */
   z.strictObject({
@@ -438,6 +439,17 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     left: z.int().nonnegative(),
     duration: LabelSchema.optional(),
     description: z.string().min(1).max(6000),
+  }),
+  /** Característica usada (nota 0078). O que ela faz vai nas entradas seguintes (`spellOf` aponta para esta). */
+  z.strictObject({
+    kind: z.literal('feature_used'),
+    ...entryBase,
+    characterId: UuidSchema,
+    characterName: NameSchema,
+    featureName: LabelSchema,
+    action: LabelSchema.optional(),
+    duration: LabelSchema.optional(),
+    notes: LogList,
   }),
   /** Teste para ler um pergaminho de círculo alto (nota 0076): na falha, ele se perde. */
   z.strictObject({
@@ -679,6 +691,8 @@ export const SessionAdjustmentSchema = z.strictObject({
   spell: ConditionSpellSchema.optional(),
   /** Arma do inventário a que os efeitos pertencem (nota 0063). */
   weapon: InstanceIdSchema.optional(),
+  /** Estado de uma característica (Rage; nota 0078): o dono encerra, e o Host também, pelo que está em `endsOn`. */
+  feature: z.strictObject({ id: IdSchema, endsOn: z.array(z.enum(['incapacitated', 'unconscious', 'heavy_armor'])).max(3), noSpells: z.literal(true).optional() }).optional(),
   /** Termina no início ou no fim de um turno (Shield). */
   until: TurnExpirySchema.optional(),
 });

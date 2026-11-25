@@ -134,6 +134,20 @@ export const IntentSchema = z.discriminatedUnion('kind', [
       })
       .refine((d) => d.equipped !== undefined || d.attuned !== undefined || d.quantity !== undefined, { message: 'nada para alterar' }),
   }),
+  z.strictObject({
+    kind: z.literal('feature.use'),
+    data: z.strictObject({
+      characterId: UuidSchema,
+      featureId: IdSchema,
+      /** Alvo; ausente, quem usa. */
+      targetTokenId: UuidSchema.optional(),
+      /** Reserva (Lay On Hands): PV a curar e condições a terminar. */
+      amount: z.int().min(0).max(1000).optional(),
+      conditions: z.array(TableConditionSchema).max(15).optional(),
+      /** Arma da característica (Sacred Weapon). */
+      weaponId: InstanceIdSchema.optional(),
+    }),
+  }),
   z.strictObject({ kind: z.literal('item.read'), data: z.strictObject({ characterId: UuidSchema, instanceId: InstanceIdSchema }) }),
   z.strictObject({
     kind: z.literal('item.cast'),

@@ -189,6 +189,7 @@ export function concentrate(ctx: SessionContext, playerId: string, role: Role, c
   const { character, sheet } = ctx.sheetOf(playerId, role, characterId);
   if (character.deathSaves.dead) throw violation(`${character.name} está morto`);
   if (effectiveConditions(character.conditions.active.map((c) => c.condition)).has('incapacitated')) throw violation(`${character.name} está Incapacitado`);
+  ctx.requireCanCastNow(character);
   // Pelo item, a magia não precisa estar na ficha (nota 0075).
   if (!fromItem && !sheet.spellcasting.concentration.includes(spellId)) throw violation('Esta magia não está na ficha ou não exige Concentração');
   if (character.concentration?.spellId === spellId) throw violation(`${character.name} já está concentrado nesta magia`);

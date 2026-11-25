@@ -383,7 +383,7 @@ export function SpellEffectEndedBody({ entry, header }: { entry: Extract<ChatEnt
       {header}
       <p>
         {entry.characterName}: fim de {entry.effectName}
-        <span className="hint"> ({{ concentration: 'a Concentração acabou', removed: 'encerrado', duration: 'fim da duração', replaced: 'a magia foi usada em outro alvo' }[entry.reason]})</span>
+        <span className="hint"> ({{ concentration: 'a Concentração acabou', removed: 'encerrado', duration: 'fim da duração', replaced: 'a magia foi usada em outro alvo', broken: 'condição, armadura ou morte' }[entry.reason]})</span>
       </p>
     </li>
   );
