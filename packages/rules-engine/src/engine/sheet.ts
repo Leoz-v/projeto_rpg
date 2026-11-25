@@ -20,6 +20,7 @@ import { availableCharges, type ChargedItem, chargedItem, itemSpellCosts, itemSp
 import { scrollOf, scrollReading } from './scrolls';
 import type { AttackRider } from './attack-riders';
 import { addDice } from './spells';
+import { resolveFeatureUses } from './feature-uses';
 import { itemUse, itemUseOptions } from './item-use';
 import { type MagicPart, resolveInventory } from './items';
 import { isWeaponProficient } from './proficiency';
@@ -975,6 +976,11 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     issues,
     levelUp: build.levelUp,
     inventory: inventoryLines,
+    featureUses: resolveFeatureUses(
+      effectsOf('feature_use').map((e) => ({ effect: e.effect, classId: e.classId, source: namedSource(e) })),
+      effectsOf('feature_use_part').map((e) => ({ effect: e.effect, classId: e.classId, source: namedSource(e) })),
+      { bonus: bonusValue, scaleLevel },
+    ),
     attunement: { used: attuned, limit: attunementLimit },
     level,
     classes: build.classes,

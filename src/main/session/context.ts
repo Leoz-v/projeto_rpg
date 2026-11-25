@@ -174,6 +174,12 @@ export class SessionContext {
     return distanceFeet(footprint(a), footprint(b));
   }
 
+  /** Um estado impede conjurar e se concentrar (Rage; nota 0078). */
+  requireCanCastNow(character: SessionCharacter): void {
+    const state = character.adjustments.find((a) => a.feature?.noSpells);
+    if (state) throw violation(`${character.name} não pode conjurar: ${state.name}`);
+  }
+
   /** Tira o personagem do descanso em andamento (dano interrompe; SRD 5.2.1, "Short Rest"); o último a sair encerra o descanso. */
   leaveRest(playerId: string, character: SessionCharacter, note: string): PatchOp[] {
     const rest = this.current.rest;

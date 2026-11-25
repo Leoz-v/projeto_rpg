@@ -404,7 +404,20 @@
             "feature": {
               "id": "mindless_rage",
               "name": "Mindless Rage",
-              "description": "You have Immunity to the Charmed and Frightened conditions while your Rage is active. If you're Charmed or Frightened when you enter your Rage, the condition ends on you."
+              "description": "You have Immunity to the Charmed and Frightened conditions while your Rage is active. If you're Charmed or Frightened when you enter your Rage, the condition ends on you.",
+              "effects": [
+                {
+                  "type": "feature_use_part",
+                  "use": "rage",
+                  "part": {
+                    "kind": "restore",
+                    "conditions": [
+                      "charmed",
+                      "frightened"
+                    ]
+                  }
+                }
+              ]
             }
           }
         ]
@@ -1173,6 +1186,50 @@
                     "min": 1
                   },
                   "recharge": "long_rest"
+                },
+                {
+                  "type": "feature_use",
+                  "id": "wholeness_of_body",
+                  "name": "Wholeness of Body",
+                  "parts": [
+                    {
+                      "kind": "heal",
+                      "dice": {
+                        "byLevel": [
+                          "1d6",
+                          "1d6",
+                          "1d6",
+                          "1d6",
+                          "1d8",
+                          "1d8",
+                          "1d8",
+                          "1d8",
+                          "1d8",
+                          "1d8",
+                          "1d10",
+                          "1d10",
+                          "1d10",
+                          "1d10",
+                          "1d10",
+                          "1d10",
+                          "1d12",
+                          "1d12",
+                          "1d12",
+                          "1d12"
+                        ]
+                      },
+                      "bonus": [
+                        {
+                          "ability": "wis"
+                        }
+                      ],
+                      "minimum": 1
+                    }
+                  ],
+                  "action": "Ação Bônus",
+                  "cost": {
+                    "resource": "wholeness_of_body"
+                  }
                 }
               ]
             }
@@ -1246,7 +1303,36 @@
             "feature": {
               "id": "sacred_weapon",
               "name": "Sacred Weapon",
-              "description": "When you take the Attack action, you can expend one use of your Channel Divinity to imbue one Melee weapon that you are holding with positive energy. For 10 minutes or until you use this feature again, you add your Charisma modifier to attack rolls you make with that weapon (minimum bonus of +1), and each time you hit with it, you cause it to deal its normal damage type or Radiant damage. The weapon also emits Bright Light in a 20-foot radius and Dim Light 20 feet beyond that."
+              "description": "When you take the Attack action, you can expend one use of your Channel Divinity to imbue one Melee weapon that you are holding with positive energy. For 10 minutes or until you use this feature again, you add your Charisma modifier to attack rolls you make with that weapon (minimum bonus of +1), and each time you hit with it, you cause it to deal its normal damage type or Radiant damage. The weapon also emits Bright Light in a 20-foot radius and Dim Light 20 feet beyond that.",
+              "effects": [
+                {
+                  "type": "feature_use",
+                  "id": "sacred_weapon",
+                  "name": "Sacred Weapon",
+                  "parts": [
+                    {
+                      "kind": "buff",
+                      "effects": [
+                        {
+                          "type": "flat_bonus",
+                          "target": "attack.weapon",
+                          "value": {
+                            "ability": "cha",
+                            "min": 1
+                          }
+                        }
+                      ],
+                      "weapon": true
+                    }
+                  ],
+                  "action": "parte da ação Atacar",
+                  "cost": {
+                    "resource": "channel_divinity"
+                  },
+                  "duration": "10 minutos",
+                  "note": "O dano pode ser Radiante (quem ataca avisa)."
+                }
+              ]
             }
           }
         ]
@@ -1884,7 +1970,39 @@
             "feature": {
               "id": "dragon_wings",
               "name": "Dragon Wings",
-              "description": "As a Bonus Action, you can cause draconic wings to appear on your back for 1 hour or until you dismiss them, giving you a Fly Speed of 60 feet. Once you use this feature, you can't use it again until you finish a Long Rest unless you spend 3 Sorcery Points to restore your use of it."
+              "description": "As a Bonus Action, you can cause draconic wings to appear on your back for 1 hour or until you dismiss them, giving you a Fly Speed of 60 feet. Once you use this feature, you can't use it again until you finish a Long Rest unless you spend 3 Sorcery Points to restore your use of it.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "dragon_wings",
+                  "name": "Dragon Wings",
+                  "max": 1,
+                  "recharge": "long_rest"
+                },
+                {
+                  "type": "feature_use",
+                  "id": "dragon_wings",
+                  "name": "Dragon Wings",
+                  "parts": [
+                    {
+                      "kind": "buff",
+                      "effects": [
+                        {
+                          "type": "grant_speed",
+                          "speed": "fly",
+                          "value": 60
+                        }
+                      ]
+                    }
+                  ],
+                  "action": "Ação Bônus",
+                  "cost": {
+                    "resource": "dragon_wings"
+                  },
+                  "duration": "1 hora",
+                  "note": "Gastando 3 Sorcery Points, recupere o uso nos recursos."
+                }
+              ]
             }
           }
         ]
@@ -1929,7 +2047,30 @@
             "feature": {
               "id": "dark_ones_blessing",
               "name": "Dark One's Blessing",
-              "description": "When you reduce an enemy to 0 Hit Points, you gain Temporary Hit Points equal to your Charisma modifier plus your Warlock level (minimum of 1). You also gain this benefit if someone else reduces an enemy within 10 feet of you to 0 Hit Points."
+              "description": "When you reduce an enemy to 0 Hit Points, you gain Temporary Hit Points equal to your Charisma modifier plus your Warlock level (minimum of 1). You also gain this benefit if someone else reduces an enemy within 10 feet of you to 0 Hit Points.",
+              "effects": [
+                {
+                  "type": "feature_use",
+                  "id": "dark_ones_blessing",
+                  "name": "Dark One's Blessing",
+                  "parts": [
+                    {
+                      "kind": "heal",
+                      "bonus": [
+                        {
+                          "ability": "cha"
+                        },
+                        {
+                          "perLevel": 1
+                        }
+                      ],
+                      "minimum": 1,
+                      "temporary": true
+                    }
+                  ],
+                  "action": "ao reduzir um inimigo a 0 PV"
+                }
+              ]
             }
           },
           {

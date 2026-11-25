@@ -9,6 +9,7 @@ import { Adjustments } from './Adjustments';
 import { BuildPanel } from './BuildPanel';
 import { combatantOptions } from '../canvas/conditions';
 import { ConditionsControl } from './Conditions';
+import { FeatureUses } from './FeatureUses';
 import { HitPointsControl, HitPointsSummary } from './HitPoints';
 import { SaveEffectForm } from './SaveEffect';
 import { choiceRiders, type Roller, RollToolbar, RollButton, useRoller } from './SheetRolls';
@@ -581,6 +582,7 @@ export function CharacterSheet({ view, characterId, onClose }: { view: TableView
                   }}
                 />
                 <ConditionsControl target={{ characterId: record.id }} state={record.conditions} canEdit={canEdit} combatants={combatantOptions(view.state)} />
+                {canEdit && <FeatureUses character={record} sheet={load.view.sheet} state={view.state} />}
                 <ResourcesControl character={record} resources={load.view.sheet.resources} canEdit={canEdit} />
                 <ConcentrationControl
                   characterId={record.id}

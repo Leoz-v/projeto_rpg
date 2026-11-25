@@ -197,6 +197,8 @@ export function applyHealing(
     spellOf: { entryId: string; part: number };
     healing: string;
     temporary: boolean;
+    /** O mínimo da cura ("minimum of 1"). */
+    minimum?: number;
     endConditions: readonly Condition[];
     targets: Token[];
   },
@@ -204,7 +206,7 @@ export function applyHealing(
   const { label, targets } = options;
   const full = options.healing === 'full';
   const roll = full ? undefined : rollDice(options.healing, ctx.deps.rng);
-  const rolled = roll ? Math.max(0, roll.total) : 0;
+  const rolled = roll ? Math.max(options.minimum ?? 0, roll.total, 0) : 0;
   const ledger = new ConditionLedger(ctx);
   const ops: PatchOp[] = [];
   const results: Extract<ChatEntry, { kind: 'spell_applied' }>['results'] = [];

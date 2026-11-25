@@ -127,6 +127,7 @@ export function castFromItem(ctx: SessionContext, playerId: string, role: Role, 
   const known = item.casting?.spells.find((s) => s.spellId === data.spellId);
   const spell = ctx.deps.spell(data.spellId);
   if (!known || !spell) throw violation(`${c.name} não conjura essa magia`);
+  ctx.requireCanCastNow(character);
   if (!sheet.spellcasting.canCast) throw violation(`${character.name} não pode conjurar vestindo armadura sem treinamento`);
   const problems = itemMagicProblems(item, c.entry);
   if (role !== 'gm' && problems[0] !== undefined) throw violation(problems[0]);

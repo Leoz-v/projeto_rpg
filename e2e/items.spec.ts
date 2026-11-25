@@ -96,6 +96,19 @@ test('Sneak Attack: the player marks it on the sheet, and the GM gets the damage
   await expect(chat(gm).getByRole('button', { name: /Aplicar/ }).first()).toBeVisible();
 });
 
+test('Rage: the player starts it, sees it on the sheet and ends it', async ({ table: { gm, player } }) => {
+  const id = await createCharacter(player, 'orc-barbarian-5', 'Grok');
+  await player.page.getByRole('region', { name: 'Personagens' }).getByRole('button', { name: 'Grok' }).click();
+  const features = player.page.getByRole('region', { name: 'Características', exact: true });
+  await features.getByRole('button', { name: 'Usar Rage', exact: true }).click();
+  await expect(features.getByText('ativa')).toBeVisible();
+  await expect(chat(gm)).toContainText('usou Rage');
+  expect((await stateOf(gm)).characters[id]?.adjustments.map((a) => a.name)).toEqual(['Rage']);
+  await features.getByRole('button', { name: 'Encerrar Rage' }).click();
+  await expect(features.getByText('ativa')).toHaveCount(0);
+  await expect(chat(gm)).toContainText('fim de Rage');
+});
+
 test('a spell scroll: the player picks the spell when adding it and reads it', async ({ table: { gm, player } }) => {
   await createCharacter(player, 'elf-wizard-7', 'Lia');
   const inventory = await openInventory(player, 'Lia');

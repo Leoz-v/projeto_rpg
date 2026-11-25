@@ -379,7 +379,7 @@ Regra que muda o resultado de um Teste d20 (ataque, salvaguarda ou teste de atri
 - `max`: um valor (`BonusValue` da seção 3.1: inteiro, atributo com `min`, múltiplo da proficiência, por nível) ou `{ "byLevel": [20 valores] }`, pelo nível na escala da fonte (o da classe para características de classe, o do personagem para espécie e talento). Máximo 0: o recurso não aparece.
 - `recharge`: `long_rest` (o descanso longo devolve todos), `short_rest` (o curto ou o longo devolvem todos) ou `short_rest_one` (o curto devolve 1, o longo todos).
 - **Mesmo `id` de várias fontes:** vale o maior `max` e a recarga mais generosa (`short_rest` > `short_rest_one` > `long_rest`); o nome é o da primeira fonte.
-- A ficha lista os recursos em `resources`, já resolvidos. Usar o recurso (o que ele faz) continua com o jogador e o mestre; o motor só conta os usos.
+- A ficha lista os recursos em `resources`, já resolvidos. O motor conta os usos; o que o recurso faz está em `feature_use` (3.30), quando é automatizado.
 - **Magias concedidas com usos por descanso** (`grant_spell` com `uses: { per, count }`, seção 3.6) viram recursos automáticos, com id `spell_<id da magia>`, o nome da magia e a recarga do `per` (`long_rest`, ou `short_rest` para `short_rest`). Conjurar sem espaço gasta deles (nota 0053).
 
 ### 3.25 `d20_bonus`
@@ -452,6 +452,23 @@ Dano extra do ataque com arma que depende do alvo, do d20 ou da escolha de quem 
 - `oncePerTurn`: o Host controla com o personagem no combate; fora dele, vale sempre.
 - `cost`: gasto só no acerto: `resource` (um uso), `pactSlot` (um espaço de Pacto, com `perSlotLevel` por círculo) ou `charges` da arma.
 - `scope: "weapon"`: como no `extra_damage`. Os dados dobram no Acerto Crítico; um número fixo, não. `note` vira lembrete no ataque.
+
+### 3.30 `feature_use`
+
+Característica que o jogador usa na mesa (nota 0078). A ficha a lista em `featureUses`, já com os números.
+
+```json
+{ "type": "feature_use", "id": "second_wind", "name": "Second Wind", "action": "Ação Bônus", "cost": { "resource": "second_wind" }, "parts": [{ "kind": "heal", "dice": "1d10", "bonus": [{ "perLevel": 1 }] }] }
+```
+
+- `cost`: usos do recurso (`amount`, padrão 1). `targets`: `self` ou `one`. `forbidHeavyArmor`: não com armadura pesada. `action`, `duration` e `note` são texto para a mesa.
+- Partes, na ordem: `heal` (dados, `bonus` somados, `minimum`, `temporary`), `pool_heal` e `pool_restore` (a reserva gasta o que quem usa escolher), `restore` (condições que terminam), `condition` (com `until`), `regain` (todos os usos de outro recurso) e `buff` (estado em quem usou).
+- `buff`: os efeitos do catálogo ficam na ficha como ajuste ligado à característica, com os números do momento, até o dono encerrar, o `until` ou um `endsOn` (`incapacitated`, `unconscious`, `heavy_armor`; a morte, sempre). `noSpells`: não conjura nem se concentra. `weapon`: os efeitos são de uma arma corpo a corpo.
+- Um de mesmo `id` que vem depois substitui o anterior (Persistent Rage).
+
+### 3.31 `feature_use_part`
+
+Acrescenta uma parte a uma característica de outra fonte: `{ "type": "feature_use_part", "use": "lay_on_hands", "part": { … } }` (Restoring Touch, Mindless Rage).
 
 ### Efeitos numa arma
 

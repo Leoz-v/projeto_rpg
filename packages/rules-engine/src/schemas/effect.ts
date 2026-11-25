@@ -450,7 +450,8 @@ const KeepConcentrationSchema = z.strictObject({
 
 // --- União -------------------------------------------------------------------
 
-export const EffectSchema = z.discriminatedUnion('type', [
+/** Todos os efeitos, menos os de usar características (que contêm efeitos). */
+export const BaseEffectSchema = z.discriminatedUnion('type', [
   FlatBonusSchema,
   SetBaseAcSchema,
   AdvantageSchema,
@@ -485,5 +486,59 @@ export const EffectSchema = z.discriminatedUnion('type', [
   KeepConcentrationSchema,
   ResourceSchema,
 ]);
+export type BaseEffect = z.infer<typeof BaseEffectSchema>;
+
+// --- feature_use (3.30), feature_use_part (3.31) -----------------------------
+
+const LevelDiceSchema = z.union([DiceSchema, z.strictObject({ byLevel: z.array(DiceSchema).length(20) })]);
+const UntilTurnSchema = z.enum(['user_turn_start', 'user_turn_end']).optional();
+
+export const FeatureUsePartSchema = z.discriminatedUnion('kind', [
+  /** Cura (ou PV temporários): dados e bônus somados, com o mínimo. */
+  z.strictObject({ kind: z.literal('heal'), dice: LevelDiceSchema.optional(), bonus: z.array(BonusValueSchema).default([]), minimum: z.int().optional(), temporary: z.literal(true).optional() }),
+  /** Cura da reserva, na quantidade que quem usa escolher (Lay On Hands). */
+  z.strictObject({ kind: z.literal('pool_heal') }),
+  /** Condições que a reserva termina, com o custo de cada uma. */
+  z.strictObject({ kind: z.literal('pool_restore'), cost: z.int().positive(), conditions: z.array(ConditionSchema.exclude(['exhaustion'])).min(1) }),
+  /** Condições que terminam. */
+  z.strictObject({ kind: z.literal('restore'), conditions: z.array(ConditionSchema.exclude(['exhaustion'])).min(1) }),
+  z.strictObject({ kind: z.literal('condition'), conditions: z.array(ConditionSchema.exclude(['exhaustion'])).min(1), until: UntilTurnSchema }),
+  /** Recupera todos os usos de outro recurso (Uncanny Metabolism). */
+  z.strictObject({ kind: z.literal('regain'), resource: IdSchema }),
+  /** Estado em quem usou: efeitos na ficha até ser encerrado. */
+  z.strictObject({
+    kind: z.literal('buff'),
+    effects: z.array(BaseEffectSchema).min(1).max(20),
+    until: UntilTurnSchema,
+    /** O que o encerra sozinho (a morte, sempre). */
+    endsOn: z.array(z.enum(['incapacitated', 'unconscious', 'heavy_armor'])).optional(),
+    /** Enquanto dura, não conjura nem se concentra (Rage). */
+    noSpells: z.literal(true).optional(),
+    /** Os efeitos são de uma arma corpo a corpo empunhada (Sacred Weapon). */
+    weapon: z.literal(true).optional(),
+  }),
+]);
+export type FeatureUsePart = z.infer<typeof FeatureUsePartSchema>;
+
+/** Característica que o jogador usa na mesa (nota 0078). A de mesmo id que vem depois substitui. */
+const FeatureUseSchema = z.strictObject({
+  type: z.literal('feature_use'),
+  id: IdSchema,
+  name: z.string().min(1).max(100),
+  action: z.string().min(1).max(100).optional(),
+  cost: z.strictObject({ resource: IdSchema, amount: z.int().positive().default(1) }).optional(),
+  targets: z.enum(['self', 'one']).default('self'),
+  duration: z.string().min(1).max(100).optional(),
+  forbidHeavyArmor: z.literal(true).optional(),
+  parts: z.array(FeatureUsePartSchema).min(1).max(6),
+  ...common,
+});
+export type FeatureUse = z.infer<typeof FeatureUseSchema>;
+
+/** Parte a mais de uma característica de outra fonte (Restoring Touch em Lay On Hands). */
+const FeatureUseExtensionSchema = z.strictObject({ type: z.literal('feature_use_part'), use: IdSchema, part: FeatureUsePartSchema, ...common });
+export type FeatureUseExtension = z.infer<typeof FeatureUseExtensionSchema>;
+
+export const EffectSchema = z.discriminatedUnion('type', [...BaseEffectSchema.options, FeatureUseSchema, FeatureUseExtensionSchema]);
 export type Effect = z.infer<typeof EffectSchema>;
 export type EffectType = Effect['type'];

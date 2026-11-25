@@ -1,4 +1,5 @@
 import type { AttackRider } from './attack-riders';
+import type { SheetFeatureUse } from './feature-uses';
 import type { Ability, CreatureType, DamageType, Condition, Sense, Size, Skill, WeaponMastery } from '../schemas/common';
 import type { Predicate } from '../schemas/predicate';
 import type { ChoiceOptions, Feature } from '../schemas/source';
@@ -320,6 +321,8 @@ export interface DerivedSheet {
   weaponMasteries: string[];
   attacks: WeaponAttack[];
   spellcasting: Spellcasting;
+  /** Características que se usam na mesa (nota 0078). */
+  featureUses: SheetFeatureUse[];
   feats: { featId: string; source: SourceLabel }[];
   features: SheetFeature[];
   conditions: { condition: Condition; source: SourceLabel }[];

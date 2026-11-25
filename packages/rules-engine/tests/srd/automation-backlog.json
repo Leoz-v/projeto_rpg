@@ -17,10 +17,6 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:class:barbarian/persistent_rage#rage_duration": {
-      "category": "phase_4",
-      "reason": "Rage dura 10 minutos sem precisar ser estendida: depende do estado de Rage (recurso e ação)."
-    },
     "feature:class:barbarian/primal_champion": {
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
@@ -29,13 +25,9 @@
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
-    "feature:class:barbarian/rage#use": {
+    "feature:class:barbarian/reckless_attack#advantage": {
       "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
-    },
-    "feature:class:barbarian/reckless_attack": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
+      "reason": "Vantagem nos ataques com Força: declarada por quem ataca."
     },
     "feature:class:barbarian/relentless_rage": {
       "category": "phase_4",
@@ -73,9 +65,9 @@
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
-    "feature:class:cleric/channel_divinity#use": {
+    "feature:class:cleric/channel_divinity#effects": {
       "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
+      "reason": "Divine Spark contra um alvo e Turn Undead: salvaguardas."
     },
     "feature:class:cleric/divine_intervention#use": {
       "category": "phase_4",
@@ -149,10 +141,6 @@
       "category": "phase_4",
       "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
     },
-    "feature:class:fighter/second_wind#use": {
-      "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
-    },
     "feature:class:fighter/studied_attacks": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
@@ -221,14 +209,6 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:class:monk/superior_defense": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:class:monk/uncanny_metabolism#use": {
-      "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
-    },
     "feature:class:paladin/abjure_foes": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
@@ -248,14 +228,6 @@
     "feature:class:paladin/fighting_style_feature": {
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
-    },
-    "feature:class:paladin/lay_on_hands#use": {
-      "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
-    },
-    "feature:class:paladin/restoring_touch": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
     "feature:class:paladin/spellcasting": {
       "category": "structural",
@@ -281,10 +253,6 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:class:ranger/natures_veil#use": {
-      "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
-    },
     "feature:class:ranger/precise_hunter": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
@@ -293,9 +261,9 @@
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
-    "feature:class:ranger/tireless#use": {
+    "feature:class:ranger/tireless#exhaustion": {
       "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
+      "reason": "A Exaustão cai 1 no descanso curto."
     },
     "feature:class:ranger/weapon_mastery_feature": {
       "category": "structural",
@@ -376,10 +344,6 @@
     "feature:class:sorcerer/heightened_spell": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:class:sorcerer/innate_sorcery#use": {
-      "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
     },
     "feature:class:sorcerer/metamagic": {
       "category": "structural",
@@ -581,14 +545,6 @@
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
-    "feature:species:dragonborn/draconic_flight#use": {
-      "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
-    },
-    "feature:species:dwarf/stonecunning#use": {
-      "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
-    },
     "feature:species:elf/elven_lineage_trait": {
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
@@ -621,10 +577,6 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:species:goliath/large_form#use": {
-      "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
-    },
     "feature:species:goliath/stones_endurance": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
@@ -653,10 +605,6 @@
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
-    "feature:species:orc/adrenaline_rush#use": {
-      "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
-    },
     "feature:species:orc/relentless_endurance#use": {
       "category": "phase_4",
       "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
@@ -669,9 +617,9 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:subclass:berserker/mindless_rage": {
+    "feature:subclass:berserker/mindless_rage#immunity": {
       "category": "phase_4",
-      "reason": "Imunidade enquanto a Fúria está ativa: depende do estado de Rage, que é recurso e ação (como Rage)."
+      "reason": "Imunidade a Charmed e Frightened enquanto a Rage dura: as que já havia terminam ao entrar."
     },
     "feature:subclass:berserker/retaliation": {
       "category": "phase_4",
@@ -713,10 +661,6 @@
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
-    "feature:subclass:draconic_sorcery/dragon_wings": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
     "feature:subclass:draconic_sorcery/elemental_affinity": {
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
@@ -738,10 +682,6 @@
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
     "feature:subclass:evoker/sculpt_spells": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:subclass:fiend_patron/dark_ones_blessing": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
@@ -821,10 +761,6 @@
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
-    "feature:subclass:oath_of_devotion/sacred_weapon": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
     "feature:subclass:oath_of_devotion/smite_of_protection": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
@@ -848,10 +784,6 @@
     "feature:subclass:warrior_of_the_open_hand/quivering_palm": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:subclass:warrior_of_the_open_hand/wholeness_of_body#use": {
-      "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
     },
     "item:adamantine_armor": {
       "category": "phase_4",

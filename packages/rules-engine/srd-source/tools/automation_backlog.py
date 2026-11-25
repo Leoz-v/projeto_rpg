@@ -66,7 +66,6 @@ FEATURE = {
 }
 # Motivos específicos, no lugar do motivo da categoria.
 FEATURE_REASON_OVERRIDE = {
-    "subclass:berserker/mindless_rage": "Imunidade enquanto a Fúria está ativa: depende do estado de Rage, que é recurso e ação (como Rage).",
 }
 FEATURE_REASONS = {
     "structural": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte.",
@@ -223,6 +222,10 @@ for it in load("magic-items.json"):
 # Entradas parciais (`<chave>#<aspecto>`): a fonte já tem efeitos, mas parte da mecânica segue pendente.
 # Valor: (categoria, motivo, mecânica só para `automate`).
 PARTIAL = {
+    "feature:subclass:berserker/mindless_rage#immunity": ("phase_4", "Imunidade a Charmed e Frightened enquanto a Rage dura: as que já havia terminam ao entrar.", None),
+    "feature:class:barbarian/reckless_attack#advantage": ("phase_4", "Vantagem nos ataques com Força: declarada por quem ataca.", None),
+    "feature:class:cleric/channel_divinity#effects": ("phase_4", "Divine Spark contra um alvo e Turn Undead: salvaguardas.", None),
+    "feature:class:ranger/tireless#exhaustion": ("phase_4", "A Exaustão cai 1 no descanso curto.", None),
     "item:sword_of_wounding#save": ("phase_4", "Salvaguarda de CON ou não recupera PV por 1 hora (resolução com salvaguarda).", None),
     "item:staff_of_withering#save": ("phase_4", "Salvaguarda de CON ou Desvantagem em FOR e CON por 1 hora (resolução com salvaguarda).", None),
     "item:mace_of_disruption#destroy": ("phase_4", "Salvaguarda de SAB ou é destruído, com 25 PV ou menos (resolução com salvaguarda).", None),
@@ -242,24 +245,21 @@ PARTIAL = {
                                                   None),
     "feature:class:druid/archdruid#nature_magician": ("phase_4", "Nature Magician: converte usos de Wild Shape num espaço de magia (recurso). Longevity é narrativa.",
                                                       None),
-    "feature:class:barbarian/persistent_rage#rage_duration": ("phase_4", "Rage dura 10 minutos sem precisar ser estendida: depende do estado de Rage (recurso e ação).",
-                                                              None),
     "monster_trait:greater_magic_resistance#spell_attacks_miss": ("phase_4", "Ataques de magia erram a criatura automaticamente (resolução do ataque).",
                                                                   None),
 }
 # Recursos contados pelo efeito `resource` (nota 0052): o uso em si (ação, rolagem, escolha) segue pendente.
 RESOURCE_USES = [
-    "feature:class:barbarian/rage", "feature:class:bard/bardic_inspiration", "feature:class:bard/font_of_inspiration",
-    "feature:class:cleric/channel_divinity", "feature:class:cleric/divine_intervention", "feature:class:druid/wild_shape",
-    "feature:class:fighter/action_surge", "feature:class:fighter/indomitable", "feature:class:fighter/second_wind",
-    "feature:class:monk/monks_focus", "feature:class:monk/uncanny_metabolism", "feature:class:paladin/channel_divinity",
-    "feature:class:paladin/lay_on_hands", "feature:class:ranger/natures_veil", "feature:class:ranger/tireless",
-    "feature:class:rogue/stroke_of_luck", "feature:class:sorcerer/font_of_magic", "feature:class:sorcerer/innate_sorcery",
+    "feature:class:bard/bardic_inspiration", "feature:class:bard/font_of_inspiration",
+    "feature:class:cleric/divine_intervention", "feature:class:druid/wild_shape",
+    "feature:class:fighter/action_surge", "feature:class:fighter/indomitable",
+    "feature:class:monk/monks_focus", "feature:class:paladin/channel_divinity",
+    "feature:class:rogue/stroke_of_luck", "feature:class:sorcerer/font_of_magic",
     "feature:class:sorcerer/sorcerous_restoration", "feature:class:warlock/magical_cunning", "feature:class:wizard/arcane_recovery",
-    "feature:species:dragonborn/breath_weapon", "feature:species:dragonborn/draconic_flight", "feature:species:dwarf/stonecunning",
-    "feature:species:goliath/giant_ancestry_trait", "feature:species:goliath/large_form", "feature:species:orc/adrenaline_rush",
+    "feature:species:dragonborn/breath_weapon",
+    "feature:species:goliath/giant_ancestry_trait",
     "feature:species:orc/relentless_endurance", "feature:subclass:circle_of_the_land/natural_recovery",
-    "feature:subclass:fiend_patron/dark_ones_own_luck", "feature:subclass:warrior_of_the_open_hand/wholeness_of_body",
+    "feature:subclass:fiend_patron/dark_ones_own_luck",
 ]
 for key in RESOURCE_USES:
     PARTIAL[f"{key}#use"] = ("phase_4", "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052).", None)

@@ -20,6 +20,7 @@ export function readScroll(ctx: SessionContext, playerId: string, role: Role, da
   if (!item || !scroll) throw violation('Este item não é um pergaminho de magia');
   const spell = entry.spellId !== undefined ? ctx.deps.spell(entry.spellId) : undefined;
   if (!spell) throw violation('Este pergaminho não tem magia definida: remova e adicione de novo, escolhendo a magia');
+  ctx.requireCanCastNow(character);
   if (!sheet.spellcasting.canCast) throw violation(`${character.name} não pode conjurar vestindo armadura sem treinamento`);
   const reading = scrollReading(spell, sheet);
   if (!reading.onList && role !== 'gm') throw violation(`${spell.name} não está na lista de magias de ${character.name}: o pergaminho é ilegível`);
