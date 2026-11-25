@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AbilitySchema, ConditionSchema, DamageSchema, FeetSchema, IdSchema, RestSchema, TextSchema } from './common';
+import { AbilitySchema, ConditionSchema, DamageSchema, FeetSchema, IdSchema, RestSchema, SizeSchema, TextSchema } from './common';
 
 /**
  * Ações declarativas de criaturas (ataque `+5`, dano `2d6+3` cortante, teste
@@ -32,6 +32,23 @@ const actionBase = {
   description: z.string().optional(),
 };
 
+/**
+ * Condições que o acerto ou a falha impõe na hora (nota 0065). A primeira é a
+ * principal: `while` são as que duram enquanto ela durar (Impedido enquanto
+ * Agarrado). `end` é contado nos turnos do monstro (`actor`) ou do alvo.
+ */
+export const ImposedConditionsSchema = z.strictObject({
+  conditions: z.array(ConditionSchema.exclude(['exhaustion'])).min(1),
+  /** Só em alvos deste tamanho ou menores. */
+  maxSize: SizeSchema.optional(),
+  escapeDc: z.int().min(1).optional(),
+  end: z.enum(['actor_turn_start', 'actor_turn_end', 'target_turn_start', 'target_turn_end']).optional(),
+  while: z.array(ConditionSchema.exclude(['exhaustion'])).min(1).optional(),
+  /** O alvo repete a salvaguarda no fim de cada turno dele (lembrete). */
+  repeatSave: z.literal(true).optional(),
+});
+export type ImposedConditions = z.infer<typeof ImposedConditionsSchema>;
+
 export const AttackActionSchema = z.strictObject({
   ...actionBase,
   kind: z.literal('attack'),
@@ -46,6 +63,7 @@ export const AttackActionSchema = z.strictObject({
   damage: z.array(DamageSchema).default([]),
   /** Condições aplicadas ao acertar, sem ressalva (as condicionais ficam na descrição). */
   onHitConditions: z.array(ConditionSchema).default([]),
+  imposes: z.array(ImposedConditionsSchema).default([]),
 });
 
 export const SaveActionSchema = z.strictObject({
@@ -58,6 +76,7 @@ export const SaveActionSchema = z.strictObject({
   onSuccess: z.enum(['half', 'none']).default('none'),
   /** Condições aplicadas na falha, sem ressalva (as condicionais ficam na descrição). */
   onFailConditions: z.array(ConditionSchema).default([]),
+  imposes: z.array(ImposedConditionsSchema).default([]),
 });
 
 /** Magia de um Spellcasting de criatura: à vontade ou N vezes por dia. */

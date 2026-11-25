@@ -34,6 +34,12 @@ export function effectiveConditions(conditions: Iterable<Condition>): Set<Condit
   return result;
 }
 
+/** Tira as condições que só duravam com outra que saiu (Impedido enquanto Agarrado). */
+export function withoutDependents<T extends { condition: Condition; with?: Condition | undefined }>(active: readonly T[]): T[] {
+  const kept = active.filter((c) => c.with === undefined || active.some((o) => o.condition === c.with));
+  return kept.length === active.length ? kept : withoutDependents(kept);
+}
+
 /** Deslocamento 0 (Agarrado, Paralisado, Petrificado, Impedido, Inconsciente). */
 export const SPEED_ZERO_CONDITIONS: readonly Condition[] = ['grappled', 'paralyzed', 'petrified', 'restrained', 'unconscious'];
 

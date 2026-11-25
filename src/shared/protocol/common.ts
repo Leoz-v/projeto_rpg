@@ -44,7 +44,7 @@ export const ConditionSpellSchema = z.strictObject({ characterId: UuidSchema, sp
 
 export const ConditionStateSchema = z.strictObject({
   active: z
-    .array(z.strictObject({ condition: TableConditionSchema, until: TurnExpirySchema.optional(), spell: ConditionSpellSchema.optional() }))
+    .array(z.strictObject({ condition: TableConditionSchema, until: TurnExpirySchema.optional(), spell: ConditionSpellSchema.optional(), /** Sai junto com esta (Impedido enquanto Agarrado; nota 0065). */ with: TableConditionSchema.optional() }))
     .max(TableConditionSchema.options.length)
     .refine((list) => new Set(list.map((c) => c.condition)).size === list.length, { message: 'condição repetida' }),
   exhaustion: z.int().min(0).max(MAX_EXHAUSTION_LEVEL),

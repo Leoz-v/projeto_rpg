@@ -1,4 +1,4 @@
-import { creatureD20, creatureReminders, currentHitPoints, type D20RollInput, d20Mode, d20StepNotes, expiresAt, isDying, isBloodied, nextTurn, rollD20, sheetD20, sortByInitiative, type TriggerMoment, type TurnExpiry, turnAfterRemoval } from 'rules-engine';
+import { creatureD20, creatureReminders, currentHitPoints, type D20RollInput, d20Mode, d20StepNotes, expiresAt, isDying, isBloodied, nextTurn, rollD20, sheetD20, sortByInitiative, type TriggerMoment, type TurnExpiry, turnAfterRemoval, withoutDependents } from 'rules-engine';
 import { applyPatch, type ChatEntry, type Combat, type ConditionState, type TimedEffect, type IntentData, type PatchOp, type Role, type SessionCharacter, type SessionState, MAX_TURN_TRIGGER_ITEMS, MAX_COMBATANTS, MAX_INITIATIVE, MIN_INITIATIVE, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
 import { rechargeMonster } from './monsters';
@@ -235,7 +235,7 @@ export function expire(
   const prune = (state: ConditionState, path: string, target: { characterId: string } | { tokenId: string }, name: string): void => {
     const over = state.active.filter((c) => c.until !== undefined && isOver(c.until));
     if (over.length === 0) return;
-    ops.push({ op: 'replace', path, value: { ...state, active: state.active.filter((c) => !over.includes(c)) } });
+    ops.push({ op: 'replace', path, value: { ...state, active: withoutDependents(state.active.filter((c) => !over.includes(c))) } });
     for (const c of over) {
       ops.push(ctx.appendChat({ kind: 'condition_changed', ...ctx.entryBase(playerId), target, targetName: name, change: { kind: 'removed', condition: c.condition }, notes: ['Fim da duração'] }));
     }

@@ -1,4 +1,4 @@
-import { applyHitPointChange, CONDITION_NAME, type Condition, type Effect, hasUnsupportedCreatureEffect, rollDice, type TurnExpiry } from 'rules-engine';
+import { applyHitPointChange, CONDITION_NAME, type Condition, type Effect, hasUnsupportedCreatureEffect, type ImposedConditions, sizeAtMost, rollDice, type TurnExpiry, withoutDependents } from 'rules-engine';
 import { type ChatEntry, type ConditionState, type IntentData, MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, type PatchOp, type Role, type SessionCharacter, type TableCondition, type Token, toPointer } from '../../shared/protocol';
 import { notAllowed, type SessionContext, violation } from './context';
 import { untilNextTurn } from './conditions';
@@ -94,7 +94,7 @@ export function imposeConditions(
   ledger: ConditionLedger,
   target: Token,
   conditions: readonly Condition[],
-  timing: { spell?: SpellLink; until?: TurnExpiry; note?: string },
+  timing: { spell?: SpellLink; until?: TurnExpiry; note?: string; with?: TableCondition },
   source: string,
 ): { ops: PatchOp[]; notes: string[] } {
   const holder = ledger.holder(target);
@@ -112,7 +112,7 @@ export function imposeConditions(
       notes.push(`Já estava ${CONDITION_NAME[condition]}`);
       continue;
     }
-    state = { ...state, active: [...state.active, { condition, ...(timing.until ? { until: timing.until } : {}), ...(timing.spell ? { spell: timing.spell } : {}) }] };
+    state = { ...state, active: [...state.active, { condition, ...(timing.until ? { until: timing.until } : {}), ...(timing.spell ? { spell: timing.spell } : {}), ...(timing.with ? { with: timing.with } : {}) }] };
     added.push(condition);
     notes.push(CONDITION_NAME[condition]);
   }
@@ -129,13 +129,53 @@ export function imposeConditions(
   return { ops, notes };
 }
 
+/** Até quando dura a condição de uma ação de monstro: os turnos dele ou do alvo, com os dois no combate. */
+function imposedUntil(ctx: SessionContext, end: ImposedConditions['end'], actor: Token, target: Token): { until?: TurnExpiry; note?: string } {
+  if (end === undefined) return {};
+  const token = end.startsWith('actor') ? actor : target;
+  if (!ctx.current.combat?.combatants.some((c) => c.tokenId === token.id)) return { note: `Sem ${token.name} no combate: a duração por turno fica com o mestre` };
+  return { until: untilNextTurn(ctx, end.endsWith('start') ? 'turn_start' : 'turn_end', token.id) };
+}
+
+/**
+ * As condições que uma ação de monstro impõe (nota 0065): entram direto no
+ * alvo do tamanho certo, com a duração; `while` fica ligada à principal.
+ */
+export function imposeFromAction(ctx: SessionContext, playerId: string, imposes: readonly ImposedConditions[], actor: Token, target: Token, source: string): { ops: PatchOp[]; notes: string[] } {
+  const ledger = new ConditionLedger(ctx);
+  const ops: PatchOp[] = [];
+  const notes: string[] = [];
+  for (const imposed of imposes) {
+    if (imposed.maxSize && !sizeAtMost(target.size, imposed.maxSize)) {
+      notes.push('Grande demais para a condição');
+      continue;
+    }
+    const before = ledger.holder(target)?.state.active ?? [];
+    const done = imposeConditions(ctx, playerId, ledger, target, imposed.conditions, imposedUntil(ctx, imposed.end, actor, target), source);
+    ops.push(...done.ops);
+    notes.push(...done.notes);
+    const [anchor] = imposed.conditions;
+    const active = ledger.holder(target)?.state.active ?? [];
+    // Só com a principal posta agora: se ela já vinha de outra fonte, não se sabe qual acaba primeiro.
+    if (!anchor || !active.some((c) => c.condition === anchor) || before.some((c) => c.condition === anchor)) continue;
+    if (imposed.while) {
+      const tied = imposeConditions(ctx, playerId, ledger, target, imposed.while, { with: anchor }, source);
+      ops.push(...tied.ops);
+      notes.push(...tied.notes);
+    }
+    if (imposed.escapeDc !== undefined) notes.push(`Escapar: CD ${imposed.escapeDc}`);
+    if (imposed.repeatSave) notes.push('Repete a salvaguarda no fim de cada turno');
+  }
+  return { ops, notes };
+}
+
 /** Tira condições de um alvo (Heal termina Cego, Surdo e Envenenado). */
 export function liftConditions(ctx: SessionContext, playerId: string, ledger: ConditionLedger, target: Token, conditions: readonly Condition[], source: string): { ops: PatchOp[]; notes: string[] } {
   const holder = ledger.holder(target);
   if (!holder) return { ops: [], notes: [] };
   const removed = holder.state.active.filter((c) => conditions.includes(c.condition)).map((c) => c.condition);
   if (removed.length === 0) return { ops: [], notes: [] };
-  const state = { ...holder.state, active: holder.state.active.filter((c) => !removed.includes(c.condition)) };
+  const state = { ...holder.state, active: withoutDependents(holder.state.active.filter((c) => !removed.includes(c.condition))) };
   ledger.set(holder.path, state);
   return {
     ops: [
@@ -358,7 +398,7 @@ export function liftSpellConditions(ctx: SessionContext, playerId: string, link:
   const lift = (path: string, state: ConditionState, name: string, logTarget: { characterId: string } | { tokenId: string }): void => {
     const removed = state.active.filter(matches);
     if (removed.length === 0) return;
-    ops.push({ op: 'replace', path, value: { ...state, active: state.active.filter((c) => !matches(c)) } });
+    ops.push({ op: 'replace', path, value: { ...state, active: withoutDependents(state.active.filter((c) => !matches(c))) } });
     for (const { condition } of removed) {
       ops.push(
         ctx.appendChat({ kind: 'condition_changed', ...ctx.entryBase(playerId), target: logTarget, targetName: name, change: { kind: 'removed', condition }, notes: [`Fim de ${spellName}`.slice(0, 200)] }),

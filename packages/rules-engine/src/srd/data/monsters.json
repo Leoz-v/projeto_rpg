@@ -107,7 +107,16 @@
             "type": "bludgeoning"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "large",
+            "escapeDc": 14
+          }
+        ]
       },
       {
         "id": "consume_memories",
@@ -142,6 +151,13 @@
         "onSuccess": "none",
         "onFailConditions": [
           "charmed"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "charmed"
+            ]
+          }
         ]
       },
       {
@@ -308,6 +324,13 @@
         "onSuccess": "half",
         "onFailConditions": [
           "prone"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ]
+          }
         ]
       }
     ]
@@ -672,7 +695,16 @@
             "type": "acid"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "large",
+            "escapeDc": 13
+          }
+        ]
       },
       {
         "id": "acid_spray",
@@ -791,6 +823,14 @@
         ],
         "onHitConditions": [
           "poisoned"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "poisoned"
+            ],
+            "end": "actor_turn_start"
+          }
         ]
       },
       {
@@ -1224,7 +1264,15 @@
             "type": "fire"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "huge"
+          }
+        ]
       },
       {
         "id": "lightning_blade",
@@ -1567,7 +1615,16 @@
             "type": "piercing"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "large",
+            "escapeDc": 13
+          }
+        ]
       },
       {
         "id": "tail",
@@ -1786,6 +1843,14 @@
         ],
         "onHitConditions": [
           "poisoned"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "poisoned"
+            ],
+            "end": "actor_turn_start"
+          }
         ]
       },
       {
@@ -1900,6 +1965,17 @@
         "onFailConditions": [
           "grappled",
           "restrained"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "escapeDc": 16,
+            "while": [
+              "restrained"
+            ]
+          }
         ]
       },
       {
@@ -1933,7 +2009,8 @@
         "damage": [],
         "onSuccess": "none",
         "onFailConditions": [
-          "prone"
+          "blinded",
+          "restrained"
         ]
       }
     ]
@@ -3579,6 +3656,14 @@
         ],
         "onHitConditions": [
           "poisoned"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "poisoned"
+            ],
+            "end": "actor_turn_start"
+          }
         ]
       }
     ]
@@ -3692,6 +3777,14 @@
         "onFailConditions": [
           "incapacitated",
           "unconscious"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "incapacitated"
+            ],
+            "end": "target_turn_end"
+          }
         ]
       }
     ]
@@ -3813,6 +3906,14 @@
         "onFailConditions": [
           "incapacitated",
           "unconscious"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "incapacitated"
+            ],
+            "end": "target_turn_end"
+          }
         ]
       }
     ]
@@ -3956,6 +4057,14 @@
         "onFailConditions": [
           "incapacitated",
           "unconscious"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "incapacitated"
+            ],
+            "end": "target_turn_end"
+          }
         ]
       },
       {
@@ -4176,6 +4285,14 @@
         "onFailConditions": [
           "incapacitated",
           "unconscious"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "incapacitated"
+            ],
+            "end": "target_turn_end"
+          }
         ]
       },
       {
@@ -4380,6 +4497,13 @@
         "onSuccess": "none",
         "onFailConditions": [
           "prone"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ]
+          }
         ]
       }
     ]
@@ -4507,6 +4631,13 @@
         "onSuccess": "none",
         "onFailConditions": [
           "prone"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ]
+          }
         ]
       }
     ]
@@ -4653,6 +4784,13 @@
         "onSuccess": "none",
         "onFailConditions": [
           "prone"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ]
+          }
         ]
       },
       {
@@ -4734,6 +4872,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "deafened"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "deafened"
+            ],
+            "end": "target_turn_end"
+          }
         ]
       }
     ]
@@ -4880,6 +5026,13 @@
         "onSuccess": "none",
         "onFailConditions": [
           "prone"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ]
+          }
         ]
       },
       {
@@ -4975,6 +5128,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "deafened"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "deafened"
+            ],
+            "end": "target_turn_end"
+          }
         ]
       }
     ]
@@ -5104,6 +5265,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "grappled"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "escapeDc": 13
+          }
         ]
       }
     ]
@@ -5186,7 +5355,16 @@
             "type": "bludgeoning"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "medium",
+            "escapeDc": 12
+          }
+        ]
       },
       {
         "id": "light_hammer",
@@ -5296,6 +5474,13 @@
         "onSuccess": "half",
         "onFailConditions": [
           "prone"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ]
+          }
         ]
       },
       {
@@ -5531,7 +5716,19 @@
             "type": "slashing"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "large",
+            "escapeDc": 14,
+            "while": [
+              "restrained"
+            ]
+          }
+        ]
       },
       {
         "id": "conjure_infernal_chain",
@@ -5550,6 +5747,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "restrained"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "restrained"
+            ],
+            "end": "actor_turn_end"
+          }
         ]
       },
       {
@@ -5666,7 +5871,15 @@
             "type": "bludgeoning"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "medium"
+          }
+        ]
       },
       {
         "id": "fire_breath",
@@ -5774,7 +5987,16 @@
             "type": "bludgeoning"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "large",
+            "escapeDc": 14
+          }
+        ]
       },
       {
         "id": "paralyzing_tentacles",
@@ -5789,6 +6011,17 @@
         "onFailConditions": [
           "paralyzed",
           "poisoned"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "poisoned"
+            ],
+            "while": [
+              "paralyzed"
+            ],
+            "repeatSave": true
+          }
         ]
       }
     ]
@@ -6066,6 +6299,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "frightened"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "frightened"
+            ],
+            "end": "actor_turn_end"
+          }
         ]
       },
       {
@@ -6167,6 +6408,14 @@
         ],
         "onHitConditions": [
           "incapacitated"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "incapacitated"
+            ],
+            "end": "target_turn_end"
+          }
         ]
       },
       {
@@ -7099,6 +7348,14 @@
         ],
         "onHitConditions": [
           "poisoned"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "poisoned"
+            ],
+            "end": "actor_turn_end"
+          }
         ]
       },
       {
@@ -7119,6 +7376,17 @@
         "onFailConditions": [
           "grappled",
           "restrained"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "escapeDc": 13,
+            "while": [
+              "restrained"
+            ]
+          }
         ]
       },
       {
@@ -7324,7 +7592,15 @@
             "type": "necrotic"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "medium"
+          }
+        ]
       }
     ]
   },
@@ -7970,7 +8246,15 @@
             "type": "thunder"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "large"
+          }
+        ]
       },
       {
         "id": "create_whirlwind",
@@ -8149,6 +8433,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "frightened"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "frightened"
+            ],
+            "repeatSave": true
+          }
         ]
       },
       {
@@ -8257,7 +8549,15 @@
             "type": "bludgeoning"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "huge"
+          }
+        ]
       },
       {
         "id": "steam_breath",
@@ -8377,6 +8677,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "poisoned"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "poisoned"
+            ],
+            "end": "target_turn_end"
+          }
         ]
       }
     ]
@@ -8956,7 +9264,15 @@
             "type": "bludgeoning"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "large"
+          }
+        ]
       }
     ]
   },
@@ -9288,6 +9604,13 @@
         "onSuccess": "none",
         "onFailConditions": [
           "restrained"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "restrained"
+            ]
+          }
         ]
       },
       {
@@ -9382,6 +9705,14 @@
         ],
         "onHitConditions": [
           "poisoned"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "poisoned"
+            ],
+            "end": "actor_turn_start"
+          }
         ]
       },
       {
@@ -9416,6 +9747,13 @@
         "onSuccess": "none",
         "onFailConditions": [
           "restrained"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "restrained"
+            ]
+          }
         ]
       },
       {
@@ -9524,7 +9862,15 @@
             "type": "slashing"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "large"
+          }
+        ]
       },
       {
         "id": "morningstar",
@@ -10662,6 +11008,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "frightened"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "frightened"
+            ],
+            "end": "actor_turn_start"
+          }
         ]
       },
       {
@@ -10855,7 +11209,15 @@
             "type": "piercing"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "medium"
+          }
+        ]
       },
       {
         "id": "blinding_spittle",
@@ -10877,6 +11239,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "blinded"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "blinded"
+            ],
+            "end": "actor_turn_end"
+          }
         ]
       }
     ]
@@ -10997,7 +11367,16 @@
             "type": "slashing"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "medium",
+            "escapeDc": 15
+          }
+        ]
       },
       {
         "id": "pummel",
@@ -11162,6 +11541,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "prone"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "medium"
+          }
         ]
       },
       {
@@ -13314,7 +13701,16 @@
             "type": "slashing"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "medium",
+            "escapeDc": 12
+          }
+        ]
       }
     ]
   },
@@ -13381,7 +13777,16 @@
             "type": "piercing"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "medium",
+            "escapeDc": 14
+          }
+        ]
       }
     ]
   },
@@ -13574,6 +13979,14 @@
         "onSuccess": "half",
         "onFailConditions": [
           "blinded"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "blinded"
+            ],
+            "end": "actor_turn_start"
+          }
         ]
       },
       {
@@ -14270,7 +14683,15 @@
             "type": "bludgeoning"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "large"
+          }
+        ]
       },
       {
         "id": "trash_lob",
@@ -14290,6 +14711,14 @@
         ],
         "onHitConditions": [
           "poisoned"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "poisoned"
+            ],
+            "end": "target_turn_end"
+          }
         ]
       }
     ]
@@ -15497,6 +15926,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "grappled"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "escapeDc": 13
+          }
         ]
       }
     ]
@@ -16027,7 +16464,18 @@
             "type": "bludgeoning"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "escapeDc": 20,
+            "while": [
+              "restrained"
+            ]
+          }
+        ]
       },
       {
         "id": "fling",
@@ -16046,6 +16494,13 @@
         "onSuccess": "half",
         "onFailConditions": [
           "prone"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ]
+          }
         ]
       },
       {
@@ -16101,7 +16556,19 @@
         "dc": 23,
         "damage": [],
         "onSuccess": "none",
-        "onFailConditions": []
+        "onFailConditions": [
+          "blinded",
+          "poisoned"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "blinded",
+              "poisoned"
+            ],
+            "end": "actor_turn_end"
+          }
+        ]
       }
     ]
   },
@@ -16191,7 +16658,10 @@
           }
         ],
         "onSuccess": "none",
-        "onFailConditions": []
+        "onFailConditions": [
+          "charmed",
+          "poisoned"
+        ]
       },
       {
         "id": "spellcasting",
@@ -16494,6 +16964,14 @@
         ],
         "onHitConditions": [
           "paralyzed"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "paralyzed"
+            ],
+            "end": "actor_turn_start"
+          }
         ]
       },
       {
@@ -17311,6 +17789,17 @@
         "onFailConditions": [
           "grappled",
           "restrained"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "escapeDc": 14,
+            "while": [
+              "restrained"
+            ]
+          }
         ]
       },
       {
@@ -17549,6 +18038,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "blinded"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "blinded"
+            ],
+            "end": "actor_turn_end"
+          }
         ]
       },
       {
@@ -18050,6 +18547,14 @@
         ],
         "onHitConditions": [
           "poisoned"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "poisoned"
+            ],
+            "end": "actor_turn_end"
+          }
         ]
       },
       {
@@ -18181,7 +18686,16 @@
             "type": "acid"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "large",
+            "escapeDc": 13
+          }
+        ]
       },
       {
         "id": "shape_shift",
@@ -18391,6 +18905,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "frightened"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "frightened"
+            ],
+            "end": "actor_turn_end"
+          }
         ]
       }
     ]
@@ -18577,6 +19099,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "paralyzed"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "paralyzed"
+            ],
+            "end": "actor_turn_end"
+          }
         ]
       },
       {
@@ -18802,6 +19332,13 @@
         "onSuccess": "none",
         "onFailConditions": [
           "frightened"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "frightened"
+            ]
+          }
         ]
       },
       {
@@ -19447,6 +19984,14 @@
         ],
         "onHitConditions": [
           "frightened"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "frightened"
+            ],
+            "end": "actor_turn_start"
+          }
         ]
       },
       {
@@ -19571,6 +20116,13 @@
         ],
         "onHitConditions": [
           "poisoned"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "poisoned"
+            ]
+          }
         ]
       },
       {
@@ -19588,7 +20140,16 @@
             "type": "piercing"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "medium",
+            "escapeDc": 13
+          }
+        ]
       },
       {
         "id": "tentacle_slam",
@@ -19607,6 +20168,14 @@
         "onSuccess": "half",
         "onFailConditions": [
           "stunned"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "stunned"
+            ],
+            "end": "actor_turn_start"
+          }
         ]
       }
     ]
@@ -19923,6 +20492,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "charmed"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "charmed"
+            ],
+            "end": "actor_turn_start"
+          }
         ]
       }
     ]
@@ -20033,6 +20610,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "charmed"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "charmed"
+            ],
+            "end": "actor_turn_start"
+          }
         ]
       },
       {
@@ -20786,6 +21371,13 @@
         "onFailConditions": [
           "poisoned",
           "unconscious"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "poisoned"
+            ]
+          }
         ]
       }
     ]
@@ -20866,7 +21458,19 @@
             "type": "piercing"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "large",
+            "escapeDc": 19,
+            "while": [
+              "restrained"
+            ]
+          }
+        ]
       },
       {
         "id": "tail_stinger",
@@ -20900,7 +21504,7 @@
         "damage": [],
         "onSuccess": "none",
         "onFailConditions": [
-          "prone",
+          "blinded",
           "restrained"
         ]
       }
@@ -21005,6 +21609,14 @@
         ],
         "onHitConditions": [
           "poisoned"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "poisoned"
+            ],
+            "end": "actor_turn_start"
+          }
         ]
       },
       {
@@ -21030,6 +21642,13 @@
         "onSuccess": "none",
         "onFailConditions": [
           "frightened"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "frightened"
+            ]
+          }
         ]
       },
       {
@@ -21165,7 +21784,19 @@
           }
         ],
         "onSuccess": "none",
-        "onFailConditions": []
+        "onFailConditions": [
+          "frightened",
+          "incapacitated"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "frightened",
+              "incapacitated"
+            ],
+            "end": "actor_turn_start"
+          }
+        ]
       },
       {
         "id": "spellcasting",
@@ -21891,7 +22522,19 @@
             "type": "fire"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "large",
+            "escapeDc": 17,
+            "while": [
+              "restrained"
+            ]
+          }
+        ]
       },
       {
         "id": "swallow",
@@ -21904,7 +22547,7 @@
         "damage": [],
         "onSuccess": "none",
         "onFailConditions": [
-          "prone",
+          "blinded",
           "restrained"
         ]
       }
@@ -21987,7 +22630,19 @@
             "type": "slashing"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "huge",
+            "escapeDc": 19,
+            "while": [
+              "restrained"
+            ]
+          }
+        ]
       },
       {
         "id": "swoop",
@@ -22087,6 +22742,17 @@
         "onHitConditions": [
           "grappled",
           "poisoned"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "escapeDc": 14,
+            "while": [
+              "poisoned"
+            ]
+          }
         ]
       },
       {
@@ -22402,6 +23068,17 @@
         "onFailConditions": [
           "grappled",
           "restrained"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "escapeDc": 14,
+            "while": [
+              "restrained"
+            ]
+          }
         ]
       }
     ]
@@ -22945,7 +23622,9 @@
         "damage": [],
         "onSuccess": "none",
         "onFailConditions": [
-          "grappled"
+          "blinded",
+          "grappled",
+          "restrained"
         ]
       }
     ]
@@ -24214,6 +24893,13 @@
         "onSuccess": "none",
         "onFailConditions": [
           "blinded"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "blinded"
+            ]
+          }
         ]
       },
       {
@@ -24659,6 +25345,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "incapacitated"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "incapacitated"
+            ],
+            "end": "actor_turn_start"
+          }
         ]
       },
       {
@@ -24893,6 +25587,13 @@
         "onSuccess": "none",
         "onFailConditions": [
           "frightened"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "frightened"
+            ]
+          }
         ]
       },
       {
@@ -24907,6 +25608,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "paralyzed"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "paralyzed"
+            ],
+            "repeatSave": true
+          }
         ]
       },
       {
@@ -24926,6 +25635,13 @@
         "onSuccess": "half",
         "onFailConditions": [
           "prone"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ]
+          }
         ]
       },
       {
@@ -25242,6 +25958,14 @@
         ],
         "onHitConditions": [
           "charmed"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "charmed"
+            ],
+            "end": "actor_turn_start"
+          }
         ]
       },
       {
@@ -25518,7 +26242,15 @@
             "type": "bludgeoning"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "large"
+          }
+        ]
       },
       {
         "id": "deflect_missile",
@@ -25812,7 +26544,19 @@
             "type": "lightning"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [
+          "blinded",
+          "deafened"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "blinded",
+              "deafened"
+            ],
+            "end": "actor_turn_start"
+          }
+        ]
       },
       {
         "id": "lightning_storm",
@@ -26143,6 +26887,17 @@
         ],
         "onHitConditions": [
           "grappled"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "escapeDc": 20,
+            "while": [
+              "restrained"
+            ]
+          }
         ]
       },
       {
@@ -26177,7 +26932,15 @@
             "type": "bludgeoning"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "huge"
+          }
+        ]
       },
       {
         "id": "thunderous_bellow",
@@ -26197,7 +26960,19 @@
           }
         ],
         "onSuccess": "half",
-        "onFailConditions": []
+        "onFailConditions": [
+          "deafened",
+          "frightened"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "deafened",
+              "frightened"
+            ],
+            "end": "target_turn_end"
+          }
+        ]
       },
       {
         "id": "swallow",
@@ -26210,7 +26985,7 @@
         "damage": [],
         "onSuccess": "none",
         "onFailConditions": [
-          "prone",
+          "blinded",
           "restrained"
         ]
       },
@@ -27113,7 +27888,16 @@
             "type": "slashing"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "medium",
+            "escapeDc": 13
+          }
+        ]
       },
       {
         "id": "bite",
@@ -27276,7 +28060,16 @@
             "type": "necrotic"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "large",
+            "escapeDc": 14
+          }
+        ]
       },
       {
         "id": "bite_bat_or_vampire_form_only",
@@ -27466,6 +28259,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "poisoned"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "poisoned"
+            ],
+            "repeatSave": true
+          }
         ]
       },
       {
@@ -27489,6 +28290,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "stunned"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "stunned"
+            ],
+            "end": "actor_turn_end"
+          }
         ]
       }
     ]
@@ -27785,7 +28594,15 @@
             "type": "bludgeoning"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "medium"
+          }
+        ]
       },
       {
         "id": "whelm",
@@ -27808,6 +28625,18 @@
         "onFailConditions": [
           "grappled",
           "restrained"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "large",
+            "escapeDc": 14,
+            "while": [
+              "restrained"
+            ]
+          }
         ]
       }
     ]
@@ -29391,7 +30220,15 @@
             "type": "piercing"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "large"
+          }
+        ]
       },
       {
         "id": "cold_breath",
@@ -29746,6 +30583,14 @@
         ],
         "onHitConditions": [
           "poisoned"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "poisoned"
+            ],
+            "end": "actor_turn_start"
+          }
         ]
       }
     ]
@@ -30166,7 +31011,15 @@
             "type": "bludgeoning"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "huge"
+          }
+        ]
       }
     ]
   },
@@ -30772,7 +31625,15 @@
             "type": "slashing"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "large"
+          }
+        ]
       }
     ]
   },
@@ -30981,6 +31842,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "grappled"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "escapeDc": 12
+          }
         ]
       }
     ]
@@ -31111,7 +31980,19 @@
             "type": "piercing"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "medium",
+            "escapeDc": 12,
+            "while": [
+              "restrained"
+            ]
+          }
+        ]
       }
     ]
   },
@@ -31244,7 +32125,15 @@
             "type": "piercing"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "large"
+          }
+        ]
       }
     ]
   },
@@ -31711,6 +32600,14 @@
         "onSuccess": "half",
         "onFailConditions": [
           "prone"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "large"
+          }
         ]
       },
       {
@@ -31960,6 +32857,14 @@
         ],
         "onHitConditions": [
           "poisoned"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "poisoned"
+            ],
+            "end": "actor_turn_start"
+          }
         ]
       }
     ]
@@ -32046,6 +32951,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "grappled"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "escapeDc": 14
+          }
         ]
       }
     ]
@@ -32113,7 +33026,16 @@
             "type": "bludgeoning"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "medium",
+            "escapeDc": 11
+          }
+        ]
       }
     ]
   },
@@ -32181,7 +33103,19 @@
             "type": "piercing"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "large",
+            "escapeDc": 15,
+            "while": [
+              "restrained"
+            ]
+          }
+        ]
       },
       {
         "id": "tail",
@@ -32198,7 +33132,15 @@
             "type": "bludgeoning"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "large"
+          }
+        ]
       }
     ]
   },
@@ -32490,7 +33432,16 @@
             "type": "piercing"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "medium",
+            "escapeDc": 11
+          }
+        ]
       },
       {
         "id": "swallow",
@@ -32764,7 +33715,19 @@
             "type": "bludgeoning"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "medium",
+            "escapeDc": 13,
+            "while": [
+              "restrained"
+            ]
+          }
+        ]
       },
       {
         "id": "ink_cloud",
@@ -33012,7 +33975,16 @@
             "type": "bludgeoning"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "large",
+            "escapeDc": 13
+          }
+        ]
       },
       {
         "id": "sting",
@@ -33267,6 +34239,13 @@
         "onSuccess": "none",
         "onFailConditions": [
           "restrained"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "restrained"
+            ]
+          }
         ]
       }
     ]
@@ -33341,7 +34320,16 @@
             "type": "poison"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "medium",
+            "escapeDc": 12
+          }
+        ]
       },
       {
         "id": "swallow",
@@ -33486,6 +34474,14 @@
         ],
         "onHitConditions": [
           "poisoned"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "poisoned"
+            ],
+            "end": "target_turn_end"
+          }
         ]
       }
     ]
@@ -34228,6 +35224,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "frightened"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "frightened"
+            ],
+            "end": "actor_turn_start"
+          }
         ]
       }
     ]
@@ -34432,7 +35436,15 @@
             "type": "piercing"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "medium"
+          }
+        ]
       }
     ]
   },
@@ -36182,6 +37194,14 @@
         "onSuccess": "none",
         "onFailConditions": [
           "deafened"
+        ],
+        "imposes": [
+          {
+            "conditions": [
+              "deafened"
+            ],
+            "end": "actor_turn_start"
+          }
         ]
       }
     ]
@@ -36352,7 +37372,15 @@
             "type": "slashing"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "large"
+          }
+        ]
       },
       {
         "id": "nimble_escape",
@@ -36486,7 +37514,19 @@
             "type": "piercing"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "grappled"
+            ],
+            "maxSize": "large",
+            "escapeDc": 17,
+            "while": [
+              "restrained"
+            ]
+          }
+        ]
       },
       {
         "id": "tail",
@@ -36503,7 +37543,15 @@
             "type": "bludgeoning"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "huge"
+          }
+        ]
       }
     ]
   },
@@ -36808,7 +37856,15 @@
             "type": "piercing"
           }
         ],
-        "onHitConditions": []
+        "onHitConditions": [],
+        "imposes": [
+          {
+            "conditions": [
+              "prone"
+            ],
+            "maxSize": "medium"
+          }
+        ]
       }
     ]
   }

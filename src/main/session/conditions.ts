@@ -1,4 +1,4 @@
-import { CONDITION_NAME, nextTurnRound, type TurnExpiry } from 'rules-engine';
+import { CONDITION_NAME, nextTurnRound, type TurnExpiry, withoutDependents } from 'rules-engine';
 import { type ChatEntry, type ConditionState, type TableCondition, type Intent, type IntentData, type PatchOp, type Role, type SessionCharacter, MAX_EXHAUSTION_LEVEL, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
 import { concentrationBreaks, deathStateEntry } from './vitality';
@@ -39,6 +39,11 @@ export function conditionHolder(
   return { path: toPointer('characters', character.id, 'conditions'), state: character.conditions, name: character.name, immune, logTarget: { characterId: character.id } };
 }
 
+/** Notas das condições que saíram junto com `condition`. */
+function endedTogether(before: ConditionState['active'], after: ConditionState['active'], condition: TableCondition): string[] {
+  return before.filter((c) => c.condition !== condition && !after.some((a) => a.condition === c.condition)).map((c) => `Também acabou: ${CONDITION_NAME[c.condition]}`);
+}
+
 export function changeConditions(ctx: SessionContext, playerId: string, role: Role, intent: Extract<Intent, { kind: 'condition.add' | 'condition.remove' | 'exhaustion.set' }>): PatchOp[] {
   const holder = conditionHolder(ctx, playerId, role, intent.data.target);
   const notes: string[] = [];
@@ -69,7 +74,8 @@ export function changeConditions(ctx: SessionContext, playerId: string, role: Ro
       change = { kind: 'added', condition };
     } else {
       if (!has) throw violation(`${holder.name} não está ${CONDITION_NAME[condition]}`);
-      state = { ...holder.state, active: holder.state.active.filter((c) => c.condition !== condition) };
+      state = { ...holder.state, active: withoutDependents(holder.state.active.filter((c) => c.condition !== condition)) };
+      notes.push(...endedTogether(holder.state.active, state.active, condition));
       change = { kind: 'removed', condition };
     }
   }
