@@ -8,6 +8,7 @@ export { type D20RollInput, type D20RollResult, type D20Step, rollD20 } from './
 export { cellDistanceFeet, distanceFeet, FEET_PER_SQUARE, type Footprint, type GridCell, sizeAtMost, SPACE_FEET, spaceSquares } from './space';
 export { isConsumed, itemSaveApplies, itemSaveDc, itemUse, itemUseDamages, itemUseOptions, usedItemName } from './item-use';
 export { availableCharges, type ChargedItem, chargedItem, type ItemCaster, itemCaster, itemMagicProblems, itemSpellCosts, itemSpellLevel, lastChargeOutcome } from './item-charges';
+export { type Scroll, scrollOf, type ScrollReading, scrollReading, scrollSpells } from './scrolls';
 export { baseItemOptions, inventoryEntryProblems } from './items';
 export { ABILITY_ROLL_DICE, ABILITY_ROLL_SIDES, type AbilityRollSet, rollAbilityScores, usesRolledValues } from './ability-scores';
 export { applyHitPointChange, clampHitPoints, currentHitPoints, type HitPointChange, isBloodied, type HitPointResult, type HitPointState } from './hit-points';
@@ -18,6 +19,7 @@ export { availableHitDice, exhaustionAfterLongRest, type HitDiceSpent, hitDieHea
 export { availableSpellSlots, NO_SPELL_SLOTS_SPENT, type SlotPool, type SpellSlotsSpent, spellSlotsAfterRest } from './spell-slots';
 export { availableUses, type ResourceRechargeRule, type ResourcesSpent, resourcesAfterRest } from './resources';
 export {
+  abilityCheckD20,
   d20StepNotes,
   type DamageGroup,
   type DamageOptions,

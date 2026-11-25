@@ -17,6 +17,7 @@ import type { Compendium } from '../srd';
 import { resolveBuild, type SourcedEffect } from './build';
 import { type ConditionRoll, conditionDefenses, conditionSource, effectiveConditions, ownRollConditions, SPEED_ZERO_CONDITIONS } from './conditions';
 import { availableCharges, type ChargedItem, chargedItem, itemSpellCosts, itemSpellLevel } from './item-charges';
+import { scrollOf, scrollReading } from './scrolls';
 import { itemUse, itemUseOptions } from './item-use';
 import { type MagicPart, resolveInventory } from './items';
 import { isWeaponProficient } from './proficiency';
@@ -465,6 +466,14 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     }),
   ) as Record<Skill, SkillStat>;
 
+  const checks = Object.fromEntries(
+    ABILITIES.map((a) => {
+      const targets = [`check.${a}`];
+      const parts: Contribution[] = [{ label: `Modificador de ${ABILITY_NAME[a]}`, value: mod(a) }, ...bonuses(targets), ...exhaustionPart()];
+      return [a, { ...stat(parts), roll: rollState(targets, undefined, [], ['check.all'], { kind: 'check' }) } satisfies RollStat];
+    }),
+  ) as Record<Ability, RollStat>;
+
   const initiativeTargets = ['initiative', 'check.dex'];
   const initiative: RollStat = {
     ...stat([{ label: 'Modificador de DES', value: mod('dex') }, ...bonuses(initiativeTargets), ...exhaustionPart()]),
@@ -792,12 +801,19 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       return [{ spellId: s.spellId, name: spell.name, level: spell.level, ...(s.note !== undefined ? { note: s.note } : {}), costs: itemSpellCosts(s).map((charges) => ({ charges, level: itemSpellLevel(s, spell.level, charges) })) }];
     }),
   });
+  const scrollLine = (entry: Inventory['items'][number]): NonNullable<InventoryLine['scroll']> => {
+    const spell = entry.spellId !== undefined ? find(compendium.spells, entry.spellId) : undefined;
+    if (!spell) return { spell: null, problem: 'Sem magia definida' };
+    const reading = scrollReading(spell, { spellcasting: { classes: casterClasses, slots: spellSlots(casterLevel), pactSlots }, abilities });
+    return { spell: spell.name, ...(reading.onList ? {} : { problem: 'Fora da lista de magias' }), ...(reading.checkDc !== undefined ? { checkDc: reading.checkDc } : {}) };
+  };
   const inventoryLines: InventoryLine[] = inventory.items.map((entry) => {
     const r = resolved.get(entry.instanceId);
     const item = find(compendium.items, entry.itemId);
     const magicItem = item?.kind === 'magic_item' ? item : undefined;
     const base = r && r.magic && r.item.id !== r.magic.item.id ? ` (${r.item.name})` : '';
     const charged = chargedItem(item);
+    const scroll = scrollOf(item, entry.variantId);
     const use = item && r ? itemUse(item, entry.variantId) : undefined;
     const active = r === undefined ? false : r.magic ? magicActive(r.magic, entry) : isItemActive(r.item.activation, entry);
     return {
@@ -810,6 +826,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       attuned: entry.attuned,
       requiresAttunement: magicItem?.attunement !== undefined || item?.activation === 'attuned',
       active,
+      ...(scroll ? { scroll: scrollLine(entry) } : {}),
       ...(r && charged ? { charges: chargesLine(charged, entry) } : {}),
       ...(use ? { use: { targets: use.targets, options: itemUseOptions(use) } } : {}),
     };
@@ -930,6 +947,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     speed,
     saves,
     skills,
+    checks,
     senses: [...senseMap.values()],
     defenses,
     attacksAgainst: effectsOf('attacks_against').map((e) => ({

@@ -85,7 +85,7 @@ export function addItem(ctx: SessionContext, playerId: string, role: Role, data:
   const items = character.inventory.items;
   // Cada item com cargas é uma entrada: duas varinhas não dividem as cargas.
   const same = chargedItem(ctx.deps.item(data.itemId)) ? -1 : items.findIndex(
-    (e) => e.itemId === data.itemId && e.baseItemId === data.baseItemId && e.variantId === data.variantId && !e.equipped && !e.attuned,
+    (e) => e.itemId === data.itemId && e.baseItemId === data.baseItemId && e.variantId === data.variantId && e.spellId === data.spellId && !e.equipped && !e.attuned,
   );
   const existing = items[same];
   if (existing) {
@@ -99,6 +99,7 @@ export function addItem(ctx: SessionContext, playerId: string, role: Role, data:
     itemId: data.itemId,
     ...(data.baseItemId !== undefined ? { baseItemId: data.baseItemId } : {}),
     ...(data.variantId !== undefined ? { variantId: data.variantId } : {}),
+    ...(data.spellId !== undefined ? { spellId: data.spellId } : {}),
     quantity,
     equipped: false,
     attuned: false,

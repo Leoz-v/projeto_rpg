@@ -158,7 +158,10 @@ export const MagicVariantSchema = z.strictObject({
   effects: z.array(EffectSchema).default([]),
   /** O uso desta variante, no lugar do uso do item. */
   use: ItemUseSchema.optional(),
+  /** Pergaminho de magia (nota 0076): o círculo, a CD e o bônus de ataque. A magia fica na entrada do inventário. */
+  scroll: z.strictObject({ level: z.int().min(0).max(9), saveDc: z.int().min(1).max(40), attackBonus: z.int().min(0).max(20) }).optional(),
 });
+export type MagicVariant = z.infer<typeof MagicVariantSchema>;
 
 /** Magia que o item conjura (nota 0075). */
 export const ItemSpellSchema = z

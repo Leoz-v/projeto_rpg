@@ -388,6 +388,8 @@ for _vid, _ability, _label in [("agility", "dex", "Dexterity"), ("fortitude", "c
                                              f"Your {_label} increases by 2, to a maximum of 20")
 
 SPELL_IDS = {sp["id"] for sp in load("spells.json")}
+# Pergaminho: CD e bônus de ataque por círculo (0 = truque).
+SCROLL_STATS = [(13, 5), (13, 5), (13, 5), (15, 7), (15, 7), (17, 9), (17, 9), (18, 10), (18, 10), (19, 11)]
 # --- Leitura dos itens ---------------------------------------------------------------------------------------
 lines = text(209, 253)
 lines = lines[lines.index("Magic Items A-Z") + 1:]
@@ -500,6 +502,11 @@ for n, h in enumerate(starts):
     item["description"] = description
     used |= item_use.put(item, item_use.MAGIC_USE, problems)
     item_casting.put(item, SPELL_IDS, problems)
+    if name == "Spell Scroll":
+        for v, (level, (dc, atk)) in zip(item["variants"], enumerate(SCROLL_STATS), strict=True):
+            v["scroll"] = {"level": level, "saveDc": dc, "attackBonus": atk}
+            if f"{dc} +{atk}" not in description.replace("\n", " "):
+                problems.append(f"{who}: CD e bônus do círculo {level} sem o texto de apoio")
     items.append(item)
 
 for k in list(item_casting.CASTING) + [k for ids in item_casting.LAST_CHARGE.values() for k in ids]:

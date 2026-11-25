@@ -1,4 +1,4 @@
-import { availableCharges, type ChargedItem, chargedItem, itemCaster, itemMagicProblems, itemSpellCosts, itemSpellLevel, lastChargeOutcome, resolveSpellParts, rollDice, usedItemName } from 'rules-engine';
+import { availableCharges, type ChargedItem, chargedItem, type DerivedSheet, type ItemCaster, itemCaster, itemMagicProblems, itemSpellCosts, itemSpellLevel, lastChargeOutcome, resolveSpellParts, rollDice, type Spell, usedItemName } from 'rules-engine';
 import { type ChatEntry, type IntentData, type PatchOp, type Role, type SessionCharacter, toPointer } from '../../shared/protocol';
 import { inventoryEntry } from './characters';
 import { type InventoryEntry, type SessionContext, violation } from './context';
@@ -79,6 +79,42 @@ export function dawn(ctx: SessionContext, playerId: string): PatchOp[] {
   return [ctx.appendChat({ kind: 'dawn', ...ctx.entryBase(playerId), items: items.slice(0, 200) }), ...ops];
 }
 
+/** A magia conjurada por um item no chat (`spell_cast`), com as partes no círculo e a CD dadas. */
+export function itemSpellEntry(
+  ctx: SessionContext,
+  playerId: string,
+  cast: { character: SessionCharacter; sheet: DerivedSheet; spell: Spell; level: number; itemName: string; caster: ItemCaster; notes: string[] },
+): PatchOp {
+  const { character, spell, caster, level } = cast;
+  const parts = resolveSpellParts(spell, { slotLevel: level, characterLevel: cast.sheet.level, modifier: caster.modifier });
+  return ctx.appendChat({
+    kind: 'spell_cast',
+    ...ctx.entryBase(playerId),
+    characterId: character.id,
+    characterName: character.name,
+    spellName: spell.name.slice(0, 100),
+    level: spell.level,
+    using: { item: cast.itemName.slice(0, 100) },
+    castingTime: spell.castingTime.slice(0, 100),
+    range: spell.range.slice(0, 100),
+    duration: spell.duration.slice(0, 100),
+    concentration: spell.concentration,
+    description: spell.description.slice(0, 6000),
+    notes: [...cast.notes, ...(level > spell.level ? [`Conjurada em círculo maior (${level}º)`] : [])],
+    ...(parts.length > 0
+      ? {
+          effect: {
+            spellId: spell.id,
+            ability: caster.ability,
+            saveDc: caster.saveDc,
+            attackBonus: caster.attackBonus,
+            parts: parts.map((p) => (p.label ? { ...p, label: p.label.slice(0, 100) } : p)),
+          },
+        }
+      : {}),
+  });
+}
+
 /**
  * Conjura uma magia pelo item: gasta as cargas e publica a magia como
  * qualquer outra (`spell_cast`), com a CD do item ou a de quem o segura. O
@@ -100,38 +136,19 @@ export function castFromItem(ctx: SessionContext, playerId: string, role: Role, 
   const spent = spendCharges(ctx, playerId, c, charges);
   const level = itemSpellLevel(known, spell.level, charges);
   const caster = itemCaster(item, sheet);
-  const parts = resolveSpellParts(spell, { slotLevel: level, characterLevel: sheet.level, modifier: caster.modifier });
   return [
-    ctx.appendChat({
-      kind: 'spell_cast',
-      ...ctx.entryBase(playerId),
-      characterId: character.id,
-      characterName: character.name,
-      spellName: spell.name.slice(0, 100),
-      level: spell.level,
-      using: { item: c.name },
-      castingTime: spell.castingTime.slice(0, 100),
-      range: spell.range.slice(0, 100),
-      duration: spell.duration.slice(0, 100),
-      concentration: spell.concentration,
-      description: spell.description.slice(0, 6000),
+    itemSpellEntry(ctx, playerId, {
+      character,
+      sheet,
+      spell,
+      level,
+      itemName: c.name,
+      caster,
       notes: [
         `${c.name}: ${charges} carga(s), restam ${spent.left}/${c.charged.max}`,
-        ...(level > spell.level ? [`Conjurada em círculo maior (${level}º)`] : []),
         ...(known.note !== undefined ? [known.note] : []),
         ...problems.map((p) => `Permitido pelo mestre: ${p}`),
       ],
-      ...(parts.length > 0
-        ? {
-            effect: {
-              spellId: spell.id,
-              ability: caster.ability,
-              saveDc: caster.saveDc,
-              attackBonus: caster.attackBonus,
-              parts: parts.map((p) => (p.label ? { ...p, label: p.label.slice(0, 100) } : p)),
-            },
-          }
-        : {}),
     }),
     ...spent.ops,
     ...(spell.concentration && character.concentration?.spellId !== spell.id ? concentrate(ctx, playerId, role, character.id, spell.id, true) : []),

@@ -439,6 +439,25 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     duration: LabelSchema.optional(),
     description: z.string().min(1).max(6000),
   }),
+  /** Teste para ler um pergaminho de círculo alto (nota 0076): na falha, ele se perde. */
+  z.strictObject({
+    kind: z.literal('scroll_check'),
+    ...entryBase,
+    characterId: UuidSchema,
+    characterName: NameSchema,
+    spellName: NameSchema,
+    ability: AbilitySchema,
+    dc: z.int().min(10).max(30),
+    mode: d20Fields.mode,
+    dice: d20Fields.dice,
+    natural: d20Fields.natural,
+    modifier: z.int(),
+    total: z.int(),
+    success: z.boolean(),
+    advantage: LogList,
+    disadvantage: LogList,
+    notes: LogList,
+  }),
   /** Cargas gastas ou devolvidas à mão, e o que a última carga fez (nota 0075). */
   z.strictObject({
     kind: z.literal('item_charges'),

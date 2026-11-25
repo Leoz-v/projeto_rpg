@@ -19,6 +19,7 @@ import { changeMonsterUse, restMonster, setMonsterLair } from './monsters';
 import { createMap, createToken, moveToken, roll, setTokenDead, setTokenHidden, updateMap, updateToken } from './map-tokens';
 import { castFromItem, changeCharges, dawn } from './item-charges';
 import { useItem } from './items';
+import { readScroll } from './scrolls';
 import { changeHp, concentrate, concentrationBreaks, deathStateEntry, endConcentration, inCombat, rollDeathSave } from './vitality';
 
 export type { Identity, IntentOutcome, IntentResultPayload, SessionDeps, StateChange } from './context';
@@ -203,6 +204,8 @@ export class HostSession extends SessionContext {
         return removeItem(this, playerId, role, intent.data);
       case 'inventory.update':
         return updateItem(this, playerId, role, intent.data);
+      case 'item.read':
+        return readScroll(this, playerId, role, intent.data);
       case 'item.cast':
         return castFromItem(this, playerId, role, intent.data);
       case 'item.charges':

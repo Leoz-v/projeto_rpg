@@ -95,8 +95,12 @@ function AddItem({ character, onError }: { character: SessionCharacter; onError:
   const [item, setItem] = useState<ItemSummary | null>(null);
   const [variantId, setVariantId] = useState('');
   const [baseId, setBaseId] = useState('');
+  const [spellId, setSpellId] = useState('');
   const [quantity, setQuantity] = useState(1);
   const results = useItemSearch(item ? '' : query);
+  // Pergaminho: as magias do círculo da variante; a primeira vale até escolher outra.
+  const spells = item?.variants.find((v) => v.id === variantId)?.spells ?? [];
+  const scrollSpell = spells.find((s) => s.id === spellId) ?? spells[0];
 
   const choose = (found: ItemSummary): void => {
     setItem(found);
@@ -114,6 +118,7 @@ function AddItem({ character, onError }: { character: SessionCharacter; onError:
         characterId: character.id,
         itemId: item.id,
         ...(item.variants.length > 0 ? { variantId } : {}),
+        ...(scrollSpell ? { spellId: scrollSpell.id } : {}),
         ...(item.bases.length > 1 ? { baseItemId: baseId } : {}),
         ...(quantity > 1 ? { quantity } : {}),
       },
@@ -196,6 +201,23 @@ function AddItem({ character, onError }: { character: SessionCharacter; onError:
               </select>
             </label>
           )}
+          {scrollSpell && (
+            <label>
+              Magia
+              <select
+                value={scrollSpell.id}
+                onChange={(e) => {
+                  setSpellId(e.target.value);
+                }}
+              >
+                {spells.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {item.bases.length > 1 && (
             <label>
               Item base
@@ -261,6 +283,9 @@ export function Inventory({ character, sheet, state, canEdit }: { character: Ses
             <li key={line.instanceId} className={line.active ? 'active' : ''}>
               <span className="item-name">
                 {line.name}
+                {line.scroll?.spell != null && `: ${line.scroll.spell}`}
+                {line.scroll?.problem !== undefined && <span className="tag">{line.scroll.problem}</span>}
+                {line.scroll?.checkDc !== undefined && <span className="hint"> teste CD {line.scroll.checkDc}</span>}
                 {line.quantity > 1 && <span className="hint"> × {line.quantity}</span>}
                 {(line.equipped || line.attuned) && !line.active && <span className="tag">sem efeito</span>}
               </span>
@@ -289,6 +314,17 @@ export function Inventory({ character, sheet, state, canEdit }: { character: Ses
                       />
                       sintonizado
                     </label>
+                  )}
+                  {line.scroll?.spell != null && (
+                    <button
+                      type="button"
+                      className="link"
+                      onClick={() => {
+                        void sendIntent({ kind: 'item.read', data: { characterId: id, instanceId: line.instanceId } }).then(setError);
+                      }}
+                    >
+                      ler
+                    </button>
                   )}
                   {line.use && (
                     <button

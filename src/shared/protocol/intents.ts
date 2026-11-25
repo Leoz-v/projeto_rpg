@@ -113,6 +113,8 @@ export const IntentSchema = z.discriminatedUnion('kind', [
       itemId: IdSchema,
       baseItemId: IdSchema.optional(),
       variantId: IdSchema.optional(),
+      /** A magia, num pergaminho (nota 0076). */
+      spellId: IdSchema.optional(),
       quantity: QuantitySchema.optional(),
     }),
   }),
@@ -132,6 +134,7 @@ export const IntentSchema = z.discriminatedUnion('kind', [
       })
       .refine((d) => d.equipped !== undefined || d.attuned !== undefined || d.quantity !== undefined, { message: 'nada para alterar' }),
   }),
+  z.strictObject({ kind: z.literal('item.read'), data: z.strictObject({ characterId: UuidSchema, instanceId: InstanceIdSchema }) }),
   z.strictObject({
     kind: z.literal('item.cast'),
     data: z.strictObject({ characterId: UuidSchema, instanceId: InstanceIdSchema, spellId: IdSchema, charges: z.int().min(0).max(50).optional() }),
