@@ -100,11 +100,23 @@ export const SpellcastingActionSchema = z.strictObject({
   spells: z.array(CreatureSpellSchema).min(1),
 });
 
-/** Ação sem resolução automática: só texto para o mestre. */
+/**
+ * Multiattack (nota 0066): opções de passos, cada passo com quantas vezes e
+ * quais ações de ataque ou salvaguarda. `replace`: até `max` trocas, cada uma
+ * no lugar de `cost` usos (só da ação `from`, se houver).
+ */
+export const MultiattackSchema = z.strictObject({
+  options: z.array(z.strictObject({ steps: z.array(z.strictObject({ count: z.int().min(1).max(6), actions: z.array(IdSchema).min(1) })).min(1) })).min(1),
+  replace: z.strictObject({ max: z.int().min(1).max(6), cost: z.int().min(1).max(2), actions: z.array(IdSchema).min(1), from: IdSchema.optional() }).optional(),
+});
+export type Multiattack = z.infer<typeof MultiattackSchema>;
+
+/** Ação sem resolução automática: só texto para o mestre (menos o Multiattack, que encadeia as outras). */
 export const TextActionSchema = z.strictObject({
   ...actionBase,
   kind: z.literal('text'),
   description: TextSchema,
+  multiattack: MultiattackSchema.optional(),
 });
 
 export const ActionSchema = z.discriminatedUnion('kind', [

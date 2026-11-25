@@ -2453,3 +2453,9 @@ button.fog-tool.active {
   gap: 0.4rem;
   align-items: center;
 }
+
+.multiattack-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}

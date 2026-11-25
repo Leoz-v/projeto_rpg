@@ -176,3 +176,70 @@ describe('HostSession: conditions imposed by monster actions (note 0065)', () =>
     expect(a.active(a.goblin)).toEqual([]);
   });
 });
+
+describe('HostSession: Multiattack (note 0066)', () => {
+  function setupMulti(monsterId: string, rolls: number[]) {
+    const t = table(rolls);
+    const mapId = t.session.state.activeMapId ?? '';
+    t.session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Monstro', position: { x: 1100, y: 0 }, size: 'large', monsterId } });
+    const monster = Object.values(t.session.state.tokens).find((x) => x.name === 'Monstro')?.id ?? '';
+    const multi = (steps: { actionId: string; targetTokenIds: string[]; advantage?: boolean }[], playerId = GM.playerId, option = 0) =>
+      t.session.handle(playerId, { kind: 'attack.multi', data: { tokenId: monster, option, steps, visibility: 'public' } });
+    const attacks = () => t.session.state.chat.filter((e) => e.kind === 'attack_roll');
+    return { ...t, monster, multi, attacks };
+  }
+
+  it('rolls every attack in one change, each with its target and its proposal', () => {
+    const t = setupMulti('pit_fiend', [19]);
+    const rev = t.session.rev;
+    const outcome = t.multi([
+      { actionId: 'bite', targetTokenIds: [t.goblin] },
+      { actionId: 'devilish_claw', targetTokenIds: [t.goblin], advantage: true },
+      { actionId: 'fiery_mace', targetTokenIds: [t.dragon] },
+    ]);
+    expect(applied(outcome)).toBe(true);
+    expect(t.session.rev).toBe(rev + 1);
+    expect(t.attacks().map((e) => [e.label, e.targetName, e.mode])).toEqual([
+      ['Bite', 'Goblin', 'normal'],
+      ['Devilish Claw', 'Goblin', 'advantage'],
+      ['Fiery Mace', 'Dragão', 'normal'],
+    ]);
+    expect(Object.keys(t.session.state.proposals)).toHaveLength(3);
+    expect(SessionStateSchema.safeParse(t.session.state).success).toBe(true);
+  });
+
+  it('a later attack sees what the earlier one did (Prone)', () => {
+    const t = setupMulti('brown_bear', [19]);
+    t.multi([
+      { actionId: 'claw', targetTokenIds: [t.goblin] },
+      { actionId: 'bite', targetTokenIds: [t.goblin] },
+    ]);
+    const [claw, bite] = t.attacks();
+    expect(claw?.mode).toBe('normal');
+    expect(bite).toMatchObject({ mode: 'advantage', advantage: ['Caído'] });
+  });
+
+  it('spends limited actions and refuses everything when one is spent', () => {
+    const t = setupMulti('chimera', [10]);
+    const steps = [
+      { actionId: 'ram', targetTokenIds: [t.goblin] },
+      { actionId: 'fire_breath', targetTokenIds: [t.goblin, t.dragon] },
+    ];
+    expect(applied(t.multi(steps))).toBe(true);
+    expect(t.session.state.tokens[t.monster]?.uses.spent).toEqual({ fire_breath: 1 });
+    expect(t.session.state.chat.findLast((e) => e.kind === 'save_roll')).toMatchObject({ results: [{ targetName: 'Goblin' }, { targetName: 'Dragão' }] });
+    const before = t.session.state;
+    expect(rejection(t.multi(steps))).toBe('rule_violation');
+    expect(t.session.state).toBe(before);
+  });
+
+  it('refuses what does not fit, repeated or extra targets, and other players', () => {
+    const t = setupMulti('chimera', [10]);
+    expect(rejection(t.multi([{ actionId: 'bite', targetTokenIds: [t.goblin] }, { actionId: 'bite', targetTokenIds: [t.goblin] }]))).toBe('rule_violation');
+    expect(rejection(t.multi([{ actionId: 'bite', targetTokenIds: [t.goblin, t.dragon] }]))).toBe('rule_violation');
+    expect(rejection(t.multi([{ actionId: 'fire_breath', targetTokenIds: [t.goblin, t.goblin] }]))).toBe('rule_violation');
+    expect(rejection(t.multi([{ actionId: 'bite', targetTokenIds: [t.goblin] }], ANA.playerId))).toBe('not_allowed');
+    expect(t.attacks()).toEqual([]);
+    expect(rejection(setupMulti('hydra', [10]).multi([{ actionId: 'bite', targetTokenIds: [t.goblin] }]))).toBe('rule_violation');
+  });
+});

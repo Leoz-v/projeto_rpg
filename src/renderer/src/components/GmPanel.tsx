@@ -11,6 +11,7 @@ import { parseMapDocument } from '../canvas3d/map/mapDocument';
 import { sendIntent } from '../store/table';
 import { tokenHealth } from '../canvas/health';
 import { usesLabel } from './MonsterBlock';
+import { Multiattack } from './Multiattack';
 import { TokenEffects } from './TokenEffects';
 import { tokenConditions } from '../canvas/conditions';
 import { combatantOptions } from '../canvas/conditions';
@@ -501,6 +502,14 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
               <HitPointsControl key={selected.id} target={{ tokenId: selected.id }} health={selectedHealth} allowMax />
               <ConditionsControl key={`conditions:${selected.id}`} target={{ tokenId: selected.id }} state={selected.conditions} canEdit combatants={combatantOptions(state)} />
               <TokenEffects token={selected} canEdit />
+              {selected.monsterId !== null && (
+                <Multiattack
+                  key={`multi:${selected.id}`}
+                  token={selected}
+                  targets={Object.values(state.tokens).filter((t) => t.mapId === selected.mapId && t.id !== selected.id)}
+                  onError={onError}
+                />
+              )}
               {selected.monsterId !== null && (
                 <MonsterActions
                   key={`actions:${selected.id}`}

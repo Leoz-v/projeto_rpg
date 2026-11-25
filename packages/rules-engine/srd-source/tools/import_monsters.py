@@ -299,6 +299,57 @@ def parse_spellcasting(who, entry, body):
     return action
 
 
+NUMBERS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6}
+NUM = "(" + "|".join(NUMBERS) + ")"
+
+
+def parse_multiattack(text, actions):
+    """Multiattack como opções de passos (nota 0066). Partes só de texto ficam na descrição; None se nada é resolvido."""
+    usable = {a["name"].split(" (")[0]: a["id"] for a in actions if a["kind"] in ("attack", "save")}
+
+    def ids(names):
+        names = re.sub(r"\([A-Z]\) ", "", names)
+        names = re.sub(r" to cast .*", "", names)
+        return [usable[n.strip()] for n in re.split(r", or |, and |, | or | and ", names) if n.strip() in usable]
+
+    sentences = re.split(r"(?<=\.) ", text)
+    main = sentences[0]
+    if "as many" in main:
+        return None
+    options = []
+    for alternative in re.split(r", or it makes | or (?=uses [A-Z][\w ]+ twice)", main):
+        steps = []
+        alternative = re.sub(r" (?:if available|if it used [^.,]*)", "", alternative)
+        pattern = (rf"{NUM} (?:other )?attacks, using (?P<combo>[A-Z][^.]*?) in any combination"
+                   rf"|{NUM} (?P<attack>[A-Z][\w' ]*?) attacks?\b"
+                   r"|\buses? (?:either )?(?P<use>[A-Z][\w' ]*?(?:, [A-Z][\w' ]*?)*(?:,? or [A-Z][\w' ]*?)?)(?P<twice> twice)?(?=[.,]|$| and (?:makes|uses|one|two|three))")
+        for m in re.finditer(pattern, alternative):
+            count = NUMBERS[m.group(1) or m.group(3)] if (m.group(1) or m.group(3)) else (2 if m.group("twice") else 1)
+            chosen = ids(m.group("combo") or m.group("attack") or m.group("use"))
+            if chosen:
+                steps.append({"count": count, "actions": chosen})
+        if steps:
+            options.append({"steps": steps})
+    if not options:
+        return None
+    result = {"options": options}
+    for s in sentences[1:]:
+        m = re.match(r"It can replace (one attack|two attacks|any attack|the (?P<from>[A-Z]\w+) attack) with an? (?:use of )?(?P<by>.*?)(?: attack)?(?: if available)?\.$", s)
+        if not m:
+            continue
+        by = ids(re.sub(r"Spellcasting to cast [^()]*(?:\(level \d version\))?", "Spellcasting", m.group("by")))
+        if by:
+            replace = {"cost": 2 if m.group(1) == "two attacks" else 1, "actions": by}
+            if m.group(1) == "any attack":
+                replace["max"] = sum(x["count"] for x in options[0]["steps"])
+            else:
+                replace["max"] = 1
+            if m.group("from"):
+                replace["from"] = usable[m.group("from")]
+            result["replace"] = replace
+    return result
+
+
 def parse_action(who, entry, body):
     first = body.split("\n")[0]
     m = re.match(r"(Melee|Ranged|Melee or Ranged) Attack Roll: ([+-]\d+)(?: to hit)?(?: \([^)]*\))?, (.*?)\. Hit: (.*)$", first)
@@ -667,6 +718,11 @@ for n, h in enumerate(starts):
         actions.append(parse_action(f"{who} / {e['name']}", entry, description))
     if traits:
         c["traits"] = traits
+    for a in actions:
+        if a["name"].startswith("Multiattack") and a["kind"] == "text":
+            multi = parse_multiattack(a["description"].replace("\n", " "), actions)
+            if multi:
+                a["multiattack"] = multi
     c["actions"] = actions
     if not actions:
         problems.append(f"{who}: sem ações")

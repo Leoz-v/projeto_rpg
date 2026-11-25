@@ -1,0 +1,36 @@
+import { multiattackFits } from 'rules-engine';
+import type { IntentData, PatchOp, Role } from '../../shared/protocol';
+import { forceSave, makeAttack } from './attacks';
+import { notAllowed, type SessionContext, violation } from './context';
+
+/** Multiattack dos monstros (nota 0066). Funções do executor da sessão (`HostSession`), sobre o `SessionContext`. */
+
+/** Confere quem pede e se os usos cabem numa opção do Multiattack do bloco. */
+export function requireMultiattack(ctx: SessionContext, playerId: string, role: Role, data: IntentData<'attack.multi'>): void {
+  const token = ctx.token(data.tokenId);
+  if (role !== 'gm' && !token.ownerIds.includes(playerId)) throw notAllowed('Você não controla este token');
+  const creature = token.monsterId !== null ? ctx.deps.creature(token.monsterId) : undefined;
+  const action = creature?.actions.find((a) => a.kind === 'text' && a.multiattack !== undefined);
+  if (action?.kind !== 'text' || !action.multiattack) throw violation('Este monstro não tem Multiattack estruturado');
+  if (!multiattackFits(action.multiattack, data.option, data.steps.map((s) => s.actionId))) throw violation('Estes ataques não cabem no Multiattack do monstro');
+}
+
+/** Um uso: o ataque contra o alvo dele, ou a salvaguarda dos alvos dela. */
+export function multiattackStep(ctx: SessionContext, playerId: string, role: Role, data: IntentData<'attack.multi'>, step: IntentData<'attack.multi'>['steps'][number]): PatchOp[] {
+  const token = ctx.token(data.tokenId);
+  const action = token.monsterId !== null ? ctx.deps.creature(token.monsterId)?.actions.find((a) => a.id === step.actionId) : undefined;
+  if (action?.kind === 'save') {
+    if (step.advantage !== undefined || step.disadvantage !== undefined) throw violation('Vantagem e Desvantagem só valem nos ataques do Multiattack');
+    if (new Set(step.targetTokenIds).size !== step.targetTokenIds.length) throw violation('Alvo repetido');
+    return forceSave(ctx, playerId, role, { source: { tokenId: token.id, actionId: action.id }, targetTokenIds: step.targetTokenIds, visibility: data.visibility });
+  }
+  const [targetTokenId] = step.targetTokenIds;
+  if (targetTokenId === undefined || step.targetTokenIds.length !== 1) throw violation('Cada ataque tem um alvo');
+  return makeAttack(ctx, playerId, role, {
+    attacker: { tokenId: token.id, actionId: step.actionId },
+    targetTokenId,
+    ...(step.advantage !== undefined ? { advantage: step.advantage } : {}),
+    ...(step.disadvantage !== undefined ? { disadvantage: step.disadvantage } : {}),
+    visibility: data.visibility,
+  });
+}

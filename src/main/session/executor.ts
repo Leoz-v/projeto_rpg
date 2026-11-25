@@ -1,5 +1,5 @@
 import { currentHitPoints, isDying, previousTurn } from 'rules-engine';
-import { applyPatch, chatBefore, type ChatEntry, chatWindow, type Intent, type PatchOp, type Role, type SessionState, toPointer } from '../../shared/protocol';
+import { applyPatch, chatBefore, type ChatEntry, chatWindow, type Intent, type IntentData, type PatchOp, type Role, type SessionState, toPointer } from '../../shared/protocol';
 import { opsFor, viewOf } from './visibility';
 import { type Identity, type IntentOutcome, Rejection, SessionContext, type SessionDeps, type StateChange, notAllowed, violation } from './context';
 import { applyProposal, forceSave, makeAttack, proposalOf, rollDamage, rollFromSheet, useMastery } from './attacks';
@@ -12,6 +12,7 @@ import { changeResource } from './resources';
 import { castSpell, useSpellEffect } from './casting';
 import { clearFogMemory, configureFog, fillManualFog, paintManualFog, rectManualFog, setTokenVision } from './fog';
 import { removeTokenEffect } from './spell-effects';
+import { multiattackStep, requireMultiattack } from './multiattack';
 import { changeMonsterUse, restMonster, setMonsterLair } from './monsters';
 import { createMap, createToken, moveToken, roll, updateMap, updateToken } from './map-tokens';
 import { changeHp, concentrate, concentrationBreaks, deathStateEntry, endConcentration, inCombat, rollDeathSave } from './vitality';
@@ -122,6 +123,27 @@ export class HostSession extends SessionContext {
       if (err instanceof Rejection) return { result: { status: 'rejected', code: err.code, message: err.message } };
       return { result: { status: 'rejected', code: 'internal_error', message: 'Erro interno do Host' } };
     }
+  }
+
+  /**
+   * Multiattack (nota 0066): cada uso parte do estado que o anterior deixou (o
+   * alvo derrubado pelo primeiro ataque está Caído no segundo). Tudo vai numa
+   * mudança só; se um uso é recusado, nada acontece.
+   */
+  private multiattack(playerId: string, role: Role, data: IntentData<'attack.multi'>): PatchOp[] {
+    requireMultiattack(this, playerId, role, data);
+    const before = this.current;
+    const all: PatchOp[] = [];
+    try {
+      for (const step of data.steps) {
+        const ops = multiattackStep(this, playerId, role, data, step);
+        this.current = applyPatch(this.current, ops);
+        all.push(...ops);
+      }
+    } finally {
+      this.current = before;
+    }
+    return all;
   }
 
   private commit(ops: PatchOp[]): StateChange {
@@ -256,6 +278,8 @@ export class HostSession extends SessionContext {
         return [this.appendChat(rollDamage(this, playerId, role, intent.data))];
       case 'attack.make':
         return makeAttack(this, playerId, role, intent.data);
+      case 'attack.multi':
+        return this.multiattack(playerId, role, intent.data);
       case 'save.force':
         return forceSave(this, playerId, role, intent.data);
       case 'mastery.use':
