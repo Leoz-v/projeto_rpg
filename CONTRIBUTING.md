@@ -6,14 +6,23 @@ Valeu por ajudar! O objetivo do projeto é um VTT **sólido e previsível**: pou
 
 1. Crie uma branch a partir da `main`: `feat/ficha-derivada`, `fix/handshake-timeout`, `docs/effects-spec`…
 2. Faça mudanças pequenas e focadas, uma coisa por branch.
-3. Antes de abrir o Pull Request, rode tudo e deixe verde:
+3. Vai mexer em algo que outra pessoa também pode estar mexendo (tokens, protocolo, banco)? Abra o PR cedo, como **rascunho**: quem vê o rascunho evita os mesmos arquivos ou espera.
+4. **Atualize a branch** antes de abrir o PR, e todo dia enquanto ela durar. A `main` anda rápido, e uma branch parada vira conflito:
+
+   ```bash
+   git fetch origin
+   git merge origin/main
+   ```
+
+5. **Números por último**, depois de atualizar a branch: `PROTOCOL_VERSION`, migração do banco e nota de `docs/decisions/` usam o próximo número livre da `main`. Uma migração nova vai sempre no **fim** da lista. O Git não acusa duas notas com o mesmo número.
+6. Antes de abrir o Pull Request, rode tudo e deixe verde:
 
    ```bash
    pnpm typecheck && pnpm lint && pnpm test
    ```
 
-4. Abra o PR para a `main` descrevendo **o quê** e **por quê**.
-5. A CI (GitHub Actions) roda as mesmas verificações em Windows, Linux e Mac. O PR só entra com tudo verde.
+7. Abra o PR para a `main` descrevendo **o quê** e **por quê**.
+8. A CI (GitHub Actions) roda as mesmas verificações em Windows, Linux e Mac. O PR só entra com tudo verde.
 
 ## Regras que não se negociam sem conversa
 
@@ -23,6 +32,7 @@ Valeu por ajudar! O objetivo do projeto é um VTT **sólido e previsível**: pou
 - **Só conteúdo do SRD 5.2.1.** Nada copiado de livros oficiais fora do SRD; o resto é homebrew nosso.
 - **TypeScript estrito:** sem `any` e sem `@ts-ignore`.
 - Toda regra, condição, maestria ou efeito novo vem **com teste**.
+- **Nos testes, tokens saem do `makeToken`** (`src/shared/protocol/test-fixtures.ts`), informando só o que importa. Um campo novo do token entra lá.
 
 ## Como sai uma versão nova
 
