@@ -21,8 +21,10 @@ Valeu por ajudar! O objetivo do projeto é um VTT **sólido e previsível**: pou
    pnpm typecheck && pnpm lint && pnpm test
    ```
 
+   Mexeu na rede, na sessão ou numa tela? Rode também `pnpm test:e2e`: ele abre o app de verdade, com mestre e jogador em perfis temporários.
+
 7. Abra o PR para a `main` descrevendo **o quê** e **por quê**.
-8. A CI (GitHub Actions) roda as mesmas verificações em Windows, Linux e Mac. O PR só entra com tudo verde.
+8. A CI (GitHub Actions) roda as mesmas verificações em Windows, Linux e Mac, e os testes de ponta a ponta no Linux. O PR só entra com tudo verde.
 
 ## Regras que não se negociam sem conversa
 

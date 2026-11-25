@@ -101,6 +101,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 │   │       ├── components/  # UI (fichas, compêndio, chat/rolagens, tracker de combate, mapas 2D/3D)
 │   │       └── store/       # Estado reativo da UI
 │   └── shared/              # Tipos da API de IPC (ipc.ts), schemas Zod (ipc-schemas.ts), protocolo de rede e versões
+├── e2e/                     # Testes de ponta a ponta (Playwright) com o app de verdade
 └── docs/
     ├── decisions/           # Registro de decisões (NNNN-titulo.md)
     ├── network-protocol.md  # Contrato fechado das mensagens WebSocket
@@ -144,6 +145,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 - O motor de regras deve ter testes unitários abrangentes em `packages/rules-engine`.
 - **Personagens de referência** em `packages/rules-engine/tests/fixtures/` (ex.: `dwarf-fighter-5.json`, `elf-wizard-7.json`) com fichas conferidas manualmente ponto a ponto (CA, PV, ataques, CD de magia, perícias, resistências); testes verificam que o cálculo chega exatamente nelas.
 - Toda regra, condição, maestria ou efeito novo vem com teste unitário.
+- **Ponta a ponta (Playwright, `e2e/`, nota 0073):** `pnpm test:e2e` abre o app de verdade, com o mestre e um jogador em perfis temporários. Na CI, só no Linux. O mapa é conferido pela interface, sem comparar imagens.
 - Testes de integração do processo main para migrações SQLite, hash SHA-256 de assets e handshake de protocolo.
 
 ## Roadmap
@@ -245,6 +247,9 @@ pnpm --filter rules-engine test
 
 # Todos os testes do workspace
 pnpm test
+
+# Testes de ponta a ponta (gera o build e abre o app)
+pnpm test:e2e
 
 # Checagem de tipos e lint em todo o workspace
 pnpm typecheck && pnpm lint
