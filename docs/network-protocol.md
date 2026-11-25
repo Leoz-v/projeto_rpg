@@ -2,7 +2,7 @@
 
 > **Contrato fechado.** Só existem as mensagens e os tipos de `Intent` listados aqui. Para criar um novo, primeiro atualize este documento (e `PROTOCOL_VERSION`, se a mudança for incompatível) e só depois o código. Os schemas Zod em `src/shared/protocol/` devem seguir este arquivo exatamente.
 
-- **Versão do protocolo:** `PROTOCOL_VERSION = 31`
+- **Versão do protocolo:** `PROTOCOL_VERSION = 32`
 - **Transporte:** WebSocket puro (`ws://`) sobre rede virtual (Tailscale/ZeroTier). Porta padrão do Host: `47820`.
 - **Formato:** um objeto JSON (UTF-8) por frame de texto. Frames binários não são usados.
 - **Validação:** toda mensagem recebida, nos dois lados, passa pelo schema Zod antes de qualquer processamento. Mensagem inválida gera `Error` com `code: "invalid_message"` e é descartada. A conexão **não** cai por causa disso.
@@ -267,6 +267,7 @@ Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do
 | `roll.d20`        | 7    | `{ characterId: string, target: SheetRollTarget, advantage?: boolean, disadvantage?: boolean, visibility: "public" \| "gm" }` | dono e mestre |
 | `roll.damage`     | 7    | `{ characterId: string, instanceId: string, critical?: boolean, versatile?: boolean, visibility: "public" \| "gm" }` | dono e mestre |
 | `attack.make`     | 8    | `{ attacker: { characterId: string, instanceId: string } \| { tokenId: string, actionId: string }, targetTokenId: string, advantage?: boolean, disadvantage?: boolean, visibility: "public" \| "gm" }` | personagem: dono e mestre; token: mestre e donos do token |
+| `attack.multi` | 32 | `{ tokenId: string, option: int (0..9), steps: { actionId: string, targetTokenIds: string[] (1..20), advantage?: boolean, disadvantage?: boolean }[] (1..12), visibility: "public" \| "gm" }` | mestre; jogador nos próprios tokens |
 | `save.force`      | 9    | `{ source: { tokenId: string, actionId: string } \| { custom: { name: string (1..100), ability: Ability, dc: int (1..40), damage: { dice: string, type: DamageType }[] (0..5), onSuccess: "half" \| "none", conditions?: Condition[] } }, targetTokenIds: string[] (1..20, sem repetir), against?: { condition?: Condition, source?: "spell" \| "magic" }, visibility: "public" \| "gm" }` | ação do monstro: mestre e donos do token; efeito informado: todos |
 | `mastery.use`     | 10   | `{ entryId: string, targetTokenId?: string, advantage?: boolean, disadvantage?: boolean }` | quem fez o ataque e mestre |
 | `combat.start`    | 11   | `{ tokenIds: string[] (1..50, sem repetir), surprisedTokenIds?: string[] (0..50) }` | mestre |
@@ -312,6 +313,7 @@ Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do
 - **`token.update`:** altera `rotation` (graus, 0–359) e/ou `elevation` (pés, −1000..1000) de um token; mesma permissão de `token.move`.
 - **Usos limitados de monstros** (nota 0064, versão 30): `attack.make` e `save.force` com uma ação limitada gastam um uso, e sem usos são recusados com `rule_violation`. `monster.use` gasta ou recupera à mão (ações só de texto, traços); `monster.rest` recupera tudo; `monster.lair` diz se o monstro está no covil (alguns limites são maiores). No início do turno de um monstro com PV, o Host rola 1d6 para cada recarga gasta e registra `recharge_roll`.
 - **Condições das ações de monstro** (nota 0065, versão 31): no acerto do `attack.make` e na falha do `save.force`, as condições do bloco (`imposes`) entram direto no alvo, até o tamanho máximo e com a duração por turno, se o monstro (ou o alvo) está no combate. As condições que duram com outra (Impedido enquanto Agarrado) levam `with` e saem junto com ela, por qualquer motivo. As notas vão na entrada do ataque ou da salvaguarda, e cada condição registra `condition_changed`. As que o bloco não impõe direto continuam com os botões da falha.
+- **`attack.multi`** (nota 0066, versão 32): o Multiattack do bloco do monstro. `option` é a opção do texto, e os `steps` precisam caber nela (podem ser menos), contando as trocas; senão, `rule_violation`. Cada passo é resolvido como `attack.make` (um alvo) ou `save.force` (alvos distintos, sem Vantagem declarada), na ordem, a partir do estado que o anterior deixou. Tudo vai numa mudança só: se um passo é recusado, nada acontece.
 - **`token.create`:** os `ownerIds` precisam ser jogadores que já entraram na sessão (estão em `players`).
 - **`session.resync`:** responde `applied` com o `rev` atual, seguido de um `StateSnapshot` só para quem pediu.
 - **Personagens** (nota 0029): o personagem guarda só as escolhas de construção; a ficha é calculada pelo motor em cada app (o cálculo é determinístico). `BaseScores` e `BuildStep` são os schemas do motor (`rules-engine/schemas`), e o Host confere só a estrutura: a construção pode ficar incompleta enquanto o jogador monta o personagem.
