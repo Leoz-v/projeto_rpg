@@ -672,6 +672,7 @@ function MonsterActions({ tokenId, uses, monsterId, targets, onError }: { tokenI
   const target = targets.find((t) => t.id === targetId) ?? targets[0];
   const damageText = (damage: MonsterAction['damage']): string => damage.map((d) => `${d.dice} ${DAMAGE_LABEL[d.type].toLowerCase()}`).join(' + ');
 
+  // O gasto da ação lendária por rodada é conferido pelo Host.
   const spent = (a: MonsterAction): boolean => a.limit !== undefined && availableMonsterUses({ id: a.id, limit: a.limit }, uses) === 0;
   const limitText = (a: MonsterAction): string => (a.limit !== undefined ? ` · ${usesLabel({ id: a.id, limit: a.limit }, uses)}` : '');
 

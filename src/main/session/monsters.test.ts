@@ -416,3 +416,167 @@ describe('HostSession: monster concentration (note 0068)', () => {
     expect(rejection(multi([{ actionId: 'rend', targetTokenIds: [] }]))).toBe('rule_violation');
   });
 });
+
+describe('HostSession: legendary actions (note 0069)', () => {
+  const setup = (rolls: number[]) => {
+    const t = table(rolls);
+    const legendary = (actionId: string, steps: { actionId: string; targetTokenIds: string[] }[]) =>
+      t.session.handle(GM.playerId, { kind: 'attack.multi', data: { tokenId: t.dragon, actionId, option: 0, steps, visibility: 'public' } });
+    return { ...t, legendary };
+  };
+
+  it('spends a use per round; once-per-turn actions are refused until the turn starts', () => {
+    const t = setup([10]);
+    expect(applied(t.legendary('pounce', [{ actionId: 'rend', targetTokenIds: [t.goblin] }]))).toBe(true);
+    expect(applied(t.legendary('fiery_rays', [{ actionId: 'spell_scorching_ray', targetTokenIds: [] }]))).toBe(true);
+    expect(t.spent()).toEqual({ legendary_actions: 2, fiery_rays: 1 });
+    expect(rejection(t.legendary('fiery_rays', [{ actionId: 'spell_scorching_ray', targetTokenIds: [] }]))).toBe('rule_violation');
+    expect(applied(t.legendary('pounce', [{ actionId: 'rend', targetTokenIds: [t.goblin] }]))).toBe(true);
+    expect(rejection(t.legendary('pounce', [{ actionId: 'rend', targetTokenIds: [t.goblin] }]))).toBe('rule_violation');
+    // No covil, um uso a mais.
+    t.session.handle(GM.playerId, { kind: 'monster.lair', data: { tokenId: t.dragon, lair: true } });
+    expect(applied(t.legendary('pounce', [{ actionId: 'rend', targetTokenIds: [t.goblin] }]))).toBe(true);
+
+    t.session.handle(GM.playerId, { kind: 'combat.start', data: { tokenIds: [t.dragon, t.goblin] } });
+    t.session.handle(GM.playerId, { kind: 'combat.next', data: {} });
+    t.session.handle(GM.playerId, { kind: 'combat.next', data: {} });
+    expect(t.spent()).toEqual({});
+  });
+
+  it('a text legendary action is spent by hand, a save action spends it when forced', () => {
+    const t = table([10]);
+    const mapId = t.session.state.activeMapId ?? '';
+    t.session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Lich', position: { x: 1200, y: 0 }, size: 'medium', monsterId: 'lich' } });
+    const lich = Object.values(t.session.state.tokens).find((x) => x.name === 'Lich')?.id ?? '';
+    const spent = () => t.session.state.tokens[lich]?.uses.spent;
+    expect(applied(t.session.handle(GM.playerId, { kind: 'monster.use', data: { tokenId: lich, featureId: 'deathly_teleport', change: 'spend' } }))).toBe(true);
+    expect(spent()).toEqual({ legendary_actions: 1 });
+    t.session.handle(GM.playerId, { kind: 'save.force', data: { source: { tokenId: lich, actionId: 'disrupt_life' }, targetTokenIds: [t.goblin], visibility: 'public' } });
+    expect(spent()).toEqual({ legendary_actions: 2, disrupt_life: 1 });
+  });
+});
+
+describe('HostSession: Legendary Resistance (note 0069)', () => {
+  /** Um leão ruge para o dragão (Amedrontado na falha), com dados fixos. */
+  function roar(rolls: number[]) {
+    const t = table(rolls);
+    const mapId = t.session.state.activeMapId ?? '';
+    const create = (name: string, monsterId: string, x: number) => {
+      t.session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name, position: { x, y: 500 }, size: 'medium', monsterId } });
+      return Object.values(t.session.state.tokens).find((k) => k.name === name)?.id ?? '';
+    };
+    const lion = create('Leão', 'lion', 1100);
+    const mage = create('Mago', 'mage', 1300);
+    const force = () => t.session.handle(GM.playerId, { kind: 'save.force', data: { source: { tokenId: lion, actionId: 'roar' }, targetTokenIds: [t.dragon, t.goblin], visibility: 'public' } });
+    const pending = () => Object.values(t.session.state.pendingSaves);
+    const resolve = (useResistance: boolean, playerId = GM.playerId) => t.session.handle(playerId, { kind: 'save.resolve', data: { pendingId: pending()[0]?.id ?? '', useResistance } });
+    const active = () => t.session.state.tokens[t.dragon]?.conditions.active.map((c) => c.condition);
+    return { ...t, lion, mage, force, pending, resolve, active };
+  }
+
+  it('holds the consequences of the failure, only for who has it', () => {
+    const t = roar([1]);
+    t.force();
+    expect(t.active()).toEqual([]);
+    expect(t.session.state.tokens[t.goblin]?.conditions.active.map((c) => c.condition)).toEqual(['frightened']);
+    expect(t.pending()).toMatchObject([{ targetTokenId: t.dragon, impose: { actorTokenId: t.lion, actionId: 'roar' } }]);
+    expect(t.session.state.chat.findLast((e) => e.kind === 'save_roll')).toMatchObject({ results: [{ success: false, notes: ['Aguardando o mestre'] }, { success: false }] });
+    expect(t.session.viewFor(ANA.playerId).pendingSaves).toEqual({});
+    expect(SessionStateSchema.safeParse(t.session.state).success).toBe(true);
+  });
+
+  it('used: spends it and nothing enters; accepted: the condition enters', () => {
+    const t = roar([1]);
+    t.force();
+    expect(rejection(t.resolve(true, ANA.playerId))).toBe('not_allowed');
+    expect(applied(t.resolve(true))).toBe(true);
+    expect(t.active()).toEqual([]);
+    expect(t.spent()).toEqual({ legendary_resistance: 1 });
+    expect(t.pending()).toEqual([]);
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'legendary_resistance', used: true, name: 'Dragão', label: 'Roar' });
+    t.force();
+    expect(applied(t.resolve(false))).toBe(true);
+    expect(t.active()).toEqual(['frightened']);
+    expect(t.spent()).toEqual({ legendary_resistance: 1 });
+    expect(rejection(t.resolve(false))).toBe('rule_violation');
+  });
+
+  it('a success, or no uses left, does not wait', () => {
+    const t = roar([20]);
+    t.force();
+    expect(t.pending()).toEqual([]);
+    const u = roar([1]);
+    for (let i = 0; i < 3; i++) u.session.handle(GM.playerId, { kind: 'monster.use', data: { tokenId: u.dragon, featureId: 'legendary_resistance', change: 'spend' } });
+    u.force();
+    expect(u.pending()).toEqual([]);
+    expect(u.active()).toEqual(['frightened']);
+  });
+
+  it('two failures with one use left: the second can only be accepted', () => {
+    const t = roar([1]);
+    for (let i = 0; i < 2; i++) t.session.handle(GM.playerId, { kind: 'monster.use', data: { tokenId: t.dragon, featureId: 'legendary_resistance', change: 'spend' } });
+    t.force();
+    t.force();
+    expect(t.pending()).toHaveLength(2);
+    expect(applied(t.resolve(true))).toBe(true);
+    expect(rejection(t.resolve(true))).toBe('rule_violation');
+    expect(t.pending()).toHaveLength(1);
+    expect(applied(t.resolve(false))).toBe(true);
+  });
+
+  it('the damage becomes a proposal only after the decision: half with the resistance', () => {
+    const t = roar([1]);
+    const fireball = () => {
+      t.session.handle(GM.playerId, { kind: 'monster.cast', data: { tokenId: t.mage, spellId: 'cone_of_cold' } });
+      const entry = t.session.state.chat.findLast((e) => e.kind === 'spell_cast');
+      t.session.handle(GM.playerId, { kind: 'spell.effect', data: { entryId: entry?.id ?? '', part: 0, targetTokenIds: [t.dragon] } });
+    };
+    fireball();
+    expect(t.session.state.proposals).toEqual({});
+    const [first] = t.pending();
+    // Cone of Cold: 8d8, todos 1.
+    expect(first?.damage).toMatchObject({ failed: 8, saved: 4 });
+    t.resolve(true);
+    expect(Object.values(t.session.state.proposals)).toMatchObject([{ id: first?.damage?.proposalId, amount: 4 }]);
+  });
+
+  it('spell effects wait too, and do not enter if the spell is over', () => {
+    const t = roar([1]);
+    const mapId = t.session.state.activeMapId ?? '';
+    t.session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Prata', position: { x: 1500, y: 500 }, size: 'huge', monsterId: 'adult_silver_dragon' } });
+    const silver = Object.values(t.session.state.tokens).find((k) => k.name === 'Prata')?.id ?? '';
+    const hold = () => {
+      t.session.handle(GM.playerId, { kind: 'monster.cast', data: { tokenId: silver, spellId: 'hold_monster' } });
+      const entry = t.session.state.chat.findLast((e) => e.kind === 'spell_cast');
+      return t.session.handle(GM.playerId, { kind: 'spell.effect', data: { entryId: entry?.id ?? '', part: 0, targetTokenIds: [t.dragon] } });
+    };
+    expect(applied(hold())).toBe(true);
+    expect(t.active()).toEqual([]);
+    t.resolve(false);
+    expect(t.active()).toEqual(['paralyzed']);
+    t.session.handle(GM.playerId, { kind: 'concentration.end', data: { tokenId: silver } });
+    expect(t.active()).toEqual([]);
+    hold();
+    t.session.handle(GM.playerId, { kind: 'concentration.end', data: { tokenId: silver } });
+    t.resolve(false);
+    expect(t.active()).toEqual([]);
+  });
+
+  it('the Concentration save waits, and removing the token drops what was pending', () => {
+    const t = roar([1]);
+    t.session.handle(GM.playerId, { kind: 'monster.cast', data: { tokenId: t.dragon, spellId: 'detect_magic' } });
+    expect(t.session.state.tokens[t.dragon]?.concentration?.spellId).toBe('detect_magic');
+    const hurt = () => t.session.handle(GM.playerId, { kind: 'hp.change', data: { target: { tokenId: t.dragon }, change: { kind: 'damage', amount: 40 } } });
+    hurt();
+    expect(t.session.state.tokens[t.dragon]?.concentration).not.toBeNull();
+    t.resolve(true);
+    expect(t.session.state.tokens[t.dragon]?.concentration).not.toBeNull();
+    hurt();
+    t.resolve(false);
+    expect(t.session.state.tokens[t.dragon]?.concentration).toBeNull();
+    t.force();
+    expect(t.pending()).toHaveLength(1);
+    t.session.handle(GM.playerId, { kind: 'token.remove', data: { tokenId: t.dragon } });
+    expect(t.pending()).toEqual([]);
+  });
+});

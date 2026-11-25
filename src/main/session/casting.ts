@@ -1,5 +1,5 @@
 import { applyDamage, creatureD20, monsterSpells, type SheetD20, availableSpellSlots, availableUses, type DamageType, damageNotes, resolveAttack, resolveSpellParts, rollActionDamage, spellAttackD20, spellDamageWith } from 'rules-engine';
-import { type ChatEntry, type IntentData, type PatchOp, type Role, type SpellEffectPart, type SpellLink, type Token, toPointer } from '../../shared/protocol';
+import { type ChatEntry, type IntentData, type PatchOp, type PendingSave, type Role, type SpellEffectPart, type SpellLink, type Token, toPointer } from '../../shared/protocol';
 import { attackCircumstances, autoCriticalNotes, rollSaves, rollTargetDamage, targetDamageOf, targetOf, withCircumstances } from './attacks';
 import { notAllowed, type SessionContext, violation } from './context';
 import { applyBuff, applyConditionPart, applyHealing, ConditionLedger, conditionTiming, imposeConditions, putSpellEffects } from './spell-effects';
@@ -284,24 +284,70 @@ export function useSpellEffect(ctx: SessionContext, playerId: string, role: Role
       visibility: 'public',
       spellOf,
       declared,
+      pending: { spell: { ...spellOf, ...(data.option !== undefined ? { option: data.option } : {}), ...(data.condition !== undefined ? { condition: data.condition } : {}) } },
     });
     if (saves.failed.length === 0) return saves.ops;
-    // Na falha, os efeitos entram na ficha ou no token (Bane, Slow; nota 0062).
-    const failEffects = [...part.onFailEffects, ...(option?.effects ?? [])];
-    if (failEffects.length > 0) {
-      const put = putSpellEffects(ctx, { name: effectName(label, option?.label, user.name), effects: failEffects, link, targets: saves.failed, playerId });
-      const results = saves.failed.map((t) => ({ targetTokenId: t.id, targetName: t.name, notes: put.notes.get(t.id) ?? [] }));
-      saves.ops.push(ctx.appendChat({ kind: 'spell_applied', ...ctx.entryBase(playerId), spellOf, casterName: user.name, label, results }), ...put.ops);
-    }
-    if (conditions.length === 0) return saves.ops;
-    // Na falha, as condições entram direto (nota 0058).
-    const timing = conditionTiming(ctx, part.conditionsEnd, link);
-    const ledger = new ConditionLedger(ctx);
-    return [...saves.ops, ...saves.failed.flatMap((target) => imposeConditions(ctx, playerId, ledger, target, conditions, timing, label).ops)];
+    const failure = { part, option, conditions, user, label, spellOf };
+    return [...saves.ops, ...spellFailure(ctx, playerId, failure, saves.failed)];
   }
   if (targets.length > part.count) throw violation(`${label}: ${part.count} ${part.kind === 'attack' ? 'ataque(s)' : 'projétil(eis)'} neste círculo`);
   if (part.kind === 'damage') return directDamage(ctx, playerId, { user, label, spellOf, damage, targets });
   return spellAttacks(ctx, playerId, { user, entry: { ...entry, effect }, part, label, spellOf, damage, targets, declared, link });
+}
+
+/** O que a falha numa parte de magia faz em quem falhou: efeitos (nota 0062) e condições (nota 0058). */
+function spellFailure(
+  ctx: SessionContext,
+  playerId: string,
+  failure: {
+    part: Extract<SpellEffectPart, { kind: 'save' }>;
+    option: { label: string; effects: Extract<SpellEffectPart, { kind: 'save' }>['onFailEffects'] } | undefined;
+    conditions: Extract<SpellEffectPart, { kind: 'save' }>['onFailConditions'];
+    user: SpellUser;
+    label: string;
+    spellOf: SpellOf;
+  },
+  failed: Token[],
+): PatchOp[] {
+  const { part, option, conditions, user, label, spellOf } = failure;
+  const ops: PatchOp[] = [];
+  const effects = [...part.onFailEffects, ...(option?.effects ?? [])];
+  if (effects.length > 0) {
+    const put = putSpellEffects(ctx, { name: effectName(label, option?.label, user.name), effects, link: user.link, targets: failed, playerId });
+    const results = failed.map((t) => ({ targetTokenId: t.id, targetName: t.name, notes: put.notes.get(t.id) ?? [] }));
+    ops.push(ctx.appendChat({ kind: 'spell_applied', ...ctx.entryBase(playerId), spellOf, casterName: user.name, label, results }), ...put.ops);
+  }
+  if (conditions.length === 0) return ops;
+  const timing = conditionTiming(ctx, part.conditionsEnd, user.link);
+  const ledger = new ConditionLedger(ctx);
+  return [...ops, ...failed.flatMap((target) => imposeConditions(ctx, playerId, ledger, target, conditions, timing, label).ops)];
+}
+
+/**
+ * A falha aceita pelo mestre (nota 0069). Se quem conjurou saiu ou não está
+ * mais concentrado, a magia acabou e nada entra.
+ */
+export function applySpellFailure(ctx: SessionContext, playerId: string, spell: NonNullable<PendingSave['spell']>, failed: Token[]): PatchOp[] {
+  const entry = ctx.current.chat.find((e) => e.id === spell.entryId);
+  if (entry?.kind !== 'spell_cast' || !entry.effect) return [];
+  const part = entry.effect.parts[spell.part];
+  const gone = entry.tokenId !== undefined ? !(entry.tokenId in ctx.current.tokens) : !(entry.characterId !== undefined && entry.characterId in ctx.current.characters);
+  if (part?.kind !== 'save' || gone) return [];
+  const user = spellUser(ctx, playerId, 'gm', entry, entry.effect);
+  if (entry.concentration && user.concentration !== entry.effect.spellId) return [];
+  return spellFailure(
+    ctx,
+    playerId,
+    {
+      part,
+      option: spell.option !== undefined ? part.options[spell.option] : undefined,
+      conditions: spell.condition !== undefined ? [spell.condition] : part.onFailConditions,
+      user,
+      label: partLabel(entry, part),
+      spellOf: { entryId: entry.id, part: spell.part },
+    },
+    failed,
+  );
 }
 
 /** Ataques de magia, um por alvo (pode repetir: dois raios no mesmo alvo), cada um com o próprio d20 e o próprio dano. */

@@ -248,7 +248,7 @@ export class CampaignDb {
       .all()
       .map((row): unknown => JSON.parse(ChatRow.parse(row).entry));
 
-    const parsed = SessionStateSchema.safeParse({ campaign: { id: campaign.id, name: campaign.name }, players, chat, maps, activeMapId: campaign.active_map_id, tokens, characters, proposals: {}, combat: campaign.combat === null ? null : (JSON.parse(campaign.combat) as unknown), rest: campaign.rest === null ? null : (JSON.parse(campaign.rest) as unknown) });
+    const parsed = SessionStateSchema.safeParse({ campaign: { id: campaign.id, name: campaign.name }, players, chat, maps, activeMapId: campaign.active_map_id, tokens, characters, proposals: {}, pendingSaves: {}, combat: campaign.combat === null ? null : (JSON.parse(campaign.combat) as unknown), rest: campaign.rest === null ? null : (JSON.parse(campaign.rest) as unknown) });
     if (!parsed.success) throw new CampaignDbError(`Arquivo da campanha inválido: ${parsed.error.issues[0]?.message ?? 'erro desconhecido'}`);
     return parsed.data;
   }

@@ -17,7 +17,8 @@ export type Activation = z.infer<typeof ActivationSchema>;
 export const ActionLimitSchema = z.union([
   z.strictObject({ recharge: z.int().min(2).max(6) }),
   z.strictObject({
-    per: z.union([RestSchema, z.literal('day')]),
+    /** `turn`: volta no início do turno do monstro ("can't take this action again until the start of its next turn"). */
+    per: z.union([RestSchema, z.literal('day'), z.literal('turn')]),
     count: z.int().positive(),
     lairCount: z.int().positive().optional(),
   }),
@@ -111,7 +112,7 @@ export const MultiattackSchema = z.strictObject({
 });
 export type Multiattack = z.infer<typeof MultiattackSchema>;
 
-/** Ação sem resolução automática: só texto para o mestre (menos o Multiattack, que encadeia as outras). */
+/** Ação sem resolução automática: só texto para o mestre (menos o Multiattack e as ações lendárias que encadeiam as outras). */
 export const TextActionSchema = z.strictObject({
   ...actionBase,
   kind: z.literal('text'),

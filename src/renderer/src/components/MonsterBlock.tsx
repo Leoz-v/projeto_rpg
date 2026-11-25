@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ABILITIES, type Creature } from 'rules-engine/schemas';
-import { availableMonsterUses, monsterUseMax, type MonsterUseLimit } from 'rules-engine/monster-uses';
+import { availableMonsterUses, LEGENDARY_ACTIONS_ID, monsterUseMax, type MonsterUseLimit } from 'rules-engine/monster-uses';
 import type { MonsterBlockView } from '../../../shared/ipc';
 import type { Token } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
@@ -18,7 +18,7 @@ const GROUPS = [
   { activation: 'legendary', title: 'Ações Lendárias' },
 ] as const;
 
-const PER_LABEL: Record<string, string> = { day: 'por dia', short_rest: 'por descanso curto ou longo', long_rest: 'por descanso longo' };
+const PER_LABEL: Record<string, string> = { day: 'por dia', short_rest: 'por descanso curto ou longo', long_rest: 'por descanso longo', turn: 'até o próximo turno', round: 'por rodada' };
 
 /** "Recarga 5–6" ou "2/3 por dia". */
 export function usesLabel(feature: { id: string; limit: MonsterUseLimit }, uses: Token['uses']): string {
@@ -51,7 +51,13 @@ function Feature({ token, feature, onError }: { token: Token; feature: Creature[
   const { limit } = feature;
   return (
     <li>
-      <strong>{feature.name}</strong> {limit && <Uses token={token} feature={{ id: feature.id, limit }} onError={onError} />}
+      <strong>{feature.name}</strong>{' '}
+      {'activation' in feature && feature.activation === 'legendary' && (
+        <button type="button" className="link" onClick={() => void sendIntent({ kind: 'monster.use', data: { tokenId: token.id, featureId: feature.id, change: 'spend' } }).then(onError)}>
+          Usar (só gasta)
+        </button>
+      )}{' '}
+      {limit && <Uses token={token} feature={{ id: feature.id, limit }} onError={onError} />}
       {feature.description !== undefined && <p className="monster-text">{feature.description}</p>}
     </li>
   );
@@ -217,8 +223,8 @@ export function MonsterBlock({ token, isGm, onClose }: { token: Token; isGm: boo
                   <section key={activation}>
                     <h3>
                       {title}
-                      {legendary && ` (${token.uses.lair ? (legendary.lairCount ?? legendary.count) : legendary.count} por rodada)`}
                     </h3>
+                    {legendary && <Uses token={token} feature={{ id: LEGENDARY_ACTIONS_ID, limit: { per: 'round', ...legendary } }} onError={setError} />}
                     <ul>
                       {list.map((a) => (
                         <Feature key={a.id} token={token} feature={a} onError={setError} />

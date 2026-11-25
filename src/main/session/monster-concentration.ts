@@ -2,6 +2,8 @@ import { concentrationDc, d20StepNotes, effectiveConditions, rollD20 } from 'rul
 import { type ChatEntry, type ConditionState, type PatchOp, type Token, toPointer } from '../../shared/protocol';
 import { saveOf } from './attacks';
 import { type SessionContext, violation } from './context';
+import { addPendingSave } from './legendary';
+import { hasLegendaryResistance } from './monsters';
 import { liftSpellConditions } from './spell-effects';
 
 /** Concentração dos monstros (nota 0068), com as regras da dos personagens (nota 0045). Funções do executor da sessão (`HostSession`), sobre o `SessionContext`. */
@@ -51,10 +53,13 @@ export function tokenDamaged(ctx: SessionContext, playerId: string, token: Token
   const save = saveOf(ctx, token, 'con', undefined);
   const result = rollD20({ ...save.input, dc }, ctx.deps.rng);
   const success = result.success === true;
+  const base = ctx.entryBase(playerId);
+  // Com Resistência Lendária, a falha espera o mestre (nota 0069).
+  const waits = !success && hasLegendaryResistance(ctx, token);
   return [
     ctx.appendChat({
       kind: 'concentration_save',
-      ...ctx.entryBase(playerId),
+      ...base,
       tokenId: token.id,
       characterName: token.name,
       spellName: token.concentration.name,
@@ -69,6 +74,19 @@ export function tokenDamaged(ctx: SessionContext, playerId: string, token: Token
       disadvantage: save.disadvantage,
       notes: [...d20StepNotes(result.steps), ...save.reminders].slice(0, 50),
     }),
-    ...(success ? [] : endTokenConcentration(ctx, playerId, token, 'failed_save')),
+    ...(waits
+      ? [
+          addPendingSave({
+            id: ctx.deps.newId(),
+            entryId: base.id,
+            targetTokenId: token.id,
+            targetName: token.name,
+            label: `Concentração: ${token.concentration.name}`.slice(0, 100),
+            concentration: token.concentration.spellId,
+          }),
+        ]
+      : success
+        ? []
+        : endTokenConcentration(ctx, playerId, token, 'failed_save')),
   ];
 }

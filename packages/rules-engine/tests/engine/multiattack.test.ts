@@ -59,12 +59,14 @@ describe('Multiattack (note 0066)', () => {
 
   it('every structured Multiattack uses attack or save actions of its own block', () => {
     let count = 0;
+    let legendary = 0;
     for (const creature of srd.creatures) {
       const usable = new Set(creature.actions.filter((a) => a.kind === 'attack' || a.kind === 'save').map((a) => a.id));
       for (const s of monsterSpells(creature)) usable.add(monsterSpellUseId(s.spellId));
       for (const a of creature.actions) {
         if (a.kind !== 'text' || !a.multiattack) continue;
-        count++;
+        if (a.activation === 'legendary') legendary++;
+        else count++;
         const ids = [...a.multiattack.options.flatMap((o) => o.steps.flatMap((s) => s.actions)), ...(a.multiattack.replace?.actions ?? [])];
         expect(ids.filter((id) => !usable.has(id)), creature.id).toEqual([]);
         a.multiattack.options.forEach((o, i) => {
@@ -73,5 +75,6 @@ describe('Multiattack (note 0066)', () => {
       }
     }
     expect(count).toBe(177);
+    expect(legendary).toBe(51);
   });
 });

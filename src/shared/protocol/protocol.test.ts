@@ -27,7 +27,7 @@ const TABLE_PASSWORD = ['senha', 'da', 'mesa'].join('-');
 const SHA ='9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08';
 
 const state: SessionState = {
-  proposals: {},
+  proposals: {}, pendingSaves: {},
   combat: null,
   rest: null,
   campaign: { id: CAMPAIGN, name: 'A Mina Perdida' },
@@ -288,7 +288,7 @@ describe('intents', () => {
 describe('SessionState', () => {
   it('accepts the documented example and an empty table', () => {
     expect(ok(SessionStateSchema, state)).toBe(true);
-    expect(ok(SessionStateSchema, { campaign: state.campaign, players: {}, chat: [], maps: {}, activeMapId: null, tokens: {}, characters: {}, proposals: {}, combat: null, rest: null })).toBe(true);
+    expect(ok(SessionStateSchema, { campaign: state.campaign, players: {}, chat: [], maps: {}, activeMapId: null, tokens: {}, characters: {}, proposals: {}, pendingSaves: {}, combat: null, rest: null })).toBe(true);
   });
 
   it('keeps conditions unique and exhaustion within 0..6', () => {
