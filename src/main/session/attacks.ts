@@ -2,6 +2,7 @@ import { type Ability, applyDamage, applyHitPointChange, attackedByEffects, atta
 import { type ChatEntry, type TimedEffect, type IntentData, type PatchOp, type Role, type SessionState, type Token, toPointer, type Visibility } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
 import { timedEffectEntry } from './combat';
+import { spendMonsterUse } from './monsters';
 import { changeCharacterHp } from './vitality';
 
 /** Rolagens da ficha, ataques, maestrias, salvaguardas forçadas e aplicação de dano (Fase 4). Funções do executor da sessão (`HostSession`), sobre o `SessionContext`. */
@@ -177,6 +178,8 @@ export function makeAttack(ctx: SessionContext, playerId: string, role: Role, da
   let rollDamage: (critical: boolean, hit: boolean) => { groups: ReturnType<typeof rollActionDamage>; bonus: number };
   /** Token do atacante (para a distância até o alvo), se estiver no mapa. */
   let attackerToken: Token | undefined;
+  /** Uso gasto da ação do monstro, se ela é limitada. */
+  let useOps: PatchOp[] = [];
   /** Arma da ficha: o que a maestria dela permite depois do resultado. */
   let weapon: { ref: { characterId: string; instanceId: string }; mastery: (hit: boolean, damaged: boolean) => ReturnType<typeof masteryOutcome> | undefined } | undefined;
 
@@ -219,6 +222,7 @@ export function makeAttack(ctx: SessionContext, playerId: string, role: Role, da
     const actionId = data.attacker.actionId;
     const action = creature?.actions.find((a) => a.id === actionId);
     if (!creature || action?.kind !== 'attack') throw violation('Ação de ataque não encontrada no bloco do monstro');
+    useOps = spendMonsterUse(ctx, token, action.id);
     // Bônus do bloco, com a Exaustão e as condições do monstro (Envenenado, Caído…).
     d20 = creatureD20({ label: 'Bônus de ataque', modifier: action.toHit }, ctx.conditionsOf(token), { kind: 'attack', ...(action.attackKind !== 'melee_or_ranged' ? { attackKind: action.attackKind } : {}) }, declared, token.spellEffects);
     attackerToken = token;
@@ -317,7 +321,7 @@ export function makeAttack(ctx: SessionContext, playerId: string, role: Role, da
     combat && (used.size > 0 || started.length > 0)
       ? [...started.map((e) => ctx.appendChat(timedEffectEntry(ctx, playerId, 'started', e))), ctx.replaceCombat({ ...combat, effects })]
       : [];
-  return [ctx.appendChat(entry), ...ops, ...combatOps];
+  return [ctx.appendChat(entry), ...ops, ...combatOps, ...useOps];
 }
 
 /**
@@ -480,6 +484,7 @@ export function applyProposal(ctx: SessionContext, playerId: string, proposalId:
  */
 export function forceSave(ctx: SessionContext, playerId: string, role: Role, data: IntentData<'save.force'>): PatchOp[] {
   let actorName: string;
+  let useOps: PatchOp[] = [];
   let effect: SaveEffect;
   if ('tokenId' in data.source) {
     const token = ctx.token(data.source.tokenId);
@@ -488,6 +493,7 @@ export function forceSave(ctx: SessionContext, playerId: string, role: Role, dat
     const action = token.monsterId !== null ? ctx.deps.creature(token.monsterId)?.actions.find((a) => a.id === actionId) : undefined;
     if (action?.kind !== 'save') throw violation('Ação de salvaguarda não encontrada no bloco do monstro');
     actorName = token.name;
+    useOps = spendMonsterUse(ctx, token, action.id);
     effect = { name: action.name, ability: action.ability, dc: action.dc, damage: action.damage, onSuccess: action.onSuccess, conditions: action.onFailConditions };
   } else {
     actorName = ctx.current.players[playerId]?.displayName ?? 'Alguém';
@@ -496,7 +502,7 @@ export function forceSave(ctx: SessionContext, playerId: string, role: Role, dat
   }
   const targets = data.targetTokenIds.map((id) => ctx.token(id));
   const against: RollAgainst | undefined = data.against ?? (effect.conditions[0] ? { condition: effect.conditions[0] } : undefined);
-  return rollSaves(ctx, playerId, { actorName, effect, targets, against, visibility: data.visibility }).ops;
+  return [...rollSaves(ctx, playerId, { actorName, effect, targets, against, visibility: data.visibility }).ops, ...useOps];
 }
 
 /** Um efeito com CD que os alvos precisam salvar: a regra comum a `save.force` e às magias (`spell.effect`). */

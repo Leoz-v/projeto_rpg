@@ -78,4 +78,5 @@ export {
 } from './conditions';
 export { attackedByEffects, creatureAc, creatureAttacksAgainst, creatureReminders, creatureRollEffects, hasUnsupportedCreatureEffect, type NamedEffects, withEffectDefenses } from './creature-effects';
 export { type TargetDamage, targetDamage } from './target-damage';
+export { availableMonsterUses, type LimitedFeature, monsterUseMax, type MonsterUseLimit, pendingRecharges, RECHARGE_DIE, withMonsterUse } from './monster-uses';
 export { CONDITION_NAME, DAMAGE_NAME } from './names';

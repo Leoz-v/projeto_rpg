@@ -1,6 +1,7 @@
 import { creatureD20, creatureReminders, currentHitPoints, type D20RollInput, d20Mode, d20StepNotes, expiresAt, isDying, isBloodied, nextTurn, rollD20, sheetD20, sortByInitiative, type TriggerMoment, type TurnExpiry, turnAfterRemoval } from 'rules-engine';
 import { applyPatch, type ChatEntry, type Combat, type ConditionState, type TimedEffect, type IntentData, type PatchOp, type Role, type SessionCharacter, type SessionState, MAX_TURN_TRIGGER_ITEMS, MAX_COMBATANTS, MAX_INITIATIVE, MIN_INITIATIVE, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
+import { rechargeMonster } from './monsters';
 import { cancelRest } from './rest';
 import { changeCharacterHp, rollDeathSave } from './vitality';
 
@@ -213,7 +214,9 @@ export function turnStart(ctx: SessionContext, playerId: string, state: SessionS
   const sheet = character ? ctx.deps.characterSheet(character) : undefined;
   const dying = character !== undefined && sheet !== undefined && isDying(currentHitPoints(sheet.hpMax.total, character.hp), character.deathSaves);
   const save = dying ? rollDeathSave(ctx, playerId, state, character.id) : [];
-  return [...save, ...triggers(ctx, playerId, save.length > 0 ? applyPatch(state, save) : state, 'turn_start', tokenId)];
+  // Recargas do monstro (nota 0064).
+  const recharge = rechargeMonster(ctx, playerId, state, tokenId);
+  return [...save, ...recharge, ...triggers(ctx, playerId, save.length > 0 ? applyPatch(state, save) : state, 'turn_start', tokenId)];
 }
 
 /**

@@ -303,6 +303,16 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
       .min(1)
       .max(MAX_SAVE_TARGETS),
   }),
+  /** Recarga de uma ação de monstro rolada pelo Host no início do turno (nota 0064): só para quem vê os PV do token. */
+  z.strictObject({
+    kind: z.literal('recharge_roll'),
+    ...entryBase,
+    tokenId: UuidSchema,
+    name: NameSchema,
+    actionName: LabelSchema,
+    roll: z.int().min(1).max(6),
+    min: z.int().min(2).max(6),
+  }),
   /** Efeito de magia que saiu da ficha (nota 0060): a Concentração acabou, ou o dono ou o mestre o tirou. */
   z.strictObject({
     kind: z.literal('spell_effect_ended'),
@@ -581,6 +591,14 @@ export const SessionAdjustmentSchema = z.strictObject({
 });
 export type SessionAdjustment = z.infer<typeof SessionAdjustmentSchema>;
 
+/** Usos gastos das ações e traços de um monstro, pelo id do bloco, e se ele está no covil (nota 0064). */
+export const MonsterUsesSchema = z.strictObject({
+  spent: z.record(IdSchema, z.int().min(1).max(20)),
+  lair: z.boolean(),
+});
+export type MonsterUses = z.infer<typeof MonsterUsesSchema>;
+export const NO_MONSTER_USES: MonsterUses = { spent: {}, lair: false };
+
 export const TokenSchema = z.strictObject({
   id: UuidSchema,
   mapId: UuidSchema,
@@ -602,6 +620,8 @@ export const TokenSchema = z.strictObject({
   conditions: ConditionStateSchema,
   /** Efeitos de magia sobre o token (nota 0062); vazios num token de personagem (vão nos ajustes dele). */
   spellEffects: z.array(SessionAdjustmentSchema).max(MAX_ADJUSTMENTS).default([]),
+  /** Usos limitados do monstro; para quem não vê os PV do token, chega vazio (seção 2.12). */
+  uses: MonsterUsesSchema.default(NO_MONSTER_USES),
   /** Alcance de visão próprio em pés (5–300), ou `null` para usar o padrão do mapa (nota 0056). */
   visionFeet: VisionFeetSchema.nullable(),
   /** Orientação do token em graus (0..359, sentido horário). */

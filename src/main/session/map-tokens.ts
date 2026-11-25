@@ -107,6 +107,7 @@ export function createToken(ctx: SessionContext, data: IntentData<'token.create'
     hp: hpMax !== undefined ? { max: hpMax, damage: 0, temp: 0 } : null,
     conditions: NO_CONDITIONS,
     spellEffects: [],
+    uses: { spent: {}, lair: false },
     visionFeet: null,
     rotation: 0,
     elevation: 0,

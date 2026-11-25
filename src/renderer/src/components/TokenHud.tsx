@@ -116,7 +116,7 @@ export function TokenHud({ view, token, maxima, position, isTargeted, onToggleTa
         >
           {isTargeted ? 'Alvo ativo' : 'Marcar alvo'}
         </button>
-        {token.characterId !== null && (
+        {(token.characterId !== null || (token.monsterId !== null && canControl)) && (
           <button
             type="button"
             className="secondary small"
@@ -125,7 +125,7 @@ export function TokenHud({ view, token, maxima, position, isTargeted, onToggleTa
               onClose();
             }}
           >
-            Abrir ficha
+            {token.characterId !== null ? 'Abrir ficha' : 'Ver bloco'}
           </button>
         )}
       </div>

@@ -2430,3 +2430,26 @@ button.fog-tool.active {
   justify-content: flex-end;
 }
 
+.monster-body {
+  padding: 1rem 1.15rem;
+  overflow-y: auto;
+}
+
+.monster-body ul {
+  padding-left: 0;
+  list-style: none;
+}
+
+.monster-body li {
+  margin-bottom: 0.6rem;
+}
+
+.monster-text {
+  white-space: pre-line;
+}
+
+.monster-uses {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+}

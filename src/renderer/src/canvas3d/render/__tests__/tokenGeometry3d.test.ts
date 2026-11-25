@@ -23,7 +23,7 @@ function makeToken(overrides: Partial<Token> = {}): Token {
     characterId: null,
     hp: null,
     conditions: { active: [], exhaustion: 0 },
-    visionFeet: null, spellEffects: [],
+    visionFeet: null, spellEffects: [], uses: { spent: {}, lair: false },
     rotation: 0,
     elevation: 0,
     ...overrides,

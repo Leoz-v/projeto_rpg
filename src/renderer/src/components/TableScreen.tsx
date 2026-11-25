@@ -11,6 +11,7 @@ import { Chat } from './Chat';
 import { CombatTracker } from './CombatTracker';
 import { GmPanel } from './GmPanel';
 import { Map3DEditorModal } from './Map3DEditorModal';
+import { MonsterBlock } from './MonsterBlock';
 import { type MapViewerMode, MapView } from './MapView';
 
 /** A mesa: cabeçalho, barra lateral (jogadores e, para o mestre, mapas e tokens), mapa e chat. */
@@ -100,12 +101,22 @@ export function TableScreen({ view }: { view: TableView }) {
   }, []);
   const isHost = view.info.mode === 'host';
   const [openCharacterId, setOpenCharacterId] = useState<string | null>(null);
+  const [openBlockId, setOpenBlockId] = useState<string | null>(null);
+  const blockToken = openBlockId !== null ? view.state.tokens[openBlockId] : undefined;
+  const closeBlock = useCallback(() => {
+    setOpenBlockId(null);
+  }, []);
   const openTokenSheet = useCallback(
     (tokenId: string) => {
       const chId = view.state.tokens[tokenId]?.characterId;
       if (chId) setOpenCharacterId(chId);
+      else {
+        // Monstro: o bloco, para o mestre e os donos do token.
+        const token = view.state.tokens[tokenId];
+        if (token && token.monsterId !== null && (view.info.role === 'gm' || token.ownerIds.includes(view.info.playerId))) setOpenBlockId(tokenId);
+      }
     },
-    [view.state.tokens],
+    [view.state.tokens, view.info.role, view.info.playerId],
   );
   const [editor3d, setEditor3d] = useState<{ map: GameMap | null } | null>(null);
   const is3dEditorOpen = view.info.role === 'gm' && editor3d !== null;
@@ -189,6 +200,7 @@ export function TableScreen({ view }: { view: TableView }) {
       )}
       <Chat state={view.state} chatFrom={view.chatFrom} viewer={view.info} />
       {openCharacterId !== null && <CharacterSheet view={view} characterId={openCharacterId} onClose={closeSheet} />}
+      {blockToken && <MonsterBlock key={blockToken.id} token={blockToken} isGm={view.info.role === 'gm'} onClose={closeBlock} />}
       {is3dEditorOpen && <Map3DEditorModal editingMap={editor3d.map} onClose={close3dEditor} />}
     </div>
   );
