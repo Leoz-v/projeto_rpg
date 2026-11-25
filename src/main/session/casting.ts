@@ -1,8 +1,10 @@
-import { applyDamage, availableSpellSlots, availableUses, type DamageType, type DerivedSheet, damageNotes, resolveAttack, resolveSpellParts, rollActionDamage, spellAttackD20, spellDamageWith } from 'rules-engine';
-import { type ChatEntry, type IntentData, type PatchOp, type Role, type SessionCharacter, type SpellEffectPart, type Token, toPointer } from '../../shared/protocol';
-import { attackCircumstances, autoCriticalNotes, rollSaves, targetOf, withCircumstances } from './attacks';
-import { type SessionContext, violation } from './context';
-import { applyBuff, applyConditionPart, applyHealing, ConditionLedger, conditionTiming, imposeConditions, type SpellLink } from './spell-effects';
+import { applyDamage, creatureD20, monsterSpells, type SheetD20, availableSpellSlots, availableUses, type DamageType, damageNotes, resolveAttack, resolveSpellParts, rollActionDamage, spellAttackD20, spellDamageWith } from 'rules-engine';
+import { type ChatEntry, type IntentData, type PatchOp, type PendingSave, type Role, type SpellEffectPart, type SpellLink, type Token, toPointer } from '../../shared/protocol';
+import { attackCircumstances, autoCriticalNotes, rollSaves, rollTargetDamage, targetDamageOf, targetOf, withCircumstances } from './attacks';
+import { notAllowed, type SessionContext, violation } from './context';
+import { applyBuff, applyConditionPart, applyHealing, ConditionLedger, conditionTiming, imposeConditions, putSpellEffects } from './spell-effects';
+import { concentrateToken } from './monster-concentration';
+import { spendMonsterUse } from './monsters';
 import { changeResource } from './resources';
 import { changeSpellSlot } from './spell-slots';
 import { concentrate } from './vitality';
@@ -99,12 +101,112 @@ export function castSpell(ctx: SessionContext, playerId: string, role: Role, dat
   ];
 }
 
+/** Conjura uma magia do bloco de um monstro (nota 0067): gasta o uso por dia e publica a magia, com a CD e o bônus do bloco. */
+export function castMonsterSpell(ctx: SessionContext, playerId: string, role: Role, data: IntentData<'monster.cast'>): PatchOp[] {
+  const token = ctx.token(data.tokenId);
+  if (role !== 'gm' && !token.ownerIds.includes(playerId)) throw notAllowed('Você não controla este token');
+  const block = ctx.creatureOf(token);
+  const known = block && monsterSpells(block.creature).find((s) => s.spellId === data.spellId);
+  const spell = ctx.deps.spell(data.spellId);
+  if (!known || !spell) throw violation(`${token.name} não conjura essa magia`);
+  const useOps = known.use ? spendMonsterUse(ctx, token, known.use.id) : [];
+  const level = known.level ?? spell.level;
+  const concentration = spell.concentration && !known.noConcentration;
+  const concentrationOps = concentration ? concentrateToken(ctx, playerId, token, spell) : [];
+  const parts = resolveSpellParts(spell, { slotLevel: level, characterLevel: 1, modifier: known.modifier });
+  return [
+    ctx.appendChat({
+      kind: 'spell_cast',
+      ...ctx.entryBase(playerId),
+      tokenId: token.id,
+      characterName: token.name,
+      spellName: spell.name.slice(0, 100),
+      level: spell.level,
+      using: 'free',
+      castingTime: spell.castingTime.slice(0, 100),
+      range: spell.range.slice(0, 100),
+      duration: spell.duration.slice(0, 100),
+      concentration,
+      description: spell.description.slice(0, 6000),
+      // Os usos que restam são só do mestre: ficam no bloco.
+      notes: [
+        ...(level > spell.level ? [`Conjurada em círculo maior (${level}º)`] : []),
+        ...(known.note !== undefined ? [known.note.slice(0, 200)] : []),
+      ],
+      ...(parts.length > 0
+        ? {
+            effect: {
+              spellId: spell.id,
+              ability: known.ability,
+              saveDc: known.saveDc,
+              attackBonus: known.attackBonus,
+              parts: parts.map((p) => (p.label ? { ...p, label: p.label.slice(0, 100) } : p)),
+            },
+          }
+        : {}),
+    }),
+    ...useOps,
+    ...concentrationOps,
+  ];
+}
+
+/** Quem usa uma parte de magia: um personagem, ou um monstro pelo token (nota 0067). */
+interface SpellUser {
+  name: string;
+  link: SpellLink;
+  /** A magia em que está concentrado. */
+  concentration: string | null;
+  /** Token de quem conjurou no mapa do alvo, se houver. */
+  tokenOn(mapId: string): Token | undefined;
+  attackD20(attackBonus: number, declared: { advantage?: boolean | undefined; disadvantage?: boolean | undefined }): SheetD20;
+}
+
+function spellUser(ctx: SessionContext, playerId: string, role: Role, entry: CastEntry, effect: NonNullable<CastEntry['effect']>): SpellUser {
+  const { tokenId } = entry;
+  if (tokenId !== undefined) {
+    const token = ctx.token(tokenId);
+    if (role !== 'gm' && !token.ownerIds.includes(playerId)) throw notAllowed('Você não controla este token');
+    return {
+      name: token.name,
+      link: { tokenId, spellId: effect.spellId },
+      concentration: token.concentration?.spellId ?? null,
+      tokenOn: (mapId) => (token.mapId === mapId ? token : undefined),
+      attackD20: (attackBonus, declared) =>
+        creatureD20({ label: 'Bônus de ataque de magia', modifier: attackBonus }, ctx.conditionsOf(token), { kind: 'attack', attackKind: 'spell' }, declared, token.spellEffects),
+    };
+  }
+  const { character, sheet } = ctx.sheetOf(playerId, role, entry.characterId ?? '');
+  return {
+    name: character.name,
+    link: { characterId: character.id, spellId: effect.spellId },
+    concentration: character.concentration?.spellId ?? null,
+    tokenOn: (mapId) => Object.values(ctx.current.tokens).find((t) => t.characterId === character.id && t.mapId === mapId),
+    attackD20: (attackBonus, declared) =>
+      spellAttackD20(sheet, { ability: effect.ability, saveDc: effect.saveDc, attack: { total: attackBonus, parts: [{ label: 'Bônus de ataque de magia', value: attackBonus }] } }, declared),
+  };
+}
+
 type CastEntry = Extract<ChatEntry, { kind: 'spell_cast' }>;
 type SpellOf = { entryId: string; part: number };
 type SpellDamage = { dice: string; type: DamageType }[];
 
 /** Nome de uma parte no log: a magia, e a parte quando ela tem nome ("Ice Knife: Explosão"). */
 const partLabel = (entry: CastEntry, part: SpellEffectPart): string => (part.label ? `${entry.spellName}: ${part.label}` : entry.spellName).slice(0, 100);
+
+/** Nome do efeito na ficha ou no token: "Hex: Força (Morg)". */
+const effectName = (label: string, option: string | undefined, caster: string): string => `${label}${option !== undefined ? `: ${option}` : ''} (${caster})`;
+
+/** A arma escolhida precisa estar empunhada por um único personagem alvo e servir para a magia. */
+function requireWeapon(ctx: SessionContext, rule: NonNullable<Extract<SpellEffectPart, { kind: 'buff' }>['weapon']>, targets: Token[], weaponId: string | undefined): void {
+  const [target] = targets;
+  const holder = target && target.characterId !== null ? ctx.current.characters[target.characterId] : undefined;
+  if (!holder || targets.length !== 1) throw violation('Escolha um personagem com a arma');
+  const attack = ctx.deps.characterSheet(holder)?.attacks.find((a) => a.instanceId === weaponId);
+  const entry = holder.inventory.items.find((i) => i.instanceId === weaponId);
+  if (!attack || !entry) throw violation('Escolha uma arma empunhada pelo alvo');
+  if (rule.nonmagical && entry.itemId !== attack.itemId) throw violation('A arma já é mágica');
+  if (rule.itemIds && !rule.itemIds.includes(attack.itemId)) throw violation('A magia não age nesta arma');
+}
 
 /**
  * Usa uma parte de uma magia conjurada (`spell.effect`): o Host rola os
@@ -122,20 +224,24 @@ export function useSpellEffect(ctx: SessionContext, playerId: string, role: Role
   const { effect } = entry;
   const part = effect.parts[data.part];
   if (!part) throw violation('Parte da magia não encontrada');
-  const { character, sheet } = ctx.sheetOf(playerId, role, entry.characterId);
+  const user = spellUser(ctx, playerId, role, entry, effect);
   if (entry.duration === 'Instantaneous' && ctx.current.chat.some((e) => 'spellOf' in e && e.spellOf?.entryId === entry.id && e.spellOf.part === data.part)) {
     throw violation('Esta parte da magia já foi usada');
   }
-  if (entry.concentration && character.concentration?.spellId !== effect.spellId) throw violation(`${character.name} não está mais concentrado em ${entry.spellName}`);
+  if (entry.concentration && user.concentration !== effect.spellId) throw violation(`${user.name} não está mais concentrado em ${entry.spellName}`);
   if (part.kind !== 'attack' && part.kind !== 'save' && (data.advantage !== undefined || data.disadvantage !== undefined)) {
     throw violation('Vantagem e Desvantagem só valem nos ataques e nas salvaguardas');
   }
   if (data.condition !== undefined && !(part.kind === 'save' && part.conditionChoice)) throw violation('Esta parte não deixa a condição à escolha');
-  if (data.option !== undefined && !(part.kind === 'buff' && part.options.length > 0)) throw violation('Esta parte não tem opções');
+  const options = part.kind === 'buff' || part.kind === 'save' ? part.options : [];
+  if (data.option !== undefined && options.length === 0) throw violation('Esta parte não tem opções');
+  const option = data.option !== undefined ? options[data.option] : undefined;
+  if (options.length > 0 && !option) throw violation('Escolha uma das opções da magia');
+  if (data.weaponId !== undefined && !(part.kind === 'buff' && part.weapon)) throw violation('Esta parte não age numa arma');
   const targets = data.targetTokenIds.map((id) => ctx.token(id));
   const spellOf: SpellOf = { entryId: entry.id, part: data.part };
   const label = partLabel(entry, part);
-  const link: SpellLink = { characterId: character.id, spellId: effect.spellId };
+  const { link } = user;
   const declared = { advantage: data.advantage, disadvantage: data.disadvantage };
 
   // Salvaguarda, cura, condição e bônus: alvos distintos, até `count` (sem ele, sem limite).
@@ -144,21 +250,20 @@ export function useSpellEffect(ctx: SessionContext, playerId: string, role: Role
     if (part.count !== undefined && targets.length > part.count) throw violation(`${label}: até ${part.count} alvo(s) neste círculo`);
   }
   if (part.kind === 'heal') {
-    return applyHealing(ctx, playerId, { casterName: character.name, label, spellOf, healing: part.healing, temporary: part.temporary === true, endConditions: part.endConditions, targets });
+    return applyHealing(ctx, playerId, { casterName: user.name, label, spellOf, healing: part.healing, temporary: part.temporary === true, endConditions: part.endConditions, targets });
   }
   if (part.kind === 'condition') {
-    return applyConditionPart(ctx, playerId, { casterName: character.name, label, spellOf, conditions: part.conditions, timing: conditionTiming(ctx, part.conditionsEnd, link), targets });
+    return applyConditionPart(ctx, playerId, { casterName: user.name, label, spellOf, conditions: part.conditions, timing: conditionTiming(ctx, part.conditionsEnd, link), targets });
   }
   if (part.kind === 'buff') {
-    let effects = part.effects;
-    let name = `${label} (${character.name})`;
-    if (part.options.length > 0) {
-      const option = data.option !== undefined ? part.options[data.option] : undefined;
-      if (!option) throw violation('Escolha uma das opções da magia');
-      effects = [...effects, ...option.effects];
-      name = `${label}: ${option.label} (${character.name})`;
+    let effects = [...part.effects, ...(option?.effects ?? [])];
+    const name = effectName(label, option?.label, user.name);
+    if (part.weapon) {
+      requireWeapon(ctx, part.weapon, targets, data.weaponId);
+      if (part.weapon.spellcastingAbility) effects = [...effects, { type: 'attack_ability', ability: effect.ability, scope: 'weapon' }];
     }
-    return applyBuff(ctx, playerId, { casterName: character.name, label, spellOf, name, effects, endConditions: part.endConditions, link, targets });
+    const timing = conditionTiming(ctx, part.effectsEnd, link);
+    return applyBuff(ctx, playerId, { casterName: user.name, label, spellOf, name, effects, endConditions: part.endConditions, link, targets, weapon: data.weaponId, timing });
   }
   const damage = spellDamageWith(part.damage, data.damageType);
   if (!damage) throw violation('Escolha o tipo de dano entre os da magia');
@@ -171,7 +276,7 @@ export function useSpellEffect(ctx: SessionContext, playerId: string, role: Role
     }
     const [condition] = conditions;
     const saves = rollSaves(ctx, playerId, {
-      actorName: character.name,
+      actorName: user.name,
       effect: { name: label, ability: part.ability, dc: effect.saveDc, damage, onSuccess: part.onSuccess, conditions },
       // Salvaguarda contra magia: valem as Vantagens contra magias e contra a condição da falha.
       against: { source: 'spell', ...(condition ? { condition } : {}) },
@@ -179,16 +284,70 @@ export function useSpellEffect(ctx: SessionContext, playerId: string, role: Role
       visibility: 'public',
       spellOf,
       declared,
+      pending: { spell: { ...spellOf, ...(data.option !== undefined ? { option: data.option } : {}), ...(data.condition !== undefined ? { condition: data.condition } : {}) } },
     });
-    if (conditions.length === 0 || saves.failed.length === 0) return saves.ops;
-    // Na falha, as condições entram direto (nota 0058).
-    const timing = conditionTiming(ctx, part.conditionsEnd, link);
-    const ledger = new ConditionLedger(ctx);
-    return [...saves.ops, ...saves.failed.flatMap((target) => imposeConditions(ctx, playerId, ledger, target, conditions, timing, label).ops)];
+    if (saves.failed.length === 0) return saves.ops;
+    const failure = { part, option, conditions, user, label, spellOf };
+    return [...saves.ops, ...spellFailure(ctx, playerId, failure, saves.failed)];
   }
   if (targets.length > part.count) throw violation(`${label}: ${part.count} ${part.kind === 'attack' ? 'ataque(s)' : 'projétil(eis)'} neste círculo`);
-  if (part.kind === 'damage') return directDamage(ctx, playerId, { character, label, spellOf, damage, targets });
-  return spellAttacks(ctx, playerId, { character, sheet, entry: { ...entry, effect }, part, label, spellOf, damage, targets, declared, link });
+  if (part.kind === 'damage') return directDamage(ctx, playerId, { user, label, spellOf, damage, targets });
+  return spellAttacks(ctx, playerId, { user, entry: { ...entry, effect }, part, label, spellOf, damage, targets, declared, link });
+}
+
+/** O que a falha numa parte de magia faz em quem falhou: efeitos (nota 0062) e condições (nota 0058). */
+function spellFailure(
+  ctx: SessionContext,
+  playerId: string,
+  failure: {
+    part: Extract<SpellEffectPart, { kind: 'save' }>;
+    option: { label: string; effects: Extract<SpellEffectPart, { kind: 'save' }>['onFailEffects'] } | undefined;
+    conditions: Extract<SpellEffectPart, { kind: 'save' }>['onFailConditions'];
+    user: SpellUser;
+    label: string;
+    spellOf: SpellOf;
+  },
+  failed: Token[],
+): PatchOp[] {
+  const { part, option, conditions, user, label, spellOf } = failure;
+  const ops: PatchOp[] = [];
+  const effects = [...part.onFailEffects, ...(option?.effects ?? [])];
+  if (effects.length > 0) {
+    const put = putSpellEffects(ctx, { name: effectName(label, option?.label, user.name), effects, link: user.link, targets: failed, playerId });
+    const results = failed.map((t) => ({ targetTokenId: t.id, targetName: t.name, notes: put.notes.get(t.id) ?? [] }));
+    ops.push(ctx.appendChat({ kind: 'spell_applied', ...ctx.entryBase(playerId), spellOf, casterName: user.name, label, results }), ...put.ops);
+  }
+  if (conditions.length === 0) return ops;
+  const timing = conditionTiming(ctx, part.conditionsEnd, user.link);
+  const ledger = new ConditionLedger(ctx);
+  return [...ops, ...failed.flatMap((target) => imposeConditions(ctx, playerId, ledger, target, conditions, timing, label).ops)];
+}
+
+/**
+ * A falha aceita pelo mestre (nota 0069). Se quem conjurou saiu ou não está
+ * mais concentrado, a magia acabou e nada entra.
+ */
+export function applySpellFailure(ctx: SessionContext, playerId: string, spell: NonNullable<PendingSave['spell']>, failed: Token[]): PatchOp[] {
+  const entry = ctx.current.chat.find((e) => e.id === spell.entryId);
+  if (entry?.kind !== 'spell_cast' || !entry.effect) return [];
+  const part = entry.effect.parts[spell.part];
+  const gone = entry.tokenId !== undefined ? !(entry.tokenId in ctx.current.tokens) : !(entry.characterId !== undefined && entry.characterId in ctx.current.characters);
+  if (part?.kind !== 'save' || gone) return [];
+  const user = spellUser(ctx, playerId, 'gm', entry, entry.effect);
+  if (entry.concentration && user.concentration !== entry.effect.spellId) return [];
+  return spellFailure(
+    ctx,
+    playerId,
+    {
+      part,
+      option: spell.option !== undefined ? part.options[spell.option] : undefined,
+      conditions: spell.condition !== undefined ? [spell.condition] : part.onFailConditions,
+      user,
+      label: partLabel(entry, part),
+      spellOf: { entryId: entry.id, part: spell.part },
+    },
+    failed,
+  );
 }
 
 /** Ataques de magia, um por alvo (pode repetir: dois raios no mesmo alvo), cada um com o próprio d20 e o próprio dano. */
@@ -196,8 +355,7 @@ function spellAttacks(
   ctx: SessionContext,
   playerId: string,
   options: {
-    character: SessionCharacter;
-    sheet: DerivedSheet;
+    user: SpellUser;
     entry: CastEntry & { effect: NonNullable<CastEntry['effect']> };
     part: Extract<SpellEffectPart, { kind: 'attack' }>;
     label: string;
@@ -208,26 +366,28 @@ function spellAttacks(
     link: SpellLink;
   },
 ): PatchOp[] {
-  const { character, sheet, entry, part, label, spellOf, damage, targets, declared } = options;
+  const { user, entry, part, label, spellOf, damage, targets, declared } = options;
   const ledger = new ConditionLedger(ctx);
   const timing = part.onHitConditions.length > 0 ? conditionTiming(ctx, part.conditionsEnd, options.link) : {};
   const imposed: PatchOp[] = [];
   const { effect } = entry;
-  const caster = { ability: effect.ability, saveDc: effect.saveDc, attack: { total: effect.attackBonus, parts: [{ label: 'Bônus de ataque de magia', value: effect.attackBonus }] } };
   const spent = new Set<string>();
   const ops: PatchOp[] = [];
   const proposals: PatchOp[] = [];
   for (const target of targets) {
-    const attackerToken = Object.values(ctx.current.tokens).find((t) => t.characterId === character.id && t.mapId === target.mapId);
+    const attackerToken = user.tokenOn(target.mapId);
     const defender = targetOf(ctx, target);
     const around = attackCircumstances(ctx, attackerToken, target, spent);
     for (const id of around.used) spent.add(id);
-    const d20 = withCircumstances(spellAttackD20(sheet, caster, declared), around);
+    // Hex e Hunter's Mark também valem nos ataques de magia (nota 0063).
+    const extra = targetDamageOf(ctx, 'tokenId' in user.link ? { tokenId: user.link.tokenId } : { characterId: user.link.characterId }, attackerToken, target);
+    around.reminders.push(...extra.reminders);
+    const d20 = withCircumstances(user.attackD20(effect.attackBonus, declared), around);
     const result = resolveAttack(
       {
         d20: d20.input,
         targetAc: defender.ac,
-        rollDamage: (critical) => ({ groups: rollActionDamage(damage, critical, ctx.deps.rng), bonus: 0 }),
+        rollDamage: (critical, hit) => ({ groups: [...rollActionDamage(damage, critical, ctx.deps.rng), ...(hit ? rollTargetDamage(ctx, extra.damage, critical) : [])], bonus: 0 }),
         defenses: defender.defenses,
         autoCritical: around.autoCritical.length > 0,
         onMiss: part.onMiss,
@@ -254,7 +414,7 @@ function spellAttacks(
         id: entryId,
         at: ctx.deps.now(),
         authorId: playerId,
-        attackerName: character.name,
+        attackerName: user.name,
         label,
         targetTokenId: target.id,
         targetName: target.name,
@@ -285,9 +445,9 @@ function spellAttacks(
 function directDamage(
   ctx: SessionContext,
   playerId: string,
-  options: { character: SessionCharacter; label: string; spellOf: SpellOf; damage: SpellDamage; targets: Token[] },
+  options: { user: SpellUser; label: string; spellOf: SpellOf; damage: SpellDamage; targets: Token[] },
 ): PatchOp[] {
-  const { character, label, spellOf, damage, targets } = options;
+  const { user, label, spellOf, damage, targets } = options;
   const base = ctx.entryBase(playerId);
   const proposals: PatchOp[] = [];
   const results = targets.map((target) => {
@@ -307,5 +467,5 @@ function directDamage(
       ...(proposalId ? { proposalId } : {}),
     };
   });
-  return [ctx.appendChat({ kind: 'spell_damage', ...base, spellOf, casterName: character.name, label, visibility: 'public', results }), ...proposals];
+  return [ctx.appendChat({ kind: 'spell_damage', ...base, spellOf, casterName: user.name, label, visibility: 'public', results }), ...proposals];
 }

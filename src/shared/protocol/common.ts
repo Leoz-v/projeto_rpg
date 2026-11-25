@@ -12,6 +12,12 @@ export const Sha256Schema = z.string().regex(/^[0-9a-f]{64}$/, 'SHA-256 inválid
 export const PointSchema = z.strictObject({ x: z.int().nonnegative(), y: z.int().nonnegative() });
 export type Point = z.infer<typeof PointSchema>;
 
+/** Orientação do token em graus (0..359, sentido horário). */
+export const TokenRotationSchema = z.int().min(0).max(359);
+
+/** Elevação do token em pés (−1000..1000). */
+export const TokenElevationSchema = z.int().min(-1000).max(1000);
+
 /** Id de uma entrada do inventário (gerado pelo Host). */
 export const InstanceIdSchema = z.string().min(1).max(64);
 
@@ -34,11 +40,22 @@ export type TurnExpiryValue = z.infer<typeof TurnExpirySchema>;
 
 /** Condições ativas de uma criatura na mesa e o nível de Exaustão. */
 /** Condição imposta por uma magia (nota 0056): quem conjurou e a magia; com Concentração, cai quando ela acaba. */
-export const ConditionSpellSchema = z.strictObject({ characterId: UuidSchema, spellId: IdSchema });
+export const ConditionSpellSchema = z.union([z.strictObject({ characterId: UuidSchema, spellId: IdSchema }), z.strictObject({ tokenId: UuidSchema, spellId: IdSchema })]);
+/** Quem conjurou (personagem, ou monstro pelo token; nota 0067) e a magia. */
+export type SpellLink = z.infer<typeof ConditionSpellSchema>;
+
+/** A mesma magia, conjurada por quem. */
+export const sameSpellLink = (a: SpellLink | undefined, b: SpellLink): boolean => a?.spellId === b.spellId && sameCaster(a, b);
+
+/** Conjuradas pelo mesmo personagem ou monstro. */
+export function sameCaster(a: SpellLink, b: SpellLink): boolean {
+  if ('characterId' in a) return 'characterId' in b && a.characterId === b.characterId;
+  return 'tokenId' in b && a.tokenId === b.tokenId;
+}
 
 export const ConditionStateSchema = z.strictObject({
   active: z
-    .array(z.strictObject({ condition: TableConditionSchema, until: TurnExpirySchema.optional(), spell: ConditionSpellSchema.optional() }))
+    .array(z.strictObject({ condition: TableConditionSchema, until: TurnExpirySchema.optional(), spell: ConditionSpellSchema.optional(), /** Sai junto com esta (Impedido enquanto Agarrado; nota 0065). */ with: TableConditionSchema.optional() }))
     .max(TableConditionSchema.options.length)
     .refine((list) => new Set(list.map((c) => c.condition)).size === list.length, { message: 'condição repetida' }),
   exhaustion: z.int().min(0).max(MAX_EXHAUSTION_LEVEL),

@@ -1,6 +1,7 @@
-import { creatureD20, currentHitPoints, type D20RollInput, d20Mode, d20StepNotes, expiresAt, isDying, isBloodied, nextTurn, rollD20, sheetD20, sortByInitiative, type TriggerMoment, type TurnExpiry, turnAfterRemoval } from 'rules-engine';
-import { applyPatch, type ChatEntry, type Combat, type ConditionState, type TimedEffect, type IntentData, type PatchOp, type Role, type SessionState, MAX_TURN_TRIGGER_ITEMS, MAX_COMBATANTS, MAX_INITIATIVE, MIN_INITIATIVE, toPointer } from '../../shared/protocol';
+import { creatureD20, creatureReminders, currentHitPoints, type D20RollInput, d20Mode, d20StepNotes, expiresAt, isDying, isBloodied, nextTurn, rollD20, sheetD20, sortByInitiative, type TriggerMoment, type TurnExpiry, turnAfterRemoval, withoutDependents } from 'rules-engine';
+import { applyPatch, type ChatEntry, type Combat, type ConditionState, type TimedEffect, type IntentData, type PatchOp, type Role, type SessionCharacter, type SessionState, MAX_TURN_TRIGGER_ITEMS, MAX_COMBATANTS, MAX_INITIATIVE, MIN_INITIATIVE, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
+import { rechargeMonster } from './monsters';
 import { cancelRest } from './rest';
 import { changeCharacterHp, rollDeathSave } from './vitality';
 
@@ -19,6 +20,7 @@ export function rollInitiatives(ctx: SessionContext, data: IntentData<'combat.st
     let advantage: string[];
     let disadvantage: string[];
     let rules: D20RollInput['rules'];
+    let bonusDice: D20RollInput['bonusDice'];
     const character = token.characterId !== null ? ctx.current.characters[token.characterId] : undefined;
     const sheet = character ? ctx.deps.characterSheet(character) : undefined;
     const roll = sheet ? sheetD20(sheet, { kind: 'initiative' }) : undefined;
@@ -28,16 +30,18 @@ export function rollInitiatives(ctx: SessionContext, data: IntentData<'combat.st
       advantage = roll.advantage;
       disadvantage = roll.disadvantage;
       rules = roll.input.rules;
+      bonusDice = roll.input.bonusDice;
     } else {
       if (!creature) notes.push(token.characterId !== null ? 'Personagem sem ficha: iniciativa +0' : 'Sem ficha nem bloco de monstro: iniciativa +0');
       // Bônus do bloco (ou +0), com a Exaustão e as condições (Incapacitado, Invisível).
-      const own = creatureD20({ label: 'Iniciativa', modifier: creature?.initiative ?? 0 }, ctx.conditionsOf(token), { kind: 'initiative' });
+      const own = creatureD20({ label: 'Iniciativa', modifier: creature?.initiative ?? 0 }, ctx.conditionsOf(token), { kind: 'initiative' }, {}, token.spellEffects);
+      bonusDice = own.input.bonusDice;
       modifier = own.input.modifier;
       advantage = own.advantage;
       disadvantage = own.disadvantage;
     }
     if (surprised.has(tokenId)) disadvantage = [...disadvantage, 'Surpresa'];
-    const input: D20RollInput = { modifier, mode: d20Mode(advantage.length > 0, disadvantage.length > 0), ...(rules ? { rules } : {}) };
+    const input: D20RollInput = { modifier, mode: d20Mode(advantage.length > 0, disadvantage.length > 0), ...(rules ? { rules } : {}), ...(bonusDice ? { bonusDice } : {}) };
     const result = rollD20(input, ctx.deps.rng);
     const total = Math.max(MIN_INITIATIVE, Math.min(MAX_INITIATIVE, result.total));
     return {
@@ -158,13 +162,19 @@ export function advanceTurn(ctx: SessionContext, playerId: string, role: Role): 
  * Lembretes (`reminder`) e cura do início do turno (`turn_start_heal`) da
  * ficha do personagem ligado ao token, no momento `on`, avaliados em `state`
  * (nota 0043). A cura entra nos PV do personagem; tudo vai numa entrada
- * `turn_trigger`, só se houver algo a dizer. Tokens sem personagem ou sem
- * ficha não têm lembretes.
+ * `turn_trigger`, só se houver algo a dizer. Um monstro só tem os
+ * lembretes dos efeitos de magia.
  */
 export function triggers(ctx: SessionContext, playerId: string, state: SessionState, on: TriggerMoment, tokenId: string): PatchOp[] {
   const token = state.tokens[tokenId];
   const character = token && token.characterId !== null ? state.characters[token.characterId] : undefined;
-  if (!token || !character) return [];
+  if (!token) return [];
+  if (!character) {
+    // Monstro: só os lembretes dos efeitos de magia (nota 0062).
+    const items = creatureReminders(token.spellEffects, on).map((r) => ({ source: r.source.slice(0, 100), text: r.text.slice(0, 500) }));
+    if (items.length === 0) return [];
+    return [ctx.appendChat({ kind: 'turn_trigger', ...ctx.entryBase(playerId), on, tokenId, name: token.name, items: items.slice(0, MAX_TURN_TRIGGER_ITEMS) })];
+  }
   const sheet = ctx.deps.characterSheet(character);
   if (!sheet) return [];
   const max = sheet.hpMax.total;
@@ -204,7 +214,9 @@ export function turnStart(ctx: SessionContext, playerId: string, state: SessionS
   const sheet = character ? ctx.deps.characterSheet(character) : undefined;
   const dying = character !== undefined && sheet !== undefined && isDying(currentHitPoints(sheet.hpMax.total, character.hp), character.deathSaves);
   const save = dying ? rollDeathSave(ctx, playerId, state, character.id) : [];
-  return [...save, ...triggers(ctx, playerId, save.length > 0 ? applyPatch(state, save) : state, 'turn_start', tokenId)];
+  // Recargas do monstro (nota 0064).
+  const recharge = rechargeMonster(ctx, playerId, state, tokenId);
+  return [...save, ...recharge, ...triggers(ctx, playerId, save.length > 0 ? applyPatch(state, save) : state, 'turn_start', tokenId)];
 }
 
 /**
@@ -223,15 +235,26 @@ export function expire(
   const prune = (state: ConditionState, path: string, target: { characterId: string } | { tokenId: string }, name: string): void => {
     const over = state.active.filter((c) => c.until !== undefined && isOver(c.until));
     if (over.length === 0) return;
-    ops.push({ op: 'replace', path, value: { ...state, active: state.active.filter((c) => !over.includes(c)) } });
+    ops.push({ op: 'replace', path, value: { ...state, active: withoutDependents(state.active.filter((c) => !over.includes(c))) } });
     for (const c of over) {
       ops.push(ctx.appendChat({ kind: 'condition_changed', ...ctx.entryBase(playerId), target, targetName: name, change: { kind: 'removed', condition: c.condition }, notes: ['Fim da duração'] }));
     }
   };
+  // Efeitos de magia por um turno (Shield; nota 0063).
+  const pruneEffects = (list: SessionCharacter['adjustments'], path: string, who: { characterId: string } | { tokenId: string }, name: string): void => {
+    const over = list.filter((a) => a.until !== undefined && isOver(a.until));
+    if (over.length === 0) return;
+    ops.push({ op: 'replace', path, value: list.filter((a) => !over.includes(a)) });
+    for (const a of over) {
+      ops.push(ctx.appendChat({ kind: 'spell_effect_ended', ...ctx.entryBase(playerId), ...who, characterName: name, effectName: a.name.slice(0, 100), reason: 'duration' }));
+    }
+  };
   for (const character of Object.values(ctx.current.characters)) {
+    pruneEffects(character.adjustments, toPointer('characters', character.id, 'adjustments'), { characterId: character.id }, character.name);
     prune(character.conditions, toPointer('characters', character.id, 'conditions'), { characterId: character.id }, character.name);
   }
   for (const token of Object.values(ctx.current.tokens)) {
+    pruneEffects(token.spellEffects, toPointer('tokens', token.id, 'spellEffects'), { tokenId: token.id }, token.name);
     if (token.characterId === null) prune(token.conditions, toPointer('tokens', token.id, 'conditions'), { tokenId: token.id }, token.name);
   }
   const effects: TimedEffect[] = [];

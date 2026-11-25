@@ -32,7 +32,7 @@ export function healthColor(health: Health): number {
 }
 
 /**
- * Se o token deve exibir a indicação visual de morto (nota 0061):
+ * Se o token deve exibir a indicação visual de morto (nota 0070):
  * - token ligado a personagem: segue `characters[characterId].deathSaves.dead`;
  * - demais tokens (monstros, objetos): segue `token.dead` (marcado
  *   automaticamente pelo Host a 0 PV ou Exaustão 6, com override do mestre).

@@ -1,5 +1,5 @@
-import { baseItemOptions, type Compendium, type Creature } from 'rules-engine';
-import type { ItemSummary, MonsterAction, MonsterSummary } from '../shared/ipc';
+import { abilityModifier, baseItemOptions, type Compendium, type Creature, creatureSaveBonus, monsterSpells } from 'rules-engine';
+import type { ItemSummary, MonsterAction, MonsterBlockView, MonsterSummary } from '../shared/ipc';
 
 /**
  * Consultas ao compêndio para a tela. O compêndio fica no processo main (o
@@ -49,6 +49,29 @@ export function searchItems(compendium: Compendium, query: string, limit = 30): 
     });
 }
 
+/** Bloco inteiro de um monstro; `null` se não existe. */
+export function monsterBlock({ creatures, spells }: Pick<Compendium, 'creatures' | 'spells'>, monsterId: string): MonsterBlockView | null {
+  const creature = creatures.find((c) => c.id === monsterId);
+  if (!creature) return null;
+  const stat = (a: keyof Creature['abilities']) => ({ modifier: abilityModifier(creature.abilities[a]), save: creatureSaveBonus(creature, a) });
+  const spellList = monsterSpells(creature).flatMap((s) => {
+    const spell = spells.find((x) => x.id === s.spellId);
+    if (!spell) return [];
+    return [
+      {
+        spellId: s.spellId,
+        name: spell.name,
+        level: s.level ?? spell.level,
+        concentration: spell.concentration && !s.noConcentration,
+        structured: spell.resolution.length > 0,
+        ...(s.note !== undefined ? { note: s.note } : {}),
+        ...(s.use ? { use: s.use } : {}),
+      },
+    ];
+  });
+  return { creature, spells: spellList, abilities: { str: stat('str'), dex: stat('dex'), con: stat('con'), int: stat('int'), wis: stat('wis'), cha: stat('cha') } };
+}
+
 /** Ações de ataque e de salvaguarda de um monstro (as de texto e Spellcasting ficam no bloco, para o mestre). */
 export function monsterActions(creatures: readonly Creature[], monsterId: string): MonsterAction[] {
   const creature = creatures.find((c) => c.id === monsterId);
@@ -65,11 +88,12 @@ export function monsterActions(creatures: readonly Creature[], monsterId: string
           damage,
           ...(a.reach !== undefined ? { reach: a.reach } : {}),
           ...(a.range !== undefined ? { range: a.range } : {}),
+          ...(a.limit ? { limit: a.limit } : {}),
         },
       ];
     }
     if (a.kind === 'save') {
-      return [{ kind: 'save', id: a.id, name: a.name, ability: a.ability, dc: a.dc, damage, onSuccess: a.onSuccess, conditions: a.onFailConditions }];
+      return [{ kind: 'save', id: a.id, name: a.name, ability: a.ability, dc: a.dc, damage, onSuccess: a.onSuccess, conditions: a.onFailConditions, ...(a.limit ? { limit: a.limit } : {}) }];
     }
     return [];
   });

@@ -1,7 +1,7 @@
 import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, DiceSchema, EffectSchema, IdSchema, SpellConditionEndSchema, InventorySchema, SizeSchema, TriggerMomentSchema, WeaponMasterySchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_COMBATANTS, MAX_HIT_POINTS, MAX_INITIATIVE, MAX_SAVE_TARGETS, MAX_SPELL_OPTIONS, MAX_SPELL_PARTS, MAX_TURN_TRIGGER_ITEMS, MIN_INITIATIVE } from './constants';
-import { ChatTextSchema, ConcentrationSchema, ConditionSpellSchema, HitDiceSpentSchema, HitDieSchema, SpellSlotRefSchema, SpellSlotsSpentSchema, ResourcesSpentSchema, ConditionStateSchema, DeathSavesSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
+import { ChatTextSchema, ConcentrationSchema, ConditionSpellSchema, HitDiceSpentSchema, HitDieSchema, SpellSlotRefSchema, SpellSlotsSpentSchema, ResourcesSpentSchema, ConditionStateSchema, DeathSavesSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, TokenElevationSchema, TokenRotationSchema, UuidSchema } from './common';
 import { MapFogSchema, VisionFeetSchema } from './fog';
 
 /** `SessionState` (docs/network-protocol.md, seção 5). */
@@ -61,6 +61,8 @@ export const SpellEffectPartSchema = z.discriminatedUnion('kind', [
     onSuccess: z.enum(['half', 'none']),
     onFailConditions: SpellEffectConditionsSchema,
     conditionChoice: z.literal(true).optional(),
+    onFailEffects: z.array(EffectSchema).max(MAX_ADJUSTMENT_EFFECTS).default([]),
+    options: z.array(z.strictObject({ label: LabelSchema, effects: z.array(EffectSchema).max(MAX_ADJUSTMENT_EFFECTS) })).max(MAX_SPELL_OPTIONS).default([]),
     conditionsEnd: SpellConditionEndSchema.optional(),
   }),
   z.strictObject({ label: LabelSchema.optional(), kind: z.literal('damage'), damage: SpellEffectDamageSchema, count: SpellEffectCountSchema }),
@@ -85,7 +87,10 @@ export const SpellEffectPartSchema = z.discriminatedUnion('kind', [
     kind: z.literal('buff'),
     count: SpellEffectCountSchema.optional(),
     effects: z.array(EffectSchema).max(MAX_ADJUSTMENT_EFFECTS),
-    options: z.array(z.strictObject({ label: LabelSchema, effects: z.array(EffectSchema).min(1).max(MAX_ADJUSTMENT_EFFECTS) })).max(MAX_SPELL_OPTIONS),
+    options: z.array(z.strictObject({ label: LabelSchema, effects: z.array(EffectSchema).max(MAX_ADJUSTMENT_EFFECTS) })).max(MAX_SPELL_OPTIONS),
+    /** Efeitos numa arma empunhada do alvo (`weaponId` no `spell.effect`). */
+    weapon: z.strictObject({ nonmagical: z.literal(true).optional(), itemIds: z.array(IdSchema).optional(), spellcastingAbility: z.literal(true).optional() }).optional(),
+    effectsEnd: z.enum(['caster_turn_start', 'caster_turn_end']).optional(),
     endConditions: SpellEffectConditionsSchema,
   }),
 ]);
@@ -298,14 +303,38 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
       .min(1)
       .max(MAX_SAVE_TARGETS),
   }),
+  /** O mestre decidiu a falha de um alvo com Resistência Lendária: usou, ou aceitou a falha (nota 0069). */
+  z.strictObject({
+    kind: z.literal('legendary_resistance'),
+    ...entryBase,
+    saveEntryId: UuidSchema,
+    tokenId: UuidSchema,
+    name: NameSchema,
+    label: LabelSchema,
+    used: z.boolean(),
+  }),
+  /** Recarga de uma ação de monstro rolada pelo Host no início do turno (nota 0064): só para quem vê os PV do token. */
+  z.strictObject({
+    kind: z.literal('recharge_roll'),
+    ...entryBase,
+    tokenId: UuidSchema,
+    name: NameSchema,
+    actionName: LabelSchema,
+    roll: z.int().min(1).max(6),
+    min: z.int().min(2).max(6),
+  }),
   /** Efeito de magia que saiu da ficha (nota 0060): a Concentração acabou, ou o dono ou o mestre o tirou. */
   z.strictObject({
     kind: z.literal('spell_effect_ended'),
     ...entryBase,
-    characterId: UuidSchema,
+    /** Ausente quando o efeito estava num token sem personagem (`tokenId`). */
+    characterId: UuidSchema.optional(),
+    tokenId: UuidSchema.optional(),
+    /** Nome do personagem ou do token. */
     characterName: NameSchema,
     effectName: LabelSchema,
-    reason: z.enum(['concentration', 'removed']),
+    /** `duration`: o turno chegou; `replaced`: quem conjurou usou a magia de novo. */
+    reason: z.enum(['concentration', 'removed', 'duration', 'replaced']),
   }),
   /** Iniciativa rolada pelo Host (`combat.start`, `combat.add`): o resultado de cada token. */
   z.strictObject({
@@ -356,7 +385,10 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('spell_cast'),
     ...entryBase,
-    characterId: UuidSchema,
+    /** Quem conjurou: o personagem, ou o token de um monstro (nota 0067). */
+    characterId: UuidSchema.optional(),
+    tokenId: UuidSchema.optional(),
+    /** Nome de quem conjurou. */
     characterName: NameSchema,
     spellName: NameSchema,
     /** Círculo da magia (0 = truque). */
@@ -433,7 +465,9 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('concentration'),
     ...entryBase,
-    characterId: UuidSchema,
+    /** O personagem, ou o token do monstro (nota 0068). */
+    characterId: UuidSchema.optional(),
+    tokenId: UuidSchema.optional(),
     characterName: NameSchema,
     spellName: NameSchema,
     event: z.enum(['started', 'ended', 'kept']),
@@ -445,7 +479,9 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('concentration_save'),
     ...entryBase,
-    characterId: UuidSchema,
+    /** O personagem, ou o token do monstro (nota 0068). */
+    characterId: UuidSchema.optional(),
+    tokenId: UuidSchema.optional(),
     characterName: NameSchema,
     spellName: NameSchema,
     dc: z.int().min(10).max(30),
@@ -555,6 +591,31 @@ export const MapSchema = z.strictObject({
 });
 export type GameMap = z.infer<typeof MapSchema>;
 
+/**
+ * Ajuste do mestre (bênção, maldição, item caseiro): efeitos do catálogo
+ * (docs/effects-spec.md) por cima do cálculo base, sem mexer nas escolhas.
+ */
+export const SessionAdjustmentSchema = z.strictObject({
+  id: UuidSchema,
+  name: NameSchema,
+  effects: z.array(EffectSchema).min(1).max(MAX_ADJUSTMENT_EFFECTS),
+  /** Efeito de magia (nota 0060): quem conjurou e a magia. Com Concentração, sai quando ela acaba; o dono do personagem também pode tirar. */
+  spell: ConditionSpellSchema.optional(),
+  /** Arma do inventário a que os efeitos pertencem (nota 0063). */
+  weapon: InstanceIdSchema.optional(),
+  /** Termina no início ou no fim de um turno (Shield). */
+  until: TurnExpirySchema.optional(),
+});
+export type SessionAdjustment = z.infer<typeof SessionAdjustmentSchema>;
+
+/** Usos gastos das ações e traços de um monstro, pelo id do bloco, e se ele está no covil (nota 0064). */
+export const MonsterUsesSchema = z.strictObject({
+  spent: z.record(IdSchema, z.int().min(1).max(20)),
+  lair: z.boolean(),
+});
+export type MonsterUses = z.infer<typeof MonsterUsesSchema>;
+export const NO_MONSTER_USES: MonsterUses = { spent: {}, lair: false };
+
 export const TokenSchema = z.strictObject({
   id: UuidSchema,
   mapId: UuidSchema,
@@ -574,27 +635,24 @@ export const TokenSchema = z.strictObject({
   hp: HitPointStateSchema.extend({ max: z.int().min(1).max(MAX_HIT_POINTS) }).nullable(),
   /** Condições do token; vazias num token de personagem (valem as do personagem). */
   conditions: ConditionStateSchema,
+  /** Efeitos de magia sobre o token (nota 0062); vazios num token de personagem (vão nos ajustes dele). */
+  spellEffects: z.array(SessionAdjustmentSchema).max(MAX_ADJUSTMENTS).default([]),
+  /** Magia em que o monstro se concentra (nota 0068); `null` num token de personagem (vale a dele). */
+  concentration: ConcentrationSchema.nullable().default(null),
+  /** Usos limitados do monstro; para quem não vê os PV do token, chega vazio (seção 2.12). */
+  uses: MonsterUsesSchema.default(NO_MONSTER_USES),
   /** Alcance de visão próprio em pés (5–300), ou `null` para usar o padrão do mapa (nota 0056). */
   visionFeet: VisionFeetSchema.nullable(),
-  /** Se o token está oculto dos jogadores pelo mestre (seção 2.12, nota 0061). */
+  /** Orientação do token em graus (0..359, sentido horário). */
+  rotation: TokenRotationSchema.default(0),
+  /** Elevação do token em pés (−1000..1000). */
+  elevation: TokenElevationSchema.default(0),
+  /** Se o token está oculto dos jogadores pelo mestre (seção 2.12, nota 0070). */
   hidden: z.boolean(),
-  /** Se o token está marcado como morto (automático a 0 PV em monstros ou override do mestre; nota 0061). */
+  /** Se o token está marcado como morto (automático a 0 PV em monstros ou override do mestre; nota 0070). */
   dead: z.boolean(),
 });
 export type Token = z.infer<typeof TokenSchema>;
-
-/**
- * Ajuste do mestre (bênção, maldição, item caseiro): efeitos do catálogo
- * (docs/effects-spec.md) por cima do cálculo base, sem mexer nas escolhas.
- */
-export const SessionAdjustmentSchema = z.strictObject({
-  id: UuidSchema,
-  name: NameSchema,
-  effects: z.array(EffectSchema).min(1).max(MAX_ADJUSTMENT_EFFECTS),
-  /** Efeito de magia (nota 0060): quem conjurou e a magia. Com Concentração, sai quando ela acaba; o dono do personagem também pode tirar. */
-  spell: ConditionSpellSchema.optional(),
-});
-export type SessionAdjustment = z.infer<typeof SessionAdjustmentSchema>;
 
 /** Descanso em andamento: o tipo e quem descansa (nota 0050). */
 export const SessionRestSchema = z.strictObject({
@@ -650,6 +708,28 @@ export const DamageProposalSchema = z.strictObject({
 });
 export type DamageProposal = z.infer<typeof DamageProposalSchema>;
 
+/**
+ * Salvaguarda que falhou num alvo com Resistência Lendária: as consequências
+ * esperam o mestre usar a resistência ou aceitar a falha (nota 0069).
+ */
+export const PendingSaveSchema = z.strictObject({
+  id: UuidSchema,
+  /** A entrada `save_roll` ou `concentration_save`. */
+  entryId: UuidSchema,
+  targetTokenId: UuidSchema,
+  targetName: NameSchema,
+  label: LabelSchema,
+  /** Dano na falha e no sucesso, depois das defesas; o id da proposta é o do resultado. */
+  damage: z.strictObject({ proposalId: UuidSchema, failed: z.int().nonnegative(), saved: z.int().nonnegative() }).optional(),
+  /** Condições da ação do monstro `actorTokenId`. */
+  impose: z.strictObject({ actorTokenId: UuidSchema, actionId: IdSchema }).optional(),
+  /** Efeitos e condições da magia. */
+  spell: z.strictObject({ entryId: UuidSchema, part: z.int().min(0).max(MAX_SPELL_PARTS - 1), option: z.int().min(0).optional(), condition: TableConditionSchema.optional() }).optional(),
+  /** Concentração que acaba na falha. */
+  concentration: IdSchema.optional(),
+});
+export type PendingSave = z.infer<typeof PendingSaveSchema>;
+
 export const InitiativeSchema = z.int().min(MIN_INITIATIVE).max(MAX_INITIATIVE);
 
 /** Combatente: o token e a iniciativa (`null` para quem não pode ver, seção 2.12). */
@@ -694,6 +774,8 @@ export const SessionStateSchema = z.strictObject({
   characters: z.record(UuidSchema, SessionCharacterSchema),
   /** Danos propostos por ataques, para o mestre aplicar (estado da sessão: não é gravado na campanha). */
   proposals: z.record(UuidSchema, DamageProposalSchema),
+  /** Falhas à espera da Resistência Lendária (nota 0069). Só o mestre vê; não são gravadas. */
+  pendingSaves: z.record(UuidSchema, PendingSaveSchema).default({}),
   /** Combate em andamento, ou `null`. */
   combat: CombatSchema.nullable(),
   /** Descanso em andamento, ou `null` (nota 0050). */

@@ -1,4 +1,4 @@
-import { type Condition, type Creature, type DerivedSheet, distanceFeet, effectiveConditions, type Rng, type Size, spaceSquares, type Spell } from 'rules-engine';
+import { type Condition, conditionDefenses, type Creature, creatureAc, creatureDefenses, type Defenses, type DerivedSheet, distanceFeet, effectiveConditions, type Rng, type Size, spaceSquares, type Spell, withEffectDefenses } from 'rules-engine';
 import type { z } from 'zod';
 import { type ChatEntry, type Combat, NO_CONDITIONS, type GameMap, type IntentRejectCode, type IntentResultSchema, type PatchOp, type Point, type Role, type SessionCharacter, type SessionState, type Token, WORLD_UNITS_PER_CELL } from '../../shared/protocol';
 
@@ -150,6 +150,19 @@ export class SessionContext {
   conditionsOf(token: Token): { conditions: Set<Condition>; exhaustion: number } {
     const state = token.characterId !== null ? (this.current.characters[token.characterId]?.conditions ?? NO_CONDITIONS) : token.conditions;
     return { conditions: effectiveConditions(state.active.map((c) => c.condition)), exhaustion: state.exhaustion };
+  }
+
+  /** O bloco do monstro com as condições e os efeitos de magia do token (nota 0062). */
+  creatureOf(token: Token): { creature: Creature; ac: number; defenses: Defenses; reminders: string[] } | undefined {
+    const creature = token.monsterId !== null ? this.deps.creature(token.monsterId) : undefined;
+    if (!creature) return undefined;
+    const { defenses, reminders } = creatureDefenses(creature);
+    return {
+      creature,
+      ac: creatureAc(creature.ac, token.spellEffects),
+      defenses: withEffectDefenses(conditionDefenses(this.conditionsOf(token).conditions, defenses), token.spellEffects),
+      reminders,
+    };
   }
 
   /** Distância em pés entre dois tokens do mesmo mapa (motor); `undefined` sem o atacante no mapa do alvo. */

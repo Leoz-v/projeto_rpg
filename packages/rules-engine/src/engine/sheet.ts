@@ -187,7 +187,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     ...build.effects,
     ...adjustments.flatMap((adj) => {
       const source: SourceLabel = { kind: 'adjustment', id: adj.id, name: adj.name };
-      return adj.effects.map((effect): SourcedEffect => ({ effect, source, refKey: `adjustment:${adj.id}` }));
+      return adj.effects.map((effect): SourcedEffect => ({ effect, source, refKey: adj.weapon !== undefined ? `item:${adj.weapon}` : `adjustment:${adj.id}` }));
     }),
     ...(input.conditions?.active ?? []).map((c): SourcedEffect => ({ effect: { type: 'condition', condition: c.condition }, source: TABLE_CONDITION_SOURCE, refKey: 'table:conditions' })),
     ...(input.conditions && input.conditions.exhaustion > 0
@@ -208,6 +208,12 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
         : [],
     ]),
   );
+  // Magia na arma (Shillelagh): o ajuste altera a entrada do inventário a que pertence.
+  for (const adj of adjustments) {
+    if (adj.weapon === undefined) continue;
+    const own = adj.effects.filter((e): e is BaseOverride => e.type === 'base_override' && (!e.when || evaluatePredicate(e.when, ctx) === true));
+    if (own.length > 0) overridesOf.set(adj.weapon, [...(overridesOf.get(adj.weapon) ?? []), ...own]);
+  }
   const overrides = (instanceId: string): BaseOverride[] => overridesOf.get(instanceId) ?? [];
   /** Efeitos ativos de cada entrada do inventário (item base e parte mágica), com a fonte. */
   const itemEffects = entries.map(({ entry, item, magic }) => {
@@ -484,7 +490,13 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     { label: 'Modificador de DES', value: mod('dex') },
   ];
   const bestFormula = [defaultFormula, ...formulas].reduce((best, f) => (total(f) > total(best) ? f : best));
-  const ac = stat([...bestFormula, ...bonuses(['ac'])]);
+  const acParts = [...bestFormula, ...bonuses(['ac'])];
+  // CA mínima (Barkskin): completa o que falta, depois de tudo.
+  for (const { effect, source } of effectsOf('minimum_ac')) {
+    const current = total(acParts);
+    if (current < effect.value) acParts.push({ label: `Mínimo ${effect.value}`, value: effect.value - current, source });
+  }
+  const ac = stat(acParts);
 
   // --- PV ---------------------------------------------------------------------
 
@@ -629,7 +641,8 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       (w, o) => ({
         ...w,
         properties: [...new Set([...w.properties, ...(o.addProperties ?? [])])],
-        damage: { ...w.damage, type: o.damageType ?? w.damage.type },
+        damage: { ...w.damage, dice: o.damageDice ?? w.damage.dice, type: o.damageType ?? w.damage.type },
+        ...(w.versatileDice && o.damageDice ? { versatileDice: o.damageDice } : {}),
       }),
       weapon,
     );
@@ -648,7 +661,9 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     const finesse = weapon.properties.includes('finesse');
     const allowed: Ability[] = weapon.attackKind === 'ranged' ? ['dex'] : finesse ? ['str', 'dex'] : ['str'];
     const ctxForAbility: RollContext = { attack: { kind: weapon.attackKind, properties: weapon.properties, category: weapon.category, weaponId: weapon.id } };
-    for (const { effect } of effectsOf('attack_ability', ctxForAbility)) allowed.push(effect.ability);
+    for (const { effect, refKey } of effectsOf('attack_ability', ctxForAbility)) {
+      if (effect.scope !== 'weapon' || refKey === `item:${instanceId}`) allowed.push(effect.ability);
+    }
     // O maior modificador entre os permitidos; empate fica com o primeiro (o atributo normal da arma).
     const ability = allowed.reduce((best, a) => (mod(a) > mod(best) ? a : best));
     const proficient = weaponProficient(weapon, instanceId);
@@ -901,6 +916,12 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     skills,
     senses: [...senseMap.values()],
     defenses,
+    attacksAgainst: effectsOf('attacks_against').map((e) => ({
+      mode: e.effect.mode,
+      ...(e.effect.from ? { from: e.effect.from } : {}),
+      ...(e.effect.note !== undefined ? { note: e.effect.note } : {}),
+      source: namedSource(e),
+    })),
     proficiencies,
     weaponMasteries,
     attacks,

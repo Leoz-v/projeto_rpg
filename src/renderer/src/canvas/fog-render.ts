@@ -38,10 +38,6 @@ const RGBA_PLAYER_EXPLORED = [8, 7, 14, 145] as const;
 const RGBA_GM_MANUAL = [22, 16, 52, 155] as const;
 /** Área fora da visão de todos os jogadores vista pelo mestre no modo geral (véu leve). */
 const RGBA_GM_AUTO = [8, 7, 14, 70] as const;
-/** Névoa manual na pré-visualização de token do mestre (100% opaca, igual ao jogador). */
-const RGBA_GM_PREVIEW_MANUAL = [16, 12, 34, 255] as const;
-/** Área não vista na pré-visualização de token do mestre (100% opaca, igual ao jogador). */
-const RGBA_GM_PREVIEW_UNSEEN = [8, 7, 14, 255] as const;
 
 function writePixel(data: Uint8ClampedArray, offset: number, rgba: readonly [number, number, number, number]): void {
   data[offset] = rgba[0];
@@ -82,14 +78,14 @@ export function fillFogImageData(data: Uint8ClampedArray, map: GameMap, tokens: 
         for (let col = 0; col < width; col++) {
           const offset = (row * width + col) * 4;
           if (getFogCell(manual, width, col, row)) {
-            writePixel(data, offset, RGBA_GM_PREVIEW_MANUAL);
+            writePixel(data, offset, RGBA_PLAYER_OPAQUE);
           } else if (vision) {
             if (getFogCell(vision, width, col, row)) {
               writePixel(data, offset, RGBA_CLEAR);
             } else if (explored && getFogCell(explored, width, col, row)) {
               writePixel(data, offset, RGBA_PLAYER_EXPLORED);
             } else {
-              writePixel(data, offset, RGBA_GM_PREVIEW_UNSEEN);
+              writePixel(data, offset, RGBA_PLAYER_OPAQUE);
             }
           } else {
             writePixel(data, offset, RGBA_CLEAR);

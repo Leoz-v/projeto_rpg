@@ -1,5 +1,5 @@
 import { type ReactNode, useState } from 'react';
-import type { ChatEntry, Role, SessionState, SheetRollTarget } from '../../../shared/protocol';
+import type { PendingSave, ChatEntry, Role, SessionState, SheetRollTarget } from '../../../shared/protocol';
 import { tokenConditions } from '../canvas/conditions';
 import { sendIntent } from '../store/table';
 import { ABILITY_LABEL, CONDITION_LABEL, DAMAGE_LABEL, signed, SKILL_LABEL } from './sheet-labels';
@@ -336,6 +336,9 @@ function ApplyConditions({ entry, result, viewer, state }: { entry: SaveEntry; r
   const [error, setError] = useState<string | null>(null);
   const token = state.tokens[result.targetTokenId];
   if (result.success || !token || entry.conditions.length === 0) return null;
+  // A falha espera o mestre, ou virou sucesso com a Resistência Lendária.
+  if (Object.values(state.pendingSaves).some((p) => p.entryId === entry.id && p.targetTokenId === token.id)) return null;
+  if (state.chat.some((e) => e.kind === 'legendary_resistance' && e.used && e.saveEntryId === entry.id && e.tokenId === token.id)) return null;
   const owner = token.characterId !== null ? state.characters[token.characterId]?.ownerId : undefined;
   if (viewer.role !== 'gm' && !token.ownerIds.includes(viewer.playerId) && owner !== viewer.playerId) return null;
   const current = tokenConditions(token, state.characters);
@@ -364,6 +367,25 @@ function ApplyConditions({ entry, result, viewer, state }: { entry: SaveEntry; r
         </button>
       ))}
       {error && <p className="error">{error}</p>}
+    </div>
+  );
+}
+
+/** Falha de um alvo com Resistência Lendária, à espera do mestre (nota 0069). */
+export function PendingSaveActions({ pending }: { pending: PendingSave }) {
+  const [error, setError] = useState<string | null>(null);
+  const decide = (useResistance: boolean): void => {
+    void sendIntent({ kind: 'save.resolve', data: { pendingId: pending.id, useResistance } }).then(setError);
+  };
+  return (
+    <div className="proposal">
+      <button type="button" className="small" onClick={() => { decide(true); }}>
+        Usar Resistência Lendária
+      </button>
+      <button type="button" className="secondary small" onClick={() => { decide(false); }}>
+        Aceitar a falha
+      </button>
+      {error !== null && <p className="error">{error}</p>}
     </div>
   );
 }
@@ -434,7 +456,12 @@ export function SaveRollBody({
                   {n}
                 </p>
               ))}
-              {r.damage?.proposalId !== undefined && r.damage.proposalId in proposals && <ProposalActions proposalId={r.damage.proposalId} amount={r.damage.total} />}
+              {r.damage?.proposalId !== undefined && r.damage.proposalId in proposals && <ProposalActions proposalId={r.damage.proposalId} amount={state.proposals[r.damage.proposalId]?.amount ?? r.damage.total} />}
+              {Object.values(state.pendingSaves)
+                .filter((p) => p.entryId === entry.id && p.targetTokenId === r.targetTokenId)
+                .map((p) => (
+                  <PendingSaveActions key={p.id} pending={p} />
+                ))}
               <ApplyConditions entry={entry} result={r} viewer={viewer} state={state} />
             </li>
           );

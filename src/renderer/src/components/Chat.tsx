@@ -4,7 +4,7 @@ import { sendIntent } from '../store/table';
 import { CHAT_HELP, parseChatInput } from './chat-command';
 import { type RollPart, rollParts } from './roll-parts';
 import { addToChatLog, type ChatLog, chatLogEntries, chatLogWithWindow, EMPTY_CHAT_LOG, firstChatIndex } from './chat-log';
-import { AttackRollBody, D20RollBody, DamageAppliedBody, DamageRollBody, MasteryDamageBody, SaveRollBody } from './SheetRollEntries';
+import { PendingSaveActions, AttackRollBody, D20RollBody, DamageAppliedBody, DamageRollBody, MasteryDamageBody, SaveRollBody } from './SheetRollEntries';
 import { CONDITION_LABEL } from './sheet-labels';
 import { DeathSaveBody, DeathStateBody } from './DeathSaves';
 import { ConcentrationBody, ConcentrationSaveBody } from './Concentration';
@@ -193,11 +193,41 @@ function Entry({ entry, author, context }: { entry: ChatEntry; author: string; c
     case 'concentration':
       return <ConcentrationBody entry={entry} header={header} />;
     case 'concentration_save':
-      return <ConcentrationSaveBody entry={entry} header={header} />;
+      return (
+        <>
+          <ConcentrationSaveBody entry={entry} header={header} />
+          {Object.values(context.state.pendingSaves)
+            .filter((p) => p.entryId === entry.id)
+            .map((p) => (
+              <li key={p.id} className="entry">
+                <PendingSaveActions pending={p} />
+              </li>
+            ))}
+        </>
+      );
     case 'death_save':
       return <DeathSaveBody entry={entry} header={header} />;
     case 'death_state':
       return <DeathStateBody entry={entry} header={header} />;
+    case 'legendary_resistance':
+      return (
+        <li className="entry condition-event">
+          {header}
+          <p>
+            {entry.name} {entry.used ? 'usa Resistência Lendária e passa em' : 'aceita a falha em'} {entry.label}
+          </p>
+        </li>
+      );
+    case 'recharge_roll':
+      return (
+        <li className="entry condition-event">
+          {header}
+          <p>
+            {entry.name}: recarga de {entry.actionName}, 1d6 = {entry.roll} (precisa de {entry.min})
+            <span className="hint"> {entry.roll >= entry.min ? 'recuperada' : 'continua gasta'}</span>
+          </p>
+        </li>
+      );
     case 'turn_trigger': {
       const moment = { initiative: 'Iniciativa', turn_start: 'Início do turno', turn_end: 'Fim do turno' }[entry.on];
       return (

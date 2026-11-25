@@ -1,9 +1,10 @@
 import { Container3D, FlatMaterial, Mesh3D, PlaneGeometry } from '@pixi/3d';
 import { Container, Graphics, ImageSource, Text, Texture } from 'pixi.js';
 import type { Point, Token } from '../../../../shared/protocol';
+import { stepRotation, toggleSelection } from '../../canvas/geometry';
 import { type Health, healthColor } from '../../canvas/health';
 import type { Scene } from '../../canvas/MapStage';
-import { METERS_PER_HEIGHT_UNIT, TILE_SIZE_METERS } from '../terrain/constants';
+import { METERS_PER_FOOT, METERS_PER_HEIGHT_UNIT, TILE_SIZE_METERS } from '../terrain/constants';
 import { pickTerrain } from '../terrain/raycast';
 import type { TerrainGrid } from '../terrain/terrainGrid';
 import type { CameraViewMode, SceneManager } from './sceneManager';
@@ -24,6 +25,8 @@ const COLORS = {
   outline: '#14121c',
   selected: 0xffd166,
   active: 0x5fd38d,
+  target: '#ff5a5f',
+  elevation: 0x6fb6ff,
   condition: 0xffd166,
   label: 0xe8e6ef,
   tempHp: 0x6fb6ff,
@@ -32,17 +35,25 @@ const COLORS = {
 const HEALTH_BAR_WIDTH = 56;
 const HEALTH_BAR_HEIGHT = 6;
 const TEX_SIZE = 256;
+const DRAG_THRESHOLD_PX = 5;
+const DOUBLE_CLICK_MS = 350;
 
 export interface TokenRenderer3dEvents {
-  onSelect: (tokenId: string | null) => void;
+  onSelect: (tokenIds: string[]) => void;
   onMove: (tokenId: string, to: Point) => void;
-  onTokenContextMenu?: (tokenId: string, screen: Point) => void;
+  onRotate: (tokenId: string, rotation: number) => void;
+  onOpenSheet: (tokenId: string) => void;
+  onOpenHud: (tokenId: string, screenPos: Point) => void;
+  onCloseHud: () => void;
+  onToggleTarget: (tokenId: string) => void;
 }
 
 interface Token3dEntry {
   token: Token;
   signature: string;
   root: Container3D;
+  /** Grupo rotacionado em torno de Y conforme `token.rotation`. */
+  facingGroup: Container3D;
   /** Sprite plano no chão (visível no modo `top_down`, idêntico ao 2D). */
   topDownMesh: Mesh3D;
   topDownMat: FlatMaterial;
@@ -56,14 +67,17 @@ interface Token3dEntry {
   selectRing: Mesh3D;
   /** Anel verde do combatente da vez no chão. */
   turnRing: Mesh3D;
+  /** Retículo vermelho de alvo no chão. */
+  targetRing: Mesh3D;
   /** Textura procedural do medalhão (descartada ao atualizar/destruir). */
   medallionTex: Texture;
   /** Textura da base circular (descartada ao atualizar/destruir). */
   baseTex: Texture;
-  /** HUD 2D projetada na tela (nome, PV, condições). */
+  /** HUD 2D projetada na tela (nome, PV, condições, elevação). */
   hud: Container;
   nameLabel: Text;
   condLabel: Text;
+  elevLabel: Text;
   hpBar: Graphics;
   /** Posição 3D atual (metros), atualizada ao arrastar. */
   worldX: number;
@@ -163,15 +177,15 @@ function createMedallionTexture(name: string, fillCss: string, img: HTMLImageEle
   return new Texture({ source: new ImageSource({ resource: canvas }) });
 }
 
-/** Gera uma textura circular de anel (para base, seleção ou turno ativo). */
-function createRingTexture(strokeCss: string, fillCss?: string, lineWidth = 14): Texture {
+/** Gera uma textura circular de anel (para base, seleção, turno ou retículo de alvo). */
+function createRingTexture(strokeCss: string, fillCss?: string, lineWidth = 14, withFacingArrow = false, withTargetTicks = false): Texture {
   const canvas = document.createElement('canvas');
   canvas.width = TEX_SIZE;
   canvas.height = TEX_SIZE;
   const ctx = canvas.getContext('2d');
   if (ctx) {
     const half = TEX_SIZE / 2;
-    const r = half - lineWidth;
+    const r = half - lineWidth - (withTargetTicks ? 12 : 0);
     ctx.beginPath();
     ctx.arc(half, half, r, 0, Math.PI * 2);
     if (fillCss) {
@@ -181,6 +195,36 @@ function createRingTexture(strokeCss: string, fillCss?: string, lineWidth = 14):
     ctx.lineWidth = lineWidth;
     ctx.strokeStyle = strokeCss;
     ctx.stroke();
+
+    if (withFacingArrow) {
+      const tipY = half - r - 6;
+      ctx.beginPath();
+      ctx.moveTo(half, tipY);
+      ctx.lineTo(half - 16, tipY + 24);
+      ctx.lineTo(half + 16, tipY + 24);
+      ctx.closePath();
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = COLORS.outline;
+      ctx.stroke();
+    }
+
+    if (withTargetTicks) {
+      ctx.beginPath();
+      const tick = 22;
+      ctx.moveTo(half, half - r - tick / 2);
+      ctx.lineTo(half, half - r + tick / 2);
+      ctx.moveTo(half, half + r - tick / 2);
+      ctx.lineTo(half, half + r + tick / 2);
+      ctx.moveTo(half - r - tick / 2, half);
+      ctx.lineTo(half - r + tick / 2, half);
+      ctx.moveTo(half + r - tick / 2, half);
+      ctx.lineTo(half + r + tick / 2, half);
+      ctx.lineWidth = lineWidth;
+      ctx.strokeStyle = strokeCss;
+      ctx.stroke();
+    }
   }
   return new Texture({ source: new ImageSource({ resource: canvas }) });
 }
@@ -210,6 +254,8 @@ export class TokenRenderer3d {
   private readonly selectRingMat: FlatMaterial;
   private readonly turnRingTex: Texture;
   private readonly turnRingMat: FlatMaterial;
+  private readonly targetRingTex: Texture;
+  private readonly targetRingMat: FlatMaterial;
   private readonly entries = new Map<string, Token3dEntry>();
   private readonly imageCache = new Map<string, Promise<HTMLImageElement | null>>();
   private readonly eventAbort = new AbortController();
@@ -218,7 +264,8 @@ export class TokenRenderer3d {
     map: null,
     tokens: [],
     canDrag: () => false,
-    selectedId: null,
+    selectedIds: [],
+    targetedIds: [],
     activeId: null,
     conditions: () => [],
     health: () => null,
@@ -227,9 +274,16 @@ export class TokenRenderer3d {
     fogTool: 'none',
   };
 
-  private drag: { tokenId: string; moved: boolean } | null = null;
-  private downClient: { x: number; y: number } | null = null;
-  private rightDownClient: { x: number; y: number } | null = null;
+  private drag: {
+    primaryId: string;
+    startClient: Point;
+    started: boolean;
+    shiftOnDown: boolean;
+    items: { id: string; originWorldX: number; originWorldZ: number; offsetX: number; offsetZ: number }[];
+  } | null = null;
+  private downClient: { x: number; y: number; button: number; tokenId: string | null } | null = null;
+  private lastLeftClick: { time: number; tokenId: string } | null = null;
+  private lastRightClick: { time: number; tokenId: string } | null = null;
   private interactionEnabled = true;
   private lastViewMode: CameraViewMode;
   private destroyed = false;
@@ -259,6 +313,12 @@ export class TokenRenderer3d {
       alphaMode: 'blend',
       doubleSided: true,
     });
+    this.targetRingTex = createRingTexture(COLORS.target, undefined, 14, false, true);
+    this.targetRingMat = new FlatMaterial({
+      baseColorTexture: this.targetRingTex,
+      alphaMode: 'blend',
+      doubleSided: true,
+    });
 
     this.lastViewMode = this.sceneMgr.viewMode;
     this.attachPointerListeners();
@@ -268,11 +328,23 @@ export class TokenRenderer3d {
   setInteractionEnabled(enabled: boolean): void {
     this.interactionEnabled = enabled;
     if (!enabled && this.drag) {
-      const id = this.drag.tokenId;
-      this.drag = null;
-      this.sceneMgr.orbit.enabled = true;
-      this.sceneMgr.app.canvas.style.cursor = '';
-      this.revert(id);
+      this.cancelDrag();
+    }
+  }
+
+  /** Encerra o estado de arrasto e devolve a câmera. */
+  private endDragMode(): void {
+    this.drag = null;
+    this.sceneMgr.orbit.enabled = true;
+    this.sceneMgr.app.canvas.style.cursor = '';
+  }
+
+  private cancelDrag(): void {
+    const activeDrag = this.drag;
+    if (!activeDrag) return;
+    this.endDragMode();
+    for (const item of activeDrag.items) {
+      this.revert(item.id);
     }
   }
 
@@ -286,15 +358,15 @@ export class TokenRenderer3d {
 
     for (const [id, entry] of this.entries) {
       if (ids.has(id)) continue;
-      if (this.drag?.tokenId === id) {
-        this.drag = null;
-        this.sceneMgr.orbit.enabled = true;
-        this.sceneMgr.app.canvas.style.cursor = '';
-        if (this.interactionEnabled) this.sceneMgr.setLeftButtonAction('pan');
+      if (this.drag?.items.some((item) => item.id === id)) {
+        this.cancelDrag();
       }
       this.disposeEntry(entry);
       this.entries.delete(id);
     }
+
+    const selectedSet = new Set(scene.selectedIds);
+    const targetedSet = new Set(scene.targetedIds);
 
     for (const token of visible) {
       const conditions = scene.conditions(token);
@@ -309,15 +381,24 @@ export class TokenRenderer3d {
         entry.token = token;
       }
 
-      entry.selectRing.visible = scene.selectedId === token.id;
+      entry.selectRing.visible = selectedSet.has(token.id);
       entry.turnRing.visible = scene.activeId === token.id;
+      entry.targetRing.visible = targetedSet.has(token.id);
+      entry.facingGroup.rotation.y = (-token.rotation * Math.PI) / 180;
 
       const condText = conditions.join(' · ');
       entry.condLabel.text = condText;
       entry.condLabel.visible = condText.length > 0;
+      if (token.elevation !== 0) {
+        entry.elevLabel.text = token.elevation > 0 ? `↑ ${token.elevation} ft` : `↓ ${Math.abs(token.elevation)} ft`;
+        entry.elevLabel.visible = true;
+      } else {
+        entry.elevLabel.visible = false;
+      }
       drawScreenHealthBar(entry.hpBar, scene.health(token));
 
-      if (this.drag?.tokenId !== token.id) {
+      const isDragged = this.drag?.started === true && this.drag.items.some((item) => item.id === token.id);
+      if (!isDragged) {
         const fp = tokenTo3dFootprint(token, this.grid);
         this.placeEntry(entry, fp.centerX, fp.groundY, fp.centerZ, fp.sideMeters);
       }
@@ -327,17 +408,18 @@ export class TokenRenderer3d {
     this.syncKeyboardPanMode();
   }
 
-  private selectedMovableToken(): Token | null {
-    const id = this.sceneState.selectedId;
-    if (id === null) return null;
-    const entry = this.entries.get(id);
-    if (!entry) return null;
-    return this.sceneState.canDrag(entry.token) ? entry.token : null;
+  private selectedMovableTokens(): Token[] {
+    const out: Token[] = [];
+    for (const id of this.sceneState.selectedIds) {
+      const entry = this.entries.get(id);
+      if (entry && this.sceneState.canDrag(entry.token)) out.push(entry.token);
+    }
+    return out;
   }
 
   private syncKeyboardPanMode(): void {
-    // Quando há um token selecionável que o usuário pode mover, WASD/Setas movem o token em vez do mapa.
-    this.sceneMgr.setKeyboardPanEnabled(this.selectedMovableToken() === null);
+    // Quando há ao menos um token selecionado que o usuário pode mover, WASD/Setas movem os tokens em vez do mapa.
+    this.sceneMgr.setKeyboardPanEnabled(this.selectedMovableTokens().length === 0);
   }
 
   /** O Host recusou o movimento: devolve o token para a posição autoritativa. */
@@ -347,6 +429,7 @@ export class TokenRenderer3d {
     if (!entry || !token) return;
     const fp = tokenTo3dFootprint(token, this.grid);
     this.placeEntry(entry, fp.centerX, fp.groundY, fp.centerZ, fp.sideMeters);
+    entry.facingGroup.rotation.y = (-token.rotation * Math.PI) / 180;
   }
 
   /** Atualiza visibilidade por modo de câmera e projeta rótulos/barras de PV na HUD 2D. */
@@ -380,6 +463,7 @@ export class TokenRenderer3d {
       entry.hpBar.position.set(baseScreen.x, baseScreen.y + 4);
       entry.nameLabel.position.set(baseScreen.x, baseScreen.y + (entry.hpBar.visible ? HEALTH_BAR_HEIGHT + 8 : 4));
       entry.condLabel.position.set(topScreen.x, topScreen.y - 4);
+      entry.elevLabel.position.set(topScreen.x, topScreen.y - (entry.condLabel.visible ? 18 : 4));
     }
   }
 
@@ -405,6 +489,8 @@ export class TokenRenderer3d {
     this.selectRingTex.destroy(true);
     this.turnRingMat.destroy();
     this.turnRingTex.destroy(true);
+    this.targetRingMat.destroy();
+    this.targetRingTex.destroy(true);
   }
 
   private getImage(sha256: string): Promise<HTMLImageElement | null> {
@@ -420,10 +506,12 @@ export class TokenRenderer3d {
     const fillCss = token.ownerIds.length > 0 ? COLORS.playerToken : COLORS.otherToken;
     const flags = { hidden: token.hidden, dead };
     const medallionTex = createMedallionTexture(token.name, fillCss, null, flags);
-    const baseTex = createRingTexture(token.hidden ? '#a799ff' : fillCss, `${fillCss}${token.hidden ? '1c' : '38'}`, 18);
+    const baseTex = createRingTexture(token.hidden ? '#a799ff' : fillCss, `${fillCss}${token.hidden ? '1c' : '38'}`, 18, true);
 
     const root = new Container3D({ label: `token_${token.id}` });
     this.tokensRoot.addChild(root);
+
+    const facingGroup = new Container3D({ label: `token_facing_${token.id}` });
 
     const topDownMat = new FlatMaterial({
       baseColorTexture: medallionTex,
@@ -452,6 +540,8 @@ export class TokenRenderer3d {
       label: `token_base_${token.id}`,
     });
     baseMesh.rotation.set(-Math.PI / 2, 0, 0);
+
+    facingGroup.addChild(baseMesh, topDownMesh);
 
     const billboardMat = new FlatMaterial({
       baseColorTexture: medallionTex,
@@ -487,7 +577,17 @@ export class TokenRenderer3d {
     turnRing.rotation.set(-Math.PI / 2, 0, 0);
     turnRing.visible = false;
 
-    root.addChild(turnRing, baseMesh, topDownMesh, selectRing, billboardMesh);
+    const targetRing = new Mesh3D({
+      geometry: this.planeGeo,
+      material: this.targetRingMat,
+      castShadow: false,
+      receiveShadow: false,
+      label: `token_target_${token.id}`,
+    });
+    targetRing.rotation.set(-Math.PI / 2, 0, 0);
+    targetRing.visible = false;
+
+    root.addChild(turnRing, targetRing, facingGroup, selectRing, billboardMesh);
 
     const hud = new Container();
     if (token.hidden) hud.alpha = 0.65;
@@ -518,15 +618,30 @@ export class TokenRenderer3d {
     condLabel.anchor.set(0.5, 1);
     condLabel.visible = false;
 
+    const elevLabel = new Text({
+      text: '',
+      style: {
+        fill: COLORS.elevation,
+        fontSize: 11,
+        fontWeight: '700',
+        fontFamily: 'system-ui, sans-serif',
+        stroke: { color: COLORS.background, width: 3 },
+      },
+      resolution: 2,
+    });
+    elevLabel.anchor.set(0.5, 1);
+    elevLabel.visible = false;
+
     const hpBar = new Graphics();
     hpBar.visible = false;
-    hud.addChild(hpBar, nameLabel, condLabel);
+    hud.addChild(hpBar, nameLabel, condLabel, elevLabel);
     this.hudContainer.addChild(hud);
 
     const entry: Token3dEntry = {
       token,
       signature,
       root,
+      facingGroup,
       topDownMesh,
       topDownMat,
       baseMesh,
@@ -535,11 +650,13 @@ export class TokenRenderer3d {
       billboardMat,
       selectRing,
       turnRing,
+      targetRing,
       medallionTex,
       baseTex,
       hud,
       nameLabel,
       condLabel,
+      elevLabel,
       hpBar,
       worldX: 0,
       worldZ: 0,
@@ -574,7 +691,7 @@ export class TokenRenderer3d {
     entry.topDownMesh.scale.set(sideMeters * 0.94, sideMeters * 0.94, 1);
     entry.topDownMesh.position.set(0, 0.05, 0);
 
-    entry.baseMesh.scale.set(sideMeters * 0.92, sideMeters * 0.92, 1);
+    entry.baseMesh.scale.set(sideMeters * 0.96, sideMeters * 0.96, 1);
     entry.baseMesh.position.set(0, 0.03, 0);
 
     const standeeSize = sideMeters * 0.94;
@@ -586,6 +703,9 @@ export class TokenRenderer3d {
 
     entry.turnRing.scale.set(sideMeters * 1.14, sideMeters * 1.14, 1);
     entry.turnRing.position.set(0, 0.045, 0);
+
+    entry.targetRing.scale.set(sideMeters * 1.24, sideMeters * 1.24, 1);
+    entry.targetRing.position.set(0, 0.055, 0);
   }
 
   private applyViewMode(mode: CameraViewMode): void {
@@ -615,6 +735,30 @@ export class TokenRenderer3d {
 
     canvas.addEventListener('contextmenu', (e) => { e.preventDefault(); }, { signal });
 
+    // Roda do mouse com Ctrl/Cmd (devagar) ou Shift (rápido) gira tokens selecionados sem dar zoom.
+    canvas.addEventListener(
+      'wheel',
+      (e) => {
+        if (e.ctrlKey || e.metaKey || e.shiftKey) {
+          const controllable = this.selectedMovableTokens();
+          if (controllable.length > 0) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            const fast = e.shiftKey;
+            for (const token of controllable) {
+              const next = stepRotation(token.rotation, e.deltaY, fast);
+              const entry = this.entries.get(token.id);
+              if (entry) entry.facingGroup.rotation.y = (-next * Math.PI) / 180;
+              if (next !== token.rotation) this.events.onRotate(token.id, next);
+            }
+            return;
+          }
+        }
+        this.events.onCloseHud();
+      },
+      { capture: true, passive: false, signal },
+    );
+
     // O EventSystem do PixiJS v8 registra `pointerdown` no canvas e `pointermove` no `document`
     // em fase de captura durante `app.init()`, antes do TokenRenderer3d existir. Escutar em
     // `window` na captura garante execução anterior ao PixiJS/OrbitCamera para que arrastar
@@ -622,16 +766,29 @@ export class TokenRenderer3d {
     window.addEventListener(
       'pointerdown',
       (e) => {
-        if (!this.interactionEnabled || e.target !== canvas) return;
-        if (e.button === 2) {
-          this.rightDownClient = { x: e.clientX, y: e.clientY };
+        if (e.target !== canvas) return;
+
+        if (e.button === 1) {
+          this.events.onCloseHud();
           return;
         }
-        if (e.button !== 0) return;
-        this.downClient = { x: e.clientX, y: e.clientY };
+
+        if (e.button === 2) {
+          const ray = this.sceneMgr.clientPointToRay(e.clientX, e.clientY);
+          const visibleTokens = Array.from(this.entries.values(), (entry) => entry.token);
+          const hit = pickToken3d(ray, visibleTokens, this.grid, this.sceneMgr.viewMode);
+          this.downClient = { x: e.clientX, y: e.clientY, button: 2, tokenId: hit?.id ?? null };
+          return;
+        }
+
+        if (!this.interactionEnabled || e.button !== 0) return;
+
+        this.events.onCloseHud();
         const ray = this.sceneMgr.clientPointToRay(e.clientX, e.clientY);
         const visibleTokens = Array.from(this.entries.values(), (entry) => entry.token);
         const hit = pickToken3d(ray, visibleTokens, this.grid, this.sceneMgr.viewMode);
+        this.downClient = { x: e.clientX, y: e.clientY, button: 0, tokenId: hit?.id ?? null };
+
         if (!hit) return;
 
         // Bloqueia o PixiJS/OrbitCamera de receber este clique: arrastar o token nunca arrasta o mapa junto.
@@ -639,12 +796,47 @@ export class TokenRenderer3d {
         e.stopPropagation();
         e.preventDefault();
 
-        this.events.onSelect(hit.id);
+        // Duplo clique esquerdo abre a ficha referenciada pelo token.
+        const now = performance.now();
+        if (!e.shiftKey && this.lastLeftClick && this.lastLeftClick.tokenId === hit.id && now - this.lastLeftClick.time <= DOUBLE_CLICK_MS) {
+          this.lastLeftClick = null;
+          this.events.onSelect([hit.id]);
+          this.events.onOpenSheet(hit.id);
+          return;
+        }
+        this.lastLeftClick = { time: now, tokenId: hit.id };
+
+        const alreadySelected = this.sceneState.selectedIds.includes(hit.id);
+        if (!e.shiftKey && !alreadySelected) {
+          this.events.onSelect([hit.id]);
+        }
+
         if (this.sceneState.canDrag(hit)) {
-          this.drag = { tokenId: hit.id, moved: false };
-          this.sceneMgr.orbit.enabled = false;
-          this.sceneMgr.setLeftButtonAction('none');
-          canvas.style.cursor = 'grabbing';
+          const terrainHit = pickTerrain(this.grid, ray);
+          const groupIds = !e.shiftKey && alreadySelected ? this.sceneState.selectedIds : [hit.id];
+          const items: { id: string; originWorldX: number; originWorldZ: number; offsetX: number; offsetZ: number }[] = [];
+          for (const gid of groupIds) {
+            const entry = this.entries.get(gid);
+            if (entry && this.sceneState.canDrag(entry.token)) {
+              const offsetX = terrainHit ? entry.worldX - terrainHit.worldX : 0;
+              const offsetZ = terrainHit ? entry.worldZ - terrainHit.worldZ : 0;
+              items.push({ id: gid, originWorldX: entry.worldX, originWorldZ: entry.worldZ, offsetX, offsetZ });
+            }
+          }
+          if (items.length > 0) {
+            this.drag = {
+              primaryId: hit.id,
+              startClient: { x: e.clientX, y: e.clientY },
+              started: false,
+              shiftOnDown: e.shiftKey,
+              items,
+            };
+            this.sceneMgr.orbit.enabled = false;
+          }
+        } else if (e.shiftKey) {
+          this.events.onSelect(toggleSelection(this.sceneState.selectedIds, hit.id, true));
+        } else if (alreadySelected && this.sceneState.selectedIds.length > 1) {
+          this.events.onSelect([hit.id]);
         }
       },
       { capture: true, signal },
@@ -653,68 +845,117 @@ export class TokenRenderer3d {
     window.addEventListener(
       'pointermove',
       (e) => {
+        if (this.downClient?.button === 2 && Math.hypot(e.clientX - this.downClient.x, e.clientY - this.downClient.y) >= DRAG_THRESHOLD_PX) {
+          this.events.onCloseHud();
+        }
         if (!this.drag) return;
         e.stopImmediatePropagation();
         e.stopPropagation();
-        const entry = this.entries.get(this.drag.tokenId);
-        if (!entry) return;
+        // Apertar o direito com o esquerdo já apertado não gera `pointerdown` (Pointer Events):
+        // chega como `pointermove` com o botão em `buttons`. Cancela o arrasto.
+        if ((e.buttons & 2) !== 0) {
+          this.cancelDrag();
+          return;
+        }
+        if (!this.drag.started) {
+          if (Math.hypot(e.clientX - this.drag.startClient.x, e.clientY - this.drag.startClient.y) < DRAG_THRESHOLD_PX) {
+            return;
+          }
+          this.drag.started = true;
+          canvas.style.cursor = 'grabbing';
+        }
         const ray = this.sceneMgr.clientPointToRay(e.clientX, e.clientY);
         const terrainHit = pickTerrain(this.grid, ray);
         if (!terrainHit) return;
-        this.drag.moved = true;
-        const groundY = this.grid.sampleHeightAtTileCoord(terrainHit.tileFloatX, terrainHit.tileFloatZ) * METERS_PER_HEIGHT_UNIT;
-        this.placeEntry(entry, terrainHit.worldX, groundY, terrainHit.worldZ, entry.sideMeters);
+        for (const item of this.drag.items) {
+          const entry = this.entries.get(item.id);
+          if (!entry) continue;
+          const worldX = terrainHit.worldX + item.offsetX;
+          const worldZ = terrainHit.worldZ + item.offsetZ;
+          const tileX = worldX / TILE_SIZE_METERS;
+          const tileZ = worldZ / TILE_SIZE_METERS;
+          const groundY =
+            this.grid.sampleHeightAtTileCoord(tileX, tileZ) * METERS_PER_HEIGHT_UNIT +
+            entry.token.elevation * METERS_PER_FOOT;
+          this.placeEntry(entry, worldX, groundY, worldZ, entry.sideMeters);
+        }
       },
       { capture: true, signal },
     );
 
     const endDrag = (e: PointerEvent): void => {
-      const activeDrag = this.drag;
       const down = this.downClient;
-      const rightDown = this.rightDownClient;
-      this.downClient = null;
-      this.rightDownClient = null;
-
-      if (!activeDrag) {
-        if (this.interactionEnabled && rightDown && e.button === 2 && Math.hypot(e.clientX - rightDown.x, e.clientY - rightDown.y) < 5) {
-          const ray = this.sceneMgr.clientPointToRay(e.clientX, e.clientY);
-          const visibleTokens = Array.from(this.entries.values(), (entry) => entry.token);
-          const hit = pickToken3d(ray, visibleTokens, this.grid, this.sceneMgr.viewMode);
-          if (hit) {
-            this.events.onTokenContextMenu?.(hit.id, { x: e.clientX, y: e.clientY });
-          }
-          return;
-        }
-        if (this.interactionEnabled && down && e.button === 0 && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5) {
-          const ray = this.sceneMgr.clientPointToRay(e.clientX, e.clientY);
-          const visibleTokens = Array.from(this.entries.values(), (entry) => entry.token);
-          if (!pickToken3d(ray, visibleTokens, this.grid, this.sceneMgr.viewMode)) {
-            this.events.onSelect(null);
+      if (e.button === 2) {
+        this.downClient = null;
+        if (down?.button === 2 && Math.hypot(e.clientX - down.x, e.clientY - down.y) < DRAG_THRESHOLD_PX) {
+          if (down.tokenId !== null) {
+            const now = performance.now();
+            if (this.lastRightClick && this.lastRightClick.tokenId === down.tokenId && now - this.lastRightClick.time <= DOUBLE_CLICK_MS) {
+              this.lastRightClick = null;
+              this.events.onCloseHud();
+              this.events.onToggleTarget(down.tokenId);
+              return;
+            }
+            this.lastRightClick = { time: now, tokenId: down.tokenId };
+            const rect = canvas.getBoundingClientRect();
+            this.events.onOpenHud(down.tokenId, { x: e.clientX - rect.left, y: e.clientY - rect.top });
+          } else {
+            this.events.onCloseHud();
           }
         }
         return;
       }
 
-      this.drag = null;
-      canvas.style.cursor = '';
-      this.sceneMgr.orbit.enabled = true;
-      if (this.interactionEnabled) this.sceneMgr.setLeftButtonAction('pan');
+      if (e.button !== 0) return;
 
-      const entry = this.entries.get(activeDrag.tokenId);
+      const activeDrag = this.drag;
+      this.downClient = null;
+
+      if (!activeDrag) {
+        if (this.interactionEnabled && down?.button === 0 && down.tokenId === null && !e.shiftKey && Math.hypot(e.clientX - down.x, e.clientY - down.y) < DRAG_THRESHOLD_PX) {
+          this.events.onSelect([]);
+        }
+        return;
+      }
+
+      this.endDragMode();
+
+      if (!activeDrag.started) {
+        if (activeDrag.shiftOnDown) {
+          this.events.onSelect(toggleSelection(this.sceneState.selectedIds, activeDrag.primaryId, true));
+        } else if (this.sceneState.selectedIds.length > 1) {
+          this.events.onSelect([activeDrag.primaryId]);
+        }
+        return;
+      }
+
       const map = this.sceneState.map;
-      if (!entry || !map) return;
+      if (!map) return;
+      const snapToGrid = !e.shiftKey;
 
-      const to = world3dToTokenCorner(entry.worldX, entry.worldZ, entry.token.size, map);
-      const snappedFp = tokenTo3dFootprint({ position: to, size: entry.token.size }, this.grid);
-      this.placeEntry(entry, snappedFp.centerX, snappedFp.groundY, snappedFp.centerZ, snappedFp.sideMeters);
+      for (const item of activeDrag.items) {
+        const entry = this.entries.get(item.id);
+        if (!entry) continue;
+        const to = world3dToTokenCorner(entry.worldX, entry.worldZ, entry.token.size, map, snapToGrid);
+        const snappedFp = tokenTo3dFootprint({ position: to, size: entry.token.size, elevation: entry.token.elevation }, this.grid);
+        this.placeEntry(entry, snappedFp.centerX, snappedFp.groundY, snappedFp.centerZ, snappedFp.sideMeters);
 
-      if (to.x !== entry.token.position.x || to.y !== entry.token.position.y) {
-        this.events.onMove(entry.token.id, to);
+        if (to.x !== entry.token.position.x || to.y !== entry.token.position.y) {
+          this.events.onMove(entry.token.id, to);
+        }
       }
     };
 
     window.addEventListener('pointerup', endDrag, { signal });
-    window.addEventListener('pointercancel', endDrag, { signal });
+    // O sistema interrompeu o ponteiro: volta os tokens sem aplicar o movimento.
+    window.addEventListener(
+      'pointercancel',
+      () => {
+        this.downClient = null;
+        this.cancelDrag();
+      },
+      { signal },
+    );
 
     window.addEventListener(
       'keydown',
@@ -723,13 +964,13 @@ export class TokenRenderer3d {
         if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
           return;
         }
-        if (e.code === 'Escape' && this.sceneState.selectedId !== null) {
-          this.events.onSelect(null);
+        if (e.code === 'Escape' && this.sceneState.selectedIds.length > 0) {
+          this.events.onSelect([]);
           return;
         }
-        const token = this.selectedMovableToken();
+        const tokens = this.selectedMovableTokens();
         const map = this.sceneState.map;
-        if (!token || !map) return;
+        if (tokens.length === 0 || !map) return;
 
         let forward: -1 | 0 | 1 = 0;
         let strafe: -1 | 0 | 1 = 0;
@@ -740,9 +981,11 @@ export class TokenRenderer3d {
         else return;
 
         e.preventDefault();
-        const to = stepTokenByCameraDirection(token, map, this.sceneMgr.orbit.azimuthAngle, forward, strafe);
-        if (to.x !== token.position.x || to.y !== token.position.y) {
-          this.events.onMove(token.id, to);
+        for (const token of tokens) {
+          const to = stepTokenByCameraDirection(token, map, this.sceneMgr.orbit.azimuthAngle, forward, strafe);
+          if (to.x !== token.position.x || to.y !== token.position.y) {
+            this.events.onMove(token.id, to);
+          }
         }
       },
       { signal },

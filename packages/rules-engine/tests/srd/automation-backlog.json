@@ -2441,33 +2441,21 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:bane": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
-    },
     "spell:banishment": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
-    },
-    "spell:barkskin": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:beacon_of_hope#max_healing": {
       "category": "gm",
       "reason": "A cura recupera o máximo possível: o mestre ajusta o valor da cura."
     },
-    "spell:bestow_curse": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
+    "spell:bestow_curse#spell_damage_and_slots": {
+      "category": "gm",
+      "reason": "Dano extra nas magias sem ataque, e a duração sem Concentração com espaço de 5º círculo ou mais: o mestre acompanha."
     },
     "spell:blink": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
-    },
-    "spell:blur": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:calm_emotions": {
       "category": "gm",
@@ -2504,10 +2492,6 @@
     "spell:confusion": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
-    },
-    "spell:conjure_minor_elementals": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:contact_other_plane": {
       "category": "gm",
@@ -2617,9 +2601,9 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:enlarge_reduce": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
+    "spell:enlarge_reduce#size_and_damage": {
+      "category": "gm",
+      "reason": "O tamanho do token e o -1d4 no dano do Reduzir: o mestre ajusta. O +1d4 só entra na ficha de personagens."
     },
     "spell:enthrall": {
       "category": "gm",
@@ -2641,9 +2625,9 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:faerie_fire": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
+    "spell:faerie_fire#invisible": {
+      "category": "gm",
+      "reason": "O alvo não se beneficia de Invisível: o mestre tira a condição ou ajusta a rolagem."
     },
     "spell:feather_fall": {
       "category": "gm",
@@ -2680,10 +2664,6 @@
     "spell:forcecage": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
-    },
-    "spell:foresight#attacks_against": {
-      "category": "phase_7",
-      "reason": "Outras criaturas têm Desvantagem nos ataques contra o alvo: ataques contra o alvo, PR 4b."
     },
     "spell:freedom_of_movement#restraints": {
       "category": "gm",
@@ -2749,17 +2729,17 @@
       "category": "gm",
       "reason": "PV máximos +2d10 (rolados uma vez, por 24 horas): o mestre rola e aplica como ajuste."
     },
-    "spell:hex": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
+    "spell:hex#duration": {
+      "category": "gm",
+      "reason": "A Concentração dura mais em círculos maiores: a mesa controla o tempo."
     },
-    "spell:holy_aura": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
+    "spell:holy_aura#blinded": {
+      "category": "gm",
+      "reason": "Um Corruptor ou Morto-vivo que acerta o alvo corpo a corpo salva contra Cego: o mestre conduz."
     },
-    "spell:hunters_mark": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
+    "spell:hunters_mark#perception": {
+      "category": "gm",
+      "reason": "Vantagem em Percepção e Sobrevivência para achar o alvo: declarada na rolagem."
     },
     "spell:identify": {
       "category": "gm",
@@ -2828,10 +2808,6 @@
     "spell:magic_mouth": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
-    },
-    "spell:magic_weapon": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:magnificent_mansion": {
       "category": "gm",
@@ -2945,9 +2921,9 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:protection_from_evil_and_good": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
+    "spell:protection_from_evil_and_good#conditions": {
+      "category": "gm",
+      "reason": "Não pode ser possuído nem Enfeitiçado ou Amedrontado por esses tipos: o mestre confere a origem."
     },
     "spell:purify_food_and_drink": {
       "category": "gm",
@@ -2957,9 +2933,9 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:ray_of_enfeeblement": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
+    "spell:ray_of_enfeeblement#damage_and_attacks": {
+      "category": "gm",
+      "reason": "Ataques com Força têm Desvantagem, -1d8 no dano, e Desvantagem no próximo ataque no sucesso: o mestre ajusta."
     },
     "spell:reincarnate": {
       "category": "gm",
@@ -3021,13 +2997,9 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:shield": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
-    },
-    "spell:shillelagh": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
+    "spell:shield#triggering_attack": {
+      "category": "gm",
+      "reason": "O +5 vale contra o ataque que disparou e anula Magic Missile: o mestre descarta a proposta de dano."
     },
     "spell:silence": {
       "category": "gm",
@@ -3048,10 +3020,6 @@
     "spell:sleet_storm": {
       "category": "gm",
       "reason": "Área com salvaguarda a cada turno, que derruba e quebra a Concentração: o mestre conduz."
-    },
-    "spell:slow": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:spare_the_dying": {
       "category": "gm",

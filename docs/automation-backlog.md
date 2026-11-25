@@ -24,10 +24,10 @@ Tudo o que tem mecânica mas não tem efeito declarado:
 | `automate` | Passivo e automatizável agora, estendendo o catálogo de efeitos. Fila abaixo. | 0 |
 | `phase_4` | Ação, reação, recurso, uso de item, ou efeito no momento da rolagem ou do dano contra um alvo (Sneak Attack, cargas, poções, Multiattack). | 447 |
 | `phase_5` | Depende do estado de combate. Vazia desde a Concentração (nota 0045); conteúdo novo que dependa de turnos, iniciativa ou Concentração entra aqui. | 0 |
-| `phase_7` | Magias (nota 0060): bônus e penalidades em monstros, ataques contra o alvo, numa arma ou por um turno (PR 4b), e os ataques contra o alvo do Foresight. | 17 |
-| `gm` | Exploração, percepção, narrativa ou efeito permanente que é ajuste do mestre (Bag of Holding, Manuals e Tomes, Spider Climb), e 183 entradas de magias: 154 de utilidade, 8 com dano, 12 com cura ou condição e 3 com bônus que ficam com o mestre (invocações, Wish, Mass Heal, Sleep, Death Ward), e 6 partes de magias já estruturadas (a cura do Vampiric Touch, os PV do Heroes' Feast). | 278 |
+| `phase_7` | Magias com mecânica a estruturar. Vazia desde a nota 0063. | 0 |
+| `gm` | Exploração, percepção, narrativa ou efeito permanente que é ajuste do mestre (Bag of Holding, Manuals e Tomes, Spider Climb), e 192 entradas de magias: 154 de utilidade, 8 com dano, 12 com cura ou condição e 3 com bônus que ficam com o mestre (invocações, Wish, Mass Heal, Sleep, Death Ward), e 15 partes de magias já estruturadas (a cura do Vampiric Touch, os PV do Heroes' Feast). | 287 |
 
-Total: 794 entradas.
+Total: 786 entradas.
 
 Uma entrada **parcial** (`<chave>#<aspecto>`) marca a parte pendente de um item, característica ou traço de monstro que já tem outros efeitos (ex.: `item:sun_blade#longsword_with_finesse`, `feature:subclass:champion/survivor#heroic_rally`).
 

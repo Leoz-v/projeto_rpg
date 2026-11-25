@@ -1,7 +1,7 @@
 import { AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, DiceSchema, EffectSchema, IdSchema, SizeSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
-import { ChatTextSchema, CreatureTargetSchema, DeathSavesSchema, HitDieSchema, SpellSlotRefSchema, InstanceIdSchema, TurnEdgeSchema, LabelSchema, MAX_EXHAUSTION_LEVEL, RollAgainstSchema, TableConditionSchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
-import { MAX_ADJUSTMENT_EFFECTS, MAX_COINS, MAX_COMBATANTS, MAX_FOG_PAINT_CELLS, MAX_FORMULA_DICE, MAX_FORMULA_LENGTH, MAX_HIT_POINTS, MAX_ITEM_QUANTITY, MAX_SAVE_TARGETS, MAX_SPELL_OPTIONS, MAX_SPELL_PARTS } from './constants';
+import { ChatTextSchema, CreatureTargetSchema, DeathSavesSchema, HitDieSchema, SpellSlotRefSchema, InstanceIdSchema, TurnEdgeSchema, LabelSchema, MAX_EXHAUSTION_LEVEL, RollAgainstSchema, TableConditionSchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, TokenElevationSchema, TokenRotationSchema, UuidSchema } from './common';
+import { MAX_ADJUSTMENT_EFFECTS, MAX_COINS, MAX_COMBATANTS, MAX_FOG_PAINT_CELLS, MAX_FORMULA_DICE, MAX_FORMULA_LENGTH, MAX_HIT_POINTS, MAX_ITEM_QUANTITY, MAX_MULTIATTACK_STEPS, MAX_SAVE_TARGETS, MAX_SPELL_OPTIONS, MAX_SPELL_PARTS } from './constants';
 import { FogCellSchema, FogModeSchema, VisionFeetSchema } from './fog';
 import { InitiativeSchema, VisibilitySchema } from './state';
 
@@ -42,6 +42,16 @@ export const IntentSchema = z.discriminatedUnion('kind', [
     data: z.strictObject({ formula: FormulaSchema, label: LabelSchema.optional(), visibility: VisibilitySchema }),
   }),
   z.strictObject({ kind: z.literal('token.move'), data: z.strictObject({ tokenId: UuidSchema, to: PointSchema }) }),
+  z.strictObject({
+    kind: z.literal('token.update'),
+    data: z
+      .strictObject({
+        tokenId: UuidSchema,
+        rotation: TokenRotationSchema.optional(),
+        elevation: TokenElevationSchema.optional(),
+      })
+      .refine((d) => d.rotation !== undefined || d.elevation !== undefined, { message: 'nada para alterar' }),
+  }),
   z.strictObject({
     kind: z.literal('map.create'),
     data: z.strictObject({
@@ -133,6 +143,12 @@ export const IntentSchema = z.discriminatedUnion('kind', [
     kind: z.literal('adjustment.add'),
     data: z.strictObject({ characterId: UuidSchema, name: NameSchema, effects: z.array(EffectSchema).min(1).max(MAX_ADJUSTMENT_EFFECTS) }),
   }),
+  z.strictObject({ kind: z.literal('monster.use'), data: z.strictObject({ tokenId: UuidSchema, featureId: IdSchema, change: z.enum(['spend', 'restore']) }) }),
+  z.strictObject({ kind: z.literal('save.resolve'), data: z.strictObject({ pendingId: UuidSchema, useResistance: z.boolean() }) }),
+  z.strictObject({ kind: z.literal('monster.cast'), data: z.strictObject({ tokenId: UuidSchema, spellId: IdSchema }) }),
+  z.strictObject({ kind: z.literal('monster.rest'), data: z.strictObject({ tokenId: UuidSchema }) }),
+  z.strictObject({ kind: z.literal('monster.lair'), data: z.strictObject({ tokenId: UuidSchema, lair: z.boolean() }) }),
+  z.strictObject({ kind: z.literal('token.effect_remove'), data: z.strictObject({ tokenId: UuidSchema, effectId: UuidSchema }) }),
   z.strictObject({ kind: z.literal('adjustment.remove'), data: z.strictObject({ characterId: UuidSchema, adjustmentId: UuidSchema }) }),
   z.strictObject({
     kind: z.literal('roll.d20'),
@@ -166,6 +182,29 @@ export const IntentSchema = z.discriminatedUnion('kind', [
       targetTokenId: UuidSchema,
       advantage: z.boolean().optional(),
       disadvantage: z.boolean().optional(),
+      visibility: VisibilitySchema,
+    }),
+  }),
+  /** Multiattack de um monstro: os usos em ordem, cada um com a ação e os alvos (um no ataque). */
+  z.strictObject({
+    kind: z.literal('attack.multi'),
+    data: z.strictObject({
+      tokenId: UuidSchema,
+      /** Ação lendária que encadeia outras (nota 0069); ausente, o Multiattack. */
+      actionId: IdSchema.optional(),
+      option: z.int().min(0).max(9),
+      steps: z
+        .array(
+          z.strictObject({
+            actionId: IdSchema,
+            /** Vazio numa magia: os alvos são escolhidos no chat. */
+            targetTokenIds: z.array(UuidSchema).max(MAX_SAVE_TARGETS),
+            advantage: z.boolean().optional(),
+            disadvantage: z.boolean().optional(),
+          }),
+        )
+        .min(1)
+        .max(MAX_MULTIATTACK_STEPS),
       visibility: VisibilitySchema,
     }),
   }),
@@ -243,6 +282,8 @@ export const IntentSchema = z.discriminatedUnion('kind', [
       condition: TableConditionSchema.optional(),
       /** Opção escolhida de uma parte `buff` (Protection from Energy: o tipo de dano), pelo índice. */
       option: z.int().min(0).max(MAX_SPELL_OPTIONS - 1).optional(),
+      /** Arma empunhada do alvo, quando a magia age numa arma (Magic Weapon). */
+      weaponId: InstanceIdSchema.optional(),
       /** Ataque: Vantagem ou Desvantagem de quem ataca. Salvaguarda: dos alvos (Charm Person contra quem está lutando). */
       advantage: z.boolean().optional(),
       disadvantage: z.boolean().optional(),
@@ -257,7 +298,7 @@ export const IntentSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('rest.cancel'), data: z.strictObject({}) }),
   z.strictObject({ kind: z.literal('hit_dice.spend'), data: z.strictObject({ characterId: UuidSchema, die: HitDieSchema }) }),
   z.strictObject({ kind: z.literal('concentration.set'), data: z.strictObject({ characterId: UuidSchema, spellId: IdSchema }) }),
-  z.strictObject({ kind: z.literal('concentration.end'), data: z.strictObject({ characterId: UuidSchema }) }),
+  z.strictObject({ kind: z.literal('concentration.end'), data: z.union([z.strictObject({ characterId: UuidSchema }), z.strictObject({ tokenId: UuidSchema })]) }),
   z.strictObject({ kind: z.literal('death.set'), data: z.strictObject({ characterId: UuidSchema, deathSaves: DeathSavesSchema }) }),
   z.strictObject({ kind: z.literal('combat.start'), data: CombatJoinSchema }),
   z.strictObject({ kind: z.literal('combat.add'), data: CombatJoinSchema }),

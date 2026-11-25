@@ -4,7 +4,7 @@ import { Application, CanvasSource, Container, type FederatedPointerEvent, Graph
 import type { GridCell } from 'rules-engine/space';
 import { type FogCell, type FogMode, type GameMap, type Point, type Token, WORLD_UNITS_PER_CELL } from '../../../shared/protocol';
 import { clampFogCell, fillFogImageData, fogSignature, type FogTool, type FogViewer, worldToFogCell } from './fog-render';
-import { type Camera, fitMap, placeToken, screenToWorld, tokenSide, worldToScreen, zoomAt } from './geometry';
+import { type Camera, fitMap, placeToken, screenToWorld, stepRotation, toggleSelection, tokenSide, worldToScreen, zoomAt } from './geometry';
 import { type Health, healthColor } from './health';
 import { backgroundWorldSize } from './map-grid';
 import {
@@ -38,7 +38,10 @@ export interface Scene {
   tokens: readonly Token[];
   /** O usuário pode arrastar este token (mestre, ou dono do token). */
   canDrag: (token: Token) => boolean;
-  selectedId: string | null;
+  /** Tokens selecionados (Shift+clique permite múltiplos). */
+  selectedIds: readonly string[];
+  /** Tokens marcados como alvo (duplo clique direito). */
+  targetedIds: readonly string[];
   /** Token do combatente da vez, ou `null` (sem combate). */
   activeId: string | null;
   /** Condições do token em pt-BR, para o rótulo acima dele. */
@@ -60,10 +63,14 @@ export interface MapStageHandle {
 
 export interface MapStageEvents {
   onMove: (tokenId: string, to: Point) => void;
-  onSelect: (tokenId: string | null) => void;
+  onSelect: (tokenIds: string[]) => void;
+  onRotate: (tokenId: string, rotation: number) => void;
+  onOpenSheet: (tokenId: string) => void;
+  onOpenHud: (tokenId: string, screenPos: Point) => void;
+  onCloseHud: () => void;
+  onToggleTarget: (tokenId: string) => void;
   onFogPaint: (mapId: string, mode: FogMode, cells: FogCell[]) => void;
   onFogRect: (mapId: string, mode: FogMode, from: FogCell, to: FogCell) => void;
-  onTokenContextMenu?: (tokenId: string, screen: Point) => void;
 }
 
 const COLORS = {
@@ -76,6 +83,9 @@ const COLORS = {
   outline: 0x14121c,
   selected: 0xffd166,
   active: 0x5fd38d,
+  target: 0xff5a5f,
+  facing: 0xffffff,
+  elevation: 0x6fb6ff,
   condition: 0xffd166,
   label: 0xe8e6ef,
   rulerLine: 0xffd166,
@@ -90,6 +100,8 @@ const COLORS = {
 const ZOOM_SPEED = 0.0015;
 const HEALTH_BAR_HEIGHT = 10;
 const TEMP_HP_COLOR = 0x6fb6ff;
+const DRAG_THRESHOLD_PX = 5;
+const DOUBLE_CLICK_MS = 350;
 
 /** Barra de PV sob o token: fundo, PV atuais na cor do estado e os temporários em azul por cima. */
 function drawHealthBar(bar: Graphics, side: number, health: Health | null): void {
@@ -106,14 +118,41 @@ function drawHealthBar(bar: Graphics, side: number, health: Health | null): void
 
 interface TokenView {
   container: Container;
+  /** Corpo rotacionável do token (disco, retrato e indicador de frente). */
+  body: Container;
   /** Anel de seleção: só aparece ou some, sem redesenhar o token. */
   ring: Graphics;
   /** Anel do combatente da vez, como o de seleção. */
   turn: Graphics;
+  /** Retículo de alvo (duplo clique direito). */
+  targetRing: Graphics;
+  /** Rótulo de elevação (visível quando `elevation !== 0`). */
+  elevationLabel: Text;
   /** Barra de PV, redesenhada a cada cena (barata). */
   bar: Graphics;
-  /** O que, se mudar, exige redesenhar (posição, seleção e cursor não exigem). */
+  /** O que, se mudar, exige redesenhar (posição, seleção, rotação e cursor não exigem). */
   signature: string;
+}
+
+interface DragItem {
+  id: string;
+  origin: Point;
+  offset: Point;
+}
+
+interface ActiveDrag {
+  primaryId: string;
+  startScreen: Point;
+  started: boolean;
+  shiftOnDown: boolean;
+  items: DragItem[];
+}
+
+interface RightAction {
+  tokenId: string | null;
+  startScreen: Point;
+  camera: Camera;
+  panning: boolean;
 }
 
 function assetUrl(sha256: string): string {
@@ -190,7 +229,8 @@ export class MapStage {
     map: null,
     tokens: [],
     canDrag: () => false,
-    selectedId: null,
+    selectedIds: [],
+    targetedIds: [],
     activeId: null,
     conditions: () => [],
     health: () => null,
@@ -199,9 +239,11 @@ export class MapStage {
     fogTool: 'none',
   };
   private shownMapKey = '';
-  private drag: { id: string; offset: Point } | undefined;
+  private drag: ActiveDrag | undefined;
   private pan: { from: Point; camera: Camera } | undefined;
-  private rightDown: { tokenId: string; client: Point } | undefined;
+  private rightAction: RightAction | undefined;
+  private lastLeftClick: { time: number; tokenId: string } | undefined;
+  private lastRightClick: { time: number; tokenId: string } | undefined;
   private rulerMode = false;
   private rulerOptions: RulerOptions = { ...DEFAULT_RULER_OPTIONS };
   private rulerDragging = false;
@@ -251,8 +293,8 @@ export class MapStage {
     app.stage.on('pointerupoutside', (e) => {
       this.pointerUp(e);
     });
-    app.stage.on('pointercancel', (e) => {
-      this.pointerUp(e);
+    app.stage.on('pointercancel', () => {
+      this.pointerCancel();
     });
     app.canvas.addEventListener('wheel', this.onWheel, { passive: false });
     app.canvas.addEventListener('contextmenu', this.onContextMenu);
@@ -307,7 +349,7 @@ export class MapStage {
     const crosshair = this.rulerMode || activeFog;
     this.app.canvas.style.cursor = crosshair ? 'crosshair' : '';
     for (const [id, view] of this.views) {
-      if (this.drag?.id === id) {
+      if (this.drag?.started === true && this.drag.items.some((item) => item.id === id)) {
         view.container.cursor = 'grabbing';
         continue;
       }
@@ -321,8 +363,9 @@ export class MapStage {
     if (this.destroyed) return;
     this.rulerMode = active;
     if (active) {
-      this.drag = undefined;
+      this.cancelDrag();
       this.pan = undefined;
+      this.rightAction = undefined;
     } else {
       this.clearRuler();
     }
@@ -353,7 +396,10 @@ export class MapStage {
   revert(tokenId: string): void {
     const token = this.scene.tokens.find((t) => t.id === tokenId);
     const view = this.views.get(tokenId);
-    if (token && view) view.container.position.set(token.position.x, token.position.y);
+    if (token && view) {
+      view.container.position.set(token.position.x, token.position.y);
+      view.body.rotation = (token.rotation * Math.PI) / 180;
+    }
   }
 
   private setCamera(camera: Camera): void {
@@ -519,10 +565,12 @@ export class MapStage {
     const ids = new Set(visible.map((t) => t.id));
     for (const [id, view] of this.views) {
       if (ids.has(id)) continue;
-      if (this.drag?.id === id) this.drag = undefined;
+      if (this.drag?.items.some((item) => item.id === id)) this.drag = undefined;
       view.container.destroy({ children: true });
       this.views.delete(id);
     }
+    const selectedSet = new Set(this.scene.selectedIds);
+    const targetedSet = new Set(this.scene.targetedIds);
     for (const token of visible) {
       const conditions = this.scene.conditions(token);
       const dead = this.scene.isDead(token);
@@ -532,15 +580,24 @@ export class MapStage {
         const old = view?.container;
         view = { ...this.drawToken(token, conditions, dead), signature };
         // Redesenhado no meio de um arrasto: continua onde o ponteiro está.
-        if (old && this.drag?.id === token.id) view.container.position.copyFrom(old.position);
+        if (old && this.drag?.items.some((item) => item.id === token.id)) view.container.position.copyFrom(old.position);
         old?.destroy({ children: true });
         this.views.set(token.id, view);
         this.tokenLayer.addChild(view.container);
       }
-      view.ring.visible = this.scene.selectedId === token.id;
+      view.ring.visible = selectedSet.has(token.id);
       view.turn.visible = this.scene.activeId === token.id;
+      view.targetRing.visible = targetedSet.has(token.id);
+      view.body.rotation = (token.rotation * Math.PI) / 180;
+      if (token.elevation !== 0) {
+        view.elevationLabel.text = token.elevation > 0 ? `↑ ${token.elevation} ft` : `↓ ${Math.abs(token.elevation)} ft`;
+        view.elevationLabel.visible = true;
+      } else {
+        view.elevationLabel.visible = false;
+      }
       drawHealthBar(view.bar, tokenSide(token.size), this.scene.health(token));
-      if (this.drag?.id !== token.id) {
+      const isDragged = this.drag?.started === true && this.drag.items.some((item) => item.id === token.id);
+      if (!isDragged) {
         view.container.cursor = this.rulerMode ? 'crosshair' : this.scene.canDrag(token) ? 'grab' : 'pointer';
         // Quem está sendo arrastado fica onde o ponteiro está, até soltar.
         view.container.position.set(token.position.x, token.position.y);
@@ -548,24 +605,56 @@ export class MapStage {
     }
   }
 
-  private drawToken(token: Token, conditions: readonly string[], dead: boolean): { container: Container; ring: Graphics; turn: Graphics; bar: Graphics } {
+  private drawToken(token: Token, conditions: readonly string[], dead: boolean): Omit<TokenView, 'signature'> {
     const side = tokenSide(token.size);
     const radius = side / 2;
     const container = new Container();
+    const body = new Container();
+    body.pivot.set(radius, radius);
+    body.position.set(radius, radius);
+
     const color = token.ownerIds.length > 0 ? COLORS.playerToken : COLORS.otherToken;
     const disc = new Graphics()
       .circle(radius, radius, radius * 0.92)
       .fill(color)
       .stroke({ width: Math.max(3, side * 0.04), color: token.hidden ? COLORS.hiddenRing : COLORS.outline });
-    if (token.hidden) disc.alpha = 0.5;
+    if (token.hidden) body.alpha = 0.5;
+    // Indicador discreto de frente no topo do disco (gira junto com o corpo do token).
+    const arrowTipY = radius - radius * 0.92;
+    const arrowHalfW = Math.max(6, radius * 0.16);
+    const arrowDepth = Math.max(8, radius * 0.22);
+    const facing = new Graphics()
+      .moveTo(radius, arrowTipY - arrowDepth * 0.45)
+      .lineTo(radius - arrowHalfW, arrowTipY + arrowDepth * 0.55)
+      .lineTo(radius + arrowHalfW, arrowTipY + arrowDepth * 0.55)
+      .closePath()
+      .fill({ color: COLORS.facing, alpha: 0.9 })
+      .stroke({ width: Math.max(2, side * 0.025), color: COLORS.outline });
+    body.addChild(disc, facing);
+
     const ring = new Graphics().circle(radius, radius, radius * 0.98).stroke({ width: Math.max(4, side * 0.06), color: COLORS.selected });
     ring.visible = false;
     // Combatente da vez: um anel verde por fora do token.
     const turn = new Graphics().circle(radius, radius, radius * 1.1).stroke({ width: Math.max(4, side * 0.05), color: COLORS.active });
     turn.visible = false;
-    const portraitLayer = new Container();
-    if (token.hidden) portraitLayer.alpha = 0.5;
-    container.addChild(turn, disc, portraitLayer, ring);
+
+    // Retículo de alvo (duplo clique direito): anel vermelho com 4 marcas de mira.
+    const targetRadius = radius * 1.16;
+    const tick = Math.max(8, radius * 0.24);
+    const targetRing = new Graphics()
+      .circle(radius, radius, targetRadius)
+      .moveTo(radius, radius - targetRadius - tick * 0.5)
+      .lineTo(radius, radius - targetRadius + tick * 0.5)
+      .moveTo(radius, radius + targetRadius - tick * 0.5)
+      .lineTo(radius, radius + targetRadius + tick * 0.5)
+      .moveTo(radius - targetRadius - tick * 0.5, radius)
+      .lineTo(radius - targetRadius + tick * 0.5, radius)
+      .moveTo(radius + targetRadius - tick * 0.5, radius)
+      .lineTo(radius + targetRadius + tick * 0.5, radius)
+      .stroke({ width: Math.max(4, side * 0.055), color: COLORS.target });
+    targetRing.visible = false;
+
+    container.addChild(turn, targetRing, body, ring);
 
     if (token.image) {
       const sha = token.image;
@@ -577,7 +666,8 @@ export class MapStage {
         sprite.position.set(side * 0.08, side * 0.08);
         const mask = new Graphics().circle(radius, radius, radius * 0.84).fill(0xffffff);
         sprite.mask = mask;
-        portraitLayer.addChild(mask, sprite);
+        body.addChildAt(mask, 1);
+        body.addChildAt(sprite, 2);
       });
     }
 
@@ -609,7 +699,17 @@ export class MapStage {
     label.position.set(radius, side + 4 + HEALTH_BAR_HEIGHT + 4);
     const bar = new Graphics();
     bar.position.set(0, side + 4);
-    container.addChild(label, bar);
+
+    const elevationLabel = new Text({
+      text: '',
+      style: { fill: COLORS.elevation, fontSize: 20, fontWeight: '700', fontFamily: 'system-ui, sans-serif', stroke: { color: COLORS.background, width: 6 } },
+      resolution: 2,
+    });
+    elevationLabel.anchor.set(1, 0);
+    elevationLabel.position.set(side, 0);
+    elevationLabel.visible = false;
+
+    container.addChild(label, bar, elevationLabel);
     if (conditions.length > 0) {
       // Condições acima do token.
       const tags = new Text({
@@ -626,40 +726,133 @@ export class MapStage {
     container.on('pointerdown', (e) => {
       this.tokenDown(token.id, e);
     });
-    return { container, ring, turn, bar };
+    return { container, body, ring, turn, targetRing, elevationLabel, bar };
+  }
+
+  private cancelDrag(): void {
+    const drag = this.drag;
+    if (!drag) return;
+    this.drag = undefined;
+    for (const item of drag.items) {
+      const view = this.views.get(item.id);
+      if (view) {
+        view.container.position.set(item.origin.x, item.origin.y);
+      }
+    }
+    this.updateCursor();
+  }
+
+  /** O sistema interrompeu o ponteiro: desfaz qualquer operação em andamento sem aplicar nada. */
+  private pointerCancel(): void {
+    this.pan = undefined;
+    this.rightAction = undefined;
+    this.rulerDragging = false;
+    this.fogBrush = undefined;
+    this.fogRect = undefined;
+    this.fogPreviewLayer.clear();
+    this.cancelDrag();
+    this.updateCursor();
   }
 
   private tokenDown(id: string, e: FederatedPointerEvent): void {
-    // Em modo régua ou com ferramenta de névoa ativa, cliques não arrastam tokens nem abrem menu.
-    if (this.rulerMode) return;
-    if (this.scene.viewer.role === 'gm' && this.scene.fogTool !== 'none') return;
-    // Botão direito em um token: registra para abrir o menu de contexto se não virar pan.
-    if (e.button === 2) {
-      this.rightDown = { tokenId: id, client: { x: e.clientX, y: e.clientY } };
+    // Botão do meio sempre faz pan, inclusive sobre tokens.
+    if (e.button === 1) {
+      e.stopPropagation();
+      this.events.onCloseHud();
+      this.pan = { from: { x: e.global.x, y: e.global.y }, camera: this.camera };
       return;
     }
-    // Apenas botão esquerdo seleciona e arrasta tokens; botão do meio continua fazendo pan do mapa.
-    if (e.button !== 0) return;
-    // O clique no token não vira arrasto da câmera.
+    // Em modo régua ou com ferramenta de névoa ativa, botão esquerdo vai para a ferramenta do palco.
+    if (e.button === 0 && (this.rulerMode || (this.scene.viewer.role === 'gm' && this.scene.fogTool !== 'none'))) {
+      return;
+    }
+
     e.stopPropagation();
-    this.pan = undefined;
-    // Permissão conferida na hora (a cena pode ter mudado desde que o token foi desenhado).
+
+    // Botão direito em token: arrastar faz pan; clique curto abre HUD; duplo clique direito marca alvo.
+    if (e.button === 2) {
+      this.rightAction = {
+        tokenId: id,
+        startScreen: { x: e.global.x, y: e.global.y },
+        camera: this.camera,
+        panning: false,
+      };
+      return;
+    }
+
+    if (e.button !== 0) return;
+
+    this.events.onCloseHud();
+
+    // Duplo clique esquerdo abre a ficha referenciada pelo token.
+    const now = performance.now();
+    if (!e.shiftKey && this.lastLeftClick && this.lastLeftClick.tokenId === id && now - this.lastLeftClick.time <= DOUBLE_CLICK_MS) {
+      this.lastLeftClick = undefined;
+      this.events.onSelect([id]);
+      this.events.onOpenSheet(id);
+      return;
+    }
+    this.lastLeftClick = { time: now, tokenId: id };
+
     const token = this.scene.tokens.find((t) => t.id === id);
     const container = this.views.get(id)?.container;
-    if (token && container && this.scene.canDrag(token)) {
-      const world = screenToWorld(this.camera, e.global);
-      this.drag = { id, offset: { x: world.x - container.x, y: world.y - container.y } };
-      container.cursor = 'grabbing';
-      // Por cima dos outros enquanto arrasta.
-      this.tokenLayer.addChild(container);
+    if (!token || !container) return;
+
+    const alreadySelected = this.scene.selectedIds.includes(id);
+    if (!e.shiftKey && !alreadySelected) {
+      this.events.onSelect([id]);
     }
-    this.events.onSelect(id);
+
+    if (this.scene.canDrag(token)) {
+      const world = screenToWorld(this.camera, e.global);
+      const groupIds = !e.shiftKey && alreadySelected ? this.scene.selectedIds : [id];
+      const items: DragItem[] = [];
+      for (const gid of groupIds) {
+        const t = this.scene.tokens.find((x) => x.id === gid);
+        const c = this.views.get(gid)?.container;
+        if (t && c && this.scene.canDrag(t)) {
+          items.push({ id: gid, origin: { x: t.position.x, y: t.position.y }, offset: { x: world.x - c.x, y: world.y - c.y } });
+        }
+      }
+      if (items.length > 0) {
+        this.drag = {
+          primaryId: id,
+          startScreen: { x: e.global.x, y: e.global.y },
+          started: false,
+          shiftOnDown: e.shiftKey,
+          items,
+        };
+      }
+    } else if (e.shiftKey) {
+      this.events.onSelect(toggleSelection(this.scene.selectedIds, id, true));
+    } else if (alreadySelected && this.scene.selectedIds.length > 1) {
+      this.events.onSelect([id]);
+    }
   }
 
   private stageDown(e: FederatedPointerEvent): void {
-    if (this.drag) return;
+    if (e.button === 2) {
+      this.rightAction = {
+        tokenId: null,
+        startScreen: { x: e.global.x, y: e.global.y },
+        camera: this.camera,
+        panning: false,
+      };
+      return;
+    }
+
+    // Botão do meio: mantém comportamento atual (pan da câmera).
+    if (e.button === 1) {
+      this.events.onCloseHud();
+      this.pan = { from: { x: e.global.x, y: e.global.y }, camera: this.camera };
+      return;
+    }
+
+    if (e.button !== 0) return;
+
     const map = this.scene.map;
-    if (map && this.scene.viewer.role === 'gm' && this.scene.fogTool !== 'none' && e.button === 0) {
+    if (map && this.scene.viewer.role === 'gm' && this.scene.fogTool !== 'none') {
+      this.events.onCloseHud();
       const world = screenToWorld(this.camera, e.global);
       if (this.scene.fogTool === 'brush-cover' || this.scene.fogTool === 'brush-reveal') {
         const mode: FogMode = this.scene.fogTool === 'brush-cover' ? 'cover' : 'reveal';
@@ -677,7 +870,8 @@ export class MapStage {
       return;
     }
     if (this.rulerMode) {
-      if (e.button === 0 && map) {
+      if (map) {
+        this.events.onCloseHud();
         const cell = worldToGridCell(screenToWorld(this.camera, e.global), map);
         if (this.rulerOptions.shape === 'line' && e.shiftKey && this.rulerPoints.length >= 2) {
           this.rulerPoints = [...this.rulerPoints, cell];
@@ -686,18 +880,25 @@ export class MapStage {
         }
         this.rulerDragging = true;
         this.renderRuler();
-        return;
-      }
-      if (e.button === 1) {
-        this.pan = { from: { x: e.global.x, y: e.global.y }, camera: this.camera };
       }
       return;
     }
-    if (e.button === 0) this.events.onSelect(null);
-    this.pan = { from: { x: e.global.x, y: e.global.y }, camera: this.camera };
+
+    // Clique esquerdo no canvas vazio: fecha HUD e limpa seleção (sem fazer pan).
+    this.events.onCloseHud();
+    if (!e.shiftKey && this.scene.selectedIds.length > 0) {
+      this.events.onSelect([]);
+    }
   }
 
   private pointerMove(e: FederatedPointerEvent): void {
+    // Apertar o direito com o esquerdo já apertado não gera `pointerdown` (Pointer Events):
+    // chega como `pointermove` com o botão em `buttons`. Cancela a operação em andamento.
+    if ((e.buttons & 2) !== 0 && (this.drag || this.rulerDragging || this.fogBrush || this.fogRect)) {
+      if (this.rulerDragging) this.clearRuler();
+      this.pointerCancel();
+      return;
+    }
     if (this.fogBrush) {
       const map = this.scene.map;
       if (!map || map.id !== this.fogBrush.mapId) return;
@@ -731,8 +932,36 @@ export class MapStage {
       return;
     }
     if (this.drag) {
+      if (!this.drag.started) {
+        if (Math.hypot(e.global.x - this.drag.startScreen.x, e.global.y - this.drag.startScreen.y) < DRAG_THRESHOLD_PX) {
+          return;
+        }
+        this.drag.started = true;
+        for (const item of this.drag.items) {
+          const c = this.views.get(item.id)?.container;
+          if (c) {
+            c.cursor = 'grabbing';
+            this.tokenLayer.addChild(c);
+          }
+        }
+      }
       const world = screenToWorld(this.camera, e.global);
-      this.views.get(this.drag.id)?.container.position.set(world.x - this.drag.offset.x, world.y - this.drag.offset.y);
+      for (const item of this.drag.items) {
+        this.views.get(item.id)?.container.position.set(world.x - item.offset.x, world.y - item.offset.y);
+      }
+      return;
+    }
+    if (this.rightAction) {
+      const { startScreen, camera } = this.rightAction;
+      if (!this.rightAction.panning) {
+        if (Math.hypot(e.global.x - startScreen.x, e.global.y - startScreen.y) < DRAG_THRESHOLD_PX) {
+          return;
+        }
+        this.rightAction.panning = true;
+        this.events.onCloseHud();
+        this.app.canvas.style.cursor = 'grabbing';
+      }
+      this.setCamera({ ...camera, x: camera.x + e.global.x - startScreen.x, y: camera.y + e.global.y - startScreen.y });
       return;
     }
     if (this.pan) {
@@ -741,15 +970,42 @@ export class MapStage {
     }
   }
 
-  private pointerUp(e?: FederatedPointerEvent): void {
-    const rightDown = this.rightDown;
-    this.rightDown = undefined;
-    this.rulerDragging = false;
+  private pointerUp(e: FederatedPointerEvent): void {
+    // O `pointerup` só vem quando o último botão é solto, seja ele qual for.
     this.pan = undefined;
-    if (rightDown && e && e.button === 2 && Math.hypot(e.clientX - rightDown.client.x, e.clientY - rightDown.client.y) < 5) {
-      this.events.onTokenContextMenu?.(rightDown.tokenId, { x: e.clientX, y: e.clientY });
+    const action = this.rightAction;
+    this.rightAction = undefined;
+    if (e.button === 1) return;
+    if (e.button === 2) {
+      if (!action) return;
+      if (action.panning) {
+        this.updateCursor();
+        return;
+      }
+      if (action.tokenId !== null) {
+        const now = performance.now();
+        if (this.lastRightClick && this.lastRightClick.tokenId === action.tokenId && now - this.lastRightClick.time <= DOUBLE_CLICK_MS) {
+          this.lastRightClick = undefined;
+          this.events.onCloseHud();
+          this.events.onToggleTarget(action.tokenId);
+          return;
+        }
+        this.lastRightClick = { time: now, tokenId: action.tokenId };
+        const token = this.scene.tokens.find((t) => t.id === action.tokenId);
+        if (token) {
+          const side = tokenSide(token.size);
+          const screenPos = worldToScreen(this.camera, { x: token.position.x + side, y: token.position.y + side / 2 });
+          this.events.onOpenHud(token.id, screenPos);
+        }
+      } else {
+        this.events.onCloseHud();
+      }
       return;
     }
+
+    if (e.button !== 0) return;
+
+    this.rulerDragging = false;
     if (this.fogBrush) {
       const { mapId, mode, cells } = this.fogBrush;
       this.fogBrush = undefined;
@@ -767,14 +1023,29 @@ export class MapStage {
     const drag = this.drag;
     if (!drag) return;
     this.drag = undefined;
-    const view = this.views.get(drag.id)?.container;
-    const token = this.scene.tokens.find((t) => t.id === drag.id);
+    this.updateCursor();
+
+    if (!drag.started) {
+      // Foi clique (não arrasto): aplica Shift+seleção ou reduz seleção múltipla ao token clicado.
+      if (drag.shiftOnDown) {
+        this.events.onSelect(toggleSelection(this.scene.selectedIds, drag.primaryId, true));
+      } else if (this.scene.selectedIds.length > 1) {
+        this.events.onSelect([drag.primaryId]);
+      }
+      return;
+    }
+
     const map = this.scene.map;
-    if (!view || !token || !map) return;
-    view.cursor = 'grab';
-    const to = placeToken({ x: view.x, y: view.y }, token.size, map);
-    view.position.set(to.x, to.y);
-    if (to.x !== token.position.x || to.y !== token.position.y) this.events.onMove(token.id, to);
+    if (!map) return;
+    const snapToGrid = !e.shiftKey;
+    for (const item of drag.items) {
+      const view = this.views.get(item.id)?.container;
+      const token = this.scene.tokens.find((t) => t.id === item.id);
+      if (!view || !token) continue;
+      const to = placeToken({ x: view.x, y: view.y }, token.size, map, snapToGrid);
+      view.position.set(to.x, to.y);
+      if (to.x !== token.position.x || to.y !== token.position.y) this.events.onMove(token.id, to);
+    }
   }
 
   private syncFog(): void {
@@ -834,12 +1105,28 @@ export class MapStage {
     }
   }
 
-  private readonly onWheel = (e: WheelEvent): void => {
-    e.preventDefault();
-    this.setCamera(zoomAt(this.camera, { x: e.offsetX, y: e.offsetY }, Math.exp(-e.deltaY * ZOOM_SPEED)));
-  };
-
   private readonly onContextMenu = (e: MouseEvent): void => {
     e.preventDefault();
+  };
+
+  private readonly onWheel = (e: WheelEvent): void => {
+    e.preventDefault();
+    if ((e.ctrlKey || e.metaKey || e.shiftKey) && this.scene.selectedIds.length > 0) {
+      const controllable = this.scene.selectedIds
+        .map((id) => this.scene.tokens.find((t) => t.id === id))
+        .filter((t): t is Token => t !== undefined && this.scene.canDrag(t));
+      if (controllable.length > 0) {
+        const fast = e.shiftKey;
+        for (const token of controllable) {
+          const next = stepRotation(token.rotation, e.deltaY, fast);
+          const view = this.views.get(token.id);
+          if (view) view.body.rotation = (next * Math.PI) / 180;
+          if (next !== token.rotation) this.events.onRotate(token.id, next);
+        }
+        return;
+      }
+    }
+    this.events.onCloseHud();
+    this.setCamera(zoomAt(this.camera, { x: e.offsetX, y: e.offsetY }, Math.exp(-e.deltaY * ZOOM_SPEED)));
   };
 }

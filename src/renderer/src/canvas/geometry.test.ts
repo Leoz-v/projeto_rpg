@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fitMap, MAX_ZOOM, MIN_ZOOM, placeToken, screenToWorld, tokenSide, worldToScreen, zoomAt } from './geometry';
+import { fitMap, MAX_ZOOM, MIN_ZOOM, normalizeRotation, placeToken, ROTATION_STEP_FAST, ROTATION_STEP_SLOW, screenToWorld, stepRotation, toggleSelection, tokenSide, worldToScreen, zoomAt } from './geometry';
 
 const MAP = { width: 10, height: 8 };
 
@@ -43,5 +43,28 @@ describe('tokens on the grid', () => {
     expect(placeToken({ x: 140, y: 260 }, 'tiny', MAP)).toEqual({ x: 150, y: 250 });
     expect(placeToken({ x: -80, y: 5000 }, 'medium', MAP)).toEqual({ x: 0, y: 700 });
     expect(placeToken({ x: 960, y: 760 }, 'large', MAP)).toEqual({ x: 800, y: 600 });
+  });
+
+  it('bypasses grid snapping when snapToGrid is false (Shift drag) while clamping inside the map', () => {
+    expect(placeToken({ x: 142.6, y: 263.2 }, 'medium', MAP, false)).toEqual({ x: 143, y: 263 });
+    expect(placeToken({ x: -12, y: 950 }, 'medium', MAP, false)).toEqual({ x: 0, y: 700 });
+  });
+});
+
+describe('rotation and selection helpers', () => {
+  it('normalizes and steps token rotation slowly (Ctrl/Cmd) or quickly (Shift)', () => {
+    expect(normalizeRotation(-5)).toBe(355);
+    expect(normalizeRotation(365)).toBe(5);
+    expect(stepRotation(0, 100, false)).toBe(ROTATION_STEP_SLOW);
+    expect(stepRotation(0, -100, false)).toBe(360 - ROTATION_STEP_SLOW);
+    expect(stepRotation(0, 100, true)).toBe(ROTATION_STEP_FAST);
+    expect(stepRotation(15, -100, true)).toBe(330);
+    expect(stepRotation(90, 0, false)).toBe(90);
+  });
+
+  it('replaces or toggles multi-selection with Shift', () => {
+    expect(toggleSelection(['a', 'b'], 'c', false)).toEqual(['c']);
+    expect(toggleSelection(['a', 'b'], 'c', true)).toEqual(['a', 'b', 'c']);
+    expect(toggleSelection(['a', 'b'], 'a', true)).toEqual(['b']);
   });
 });

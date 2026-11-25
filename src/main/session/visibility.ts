@@ -15,6 +15,7 @@ import {
   type Token,
   TokenSchema,
   toPointer,
+  NO_MONSTER_USES,
 } from '../../shared/protocol';
 
 /**
@@ -22,7 +23,7 @@ import {
  * tudo. Para os outros jogadores:
  * - a rolagem secreta vira `hidden_roll` na mesma posição (quem rolou sempre vê a própria);
  * - os PV de tokens que não são personagens (monstros) chegam como `null`,
- *   a menos que o jogador seja dono do token;
+ *   a menos que o jogador seja dono do token; os usos limitados (`uses`), vazios;
  * - as propostas de dano (fila do mestre) não chegam;
  * - a iniciativa de tokens que não são personagens só chega ao mestre e aos
  *   donos do token: a ordem do combate é de todos, o valor não;
@@ -42,6 +43,11 @@ export function redactEntry(entry: ChatEntry, viewer: Viewer, tokens: SessionSta
   if (entry.kind === 'initiative_roll') {
     if (viewer.role === 'gm') return entry;
     return { ...entry, results: entry.results.filter((r) => seesInitiative(tokens[r.tokenId], viewer)) };
+  }
+  if (entry.kind === 'recharge_roll') {
+    const token = tokens[entry.tokenId];
+    if (viewer.role === 'gm' || (token && seesTokenHp(token, viewer))) return entry;
+    return { kind: 'hidden_roll', id: entry.id, at: entry.at, authorId: entry.authorId };
   }
   const secret =
     entry.kind === 'roll' ||
@@ -76,7 +82,7 @@ function redactCombat(combat: Combat | null, viewer: Viewer, tokens: SessionStat
 }
 
 function redactToken(token: Token, viewer: Viewer): Token {
-  return token.hp === null || seesTokenHp(token, viewer) ? token : { ...token, hp: null };
+  return seesTokenHp(token, viewer) ? token : { ...token, hp: null, uses: NO_MONSTER_USES };
 }
 
 function redactExplored(explored: MapFog['explored'], playerId: string): MapFog['explored'] {
@@ -126,13 +132,13 @@ export function viewOf(state: SessionState, viewer: Viewer): SessionState {
     chat: state.chat.map((e) => redactEntry(e, viewer, state.tokens)),
     maps: Object.fromEntries(Object.entries(state.maps).map(([id, m]) => [id, redactMap(m, viewer)])),
     tokens: visibleTokens,
-    proposals: {},
+    proposals: {}, pendingSaves: {},
     combat: redactCombat(state.combat, viewer, state.tokens),
   };
 }
 
-/** `/tokens/<id>/hp` ou abaixo: o id do token. */
-const TOKEN_HP_PATH = /^\/tokens\/([^/]+)\/hp(?:\/|$)/;
+/** `/tokens/<id>/hp` ou `/uses`, ou abaixo: o id do token. */
+const TOKEN_HP_PATH = /^\/tokens\/([^/]+)\/(?:hp|uses)(?:\/|$)/;
 const TOKEN_PATH = /^\/tokens\/([^/]+)$/;
 const TOKEN_ANY_PATH = /^\/tokens\/([^/]+)(?:\/|$)/;
 const MAP_PATH = /^\/maps\/([^/]+)$/;
@@ -163,7 +169,7 @@ export function opsFor(ops: readonly PatchOp[], viewer: Viewer, state: SessionSt
       return [combat.success ? { ...op, value: redactCombat(combat.data, viewer, state.tokens) } : op];
     }
     // Propostas de dano são a fila de trabalho do mestre.
-    if (op.path.startsWith('/proposals/')) return [];
+    if (op.path.startsWith('/proposals/') || op.path.startsWith('/pendingSaves/')) return [];
 
     // Memória de exploração por jogador: só a do próprio viewer passa.
     const exploredPlayer = MAP_EXPLORED_PLAYER_PATH.exec(op.path);

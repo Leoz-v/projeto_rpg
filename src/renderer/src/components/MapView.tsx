@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { TableView } from '../../../shared/ipc';
 import type { GameMap, Point } from '../../../shared/protocol';
-import { conditionLabels, timedEffectLabels, tokenConditions } from '../canvas/conditions';
+import { conditionLabels, spellEffectLabels, timedEffectLabels, tokenConditions } from '../canvas/conditions';
 import type { FogTool } from '../canvas/fog-render';
 import { isTokenDead, tokenHealth } from '../canvas/health';
 import { MapStage, type MapStageHandle, type RenderedMapBackground } from '../canvas/MapStage';
@@ -11,7 +11,7 @@ import { sendIntent } from '../store/table';
 import { FogHudControls } from './FogHudControls';
 import { Map3DView } from './Map3DView';
 import { RulerOptionsBar } from './RulerControls';
-import { TokenContextMenu } from './TokenContextMenu';
+import { TokenHud } from './TokenHud';
 
 /**
  * O mapa ativo: liga o `MapStage` (PixiJS 2D) ou o `Map3DView` (PixiJS 3D) ao
@@ -26,10 +26,13 @@ interface Props {
   view: TableView;
   viewerMode: MapViewerMode;
   onViewerModeChange: (mode: MapViewerMode) => void;
-  selectedId: string | null;
+  selectedIds: readonly string[];
+  targetedIds: readonly string[];
   fogTool: FogTool;
   onFogTool: (tool: FogTool) => void;
-  onSelect: (tokenId: string | null) => void;
+  onSelect: (tokenIds: string[]) => void;
+  onToggleTarget: (tokenId: string) => void;
+  onOpenSheet: (tokenId: string) => void;
   /** O palco pronto (2D ou 3D; `null` ao sair), para o painel do mestre saber o centro da tela. */
   onStage: (stage: MapStageHandle | null) => void;
   /** Abre o editor 3D exclusivo do mestre para o mapa informado. */
@@ -54,16 +57,19 @@ function useHpMaxima(characters: TableView['state']['characters']): Record<strin
 interface Map2DProps {
   view: TableView;
   maxima: Record<string, number>;
-  selectedId: string | null;
+  selectedIds: readonly string[];
+  targetedIds: readonly string[];
   fogTool: FogTool;
   onFogTool: (tool: FogTool) => void;
-  onSelect: (tokenId: string | null) => void;
+  onSelect: (tokenIds: string[]) => void;
+  onToggleTarget: (tokenId: string) => void;
+  onOpenSheet: (tokenId: string) => void;
   onStage: (stage: MapStageHandle | null) => void;
   onViewerModeChange: (mode: MapViewerMode) => void;
   onEdit3dMap?: ((map: GameMap) => void) | undefined;
 }
 
-function Map2DView({ view, maxima, selectedId, fogTool, onFogTool, onSelect, onStage, onViewerModeChange, onEdit3dMap }: Map2DProps) {
+function Map2DView({ view, maxima, selectedIds, targetedIds, fogTool, onFogTool, onSelect, onToggleTarget, onOpenSheet, onStage, onViewerModeChange, onEdit3dMap }: Map2DProps) {
   const host = useRef<HTMLDivElement>(null);
   const [stage, setStage] = useState<MapStage | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +77,7 @@ function Map2DView({ view, maxima, selectedId, fogTool, onFogTool, onSelect, onS
   const [rulerOptions, setRulerOptions] = useState<RulerOptions>({ ...DEFAULT_RULER_OPTIONS });
   const [fogHudOpen, setFogHudOpen] = useState(false);
   const [previewTokenVision, setPreviewTokenVision] = useState(true);
-  const [contextMenu, setContextMenu] = useState<{ tokenId: string; position: Point } | null>(null);
+  const [hudState, setHudState] = useState<{ tokenId: string; pos: Point } | null>(null);
   const [renderResult, setRenderResult] = useState<
     { key: string; bg: RenderedMapBackground } | { key: string; error: string } | null
   >(null);
@@ -80,9 +86,9 @@ function Map2DView({ view, maxima, selectedId, fogTool, onFogTool, onSelect, onS
   const isGm = info.role === 'gm';
 
   // O palco é criado uma vez; os callbacks leem sempre a versão atual.
-  const latest = useRef({ onSelect, onStage, isGm });
+  const latest = useRef({ onSelect, onStage, onOpenSheet, onToggleTarget });
   useLayoutEffect(() => {
-    latest.current = { onSelect, onStage, isGm };
+    latest.current = { onSelect, onStage, onOpenSheet, onToggleTarget };
   });
 
   useEffect(() => {
@@ -91,8 +97,8 @@ function Map2DView({ view, maxima, selectedId, fogTool, onFogTool, onSelect, onS
     let cancelled = false;
     let created: MapStage | undefined;
     void MapStage.create(element, {
-      onSelect: (id) => {
-        latest.current.onSelect(id);
+      onSelect: (ids) => {
+        latest.current.onSelect(ids);
       },
       onMove: (tokenId, to) => {
         void sendIntent({ kind: 'token.move', data: { tokenId, to } }).then((refused) => {
@@ -100,15 +106,29 @@ function Map2DView({ view, maxima, selectedId, fogTool, onFogTool, onSelect, onS
           if (refused) created?.revert(tokenId);
         });
       },
+      onRotate: (tokenId, rotation) => {
+        void sendIntent({ kind: 'token.update', data: { tokenId, rotation } }).then((refused) => {
+          setError(refused);
+          if (refused) created?.revert(tokenId);
+        });
+      },
+      onOpenSheet: (tokenId) => {
+        latest.current.onOpenSheet(tokenId);
+      },
+      onOpenHud: (tokenId, screenPos) => {
+        setHudState((prev) => (prev?.tokenId === tokenId ? null : { tokenId, pos: screenPos }));
+      },
+      onCloseHud: () => {
+        setHudState(null);
+      },
+      onToggleTarget: (tokenId) => {
+        latest.current.onToggleTarget(tokenId);
+      },
       onFogPaint: (mapId, mode, cells) => {
         void sendIntent({ kind: 'fog.manual.paint', data: { mapId, mode, cells } }).then(setError);
       },
       onFogRect: (mapId, mode, from, to) => {
         void sendIntent({ kind: 'fog.manual.rect', data: { mapId, mode, from, to } }).then(setError);
-      },
-      onTokenContextMenu: (tokenId, screen) => {
-        if (!latest.current.isGm) return;
-        setContextMenu({ tokenId, position: screen });
       },
     }).then((s) => {
       // Desmontou antes de o PixiJS terminar de iniciar (StrictMode faz isso no desenvolvimento).
@@ -128,8 +148,9 @@ function Map2DView({ view, maxima, selectedId, fogTool, onFogTool, onSelect, onS
   }, []);
 
   const map = state.activeMapId !== null ? (state.maps[state.activeMapId] ?? null) : null;
-  const selectedToken = selectedId !== null ? (state.tokens[selectedId] ?? null) : null;
-  const menuToken = isGm && contextMenu !== null ? (state.tokens[contextMenu.tokenId] ?? null) : null;
+  const primarySelectedId = selectedIds[selectedIds.length - 1] ?? null;
+  const selectedToken = primarySelectedId !== null ? (state.tokens[primarySelectedId] ?? null) : null;
+  const hudToken = hudState !== null ? (state.tokens[hudState.tokenId] ?? null) : null;
   const showFogHud = isGm && (fogHudOpen || fogTool !== 'none');
   const scene3dHash = map?.scene3d ?? null;
   const mapName = map?.name ?? '';
@@ -168,15 +189,16 @@ function Map2DView({ view, maxima, selectedId, fogTool, onFogTool, onSelect, onS
       renderedBackground: activeRenderedBg,
       tokens: Object.values(state.tokens),
       canDrag: (token) => isGm || token.ownerIds.includes(info.playerId),
-      selectedId,
+      selectedIds,
+      targetedIds,
       activeId: state.combat?.combatants[state.combat.turn]?.tokenId ?? null,
-      conditions: (token) => [...conditionLabels(tokenConditions(token, state.characters)), ...timedEffectLabels(token, { combat: state.combat, tokens: state.tokens })],
+      conditions: (token) => [...conditionLabels(tokenConditions(token, state.characters)), ...spellEffectLabels(token, state.characters), ...timedEffectLabels(token, { combat: state.combat, tokens: state.tokens })],
       health: (token) => tokenHealth(token, state.characters, maxima),
       isDead: (token) => isTokenDead(token, state.characters),
-      viewer: { role: info.role, playerId: info.playerId, previewTokenId: isGm && previewTokenVision ? selectedId : null },
+      viewer: { role: info.role, playerId: info.playerId, previewTokenId: isGm && previewTokenVision ? primarySelectedId : null },
       fogTool: isGm ? fogTool : 'none',
     });
-  }, [stage, map, activeRenderedBg, state.tokens, state.characters, state.combat, maxima, info.role, info.playerId, isGm, selectedId, previewTokenVision, fogTool]);
+  }, [stage, map, activeRenderedBg, state.tokens, state.characters, state.combat, maxima, info.role, info.playerId, isGm, selectedIds, targetedIds, primarySelectedId, previewTokenVision, fogTool]);
 
   useEffect(() => {
     stage?.setRulerMode(rulerActive && fogTool === 'none' && map !== null);
@@ -288,6 +310,20 @@ function Map2DView({ view, maxima, selectedId, fogTool, onFogTool, onSelect, onS
               onError={setError}
             />
           )}
+          {hudState !== null && hudToken !== null && (
+            <TokenHud
+              view={view}
+              token={hudToken}
+              maxima={maxima}
+              position={hudState.pos}
+              isTargeted={targetedIds.includes(hudToken.id)}
+              onToggleTarget={onToggleTarget}
+              onOpenSheet={onOpenSheet}
+              onClose={() => {
+                setHudState(null);
+              }}
+            />
+          )}
         </>
       )}
       {!map && <p className="map-empty hint">{isGm ? 'Crie um mapa no painel ao lado para começar.' : 'O mestre ainda não mostrou um mapa.'}</p>}
@@ -297,22 +333,11 @@ function Map2DView({ view, maxima, selectedId, fogTool, onFogTool, onSelect, onS
           {visibleError}
         </p>
       )}
-      {menuToken && contextMenu && (
-        <TokenContextMenu
-          token={menuToken}
-          characters={state.characters}
-          position={contextMenu.position}
-          onClose={() => {
-            setContextMenu(null);
-          }}
-          onError={setError}
-        />
-      )}
     </section>
   );
 }
 
-export function MapView({ view, viewerMode, onViewerModeChange, selectedId, fogTool, onFogTool, onSelect, onStage, onEdit3dMap }: Props) {
+export function MapView({ view, viewerMode, onViewerModeChange, selectedIds, targetedIds, fogTool, onFogTool, onSelect, onToggleTarget, onOpenSheet, onStage, onEdit3dMap }: Props) {
   const { state, info } = view;
   const map = state.activeMapId !== null ? (state.maps[state.activeMapId] ?? null) : null;
   const maxima = useHpMaxima(state.characters);
@@ -322,10 +347,13 @@ export function MapView({ view, viewerMode, onViewerModeChange, selectedId, fogT
         view={view}
         map={map}
         maxima={maxima}
-        selectedId={selectedId}
+        selectedIds={selectedIds}
+        targetedIds={targetedIds}
         fogTool={info.role === 'gm' ? fogTool : 'none'}
         onFogTool={onFogTool}
         onSelect={onSelect}
+        onToggleTarget={onToggleTarget}
+        onOpenSheet={onOpenSheet}
         onStage={onStage}
         isGm={info.role === 'gm'}
         onViewerModeChange={onViewerModeChange}
@@ -337,10 +365,13 @@ export function MapView({ view, viewerMode, onViewerModeChange, selectedId, fogT
     <Map2DView
       view={view}
       maxima={maxima}
-      selectedId={selectedId}
+      selectedIds={selectedIds}
+      targetedIds={targetedIds}
       fogTool={fogTool}
       onFogTool={onFogTool}
       onSelect={onSelect}
+      onToggleTarget={onToggleTarget}
+      onOpenSheet={onOpenSheet}
       onStage={onStage}
       onViewerModeChange={onViewerModeChange}
       onEdit3dMap={onEdit3dMap}
