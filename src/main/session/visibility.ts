@@ -130,7 +130,7 @@ export function viewOf(state: SessionState, viewer: Viewer): SessionState {
     chat: state.chat.map((e) => redactEntry(e, viewer, state.tokens)),
     maps: Object.fromEntries(Object.entries(state.maps).map(([id, m]) => [id, redactMap(m, viewer)])),
     tokens: visibleTokens,
-    proposals: {},
+    proposals: {}, pendingSaves: {},
     combat: redactCombat(state.combat, viewer, state.tokens),
   };
 }
@@ -167,7 +167,7 @@ export function opsFor(ops: readonly PatchOp[], viewer: Viewer, state: SessionSt
       return [combat.success ? { ...op, value: redactCombat(combat.data, viewer, state.tokens) } : op];
     }
     // Propostas de dano são a fila de trabalho do mestre.
-    if (op.path.startsWith('/proposals/')) return [];
+    if (op.path.startsWith('/proposals/') || op.path.startsWith('/pendingSaves/')) return [];
 
     // Memória de exploração por jogador: só a do próprio viewer passa.
     const exploredPlayer = MAP_EXPLORED_PLAYER_PATH.exec(op.path);

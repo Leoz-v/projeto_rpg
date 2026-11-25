@@ -299,6 +299,12 @@ def parse_spellcasting(who, entry, body):
     return action
 
 
+def has_spell(actions, name):
+    sid = SPELLS.get(re.sub(r" \(.*", "", name).lower())
+    level = re.search(r"level (\d)", name)
+    return any(s["spellId"] == sid and (not level or s.get("level") == int(level.group(1))) for a in actions if a["kind"] == "spellcasting" for s in a["spells"])
+
+
 NUMBERS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6}
 NUM = "(" + "|".join(NUMBERS) + ")"
 
@@ -313,7 +319,7 @@ def parse_multiattack(text, actions):
         names = re.sub(r"\([A-Z]\) ", "", names)
         out = []
         for n in re.split(r", or |, and |, | or | and ", names):
-            n = n.strip()
+            n = re.sub(r" on itself$", "", n.strip())
             spell = re.match(r"Spellcasting to cast ([^(]+?)(?: \(level (\d) version\))?$", n)
             if n in usable:
                 out.append(usable[n])
@@ -338,7 +344,7 @@ def parse_multiattack(text, actions):
         alternative = re.sub(r" (?:if available|if it used [^.,]*)", "", alternative)
         pattern = (rf"{NUM} (?:other )?attacks, using (?P<combo>[A-Z][^.]*?) in any combination"
                    rf"|{NUM} (?P<attack>[A-Z][\w' ]*?) attacks?\b"
-                   r"|\buses? (?:either )?(?P<use>[A-Z][\w' ]*?(?:, [A-Z][\w' ]*?)*(?:,? or [A-Z][\w' ]*?)?)(?P<twice> twice)?(?=[.,]|$| and (?:makes|uses|one|two|three))")
+                   r"|\buses? (?:either )?(?P<use>[A-Z][\w' ]*?(?: \(level \d version\))?(?:, [A-Z][\w' ]*?)*(?:,? or [A-Z][\w' ]*?)?)(?P<twice> twice)?(?=[.,]|$| and (?:makes|uses|one|two|three))")
         for m in re.finditer(pattern, alternative):
             count = NUMBERS[m.group(1) or m.group(3)] if (m.group(1) or m.group(3)) else (2 if m.group("twice") else 1)
             chosen = ids(m.group("combo") or m.group("attack") or m.group("use"))
@@ -735,8 +741,16 @@ for n, h in enumerate(starts):
     if traits:
         c["traits"] = traits
     for a in actions:
-        if a["name"].startswith("Multiattack") and a["kind"] == "text":
-            multi = parse_multiattack(a["description"].replace("\n", " "), actions)
+        legendary = a.get("activation") == "legendary"
+        if legendary and "can't take this action again until the start of its next turn" in a["description"].replace("\n", " "):
+            a["limit"] = {"per": "turn", "count": 1}
+        if a["kind"] == "text" and (a["name"].startswith("Multiattack") or legendary):
+            text = a["description"].replace("\n", " ")
+            if legendary:
+                # "casts Command (level 2 version), using the same spellcasting ability as Spellcasting".
+                text = re.sub(r"casts ([A-Z][\w' ]*?(?: \(level \d version\))?), using the same spellcasting ability as Spellcasting",
+                              lambda m: "uses Spellcasting to cast " + m.group(1) if has_spell(actions, m.group(1)) else m.group(0), text)
+            multi = parse_multiattack(text, actions)
             if multi:
                 a["multiattack"] = multi
     c["actions"] = actions

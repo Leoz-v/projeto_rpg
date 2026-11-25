@@ -1,10 +1,11 @@
-import { type Ability, applyDamage, applyHitPointChange, attackedByEffects, attackedConditions, type AttacksAgainst, cleaveDamageBonus, creatureAttacksAgainst, creatureD20, type CreatureType, type Condition, CONDITION_NAME, creatureSaveBonus, d20Mode, d20StepNotes, damageNotes, type DamageType, type Defenses, grazeDamage, type ImposedConditions, MASTERY_NAME, masteryOutcome, nextTurnRound, resolveAttack, resolveSave, rollActionDamage, type RollAgainst, rollD20, rollWeaponDamage, sheetD20, type SheetD20, type TargetDamage, targetDamage, TIMED_MASTERY_UNTIL, timedMastery, timedMasteryNote, toppleDc } from 'rules-engine';
-import { type ChatEntry, type TimedEffect, type IntentData, type PatchOp, type Role, type SessionState, type Token, sameCaster, toPointer, type Visibility } from '../../shared/protocol';
+import { type Ability, applyDamage, applyHitPointChange, attackedByEffects, attackedConditions, type AttacksAgainst, cleaveDamageBonus, creatureAttacksAgainst, creatureD20, type CreatureType, type Condition, CONDITION_NAME, creatureSaveBonus, d20Mode, d20StepNotes, damageNotes, type DamageType, type Defenses, grazeDamage, type ImposedConditions, MASTERY_NAME, masteryOutcome, nextTurnRound, resolveAttack, resolveSave, rollActionDamage, type RollAgainst, rollD20, rollWeaponDamage, saveDamage, sheetD20, type SheetD20, type TargetDamage, targetDamage, TIMED_MASTERY_UNTIL, timedMastery, timedMasteryNote, toppleDc } from 'rules-engine';
+import { type ChatEntry, type TimedEffect, type IntentData, type PatchOp, type PendingSave, type Role, type SessionState, type Token, sameCaster, toPointer, type Visibility } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
 import { timedEffectEntry } from './combat';
 import { tokenDamaged } from './monster-concentration';
 import { imposeFromAction } from './spell-effects';
-import { spendMonsterUse } from './monsters';
+import { addPendingSave } from './legendary';
+import { hasLegendaryResistance, spendMonsterUse } from './monsters';
 import { changeCharacterHp } from './vitality';
 
 /** Rolagens da ficha, ataques, maestrias, salvaguardas forçadas e aplicação de dano (Fase 4). Funções do executor da sessão (`HostSession`), sobre o `SessionContext`. */
@@ -519,6 +520,7 @@ export function forceSave(ctx: SessionContext, playerId: string, role: Role, dat
     against,
     visibility: data.visibility,
     // Na falha, as condições do bloco entram direto (nota 0065).
+    ...(imposing && 'tokenId' in data.source ? { pending: { impose: { actorTokenId: data.source.tokenId, actionId: data.source.actionId } } } : {}),
     ...(imposing ? { impose: (target: Token) => imposeFromAction(ctx, playerId, imposing.imposes, imposing.actor, target, `${effect.name} (${actorName})`) } : {}),
   });
   return [...saves.ops, ...useOps];
@@ -553,6 +555,8 @@ export function rollSaves(
     declared?: { advantage?: boolean | undefined; disadvantage?: boolean | undefined };
     /** Condições que entram direto na falha; as notas vão no resultado do alvo. */
     impose?: (target: Token) => { ops: PatchOp[]; notes: string[] };
+    /** O que entra na falha, para esperar a Resistência Lendária (nota 0069). */
+    pending?: Pick<PendingSave, 'impose' | 'spell'>;
   },
 ): { ops: PatchOp[]; failed: Token[] } {
   const { actorName, effect, targets, against } = options;
@@ -566,12 +570,16 @@ export function rollSaves(
   const results = targets.map((target) => {
     const save = saveOf(ctx, target, effect.ability, against, options.declared);
     const result = resolveSave({ d20: save.input, dc: effect.dc, damage: rolled, onSuccess: effect.onSuccess, defenses: save.defenses }, ctx.deps.rng);
-    if (!result.success) failed.push(target);
+    // Com Resistência Lendária, as consequências da falha esperam o mestre (nota 0069).
+    const waits = !result.success && hasLegendaryResistance(ctx, target);
+    if (!result.success && !waits) failed.push(target);
     const immune = new Set(save.defenses.conditionImmunities.map((c) => c.condition));
-    const imposed = !result.success && options.impose ? options.impose(target) : undefined;
+    const imposed = !result.success && !waits && options.impose ? options.impose(target) : undefined;
     if (imposed) ops.push(...imposed.ops);
     const conditionNotes = result.success
       ? []
+      : waits
+        ? ['Aguardando o mestre']
       : imposed
         ? imposed.notes.map((n) => (n.startsWith('Imune a ') ? n : `Na falha: ${n}`))
         : effect.conditions.map((c) => (immune.has(c) ? `Imune a ${CONDITION_NAME[c]}` : `Na falha: ${CONDITION_NAME[c]}`));
@@ -581,8 +589,23 @@ export function rollSaves(
       if (result.damage.total > 0) {
         const proposalId = ctx.deps.newId();
         damage.proposalId = proposalId;
-        ops.push({ op: 'add', path: toPointer('proposals', proposalId), value: { id: proposalId, entryId, targetTokenId: target.id, targetName: target.name, amount: result.damage.total } });
+        if (!waits) ops.push({ op: 'add', path: toPointer('proposals', proposalId), value: { id: proposalId, entryId, targetTokenId: target.id, targetName: target.name, amount: result.damage.total } });
       }
+    }
+    if (waits) {
+      ops.push(
+        addPendingSave({
+          id: ctx.deps.newId(),
+          entryId,
+          targetTokenId: target.id,
+          targetName: target.name,
+          label: effect.name.slice(0, 100),
+          ...(damage?.proposalId !== undefined
+            ? { damage: { proposalId: damage.proposalId, failed: damage.total, saved: saveDamage({ damage: rolled, onSuccess: effect.onSuccess, defenses: save.defenses }, true, ctx.deps.rng).total } }
+            : {}),
+          ...options.pending,
+        }),
+      );
     }
     return {
       targetTokenId: target.id,

@@ -303,6 +303,16 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
       .min(1)
       .max(MAX_SAVE_TARGETS),
   }),
+  /** O mestre decidiu a falha de um alvo com Resistência Lendária: usou, ou aceitou a falha (nota 0069). */
+  z.strictObject({
+    kind: z.literal('legendary_resistance'),
+    ...entryBase,
+    saveEntryId: UuidSchema,
+    tokenId: UuidSchema,
+    name: NameSchema,
+    label: LabelSchema,
+    used: z.boolean(),
+  }),
   /** Recarga de uma ação de monstro rolada pelo Host no início do turno (nota 0064): só para quem vê os PV do token. */
   z.strictObject({
     kind: z.literal('recharge_roll'),
@@ -694,6 +704,28 @@ export const DamageProposalSchema = z.strictObject({
 });
 export type DamageProposal = z.infer<typeof DamageProposalSchema>;
 
+/**
+ * Salvaguarda que falhou num alvo com Resistência Lendária: as consequências
+ * esperam o mestre usar a resistência ou aceitar a falha (nota 0069).
+ */
+export const PendingSaveSchema = z.strictObject({
+  id: UuidSchema,
+  /** A entrada `save_roll` ou `concentration_save`. */
+  entryId: UuidSchema,
+  targetTokenId: UuidSchema,
+  targetName: NameSchema,
+  label: LabelSchema,
+  /** Dano na falha e no sucesso, depois das defesas; o id da proposta é o do resultado. */
+  damage: z.strictObject({ proposalId: UuidSchema, failed: z.int().nonnegative(), saved: z.int().nonnegative() }).optional(),
+  /** Condições da ação do monstro `actorTokenId`. */
+  impose: z.strictObject({ actorTokenId: UuidSchema, actionId: IdSchema }).optional(),
+  /** Efeitos e condições da magia. */
+  spell: z.strictObject({ entryId: UuidSchema, part: z.int().min(0).max(MAX_SPELL_PARTS - 1), option: z.int().min(0).optional(), condition: TableConditionSchema.optional() }).optional(),
+  /** Concentração que acaba na falha. */
+  concentration: IdSchema.optional(),
+});
+export type PendingSave = z.infer<typeof PendingSaveSchema>;
+
 export const InitiativeSchema = z.int().min(MIN_INITIATIVE).max(MAX_INITIATIVE);
 
 /** Combatente: o token e a iniciativa (`null` para quem não pode ver, seção 2.12). */
@@ -738,6 +770,8 @@ export const SessionStateSchema = z.strictObject({
   characters: z.record(UuidSchema, SessionCharacterSchema),
   /** Danos propostos por ataques, para o mestre aplicar (estado da sessão: não é gravado na campanha). */
   proposals: z.record(UuidSchema, DamageProposalSchema),
+  /** Falhas à espera da Resistência Lendária (nota 0069). Só o mestre vê; não são gravadas. */
+  pendingSaves: z.record(UuidSchema, PendingSaveSchema).default({}),
   /** Combate em andamento, ou `null`. */
   combat: CombatSchema.nullable(),
   /** Descanso em andamento, ou `null` (nota 0050). */

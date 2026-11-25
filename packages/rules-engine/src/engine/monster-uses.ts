@@ -18,6 +18,18 @@ export interface LimitedFeature {
 /** Id dos usos por dia de uma magia no registro do token (nota 0067). */
 export const monsterSpellUseId = (spellId: string): string => `spell_${spellId}`;
 
+/** Usos de Ação Lendária por rodada no registro do token (nota 0069). */
+export const LEGENDARY_ACTIONS_ID = 'legendary_actions';
+
+/** Traço de Resistência Lendária. */
+export const LEGENDARY_RESISTANCE_ID = 'legendary_resistance';
+
+/** Os gastos no início do turno do monstro: voltam as ações lendárias e as limitadas por turno (SRD 5.2.1, "Legendary Actions"). */
+export function monsterUsesAtTurnStart(features: readonly LimitedFeature[], spent: Readonly<Record<string, number>>): Record<string, number> {
+  const back = new Set(features.flatMap(({ id, limit }) => (limit && 'per' in limit && (limit.per === 'turn' || limit.per === 'round') ? [id] : [])));
+  return Object.fromEntries(Object.entries(spent).filter(([id]) => !back.has(id)));
+}
+
 export const RECHARGE_DIE = 6;
 
 /** Máximo de usos: 1 na recarga; por dia, o publicado (no covil, o do covil). */

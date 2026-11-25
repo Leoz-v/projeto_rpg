@@ -13,6 +13,7 @@ import { castMonsterSpell, castSpell, useSpellEffect } from './casting';
 import { clearFogMemory, configureFog, fillManualFog, paintManualFog, rectManualFog, setTokenVision } from './fog';
 import { removeTokenEffect } from './spell-effects';
 import { endTokenConcentration } from './monster-concentration';
+import { dropPendingSaves, resolvePendingSave } from './legendary';
 import { multiattackStep, requireMultiattack } from './multiattack';
 import { changeMonsterUse, restMonster, setMonsterLair } from './monsters';
 import { createMap, createToken, moveToken, roll, updateMap, updateToken } from './map-tokens';
@@ -55,6 +56,7 @@ export class HostSession extends SessionContext {
       tokens: restored?.tokens ?? {},
       characters: restored?.characters ?? {},
       proposals: {},
+      pendingSaves: {},
       combat: restored?.combat ?? null,
       rest: restored?.rest ?? null,
     };
@@ -132,10 +134,10 @@ export class HostSession extends SessionContext {
    * mudança só; se um uso é recusado, nada acontece.
    */
   private multiattack(playerId: string, role: Role, data: IntentData<'attack.multi'>): PatchOp[] {
-    requireMultiattack(this, playerId, role, data);
     const before = this.current;
-    const all: PatchOp[] = [];
+    const all: PatchOp[] = requireMultiattack(this, playerId, role, data);
     try {
+      this.current = applyPatch(this.current, all);
       for (const step of data.steps) {
         const ops = multiattackStep(this, playerId, role, data, step);
         this.current = applyPatch(this.current, ops);
@@ -183,7 +185,7 @@ export class HostSession extends SessionContext {
       case 'token.remove':
         this.requireGm(role);
         // O que a Concentração do monstro mantinha sai com ele (nota 0068).
-        return [...endTokenConcentration(this, playerId, this.token(intent.data.tokenId), 'ended'), { op: 'remove', path: toPointer('tokens', intent.data.tokenId) }, ...leaveCombat(this, playerId, intent.data.tokenId)];
+        return [...endTokenConcentration(this, playerId, this.token(intent.data.tokenId), 'ended'), ...dropPendingSaves(this, intent.data.tokenId), { op: 'remove', path: toPointer('tokens', intent.data.tokenId) }, ...leaveCombat(this, playerId, intent.data.tokenId)];
       case 'character.create':
         return createCharacter(this, playerId, role, intent.data);
       case 'character.update':
@@ -203,6 +205,9 @@ export class HostSession extends SessionContext {
         return addAdjustment(this, playerId, role, intent.data);
       case 'monster.use':
         return changeMonsterUse(this, playerId, role, intent.data);
+      case 'save.resolve':
+        this.requireGm(role);
+        return resolvePendingSave(this, playerId, intent.data);
       case 'monster.cast':
         return castMonsterSpell(this, playerId, role, intent.data);
       case 'monster.rest':

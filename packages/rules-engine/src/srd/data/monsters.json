@@ -186,7 +186,21 @@
         "name": "Lash",
         "activation": "legendary",
         "description": "The aboleth makes one Tentacle attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "tentacle"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "psychic_drain",
@@ -2718,21 +2732,57 @@
           }
         ],
         "onSuccess": "none",
-        "onFailConditions": []
+        "onFailConditions": [],
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       },
       {
         "id": "frightful_presence",
         "name": "Frightful Presence",
         "activation": "legendary",
         "description": "The dragon uses Spellcasting to cast Fear. The dragon can't take this action again until the start of its next turn.",
-        "kind": "text"
+        "kind": "text",
+        "limit": {
+          "per": "turn",
+          "count": 1
+        },
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_fear"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "pounce",
         "name": "Pounce",
         "activation": "legendary",
         "description": "The dragon moves up to half its Speed, and it makes one Rend attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "rend"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       }
     ]
   },
@@ -2948,21 +2998,57 @@
           }
         ],
         "onSuccess": "none",
-        "onFailConditions": []
+        "onFailConditions": [],
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       },
       {
         "id": "frightful_presence",
         "name": "Frightful Presence",
         "activation": "legendary",
         "description": "The dragon uses Spellcasting to cast Fear. The dragon can't take this action again until the start of its next turn.",
-        "kind": "text"
+        "kind": "text",
+        "limit": {
+          "per": "turn",
+          "count": 1
+        },
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_fear"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "pounce",
         "name": "Pounce",
         "activation": "legendary",
         "description": "The dragon moves up to half its Speed, and it makes one Rend attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "rend"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       }
     ]
   },
@@ -3600,21 +3686,71 @@
         "name": "Cloaked Flight",
         "activation": "legendary",
         "description": "The dragon uses Spellcasting to cast Invisibility on itself, and it can fly up to half its Fly Speed. The dragon can't take this action again until the start of its next turn.",
-        "kind": "text"
+        "kind": "text",
+        "limit": {
+          "per": "turn",
+          "count": 1
+        },
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_invisibility"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "sonic_boom",
         "name": "Sonic Boom",
         "activation": "legendary",
         "description": "The dragon uses Spellcasting to cast Shatter. The dragon can't take this action again until the start of its next turn.",
-        "kind": "text"
+        "kind": "text",
+        "limit": {
+          "per": "turn",
+          "count": 1
+        },
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_shatter"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "tail_swipe",
         "name": "Tail Swipe",
         "activation": "legendary",
         "description": "The dragon makes one Rend attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "rend"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       }
     ]
   },
@@ -3810,21 +3946,71 @@
         "name": "Cloaked Flight",
         "activation": "legendary",
         "description": "The dragon uses Spellcasting to cast Invisibility on itself, and it can fly up to half its Fly Speed. The dragon can't take this action again until the start of its next turn.",
-        "kind": "text"
+        "kind": "text",
+        "limit": {
+          "per": "turn",
+          "count": 1
+        },
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_invisibility"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "sonic_boom",
         "name": "Sonic Boom",
         "activation": "legendary",
         "description": "The dragon uses Spellcasting to cast Shatter (level 3 version). The dragon can't take this action again until the start of its next turn.",
-        "kind": "text"
+        "kind": "text",
+        "limit": {
+          "per": "turn",
+          "count": 1
+        },
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_shatter"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "tail_swipe",
         "name": "Tail Swipe",
         "activation": "legendary",
         "description": "The dragon makes one Rend attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "rend"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       }
     ]
   },
@@ -4490,14 +4676,42 @@
         "name": "Blazing Light",
         "activation": "legendary",
         "description": "The dragon uses Spellcasting to cast Scorching Ray.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_scorching_ray"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "pounce",
         "name": "Pounce",
         "activation": "legendary",
         "description": "The dragon moves up to half its Speed, and it makes one Rend attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "rend"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "scorching_sands",
@@ -4514,7 +4728,11 @@
           }
         ],
         "onSuccess": "none",
-        "onFailConditions": []
+        "onFailConditions": [],
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       }
     ]
   },
@@ -4741,14 +4959,42 @@
         "name": "Blazing Light",
         "activation": "legendary",
         "description": "The dragon uses Spellcasting to cast Scorching Ray (level 3 version).",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_scorching_ray"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "pounce",
         "name": "Pounce",
         "activation": "legendary",
         "description": "The dragon moves up to half its Speed, and it makes one Rend attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "rend"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "scorching_sands",
@@ -4765,7 +5011,11 @@
           }
         ],
         "onSuccess": "none",
-        "onFailConditions": []
+        "onFailConditions": [],
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       }
     ]
   },
@@ -5297,14 +5547,42 @@
         "name": "Guiding Light",
         "activation": "legendary",
         "description": "The dragon uses Spellcasting to cast Guiding Bolt (level 2 version).",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_guiding_bolt"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "pounce",
         "name": "Pounce",
         "activation": "legendary",
         "description": "The dragon moves up to half its Speed, and it makes one Rend attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "rend"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "thunderclap",
@@ -5575,14 +5853,42 @@
         "name": "Guiding Light",
         "activation": "legendary",
         "description": "The dragon uses Spellcasting to cast Guiding Bolt (level 2 version).",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_guiding_bolt"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "pounce",
         "name": "Pounce",
         "activation": "legendary",
         "description": "The dragon moves up to half its Speed, and it makes one Rend attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "rend"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "thunderclap",
@@ -7722,21 +8028,57 @@
           }
         ],
         "onSuccess": "none",
-        "onFailConditions": []
+        "onFailConditions": [],
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       },
       {
         "id": "mind_jolt",
         "name": "Mind Jolt",
         "activation": "legendary",
         "description": "The dragon uses Spellcasting to cast Mind Spike (level 4 version). The dragon can't take this action again until the start of its next turn.",
-        "kind": "text"
+        "kind": "text",
+        "limit": {
+          "per": "turn",
+          "count": 1
+        },
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_mind_spike"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "pounce",
         "name": "Pounce",
         "activation": "legendary",
         "description": "The dragon moves up to half its Speed, and it makes one Rend attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "rend"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       }
     ]
   },
@@ -7964,21 +8306,57 @@
           }
         ],
         "onSuccess": "none",
-        "onFailConditions": []
+        "onFailConditions": [],
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       },
       {
         "id": "mind_jolt",
         "name": "Mind Jolt",
         "activation": "legendary",
         "description": "The dragon uses Spellcasting to cast Mind Spike (level 5 version). The dragon can't take this action again until the start of its next turn.",
-        "kind": "text"
+        "kind": "text",
+        "limit": {
+          "per": "turn",
+          "count": 1
+        },
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_mind_spike"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "pounce",
         "name": "Pounce",
         "activation": "legendary",
         "description": "The dragon moves up to half its Speed, and it makes one Rend attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "rend"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       }
     ]
   },
@@ -13582,21 +13960,53 @@
         "onSuccess": "none",
         "onFailConditions": [
           "incapacitated"
-        ]
+        ],
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       },
       {
         "id": "guiding_light",
         "name": "Guiding Light",
         "activation": "legendary",
         "description": "The dragon uses Spellcasting to cast Guiding Bolt (level 2 version).",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_guiding_bolt"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "pounce",
         "name": "Pounce",
         "activation": "legendary",
         "description": "The dragon moves up to half its Speed, and it makes one Rend attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "rend"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       }
     ]
   },
@@ -13830,21 +14240,53 @@
         "onSuccess": "none",
         "onFailConditions": [
           "incapacitated"
-        ]
+        ],
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       },
       {
         "id": "guiding_light",
         "name": "Guiding Light",
         "activation": "legendary",
         "description": "The dragon uses Spellcasting to cast Guiding Bolt (level 4 version).",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_guiding_bolt"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "pounce",
         "name": "Pounce",
         "activation": "legendary",
         "description": "The dragon moves up to half its Speed, and it makes one Rend attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "rend"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       }
     ]
   },
@@ -14515,7 +14957,21 @@
         "name": "Mind Invasion",
         "activation": "legendary",
         "description": "The dragon uses Spellcasting to cast Mind Spike (level 3 version).",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_mind_spike"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "noxious_miasma",
@@ -14532,14 +14988,32 @@
           }
         ],
         "onSuccess": "none",
-        "onFailConditions": []
+        "onFailConditions": [],
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       },
       {
         "id": "pounce",
         "name": "Pounce",
         "activation": "legendary",
         "description": "The dragon moves up to half its Speed, and it makes one Rend attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "rend"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       }
     ]
   },
@@ -14738,7 +15212,21 @@
         "name": "Mind Invasion",
         "activation": "legendary",
         "description": "The dragon uses Spellcasting to cast Mind Spike (level 5 version).",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_mind_spike"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "noxious_miasma",
@@ -14755,14 +15243,32 @@
           }
         ],
         "onSuccess": "none",
-        "onFailConditions": []
+        "onFailConditions": [],
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       },
       {
         "id": "pounce",
         "name": "Pounce",
         "activation": "legendary",
         "description": "The dragon moves up to half its Speed, and it makes one Rend attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "rend"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       }
     ]
   },
@@ -18116,7 +18622,21 @@
         "name": "Storm Bolt",
         "activation": "legendary",
         "description": "The kraken uses Lightning Strike.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "lightning_strike"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "toxic_ink",
@@ -18140,7 +18660,11 @@
             ],
             "end": "actor_turn_end"
           }
-        ]
+        ],
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       }
     ]
   },
@@ -18705,14 +19229,22 @@
           }
         ],
         "onSuccess": "half",
-        "onFailConditions": []
+        "onFailConditions": [],
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       },
       {
         "id": "frightening_gaze",
         "name": "Frightening Gaze",
         "activation": "legendary",
         "description": "The lich casts Fear, using the same spellcasting ability as Spellcasting. The lich can't take this action again until the start of its next turn.",
-        "kind": "text"
+        "kind": "text",
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       }
     ]
   },
@@ -20921,21 +21453,58 @@
         "name": "Dread Command",
         "activation": "legendary",
         "description": "The mummy casts Command (level 2 version), using the same spellcasting ability as Spellcasting. The mummy can't take this action again until the start of its next turn.",
-        "kind": "text"
+        "kind": "text",
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       },
       {
         "id": "glare",
         "name": "Glare",
         "activation": "legendary",
         "description": "The mummy uses Dreadful Glare. The mummy can't take this action again until the start of its next turn.",
-        "kind": "text"
+        "kind": "text",
+        "limit": {
+          "per": "turn",
+          "count": 1
+        },
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "dreadful_glare"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "necrotic_strike",
         "name": "Necrotic Strike",
         "activation": "legendary",
         "description": "The mummy makes one Rotting Fist or Channel Negative Energy attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "rotting_fist",
+                    "channel_negative_energy"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       }
     ]
   },
@@ -24295,21 +24864,71 @@
         "name": "Commanding Presence",
         "activation": "legendary",
         "description": "The dragon uses Spellcasting to cast Command (level 2 version). The dragon can't take this action again until the start of its next turn.",
-        "kind": "text"
+        "kind": "text",
+        "limit": {
+          "per": "turn",
+          "count": 1
+        },
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_command"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "fiery_rays",
         "name": "Fiery Rays",
         "activation": "legendary",
         "description": "The dragon uses Spellcasting to cast Scorching Ray. The dragon can't take this action again until the start of its next turn.",
-        "kind": "text"
+        "kind": "text",
+        "limit": {
+          "per": "turn",
+          "count": 1
+        },
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_scorching_ray"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "pounce",
         "name": "Pounce",
         "activation": "legendary",
         "description": "The dragon moves up to half its Speed, and it makes one Rend attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "rend"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       }
     ]
   },
@@ -24504,21 +25123,71 @@
         "name": "Commanding Presence",
         "activation": "legendary",
         "description": "The dragon uses Spellcasting to cast Command (level 2 version). The dragon can't take this action again until the start of its next turn.",
-        "kind": "text"
+        "kind": "text",
+        "limit": {
+          "per": "turn",
+          "count": 1
+        },
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_command"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "fiery_rays",
         "name": "Fiery Rays",
         "activation": "legendary",
         "description": "The dragon uses Spellcasting to cast Scorching Ray (level 3 version). The dragon can't take this action again until the start of its next turn.",
-        "kind": "text"
+        "kind": "text",
+        "limit": {
+          "per": "turn",
+          "count": 1
+        },
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_scorching_ray"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "pounce",
         "name": "Pounce",
         "activation": "legendary",
         "description": "The dragon moves up to half its Speed, and it makes one Rend attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "rend"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       }
     ]
   },
@@ -26431,7 +27100,25 @@
         "name": "Chill",
         "activation": "legendary",
         "description": "The dragon uses Spellcasting to cast Hold Monster. The dragon can't take this action again until the start of its next turn.",
-        "kind": "text"
+        "kind": "text",
+        "limit": {
+          "per": "turn",
+          "count": 1
+        },
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_hold_monster"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "cold_gale",
@@ -26448,14 +27135,32 @@
           }
         ],
         "onSuccess": "half",
-        "onFailConditions": []
+        "onFailConditions": [],
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       },
       {
         "id": "pounce",
         "name": "Pounce",
         "activation": "legendary",
         "description": "The dragon moves up to half its Speed, and it makes one Rend attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "rend"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       }
     ]
   },
@@ -26675,7 +27380,25 @@
         "name": "Chill",
         "activation": "legendary",
         "description": "The dragon uses Spellcasting to cast Hold Monster. The dragon can't take this action again until the start of its next turn.",
-        "kind": "text"
+        "kind": "text",
+        "limit": {
+          "per": "turn",
+          "count": 1
+        },
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "spell_hold_monster"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "cold_gale",
@@ -26692,14 +27415,32 @@
           }
         ],
         "onSuccess": "half",
-        "onFailConditions": []
+        "onFailConditions": [],
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       },
       {
         "id": "pounce",
         "name": "Pounce",
         "activation": "legendary",
         "description": "The dragon moves up to half its Speed, and it makes one Rend attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "rend"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       }
     ]
   },
@@ -27215,7 +27956,11 @@
               "blinded"
             ]
           }
-        ]
+        ],
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       },
       {
         "id": "radiant_teleport",
@@ -27762,7 +28507,21 @@
         "name": "Arcane Prowl",
         "activation": "legendary",
         "description": "The sphinx can teleport up to 30 feet to an unoccupied space it can see, and it makes one Claw attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "claw"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "weight_of_years",
@@ -27774,7 +28533,11 @@
         "dc": 16,
         "damage": [],
         "onSuccess": "none",
-        "onFailConditions": []
+        "onFailConditions": [],
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       }
     ]
   },
@@ -28046,7 +28809,21 @@
         "name": "Arcane Prowl",
         "activation": "legendary",
         "description": "The sphinx can teleport up to 30 feet to an unoccupied space it can see, and it makes one Claw attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "claw"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "weight_of_years",
@@ -28058,7 +28835,11 @@
         "dc": 16,
         "damage": [],
         "onSuccess": "none",
-        "onFailConditions": []
+        "onFailConditions": [],
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       }
     ]
   },
@@ -29438,14 +30219,33 @@
         "name": "Onslaught",
         "activation": "legendary",
         "description": "The tarrasque moves up to half its Speed, and it makes one Claw or Tail attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "claw",
+                    "tail"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "world_shaking_movement",
         "name": "World-Shaking Movement",
         "activation": "legendary",
         "description": "The tarrasque moves up to its Speed. At the end of this movement, the tarrasque creates an instantaneous shock wave in a 60-foot Emanation originating from itself. Creatures in that area lose Concentration and, if Medium or smaller, have the Prone condition. The tarrasque can't take this action again until the start of its next turn.",
-        "kind": "text"
+        "kind": "text",
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       }
     ]
   },
@@ -30170,14 +30970,32 @@
         "name": "Charging Horn",
         "activation": "legendary",
         "description": "The unicorn moves up to half its Speed without provoking Opportunity Attacks, and it makes one Radiant Horn attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "radiant_horn"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "shimmering_shield",
         "name": "Shimmering Shield",
         "activation": "legendary",
         "description": "The unicorn targets itself or one creature it can see within 60 feet of itself. The target gains 10 (3d6) Temporary Hit Points, and its AC increases by 2 until the end of the unicorn's next turn.\nThe unicorn can't take this action again until the start of its next turn.",
-        "kind": "text"
+        "kind": "text",
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       }
     ]
   },
@@ -30675,14 +31493,32 @@
         "name": "Beguile",
         "activation": "legendary",
         "description": "The vampire casts Command, requiring no spell components and using Charisma as the spellcasting ability (spell save DC 17). The vampire can't take this action again until the start of its next turn.",
-        "kind": "text"
+        "kind": "text",
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       },
       {
         "id": "deathless_strike",
         "name": "Deathless Strike",
         "activation": "legendary",
         "description": "The vampire moves up to half its Speed, and it makes one Grave Strike attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "grave_strike_vampire_form_only"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       }
     ]
   },
@@ -32391,21 +33227,43 @@
           }
         ],
         "onSuccess": "none",
-        "onFailConditions": []
+        "onFailConditions": [],
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       },
       {
         "id": "frightful_presence",
         "name": "Frightful Presence",
         "activation": "legendary",
         "description": "The dragon casts Fear, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 14). The dragon can't take this action again until the start of its next turn.",
-        "kind": "text"
+        "kind": "text",
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       },
       {
         "id": "pounce",
         "name": "Pounce",
         "activation": "legendary",
         "description": "The dragon moves up to half its Speed, and it makes one Rend attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "rend"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       }
     ]
   },
@@ -32568,21 +33426,43 @@
           }
         ],
         "onSuccess": "none",
-        "onFailConditions": []
+        "onFailConditions": [],
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       },
       {
         "id": "frightful_presence",
         "name": "Frightful Presence",
         "activation": "legendary",
         "description": "The dragon casts Fear, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 18). The dragon can't take this action again until the start of its next turn.",
-        "kind": "text"
+        "kind": "text",
+        "limit": {
+          "per": "turn",
+          "count": 1
+        }
       },
       {
         "id": "pounce",
         "name": "Pounce",
         "activation": "legendary",
         "description": "The dragon moves up to half its Speed, and it makes one Rend attack.",
-        "kind": "text"
+        "kind": "text",
+        "multiattack": {
+          "options": [
+            {
+              "steps": [
+                {
+                  "count": 1,
+                  "actions": [
+                    "rend"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       }
     ]
   },

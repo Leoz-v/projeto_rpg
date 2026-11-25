@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { availableMonsterUses, monsterUseMax, pendingRecharges, withMonsterUse } from '../../src/engine/monster-uses';
+import { availableMonsterUses, monsterUsesAtTurnStart, monsterUseMax, pendingRecharges, withMonsterUse } from '../../src/engine/monster-uses';
 
 const daily = { id: 'legendary_resistance', name: 'Legendary Resistance', limit: { per: 'day', count: 3, lairCount: 4 } };
 const breath = { id: 'fire_breath', name: 'Fire Breath', limit: { recharge: 5 } };
@@ -17,6 +17,11 @@ describe('monster limited uses', () => {
     expect(availableMonsterUses(breath, { spent: {}, lair: false })).toBe(1);
     expect(pendingRecharges([daily, breath, { id: 'bite', name: 'Bite' }], { legendary_resistance: 1 })).toEqual([]);
     expect(pendingRecharges([daily, breath], { fire_breath: 1 })).toEqual([{ id: 'fire_breath', name: 'Fire Breath', min: 5 }]);
+  });
+
+  it('legendary actions and once-per-turn actions come back at the start of the turn, nothing else', () => {
+    const features = [daily, breath, { id: 'legendary_actions', name: 'L', limit: { per: 'round', count: 3 } }, { id: 'banish', name: 'Banish', limit: { per: 'turn', count: 1 } }];
+    expect(monsterUsesAtTurnStart(features, { legendary_resistance: 2, fire_breath: 1, legendary_actions: 3, banish: 1 })).toEqual({ legendary_resistance: 2, fire_breath: 1 });
   });
 
   it('keeps only what is spent in the record', () => {

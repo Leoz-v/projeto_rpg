@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import type { Multiattack as MultiattackData } from 'rules-engine/schemas';
-import { availableMonsterUses, monsterSpellUseId } from 'rules-engine/monster-uses';
+import type { Creature, Multiattack as MultiattackData } from 'rules-engine/schemas';
+import { availableMonsterUses, LEGENDARY_ACTIONS_ID, monsterSpellUseId } from 'rules-engine/monster-uses';
 import { multiattackFits, multiattackSlots } from 'rules-engine/multiattack';
 import type { MonsterBlockView } from '../../../shared/ipc';
 import type { Token } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
+import { usesLabel } from './MonsterBlock';
 import { type TargetOption, TargetChecklist } from './SaveEffect';
 
 /** Multiattack de um monstro (nota 0066): um alvo por ataque, e o Host rola tudo de uma vez. */
@@ -17,9 +18,15 @@ interface Row {
   mode: Mode;
 }
 
-function MultiattackForm({ token, block, data, description, targets, onError }: { token: Token; block: MonsterBlockView; data: MultiattackData; description: string; targets: readonly TargetOption[]; onError: (m: string | null) => void }) {
+function MultiattackForm({ token, block, action, data, description, targets, onError }: { token: Token; block: MonsterBlockView; action: Creature['actions'][number]; data: MultiattackData; description: string; targets: readonly TargetOption[]; onError: (m: string | null) => void }) {
   const [option, setOption] = useState(0);
   const { creature } = block;
+  const legendary = action.activation === 'legendary';
+  const legendaryLimit = creature.legendaryActionUses ? { id: LEGENDARY_ACTIONS_ID, limit: { per: 'round', ...creature.legendaryActionUses } } : undefined;
+  // Uma ação lendária precisa de um uso por rodada e, às vezes, só vale uma vez por turno do monstro.
+  const blocked =
+    (legendary && legendaryLimit !== undefined && availableMonsterUses(legendaryLimit, token.uses) === 0) ||
+    (action.limit !== undefined && availableMonsterUses({ id: action.id, limit: action.limit }, token.uses) === 0);
   const actionOf = (id: string) => creature.actions.find((a) => a.id === id);
   const spellOf = (id: string) => block.spells.find((s) => monsterSpellUseId(s.spellId) === id);
   const nameOf = (id: string): string => {
@@ -53,6 +60,7 @@ function MultiattackForm({ token, block, data, description, targets, onError }: 
       kind: 'attack.multi',
       data: {
         tokenId: token.id,
+        ...(legendary ? { actionId: action.id } : {}),
         option,
         steps: used.map((r) => ({
           actionId: r.actionId,
@@ -69,7 +77,8 @@ function MultiattackForm({ token, block, data, description, targets, onError }: 
   const label = (o: number): string => multiattackSlots(data, o).map((s) => s.actions.map(nameOf).join(' ou ')).join(', ');
   return (
     <div className="multiattack stack">
-      <h3>Multiattack</h3>
+      <h3>{action.name}</h3>
+      {legendary && legendaryLimit && <p className="hint">{usesLabel(legendaryLimit, token.uses)}</p>}
       <p className="hint">{description}</p>
       {data.options.length > 1 && (
         <select
@@ -133,8 +142,8 @@ function MultiattackForm({ token, block, data, description, targets, onError }: 
           Até {data.replace.max} troca(s){data.replace.cost > 1 ? `, cada uma no lugar de ${data.replace.cost} ataques: marque "não usar" nos outros` : ''}.
         </p>
       )}
-      <button type="button" className="secondary" disabled={busy || !ready} onClick={send}>
-        Rolar Multiattack
+      <button type="button" className="secondary" disabled={busy || !ready || blocked} onClick={send}>
+        {blocked ? 'Sem usos' : legendary ? 'Usar ação lendária' : 'Rolar Multiattack'}
       </button>
     </div>
   );
@@ -154,7 +163,21 @@ export function Multiattack({ token, targets, onError }: { token: Token; targets
       alive = false;
     };
   }, [monsterId]);
-  const action = block?.creature.actions.find((a) => a.kind === 'text' && a.multiattack !== undefined);
-  if (!block || action?.kind !== 'text' || !action.multiattack) return null;
-  return <MultiattackForm token={token} block={block} data={action.multiattack} description={action.description} targets={targets} onError={onError} />;
+  if (!block) return null;
+  return (
+    <>
+      {block.creature.actions.map((a) =>
+        a.kind === 'text' && a.multiattack !== undefined ? (
+          a.activation === 'legendary' ? (
+            <details key={a.id}>
+              <summary>Ação lendária: {a.name}</summary>
+              <MultiattackForm token={token} block={block} action={a} data={a.multiattack} description={a.description} targets={targets} onError={onError} />
+            </details>
+          ) : (
+            <MultiattackForm key={a.id} token={token} block={block} action={a} data={a.multiattack} description={a.description} targets={targets} onError={onError} />
+          )
+        ) : null,
+      )}
+    </>
+  );
 }

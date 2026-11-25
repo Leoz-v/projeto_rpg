@@ -117,6 +117,11 @@ export function resolveSave(input: SaveInput, rng: Rng): SaveResult {
   const roll = rollD20({ ...input.d20, dc: input.dc }, rng);
   const success = roll.success === true;
   if (input.damage.length === 0) return { roll, success };
+  return { roll, success, damage: saveDamage(input, success, rng) };
+}
+
+/** O dano de uma salvaguarda já decidida (a Resistência Lendária troca a falha por sucesso). */
+export function saveDamage(input: Pick<SaveInput, 'damage' | 'onSuccess' | 'defenses'>, success: boolean, rng: Rng): DamageResult {
   const incoming = input.damage.map((d) => ({ type: d.type, amount: success ? (input.onSuccess === 'half' ? Math.floor(d.amount / 2) : 0) : d.amount }));
-  return { roll, success, damage: applyDamage(input.defenses, incoming, rng) };
+  return applyDamage(input.defenses, incoming, rng);
 }
