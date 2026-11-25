@@ -6,6 +6,7 @@ export { applyDamage, damageNotes, type AppliedDamage, type DamageInstance, type
 export { type DiceRoll, type Rng, type RollDiceOptions, rollDice, seededRng } from './dice';
 export { type D20RollInput, type D20RollResult, type D20Step, rollD20 } from './d20';
 export { cellDistanceFeet, distanceFeet, FEET_PER_SQUARE, type Footprint, type GridCell, sizeAtMost, SPACE_FEET, spaceSquares } from './space';
+export { isConsumed, itemSaveApplies, itemSaveDc, itemUse, itemUseDamages, itemUseOptions, usedItemName } from './item-use';
 export { baseItemOptions, inventoryEntryProblems } from './items';
 export { ABILITY_ROLL_DICE, ABILITY_ROLL_SIDES, type AbilityRollSet, rollAbilityScores, usesRolledValues } from './ability-scores';
 export { applyHitPointChange, clampHitPoints, currentHitPoints, type HitPointChange, isBloodied, type HitPointResult, type HitPointState } from './hit-points';

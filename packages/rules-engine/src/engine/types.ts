@@ -196,6 +196,8 @@ export interface InventoryLine {
   requiresAttunement: boolean;
   /** Os efeitos do item valem agora (vestido, sintonizado ou só carregado, conforme o item). */
   active: boolean;
+  /** O item pode ser usado (nota 0074): quantos alvos e as opções à escolha. */
+  use?: { targets: 'one' | 'many'; options: string[] } | undefined;
 }
 
 export interface PendingChoice {

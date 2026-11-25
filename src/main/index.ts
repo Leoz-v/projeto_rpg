@@ -224,6 +224,7 @@ void app.whenReady().then(() => {
     characterSheet: (character) => characterSheet(character, getCompendium()).sheet ?? undefined,
     monsterHpMax: (id) => getCompendium().creatures.find((c) => c.id === id)?.hp.average,
     creature: (id) => getCompendium().creatures.find((c) => c.id === id),
+    item: (id) => getCompendium().items.find((i) => i.id === id),
     spell: (id) => getCompendium().spells.find((s) => s.id === id),
     itemProblems: (entry) => inventoryEntryProblems(entry, getCompendium()),
     addresses: localAddresses,

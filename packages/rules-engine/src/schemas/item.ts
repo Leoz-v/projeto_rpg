@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { AbilitySchema, DamageSchema, DiceSchema, FeetSchema, IdSchema, TextSchema, WeaponMasterySchema, WeaponPropertySchema } from './common';
 import { EffectSchema } from './effect';
+import { ItemUseSchema } from './item-use';
 
 /**
  * Itens do compêndio (SRD ou homebrew). Um item carrega seus efeitos
@@ -108,6 +109,8 @@ export const GearSchema = z.strictObject({
   kind: z.literal('gear'),
   /** Consumido ao usar (poções, pergaminhos, munição). */
   consumable: z.boolean().default(false),
+  /** O que acontece ao usar (nota 0074). */
+  use: ItemUseSchema.optional(),
   /** Foco de conjuração: arcano (Feiticeiro, Bruxo, Mago), druídico (Druida, Patrulheiro) ou símbolo sagrado (Clérigo, Paladino). */
   focus: z.enum(['arcane', 'druidic', 'holy_symbol']).optional(),
   /** Conteúdo de um pacote (Explorer's Pack etc.), em unidades. */
@@ -153,6 +156,8 @@ export const MagicVariantSchema = z.strictObject({
   cost: CostSchema.optional(),
   /** Somados aos efeitos do item. */
   effects: z.array(EffectSchema).default([]),
+  /** O uso desta variante, no lugar do uso do item. */
+  use: ItemUseSchema.optional(),
 });
 
 export const MagicItemSchema = z
@@ -169,6 +174,8 @@ export const MagicItemSchema = z
     /** Cargas máximas e recuperação, como publicadas (o gasto é estado de sessão, Fase 4). */
     charges: z.strictObject({ max: z.int().positive(), regain: z.string().optional() }).optional(),
     consumable: z.boolean().default(false),
+    /** O que acontece ao usar (nota 0074). */
+    use: ItemUseSchema.optional(),
   })
   .superRefine((m, ctx) => {
     if ((m.rarity === undefined) === (m.variants.length === 0)) {

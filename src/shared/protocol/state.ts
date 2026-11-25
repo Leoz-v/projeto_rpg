@@ -426,6 +426,18 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
       })
       .optional(),
   }),
+  /** Item consumível usado (nota 0074), com o texto para a mesa ler. O que ele faz vai nas entradas seguintes (`spellOf` aponta para esta). */
+  z.strictObject({
+    kind: z.literal('item_used'),
+    ...entryBase,
+    characterId: UuidSchema,
+    characterName: NameSchema,
+    itemName: LabelSchema,
+    /** Unidades que restam. */
+    left: z.int().nonnegative(),
+    duration: LabelSchema.optional(),
+    description: z.string().min(1).max(6000),
+  }),
   /** Recurso gasto ou recuperado (nota 0052). */
   z.strictObject({
     kind: z.literal('resource'),
@@ -736,6 +748,8 @@ export const PendingSaveSchema = z.strictObject({
   impose: z.strictObject({ actorTokenId: UuidSchema, actionId: IdSchema }).optional(),
   /** Efeitos e condições da magia. */
   spell: z.strictObject({ entryId: UuidSchema, part: z.int().min(0).max(MAX_SPELL_PARTS - 1), option: z.int().min(0).optional(), condition: TableConditionSchema.optional() }).optional(),
+  /** Condições de um item usado (nota 0074). */
+  item: z.strictObject({ label: LabelSchema, conditions: z.array(TableConditionSchema).min(1).max(15) }).optional(),
   /** Concentração que acaba na falha. */
   concentration: IdSchema.optional(),
 });

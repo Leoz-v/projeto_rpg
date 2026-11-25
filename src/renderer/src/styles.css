@@ -1490,6 +1490,7 @@ button.secondary.danger:focus-visible {
 }
 
 .items li {
+  flex-wrap: wrap;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -2458,4 +2459,11 @@ button.fog-tool.active {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
+}
+
+.item-use {
+  flex-basis: 100%;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
 }

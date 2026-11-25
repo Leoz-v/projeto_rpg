@@ -21,6 +21,7 @@ function setup(): HostSession {
     characterSheet: () => undefined,
     monsterHpMax: (id) => (id === 'goblin' ? 7 : undefined),
     creature: (id) => compendium.creatures.find((c) => c.id === (id === 'goblin' ? 'goblin_warrior' : id)),
+    item: () => undefined,
     spell: () => undefined,
     assetExists: () => false,
   });

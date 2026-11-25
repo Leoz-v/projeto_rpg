@@ -929,9 +929,9 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:bead_of_force": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
+    "item:bead_of_force#sphere": {
+      "category": "gm",
+      "reason": "A esfera que prende ou empurra depende de quem está na área: o mestre conduz."
     },
     "item:bead_of_nourishment": {
       "category": "phase_4",
@@ -1037,15 +1037,7 @@
       "category": "gm",
       "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
     },
-    "item:dust_of_disappearance": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
     "item:dust_of_dryness": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:dust_of_sneezing_and_choking": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
@@ -1058,10 +1050,6 @@
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
     "item:elemental_gem": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:elixir_of_health": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
@@ -1273,43 +1261,7 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:potion_of_climbing": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:potion_of_diminution": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:potion_of_flying": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
     "item:potion_of_gaseous_form": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:potion_of_giant_strength": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:potion_of_growth": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:potion_of_healing": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:potion_of_heroism": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:potion_of_invisibility": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:potion_of_invulnerability": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
@@ -1321,21 +1273,9 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:potion_of_poison": {
+    "item:potion_of_vitality#hit_dice": {
       "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:potion_of_resistance": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:potion_of_speed": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:potion_of_vitality": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
+      "reason": "Dados de Vida recuperam o máximo por 24 horas: muda a rolagem do descanso."
     },
     "item:potion_of_water_breathing": {
       "category": "phase_4",

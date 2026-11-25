@@ -559,7 +559,7 @@ export function rollSaves(
     /** Condições que entram direto na falha; as notas vão no resultado do alvo. */
     impose?: (target: Token) => { ops: PatchOp[]; notes: string[] };
     /** O que entra na falha, para esperar a Resistência Lendária (nota 0069). */
-    pending?: Pick<PendingSave, 'impose' | 'spell'>;
+    pending?: Pick<PendingSave, 'impose' | 'spell' | 'item'>;
   },
 ): { ops: PatchOp[]; failed: Token[] } {
   const { actorName, effect, targets, against } = options;

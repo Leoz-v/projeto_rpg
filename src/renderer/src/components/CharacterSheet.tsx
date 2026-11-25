@@ -613,7 +613,7 @@ export function CharacterSheet({ view, characterId, onClose }: { view: TableView
                       .map((t) => ({ id: t.id, name: t.name }))}
                   />
                 )}
-                <Inventory character={record} sheet={load.view.sheet} canEdit={canEdit} />
+                <Inventory character={record} sheet={load.view.sheet} state={view.state} canEdit={canEdit} />
                 <Adjustments character={record} isGm={isGm} canEdit={canEdit} />
               </>
             )}

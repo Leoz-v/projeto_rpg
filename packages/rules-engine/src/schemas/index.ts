@@ -2,6 +2,7 @@ export * from './common';
 export * from './predicate';
 export * from './effect';
 export * from './item';
+export * from './item-use';
 export * from './action';
 export * from './creature';
 export * from './spell';
