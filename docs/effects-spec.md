@@ -239,7 +239,7 @@ O valor do atributo passa a ser pelo menos `value` (ex.: Manoplas de Força do O
 { "type": "attack_ability", "ability": "dex", "when": { "all": [{ "attackKind": "melee" }, { "any": [{ "weaponCategory": "simple" }, { "weaponProperty": "light" }] }, { "wearingArmor": false }, { "wieldingShield": false }] } }
 ```
 
-- Permite usar outro atributo no ataque e no dano das armas que satisfazem o `when` (ex.: Martial Arts do Monge). O motor usa o maior entre o atributo normal da arma e os permitidos.
+- Permite usar outro atributo no ataque e no dano das armas que satisfazem o `when` (ex.: Martial Arts do Monge). `scope: "weapon"`: só na arma que carrega o efeito (Shillelagh). O motor usa o maior entre o atributo normal da arma e os permitidos.
 
 ### 3.14 `damage_reduction`
 
@@ -327,9 +327,9 @@ Regra que muda o resultado de um Teste d20 (ataque, salvaguarda ou teste de atri
 { "type": "base_override", "addProperties": ["finesse"], "damageType": "radiant", "proficiencyWith": ["longsword", "shortsword"] }
 ```
 
-- Só em itens mágicos com item base: altera o item base **daquela entrada do inventário** enquanto a parte mágica está ativa. Os outros itens não mudam.
+- Em itens mágicos com item base, ou num ajuste com `weapon`: altera o item base **daquela entrada do inventário** enquanto a parte mágica está ativa. Os outros itens não mudam.
 - Armadura: `removeStrength` (a exigência de FOR some) e `removeStealthDisadvantage` (a Desvantagem em Stealth do item base some). Ex.: Mithral Armor.
-- Arma: `addProperties` (propriedades a mais), `damageType` (troca o tipo do dano da arma) e `proficiencyWith` (proficiente se tiver proficiência com alguma destas armas, além da própria arma base). Ex.: Sun Blade, "functions as a Longsword with the Finesse property. If you are proficient with Longswords or Shortswords, you are proficient with the Sun Blade [...] deals Radiant damage instead of Slashing damage".
+- Arma: `addProperties` (propriedades a mais), `damageType` (troca o tipo do dano da arma), `damageDice` (troca o dado, também com as duas mãos: Shillelagh) e `proficiencyWith` (proficiente se tiver proficiência com alguma destas armas, além da própria arma base). Ex.: Sun Blade, "functions as a Longsword with the Finesse property. If you are proficient with Longswords or Shortswords, you are proficient with the Sun Blade [...] deals Radiant damage instead of Slashing damage".
 - Pelo menos um campo. O id da arma (predicado `weaponId`) continua sendo o do item base.
 
 ### 3.21 `reminder`
@@ -420,6 +420,23 @@ CA mínima (Barkskin, nota 0062). Aplicada depois das fórmulas e dos bônus de 
 ```json
 { "type": "minimum_ac", "value": 17 }
 ```
+
+### 3.28 `target_damage`
+
+Dano extra de quem conjurou quando acerta com uma jogada de ataque, com arma ou magia (nota 0063).
+
+```json
+{ "type": "target_damage", "dice": "1d6", "damageType": "necrotic" }
+{ "type": "target_damage", "dice": "2d8", "damageType": "cold", "within": 15 }
+```
+
+- Sem `within`, o efeito fica no alvo marcado e vale só para quem conjurou (Hex, Hunter's Mark).
+- Com `within`, fica em quem conjurou e vale contra alvos até essa distância em pés (Conjure Minor Elementals). Sem a distância, vira lembrete.
+- Os dados dobram no Acerto Crítico. Só vale como efeito de magia (`spell`).
+
+### Efeitos numa arma
+
+Um ajuste com `weapon` (o `instanceId` do inventário) vale como se os efeitos fossem do próprio item (nota 0063): `attack.weapon` e `damage.weapon` (Magic Weapon), `base_override` e os efeitos com `scope: "weapon"`.
 
 ### Efeitos num monstro
 

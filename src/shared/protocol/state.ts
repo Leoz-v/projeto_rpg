@@ -62,6 +62,7 @@ export const SpellEffectPartSchema = z.discriminatedUnion('kind', [
     onFailConditions: SpellEffectConditionsSchema,
     conditionChoice: z.literal(true).optional(),
     onFailEffects: z.array(EffectSchema).max(MAX_ADJUSTMENT_EFFECTS).default([]),
+    options: z.array(z.strictObject({ label: LabelSchema, effects: z.array(EffectSchema).max(MAX_ADJUSTMENT_EFFECTS) })).max(MAX_SPELL_OPTIONS).default([]),
     conditionsEnd: SpellConditionEndSchema.optional(),
   }),
   z.strictObject({ label: LabelSchema.optional(), kind: z.literal('damage'), damage: SpellEffectDamageSchema, count: SpellEffectCountSchema }),
@@ -86,7 +87,10 @@ export const SpellEffectPartSchema = z.discriminatedUnion('kind', [
     kind: z.literal('buff'),
     count: SpellEffectCountSchema.optional(),
     effects: z.array(EffectSchema).max(MAX_ADJUSTMENT_EFFECTS),
-    options: z.array(z.strictObject({ label: LabelSchema, effects: z.array(EffectSchema).min(1).max(MAX_ADJUSTMENT_EFFECTS) })).max(MAX_SPELL_OPTIONS),
+    options: z.array(z.strictObject({ label: LabelSchema, effects: z.array(EffectSchema).max(MAX_ADJUSTMENT_EFFECTS) })).max(MAX_SPELL_OPTIONS),
+    /** Efeitos numa arma empunhada do alvo (`weaponId` no `spell.effect`). */
+    weapon: z.strictObject({ nonmagical: z.literal(true).optional(), itemIds: z.array(IdSchema).optional(), spellcastingAbility: z.literal(true).optional() }).optional(),
+    effectsEnd: z.enum(['caster_turn_start', 'caster_turn_end']).optional(),
     endConditions: SpellEffectConditionsSchema,
   }),
 ]);
@@ -309,7 +313,8 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     /** Nome do personagem ou do token. */
     characterName: NameSchema,
     effectName: LabelSchema,
-    reason: z.enum(['concentration', 'removed']),
+    /** `duration`: o turno chegou; `replaced`: quem conjurou usou a magia de novo. */
+    reason: z.enum(['concentration', 'removed', 'duration', 'replaced']),
   }),
   /** Iniciativa rolada pelo Host (`combat.start`, `combat.add`): o resultado de cada token. */
   z.strictObject({
@@ -569,6 +574,10 @@ export const SessionAdjustmentSchema = z.strictObject({
   effects: z.array(EffectSchema).min(1).max(MAX_ADJUSTMENT_EFFECTS),
   /** Efeito de magia (nota 0060): quem conjurou e a magia. Com Concentração, sai quando ela acaba; o dono do personagem também pode tirar. */
   spell: ConditionSpellSchema.optional(),
+  /** Arma do inventário a que os efeitos pertencem (nota 0063). */
+  weapon: InstanceIdSchema.optional(),
+  /** Termina no início ou no fim de um turno (Shield). */
+  until: TurnExpirySchema.optional(),
 });
 export type SessionAdjustment = z.infer<typeof SessionAdjustmentSchema>;
 

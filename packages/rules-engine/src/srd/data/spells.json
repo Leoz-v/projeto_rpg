@@ -748,7 +748,127 @@
       "cleric",
       "wizard"
     ],
-    "description": "You touch a creature, which must succeed on a Wisdom saving throw or become cursed for the duration. Until the curse ends, the target suffers one of the following effects of your choice:\n• Choose one ability. The target has Disadvantage on ability checks and saving throws made with that ability.\n• The target has Disadvantage on attack rolls against you.\n• In combat, the target must succeed on a Wisdom saving throw at the start of each of its turns or be forced to take the Dodge action on that turn.\n• If you deal damage to the target with an attack roll or a spell, the target takes an extra 1d8 Necrotic damage.\nUsing a Higher-Level Spell Slot. If you cast this spell using a level 4 spell slot, you can maintain Concentration on it for up to 10 minutes. If you use a level 5+ spell slot, the spell doesn't require Concentration, and the duration becomes 8 hours (level 5-6 slot) or 24 hours (level 7-8 slot). If you use a level 9 spell slot, the spell lasts until dispelled."
+    "description": "You touch a creature, which must succeed on a Wisdom saving throw or become cursed for the duration. Until the curse ends, the target suffers one of the following effects of your choice:\n• Choose one ability. The target has Disadvantage on ability checks and saving throws made with that ability.\n• The target has Disadvantage on attack rolls against you.\n• In combat, the target must succeed on a Wisdom saving throw at the start of each of its turns or be forced to take the Dodge action on that turn.\n• If you deal damage to the target with an attack roll or a spell, the target takes an extra 1d8 Necrotic damage.\nUsing a Higher-Level Spell Slot. If you cast this spell using a level 4 spell slot, you can maintain Concentration on it for up to 10 minutes. If you use a level 5+ spell slot, the spell doesn't require Concentration, and the duration becomes 8 hours (level 5-6 slot) or 24 hours (level 7-8 slot). If you use a level 9 spell slot, the spell lasts until dispelled.",
+    "resolution": [
+      {
+        "kind": "save",
+        "count": {
+          "base": 1
+        },
+        "ability": "wis",
+        "onSuccess": "none",
+        "options": [
+          {
+            "label": "Força",
+            "effects": [
+              {
+                "type": "disadvantage",
+                "target": "check.str"
+              },
+              {
+                "type": "disadvantage",
+                "target": "save.str"
+              }
+            ]
+          },
+          {
+            "label": "Destreza",
+            "effects": [
+              {
+                "type": "disadvantage",
+                "target": "check.dex"
+              },
+              {
+                "type": "disadvantage",
+                "target": "save.dex"
+              }
+            ]
+          },
+          {
+            "label": "Constituição",
+            "effects": [
+              {
+                "type": "disadvantage",
+                "target": "check.con"
+              },
+              {
+                "type": "disadvantage",
+                "target": "save.con"
+              }
+            ]
+          },
+          {
+            "label": "Inteligência",
+            "effects": [
+              {
+                "type": "disadvantage",
+                "target": "check.int"
+              },
+              {
+                "type": "disadvantage",
+                "target": "save.int"
+              }
+            ]
+          },
+          {
+            "label": "Sabedoria",
+            "effects": [
+              {
+                "type": "disadvantage",
+                "target": "check.wis"
+              },
+              {
+                "type": "disadvantage",
+                "target": "save.wis"
+              }
+            ]
+          },
+          {
+            "label": "Carisma",
+            "effects": [
+              {
+                "type": "disadvantage",
+                "target": "check.cha"
+              },
+              {
+                "type": "disadvantage",
+                "target": "save.cha"
+              }
+            ]
+          },
+          {
+            "label": "Ataques contra quem conjurou",
+            "effects": [
+              {
+                "type": "reminder",
+                "on": "turn_start",
+                "note": "Bestow Curse: Desvantagem nos ataques contra quem conjurou."
+              }
+            ]
+          },
+          {
+            "label": "Esquivar",
+            "effects": [
+              {
+                "type": "reminder",
+                "on": "turn_start",
+                "note": "Bestow Curse: salva contra Sabedoria ou usa a ação para Esquivar neste turno."
+              }
+            ]
+          },
+          {
+            "label": "Dano extra",
+            "effects": [
+              {
+                "type": "target_damage",
+                "dice": "1d8",
+                "damageType": "necrotic"
+              }
+            ]
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "black_tentacles",
@@ -1700,7 +1820,93 @@
       "druid",
       "wizard"
     ],
-    "description": "You conjure spirits from the Elemental Planes that flit around you in a 15-foot Emanation for the duration. Until the spell ends, any attack you make deals an extra 2d8 damage when you hit a creature in the Emanation. This damage is Acid, Cold, Fire, or Lightning (your choice when you make the attack).\nIn addition, the ground in the Emanation is Difficult Terrain for your enemies.\nUsing a Higher-Level Spell Slot. The damage increases by 1d8 for each spell slot level above 4."
+    "description": "You conjure spirits from the Elemental Planes that flit around you in a 15-foot Emanation for the duration. Until the spell ends, any attack you make deals an extra 2d8 damage when you hit a creature in the Emanation. This damage is Acid, Cold, Fire, or Lightning (your choice when you make the attack).\nIn addition, the ground in the Emanation is Difficult Terrain for your enemies.\nUsing a Higher-Level Spell Slot. The damage increases by 1d8 for each spell slot level above 4.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1
+        },
+        "options": [
+          {
+            "label": "Ácido",
+            "effects": [
+              {
+                "type": "target_damage",
+                "dice": "2d8",
+                "damageType": "acid",
+                "within": 15
+              }
+            ],
+            "upcast": [
+              {
+                "type": "target_damage",
+                "dice": "1d8",
+                "damageType": "acid",
+                "within": 15
+              }
+            ]
+          },
+          {
+            "label": "Frio",
+            "effects": [
+              {
+                "type": "target_damage",
+                "dice": "2d8",
+                "damageType": "cold",
+                "within": 15
+              }
+            ],
+            "upcast": [
+              {
+                "type": "target_damage",
+                "dice": "1d8",
+                "damageType": "cold",
+                "within": 15
+              }
+            ]
+          },
+          {
+            "label": "Fogo",
+            "effects": [
+              {
+                "type": "target_damage",
+                "dice": "2d8",
+                "damageType": "fire",
+                "within": 15
+              }
+            ],
+            "upcast": [
+              {
+                "type": "target_damage",
+                "dice": "1d8",
+                "damageType": "fire",
+                "within": 15
+              }
+            ]
+          },
+          {
+            "label": "Elétrico",
+            "effects": [
+              {
+                "type": "target_damage",
+                "dice": "2d8",
+                "damageType": "lightning",
+                "within": 15
+              }
+            ],
+            "upcast": [
+              {
+                "type": "target_damage",
+                "dice": "1d8",
+                "damageType": "lightning",
+                "within": 15
+              }
+            ]
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "conjure_woodland_beings",
@@ -2880,7 +3086,89 @@
       "sorcerer",
       "wizard"
     ],
-    "description": "For the duration, the spell enlarges or reduces a creature or an object you can see within range (see the chosen effect below). A targeted object must be neither worn nor carried. If the target is an unwilling creature, it can make a Constitution saving throw. On a successful save, the spell has no effect.\nEverything that a targeted creature is wearing and carrying changes size with it. Any item it drops returns to normal size at once. A thrown weapon or piece of ammunition returns to normal size immediately after it hits or misses a target.\nEnlarge. The target's size increases by one category--from Medium to Large, for example. The target also has Advantage on Strength checks and Strength saving throws. The target's attacks with its enlarged weapons or Unarmed Strikes deal an extra 1d4 damage on a hit.\nReduce. The target's size decreases by one category--from Medium to Small, for example. The target also has Disadvantage on Strength checks and Strength saving throws. The target's attacks with its reduced weapons or Unarmed Strikes deal 1d4 less damage on a hit (this can't reduce the damage below 1)."
+    "description": "For the duration, the spell enlarges or reduces a creature or an object you can see within range (see the chosen effect below). A targeted object must be neither worn nor carried. If the target is an unwilling creature, it can make a Constitution saving throw. On a successful save, the spell has no effect.\nEverything that a targeted creature is wearing and carrying changes size with it. Any item it drops returns to normal size at once. A thrown weapon or piece of ammunition returns to normal size immediately after it hits or misses a target.\nEnlarge. The target's size increases by one category--from Medium to Large, for example. The target also has Advantage on Strength checks and Strength saving throws. The target's attacks with its enlarged weapons or Unarmed Strikes deal an extra 1d4 damage on a hit.\nReduce. The target's size decreases by one category--from Medium to Small, for example. The target also has Disadvantage on Strength checks and Strength saving throws. The target's attacks with its reduced weapons or Unarmed Strikes deal 1d4 less damage on a hit (this can't reduce the damage below 1).",
+    "resolution": [
+      {
+        "kind": "buff",
+        "label": "Alvo voluntário",
+        "count": {
+          "base": 1
+        },
+        "options": [
+          {
+            "label": "Aumentar",
+            "effects": [
+              {
+                "type": "advantage",
+                "target": "check.str"
+              },
+              {
+                "type": "advantage",
+                "target": "save.str"
+              },
+              {
+                "type": "extra_damage",
+                "dice": "1d4"
+              }
+            ]
+          },
+          {
+            "label": "Reduzir",
+            "effects": [
+              {
+                "type": "disadvantage",
+                "target": "check.str"
+              },
+              {
+                "type": "disadvantage",
+                "target": "save.str"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "save",
+        "label": "Alvo involuntário",
+        "count": {
+          "base": 1
+        },
+        "ability": "con",
+        "onSuccess": "none",
+        "options": [
+          {
+            "label": "Aumentar",
+            "effects": [
+              {
+                "type": "advantage",
+                "target": "check.str"
+              },
+              {
+                "type": "advantage",
+                "target": "save.str"
+              },
+              {
+                "type": "extra_damage",
+                "dice": "1d4"
+              }
+            ]
+          },
+          {
+            "label": "Reduzir",
+            "effects": [
+              {
+                "type": "disadvantage",
+                "target": "check.str"
+              },
+              {
+                "type": "disadvantage",
+                "target": "save.str"
+              }
+            ]
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "ensnaring_strike",
@@ -4766,7 +5054,78 @@
     "classes": [
       "warlock"
     ],
-    "description": "You place a curse on a creature that you can see within range. Until the spell ends, you deal an extra 1d6 Necrotic damage to the target whenever you hit it with an attack roll. Also, choose one ability when you cast the spell. The target has Disadvantage on ability checks made with the chosen ability.\nIf the target drops to 0 Hit Points before this spell ends, you can take a Bonus Action on a later turn to curse a new creature.\nUsing a Higher-Level Spell Slot. Your Concentration can last longer with a spell slot of level 2 (up to 4 hours), 3-4 (up to 8 hours), or 5+ (24 hours)."
+    "description": "You place a curse on a creature that you can see within range. Until the spell ends, you deal an extra 1d6 Necrotic damage to the target whenever you hit it with an attack roll. Also, choose one ability when you cast the spell. The target has Disadvantage on ability checks made with the chosen ability.\nIf the target drops to 0 Hit Points before this spell ends, you can take a Bonus Action on a later turn to curse a new creature.\nUsing a Higher-Level Spell Slot. Your Concentration can last longer with a spell slot of level 2 (up to 4 hours), 3-4 (up to 8 hours), or 5+ (24 hours).",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1
+        },
+        "effects": [
+          {
+            "type": "target_damage",
+            "dice": "1d6",
+            "damageType": "necrotic"
+          }
+        ],
+        "options": [
+          {
+            "label": "Força",
+            "effects": [
+              {
+                "type": "disadvantage",
+                "target": "check.str"
+              }
+            ]
+          },
+          {
+            "label": "Destreza",
+            "effects": [
+              {
+                "type": "disadvantage",
+                "target": "check.dex"
+              }
+            ]
+          },
+          {
+            "label": "Constituição",
+            "effects": [
+              {
+                "type": "disadvantage",
+                "target": "check.con"
+              }
+            ]
+          },
+          {
+            "label": "Inteligência",
+            "effects": [
+              {
+                "type": "disadvantage",
+                "target": "check.int"
+              }
+            ]
+          },
+          {
+            "label": "Sabedoria",
+            "effects": [
+              {
+                "type": "disadvantage",
+                "target": "check.wis"
+              }
+            ]
+          },
+          {
+            "label": "Carisma",
+            "effects": [
+              {
+                "type": "disadvantage",
+                "target": "check.cha"
+              }
+            ]
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "hideous_laughter",
@@ -4931,7 +5290,22 @@
     "classes": [
       "ranger"
     ],
-    "description": "You magically mark one creature you can see within range as your quarry. Until the spell ends, you deal an extra 1d6 Force damage to the target whenever you hit it with an attack roll. You also have Advantage on any Wisdom (Perception or Survival) check you make to find it.\nIf the target drops to 0 Hit Points before this spell ends, you can take a Bonus Action to move the mark to a new creature you can see within range.\nUsing a Higher-Level Spell Slot. Your Concentration can last longer with a spell slot of level 3-4 (up to 8 hours) or 5+ (up to 24 hours)."
+    "description": "You magically mark one creature you can see within range as your quarry. Until the spell ends, you deal an extra 1d6 Force damage to the target whenever you hit it with an attack roll. You also have Advantage on any Wisdom (Perception or Survival) check you make to find it.\nIf the target drops to 0 Hit Points before this spell ends, you can take a Bonus Action to move the mark to a new creature you can see within range.\nUsing a Higher-Level Spell Slot. Your Concentration can last longer with a spell slot of level 3-4 (up to 8 hours) or 5+ (up to 24 hours).",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1
+        },
+        "effects": [
+          {
+            "type": "target_damage",
+            "dice": "1d6",
+            "damageType": "force"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "hypnotic_pattern",
@@ -5724,7 +6098,62 @@
       "sorcerer",
       "wizard"
     ],
-    "description": "You touch a nonmagical weapon. Until the spell ends, that weapon becomes a magic weapon with a +1 bonus to attack rolls and damage rolls. The spell ends early if you cast it again.\nUsing a Higher-Level Spell Slot. The bonus increases to +2 with a level 3-5 spell slot. The bonus increases to +3 with a level 6+ spell slot."
+    "description": "You touch a nonmagical weapon. Until the spell ends, that weapon becomes a magic weapon with a +1 bonus to attack rolls and damage rolls. The spell ends early if you cast it again.\nUsing a Higher-Level Spell Slot. The bonus increases to +2 with a level 3-5 spell slot. The bonus increases to +3 with a level 6+ spell slot.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1
+        },
+        "effects": [
+          {
+            "type": "flat_bonus",
+            "target": "attack.weapon",
+            "value": 1
+          },
+          {
+            "type": "flat_bonus",
+            "target": "damage.weapon",
+            "value": 1
+          }
+        ],
+        "variants": [
+          {
+            "slot": 3,
+            "effects": [
+              {
+                "type": "flat_bonus",
+                "target": "attack.weapon",
+                "value": 2
+              },
+              {
+                "type": "flat_bonus",
+                "target": "damage.weapon",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "slot": 6,
+            "effects": [
+              {
+                "type": "flat_bonus",
+                "target": "attack.weapon",
+                "value": 3
+              },
+              {
+                "type": "flat_bonus",
+                "target": "damage.weapon",
+                "value": 3
+              }
+            ]
+          }
+        ],
+        "weapon": {
+          "nonmagical": true
+        }
+      }
+    ]
   },
   {
     "id": "magnificent_mansion",
@@ -7830,7 +8259,23 @@
       "sorcerer",
       "wizard"
     ],
-    "description": "An imperceptible barrier of magical force protects you. Until the start of your next turn, you have a +5 bonus to AC, including against the triggering attack, and you take no damage from Magic Missile."
+    "description": "An imperceptible barrier of magical force protects you. Until the start of your next turn, you have a +5 bonus to AC, including against the triggering attack, and you take no damage from Magic Missile.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1
+        },
+        "effects": [
+          {
+            "type": "flat_bonus",
+            "target": "ac",
+            "value": 5
+          }
+        ],
+        "effectsEnd": "caster_turn_start"
+      }
+    ]
   },
   {
     "id": "shield_of_faith",
@@ -7883,7 +8328,72 @@
     "classes": [
       "druid"
     ],
-    "description": "A Club or Quarterstaff you are holding is imbued with nature's power. For the duration, you can use your spellcasting ability instead of Strength for the attack and damage rolls of melee attacks using that weapon, and the weapon's damage die becomes a d8. If the attack deals damage, it can be Force damage or the weapon's normal damage type (your choice).\nThe spell ends early if you cast it again or if you let go of the weapon.\nCantrip Upgrade. The damage die changes when you reach levels 5 (d10), 11 (d12), and 17 (2d6)."
+    "description": "A Club or Quarterstaff you are holding is imbued with nature's power. For the duration, you can use your spellcasting ability instead of Strength for the attack and damage rolls of melee attacks using that weapon, and the weapon's damage die becomes a d8. If the attack deals damage, it can be Force damage or the weapon's normal damage type (your choice).\nThe spell ends early if you cast it again or if you let go of the weapon.\nCantrip Upgrade. The damage die changes when you reach levels 5 (d10), 11 (d12), and 17 (2d6).",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1
+        },
+        "effects": [
+          {
+            "type": "base_override",
+            "damageDice": "1d8"
+          }
+        ],
+        "options": [
+          {
+            "label": "Dano normal",
+            "effects": []
+          },
+          {
+            "label": "Energia",
+            "effects": [
+              {
+                "type": "base_override",
+                "damageType": "force"
+              }
+            ]
+          }
+        ],
+        "variants": [
+          {
+            "level": 5,
+            "effects": [
+              {
+                "type": "base_override",
+                "damageDice": "1d10"
+              }
+            ]
+          },
+          {
+            "level": 11,
+            "effects": [
+              {
+                "type": "base_override",
+                "damageDice": "1d12"
+              }
+            ]
+          },
+          {
+            "level": 17,
+            "effects": [
+              {
+                "type": "base_override",
+                "damageDice": "2d6"
+              }
+            ]
+          }
+        ],
+        "weapon": {
+          "itemIds": [
+            "club",
+            "quarterstaff"
+          ],
+          "spellcastingAbility": true
+        }
+      }
+    ]
   },
   {
     "id": "shining_smite",

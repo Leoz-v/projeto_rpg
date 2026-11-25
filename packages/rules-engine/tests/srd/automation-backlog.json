@@ -2449,9 +2449,9 @@
       "category": "gm",
       "reason": "A cura recupera o máximo possível: o mestre ajusta o valor da cura."
     },
-    "spell:bestow_curse": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende do alvo marcado, de uma arma, do tamanho ou de um turno: Fase 7, PR 4b2 (nota 0062)."
+    "spell:bestow_curse#spell_damage_and_slots": {
+      "category": "gm",
+      "reason": "Dano extra nas magias sem ataque, e a duração sem Concentração com espaço de 5º círculo ou mais: o mestre acompanha."
     },
     "spell:blink": {
       "category": "gm",
@@ -2492,10 +2492,6 @@
     "spell:confusion": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
-    },
-    "spell:conjure_minor_elementals": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende do alvo marcado, de uma arma, do tamanho ou de um turno: Fase 7, PR 4b2 (nota 0062)."
     },
     "spell:contact_other_plane": {
       "category": "gm",
@@ -2605,9 +2601,9 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:enlarge_reduce": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende do alvo marcado, de uma arma, do tamanho ou de um turno: Fase 7, PR 4b2 (nota 0062)."
+    "spell:enlarge_reduce#size_and_damage": {
+      "category": "gm",
+      "reason": "O tamanho do token e o -1d4 no dano do Reduzir: o mestre ajusta. O +1d4 só entra na ficha de personagens."
     },
     "spell:enthrall": {
       "category": "gm",
@@ -2733,17 +2729,17 @@
       "category": "gm",
       "reason": "PV máximos +2d10 (rolados uma vez, por 24 horas): o mestre rola e aplica como ajuste."
     },
-    "spell:hex": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende do alvo marcado, de uma arma, do tamanho ou de um turno: Fase 7, PR 4b2 (nota 0062)."
+    "spell:hex#duration": {
+      "category": "gm",
+      "reason": "A Concentração dura mais em círculos maiores: a mesa controla o tempo."
     },
     "spell:holy_aura#blinded": {
       "category": "gm",
       "reason": "Um Corruptor ou Morto-vivo que acerta o alvo corpo a corpo salva contra Cego: o mestre conduz."
     },
-    "spell:hunters_mark": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende do alvo marcado, de uma arma, do tamanho ou de um turno: Fase 7, PR 4b2 (nota 0062)."
+    "spell:hunters_mark#perception": {
+      "category": "gm",
+      "reason": "Vantagem em Percepção e Sobrevivência para achar o alvo: declarada na rolagem."
     },
     "spell:identify": {
       "category": "gm",
@@ -2812,10 +2808,6 @@
     "spell:magic_mouth": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
-    },
-    "spell:magic_weapon": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende do alvo marcado, de uma arma, do tamanho ou de um turno: Fase 7, PR 4b2 (nota 0062)."
     },
     "spell:magnificent_mansion": {
       "category": "gm",
@@ -3005,13 +2997,9 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:shield": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende do alvo marcado, de uma arma, do tamanho ou de um turno: Fase 7, PR 4b2 (nota 0062)."
-    },
-    "spell:shillelagh": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende do alvo marcado, de uma arma, do tamanho ou de um turno: Fase 7, PR 4b2 (nota 0062)."
+    "spell:shield#triggering_attack": {
+      "category": "gm",
+      "reason": "O +5 vale contra o ataque que disparou e anula Magic Missile: o mestre descarta a proposta de dano."
     },
     "spell:silence": {
       "category": "gm",

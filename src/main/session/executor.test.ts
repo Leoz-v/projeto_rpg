@@ -2468,6 +2468,67 @@ describe('HostSession: spell buffs on the sheet (note 0060)', () => {
     expect(t.session.state.chat.findLast((e) => e.kind === 'attack_roll')).toMatchObject({ mode: 'disadvantage', disadvantage: ['Bless (Morg)'] });
   });
 
+  it("Hunter's Mark moves to the new target; Hex needs the ability to be chosen", () => {
+    const t = table([10], 'hunters_mark');
+    const entryId = t.cast('bless', 'free');
+    t.use(entryId, [t.goblin]);
+    expect(t.session.state.tokens[t.goblin]?.spellEffects).toHaveLength(1);
+    t.use(entryId, [t.morg]);
+    expect(t.session.state.tokens[t.goblin]?.spellEffects).toEqual([]);
+    expect(t.character().adjustments).toMatchObject([{ effects: [{ type: 'target_damage', dice: '1d6', damageType: 'force' }] }]);
+    expect(t.session.state.chat.some((e) => e.kind === 'spell_effect_ended' && e.reason === 'replaced' && e.characterName === 'Goblin 1')).toBe(true);
+    // A marca do Morg só vale para ele: o ataque do goblin não rola o dado extra.
+    t.session.handle(GM.playerId, { kind: 'attack.make', data: { attacker: { tokenId: t.goblin, actionId: 'scimitar' }, targetTokenId: t.morg, visibility: 'public' } });
+    const attack = t.session.state.chat.findLast((e) => e.kind === 'attack_roll');
+    expect(attack?.kind === 'attack_roll' ? (attack.damage?.groups ?? []).filter((g) => g.source !== undefined) : ['?']).toEqual([]);
+
+    const hexed = table([10], 'hex');
+    const hex = hexed.cast('bless', 'free');
+    expect(rejection(hexed.use(hex, [hexed.goblin]))).toBe('rule_violation');
+    expect(applied(hexed.use(hex, [hexed.goblin], 0))).toBe(true);
+    expect(hexed.session.state.tokens[hexed.goblin]?.spellEffects).toMatchObject([{ name: 'Bless: Força (Morg)', effects: [{ type: 'target_damage' }, { type: 'disadvantage', target: 'check.str' }] }]);
+  });
+
+  it('the mark adds its damage to the hits of who cast it', () => {
+    const t = table([15], 'hunters_mark');
+    t.session.handle(ANA.playerId, { kind: 'inventory.add', data: { characterId: t.id, itemId: 'dagger' } });
+    const item = t.character().inventory.items.find((i) => i.itemId === 'dagger');
+    t.session.handle(ANA.playerId, { kind: 'inventory.update', data: { characterId: t.id, instanceId: item?.instanceId ?? '', equipped: true } });
+    t.use(t.cast('bless', 'free'), [t.goblin]);
+    expect(applied(t.session.handle(ANA.playerId, { kind: 'attack.make', data: { attacker: { characterId: t.id, instanceId: item?.instanceId ?? '' }, targetTokenId: t.goblin, visibility: 'public' } }))).toBe(true);
+    const attack = t.session.state.chat.findLast((e) => e.kind === 'attack_roll');
+    expect(attack).toMatchObject({ hit: true, damage: { groups: [{ type: 'piercing' }, { dice: '1d6', type: 'force', source: 'Bless (Morg)' }] } });
+
+    const melee = table([10], 'magic_weapon');
+    expect(rejection(melee.use(melee.cast('bless', 'free'), [melee.morg]))).toBe('rule_violation');
+  });
+
+  it('Magic Weapon goes on the chosen nonmagical weapon', () => {
+    const t = table([10], 'magic_weapon');
+    t.session.handle(ANA.playerId, { kind: 'inventory.add', data: { characterId: t.id, itemId: 'dagger' } });
+    const weaponId = t.character().inventory.items.find((i) => i.itemId === 'dagger')?.instanceId ?? '';
+    t.session.handle(ANA.playerId, { kind: 'inventory.update', data: { characterId: t.id, instanceId: weaponId, equipped: true } });
+    const entryId = t.cast('bless', 'free');
+    const on = (targetTokenIds: string[]) => t.session.handle(ANA.playerId, { kind: 'spell.effect', data: { entryId, part: 0, targetTokenIds, weaponId } });
+    expect(rejection(on([t.goblin]))).toBe('rule_violation');
+    expect(applied(on([t.morg]))).toBe(true);
+    expect(t.character().adjustments).toMatchObject([{ weapon: weaponId }]);
+    expect(SessionStateSchema.safeParse(t.session.state).success).toBe(true);
+  });
+
+  it("Shield ends at the start of the caster's next turn; without combat, a note says so", () => {
+    const t = table([10], 'shield');
+    t.use(t.cast('bless', 'free'), [t.morg]);
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'spell_applied', results: [{ notes: ['Efeito na ficha', 'Sem combate com quem conjurou: a duração por turno fica com o mestre'] }] });
+    t.session.handle(GM.playerId, { kind: 'combat.start', data: { tokenIds: [t.morg, t.goblin] } });
+    t.use(t.cast('bless', { slot: 'pact' }), [t.morg]);
+    expect(t.character().adjustments).toMatchObject([{ until: { at: 'turn_start', tokenId: t.morg } }]);
+    t.session.handle(GM.playerId, { kind: 'combat.next' , data: {} });
+    t.session.handle(GM.playerId, { kind: 'combat.next' , data: {} });
+    expect(t.character().adjustments).toEqual([]);
+    expect(t.session.state.chat.some((e) => e.kind === 'spell_effect_ended' && e.reason === 'duration')).toBe(true);
+  });
+
   it('on a monster token: only the GM or its controller ends the effect, and the Concentration ending lifts it', () => {
     const t = table();
     t.use(t.cast('bless', 'free'), [t.goblin]);

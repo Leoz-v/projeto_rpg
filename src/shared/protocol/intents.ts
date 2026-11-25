@@ -254,6 +254,8 @@ export const IntentSchema = z.discriminatedUnion('kind', [
       condition: TableConditionSchema.optional(),
       /** Opção escolhida de uma parte `buff` (Protection from Energy: o tipo de dano), pelo índice. */
       option: z.int().min(0).max(MAX_SPELL_OPTIONS - 1).optional(),
+      /** Arma empunhada do alvo, quando a magia age numa arma (Magic Weapon). */
+      weaponId: InstanceIdSchema.optional(),
       /** Ataque: Vantagem ou Desvantagem de quem ataca. Salvaguarda: dos alvos (Charm Person contra quem está lutando). */
       advantage: z.boolean().optional(),
       disadvantage: z.boolean().optional(),

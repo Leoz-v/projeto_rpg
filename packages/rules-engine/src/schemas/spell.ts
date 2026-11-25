@@ -64,6 +64,9 @@ export const SpellAttackPartSchema = z.strictObject({
   conditionsEnd: SpellConditionEndSchema.optional(),
 });
 
+/** Um conjunto de efeitos à escolha; `upcast`: efeitos somados por círculo acima. */
+export const SpellOptionSchema = z.strictObject({ label: TextSchema, effects: z.array(EffectSchema).default([]), upcast: z.array(EffectSchema).default([]) });
+
 /** Salvaguarda contra a CD de magia de quem conjura. */
 export const SpellSavePartSchema = z.strictObject({
   ...spellPartBase,
@@ -75,6 +78,8 @@ export const SpellSavePartSchema = z.strictObject({
   conditionChoice: z.literal(true).optional(),
   /** Efeitos do catálogo na falha, até a magia acabar (Bane, Slow; nota 0062). */
   onFailEffects: z.array(EffectSchema).default([]),
+  /** Conjuntos de efeitos da falha à escolha de quem conjura (Bestow Curse). */
+  options: z.array(SpellOptionSchema).default([]),
   conditionsEnd: SpellConditionEndSchema.optional(),
 });
 
@@ -128,7 +133,20 @@ export const SpellBuffPartSchema = z.strictObject({
   kind: z.literal('buff'),
   effects: z.array(EffectSchema).default([]),
   upcast: z.array(EffectSchema).default([]),
-  options: z.array(z.strictObject({ label: TextSchema, effects: z.array(EffectSchema).min(1) })).default([]),
+  options: z.array(SpellOptionSchema).default([]),
+  /** Efeitos que trocam `effects` a partir de um círculo (`slot`) ou nível de personagem (`level`, truques); vale o último que se aplica. */
+  variants: z.array(z.strictObject({ slot: z.int().min(1).max(9).optional(), level: z.int().min(1).max(20).optional(), effects: z.array(EffectSchema).min(1) })).default([]),
+  /** Os efeitos são de uma arma empunhada do alvo (nota 0063). */
+  weapon: z
+    .strictObject({
+      nonmagical: z.literal(true).optional(),
+      itemIds: z.array(IdSchema).min(1).optional(),
+      /** Pode atacar com o atributo de conjuração (Shillelagh). */
+      spellcastingAbility: z.literal(true).optional(),
+    })
+    .optional(),
+  /** Até quando duram os efeitos, se não até a magia acabar (Shield). */
+  effectsEnd: z.enum(['caster_turn_start', 'caster_turn_end']).optional(),
   endConditions: z.array(ConditionSchema).default([]),
 });
 
@@ -181,7 +199,7 @@ export const SpellSchema = z
       if (p.kind === 'save' && p.conditionChoice && p.onFailConditions.length < 2) ctx.addIssue({ code: 'custom', message: 'escolha de condição com menos de duas' });
       if (p.kind === 'heal' && p.healing === 'full' && p.temporary) ctx.addIssue({ code: 'custom', message: 'PV temporários não podem ser "todos"' });
       if (p.kind === 'buff' && p.effects.length === 0 && p.options.length === 0) ctx.addIssue({ code: 'custom', message: 'bônus de magia sem efeito' });
-      if (p.kind === 'buff' && p.options.length === 1) ctx.addIssue({ code: 'custom', message: 'escolha com uma opção só' });
+      if ((p.kind === 'buff' || p.kind === 'save') && p.options.length === 1) ctx.addIssue({ code: 'custom', message: 'escolha com uma opção só' });
       const conditions = p.kind === 'attack' ? p.onHitConditions : p.kind === 'save' ? p.onFailConditions : p.kind === 'condition' ? p.conditions : [];
       if ('conditionsEnd' in p && p.conditionsEnd && conditions.length === 0) ctx.addIssue({ code: 'custom', message: 'duração de condição numa parte sem condição' });
     }
