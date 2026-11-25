@@ -108,6 +108,7 @@ export function TableScreen({ view }: { view: TableView }) {
     [view.state.tokens],
   );
   const [editor3d, setEditor3d] = useState<{ map: GameMap | null } | null>(null);
+  const is3dEditorOpen = view.info.role === 'gm' && editor3d !== null;
   const [viewerByMap, setViewerByMap] = useState<Record<string, MapViewerMode>>({});
   const closeSheet = useCallback(() => {
     setOpenCharacterId(null);
@@ -168,23 +169,27 @@ export function TableScreen({ view }: { view: TableView }) {
         )}
         <HostAddresses view={view} />
       </aside>
-      <MapView
-        view={view}
-        viewerMode={activeViewerMode}
-        onViewerModeChange={handleActiveViewerChange}
-        selectedIds={selectedIds}
-        targetedIds={targetedIds}
-        fogTool={fogTool}
-        onFogTool={setFogTool}
-        onSelect={setSelectedIds}
-        onToggleTarget={toggleTarget}
-        onOpenSheet={openTokenSheet}
-        onStage={setStage}
-        {...(view.info.role === 'gm' ? { onEdit3dMap: open3dEditor } : {})}
-      />
+      {is3dEditorOpen ? (
+        <div className="map" aria-hidden="true" />
+      ) : (
+        <MapView
+          view={view}
+          viewerMode={activeViewerMode}
+          onViewerModeChange={handleActiveViewerChange}
+          selectedIds={selectedIds}
+          targetedIds={targetedIds}
+          fogTool={fogTool}
+          onFogTool={setFogTool}
+          onSelect={setSelectedIds}
+          onToggleTarget={toggleTarget}
+          onOpenSheet={openTokenSheet}
+          onStage={setStage}
+          {...(view.info.role === 'gm' ? { onEdit3dMap: open3dEditor } : {})}
+        />
+      )}
       <Chat state={view.state} chatFrom={view.chatFrom} viewer={view.info} />
       {openCharacterId !== null && <CharacterSheet view={view} characterId={openCharacterId} onClose={closeSheet} />}
-      {view.info.role === 'gm' && editor3d !== null && <Map3DEditorModal editingMap={editor3d.map} onClose={close3dEditor} />}
+      {is3dEditorOpen && <Map3DEditorModal editingMap={editor3d.map} onClose={close3dEditor} />}
     </div>
   );
 }

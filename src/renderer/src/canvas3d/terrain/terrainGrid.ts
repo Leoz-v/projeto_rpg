@@ -17,7 +17,7 @@ import {
   RS2_BLEND_MAX_OFFSET,
   RS2_BLEND_MIN_OFFSET,
 } from './constants';
-import { DEFAULT_UNDERLAY_ID } from './materials';
+import { DEFAULT_UNDERLAY_ID, VOID_OVERLAY_ID } from './materials';
 
 /** Exact WorldLab Tile.java persistent auto-authoring bit contract. */
 export const TILE_AUTO_SEED = 1;
@@ -74,6 +74,10 @@ export class TerrainGrid {
 
   /** Per-chunk dirty flags: chunksZ * chunksX */
   readonly dirtyChunks: Uint8Array;
+  /** True when vertex heights changed and height-conforming overlays (grid, skirt, hole markers) need rebuilding. */
+  heightsDirty = true;
+  /** True when cutout holes or void overlays changed and grid / hole overlays need rebuilding. */
+  cutoutsDirty = true;
 
   constructor(width = DEFAULT_MAP_SIZE, length = DEFAULT_MAP_SIZE) {
     this.width = width;
@@ -126,6 +130,7 @@ export class TerrainGrid {
     const idx = this.vertexIndex(vx, vz);
     if (this.heights[idx] === clamped) return false;
     this.heights[idx] = clamped;
+    this.heightsDirty = true;
     this.markTileRangeDirty(vx - 2, vz - 2, vx + 1, vz + 1);
     return true;
   }
@@ -171,6 +176,7 @@ export class TerrainGrid {
     const next = cutout ? 1 : 0;
     if (this.holes[idx] === next) return false;
     this.holes[idx] = next;
+    this.cutoutsDirty = true;
     this.markTileRangeDirty(tx - 1, tz - 1, tx + 1, tz + 1);
     return true;
   }
@@ -274,9 +280,13 @@ export class TerrainGrid {
     ) {
       return false;
     }
+    const prevOverlay = this.overlayIds[idx] ?? 0;
     this.overlayIds[idx] = overlayId;
     this.overlayShapes[idx] = nextShape;
     this.overlayRotations[idx] = nextRot;
+    if (prevOverlay === VOID_OVERLAY_ID || overlayId === VOID_OVERLAY_ID) {
+      this.cutoutsDirty = true;
+    }
     this.markTileRangeDirty(tx, tz, tx, tz);
     return true;
   }
@@ -298,12 +308,16 @@ export class TerrainGrid {
 
     if (!changed) return false;
 
+    const prevOverlay = this.overlayIds[idx] ?? 0;
     this.underlayIds[idx] = data.underlayId;
     this.overlayIds[idx] = data.overlayId;
     this.overlayShapes[idx] = nextShape;
     this.overlayRotations[idx] = nextRot;
     this.autoMetadata[idx] = data.autoMetadata;
     this.autoBaseUnderlayIds[idx] = data.autoBaseUnderlayId;
+    if (prevOverlay === VOID_OVERLAY_ID || data.overlayId === VOID_OVERLAY_ID) {
+      this.cutoutsDirty = true;
+    }
 
     if (underlayChanged) {
       this.markTileRangeDirty(
@@ -348,6 +362,13 @@ export class TerrainGrid {
 
   markAllDirty(): void {
     this.dirtyChunks.fill(1);
+    this.heightsDirty = true;
+    this.cutoutsDirty = true;
+  }
+
+  clearOverlayGeometryDirty(): void {
+    this.heightsDirty = false;
+    this.cutoutsDirty = false;
   }
 
   clearChunkDirty(cx: number, cz: number): void {

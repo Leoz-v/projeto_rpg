@@ -304,11 +304,17 @@ export class TokenRenderer3d {
     }
   }
 
+  /** Encerra o estado de arrasto e devolve a câmera. */
+  private endDragMode(): void {
+    this.drag = null;
+    this.sceneMgr.orbit.enabled = true;
+    this.sceneMgr.app.canvas.style.cursor = '';
+  }
+
   private cancelDrag(): void {
     const activeDrag = this.drag;
     if (!activeDrag) return;
-    this.drag = null;
-    this.sceneMgr.app.canvas.style.cursor = '';
+    this.endDragMode();
     for (const item of activeDrag.items) {
       this.revert(item.id);
     }
@@ -325,7 +331,7 @@ export class TokenRenderer3d {
     for (const [id, entry] of this.entries) {
       if (ids.has(id)) continue;
       if (this.drag?.items.some((item) => item.id === id)) {
-        this.drag = null;
+        this.cancelDrag();
       }
       this.disposeEntry(entry);
       this.entries.delete(id);
@@ -436,6 +442,10 @@ export class TokenRenderer3d {
     if (this.destroyed) return;
     this.destroyed = true;
     this.eventAbort.abort();
+    if (this.drag) {
+      this.drag = null;
+      this.sceneMgr.orbit.enabled = true;
+    }
     this.sceneMgr.setKeyboardPanEnabled(true);
     for (const entry of this.entries.values()) {
       this.disposeEntry(entry);
@@ -718,16 +728,14 @@ export class TokenRenderer3d {
       { capture: true, passive: false, signal },
     );
 
-    canvas.addEventListener(
+    // O EventSystem do PixiJS v8 registra `pointerdown` no canvas e `pointermove` no `document`
+    // em fase de captura durante `app.init()`, antes do TokenRenderer3d existir. Escutar em
+    // `window` na captura garante execução anterior ao PixiJS/OrbitCamera para que arrastar
+    // um token nunca mova o mapa junto.
+    window.addEventListener(
       'pointerdown',
       (e) => {
-        // Botão direito durante um arrasto de token cancela o arrasto imediatamente.
-        if (e.button === 2 && this.drag) {
-          e.stopImmediatePropagation();
-          e.preventDefault();
-          this.cancelDrag();
-          return;
-        }
+        if (e.target !== canvas) return;
 
         if (e.button === 1) {
           this.events.onCloseHud();
@@ -752,7 +760,9 @@ export class TokenRenderer3d {
 
         if (!hit) return;
 
+        // Bloqueia o PixiJS/OrbitCamera de receber este clique: arrastar o token nunca arrasta o mapa junto.
         e.stopImmediatePropagation();
+        e.stopPropagation();
         e.preventDefault();
 
         // Duplo clique esquerdo abre a ficha referenciada pelo token.
@@ -790,6 +800,7 @@ export class TokenRenderer3d {
               shiftOnDown: e.shiftKey,
               items,
             };
+            this.sceneMgr.orbit.enabled = false;
           }
         } else if (e.shiftKey) {
           this.events.onSelect(toggleSelection(this.sceneState.selectedIds, hit.id, true));
@@ -800,7 +811,7 @@ export class TokenRenderer3d {
       { capture: true, signal },
     );
 
-    canvas.addEventListener(
+    window.addEventListener(
       'pointermove',
       (e) => {
         if (this.downClient?.button === 2 && Math.hypot(e.clientX - this.downClient.x, e.clientY - this.downClient.y) >= DRAG_THRESHOLD_PX) {
@@ -808,6 +819,13 @@ export class TokenRenderer3d {
         }
         if (!this.drag) return;
         e.stopImmediatePropagation();
+        e.stopPropagation();
+        // Apertar o direito com o esquerdo já apertado não gera `pointerdown` (Pointer Events):
+        // chega como `pointermove` com o botão em `buttons`. Cancela o arrasto.
+        if ((e.buttons & 2) !== 0) {
+          this.cancelDrag();
+          return;
+        }
         if (!this.drag.started) {
           if (Math.hypot(e.clientX - this.drag.startClient.x, e.clientY - this.drag.startClient.y) < DRAG_THRESHOLD_PX) {
             return;
@@ -857,7 +875,7 @@ export class TokenRenderer3d {
         return;
       }
 
-      if (e.button !== 0 && e.type === 'pointerup') return;
+      if (e.button !== 0) return;
 
       const activeDrag = this.drag;
       this.downClient = null;
@@ -869,8 +887,7 @@ export class TokenRenderer3d {
         return;
       }
 
-      this.drag = null;
-      canvas.style.cursor = '';
+      this.endDragMode();
 
       if (!activeDrag.started) {
         if (activeDrag.shiftOnDown) {
@@ -899,7 +916,15 @@ export class TokenRenderer3d {
     };
 
     window.addEventListener('pointerup', endDrag, { signal });
-    window.addEventListener('pointercancel', endDrag, { signal });
+    // O sistema interrompeu o ponteiro: volta os tokens sem aplicar o movimento.
+    window.addEventListener(
+      'pointercancel',
+      () => {
+        this.downClient = null;
+        this.cancelDrag();
+      },
+      { signal },
+    );
 
     window.addEventListener(
       'keydown',

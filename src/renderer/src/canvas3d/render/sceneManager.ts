@@ -49,7 +49,12 @@ export class SceneManager {
   private readonly onKeyDown: (e: KeyboardEvent) => void;
   private readonly onKeyUp: (e: KeyboardEvent) => void;
   private readonly onBlur: () => void;
+  private readonly onWebGlContextLost: (e: Event) => void;
+  private readonly onWebGlContextRestored: () => void;
   private destroyed = false;
+
+  onContextLost?: () => void;
+  onContextRestored?: () => void;
 
   private constructor(
     app: Application,
@@ -115,6 +120,20 @@ export class SceneManager {
     this.onBlur = (): void => {
       this.heldKeys.clear();
     };
+    this.onWebGlContextLost = (e: Event): void => {
+      e.preventDefault();
+      if (this.destroyed) return;
+      this.app.ticker.stop();
+      this.onContextLost?.();
+    };
+    this.onWebGlContextRestored = (): void => {
+      if (this.destroyed) return;
+      this.app.ticker.start();
+      this.onContextRestored?.();
+    };
+
+    this.app.canvas.addEventListener('webglcontextlost', this.onWebGlContextLost);
+    this.app.canvas.addEventListener('webglcontextrestored', this.onWebGlContextRestored);
 
     this.setupKeyboardPan();
   }
@@ -479,8 +498,11 @@ export class SceneManager {
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
     window.removeEventListener('blur', this.onBlur);
+    this.app.canvas.removeEventListener('webglcontextlost', this.onWebGlContextLost);
+    this.app.canvas.removeEventListener('webglcontextrestored', this.onWebGlContextRestored);
     this.heldKeys.clear();
     this.orbit.destroy();
-    this.app.destroy(true, { children: true });
+    this.skybox.destroy();
+    this.app.destroy({ removeView: true, releaseGlobalResources: false }, { children: true });
   }
 }

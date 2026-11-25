@@ -54,6 +54,16 @@ export function Map3DEditorModal({ editingMap, onClose }: Props) {
         scene.destroy();
         return;
       }
+      scene.onContextLost = () => {
+        if (!isCancelled()) {
+          setBannerError('Contexto gráfico 3D (WebGL) perdido. Aguardando restauração…');
+        }
+      };
+      scene.onContextRestored = () => {
+        if (!isCancelled()) {
+          setBannerError(null);
+        }
+      };
 
       const surfaceRenderer = new TerrainRenderer(surfaceGrid, scene.terrainRoot, scene.overlayRoot);
       const interiorRenderer = new TerrainRenderer(interiorGrid, scene.interiorTerrainRoot, scene.overlayRoot);
@@ -170,6 +180,10 @@ export function Map3DEditorModal({ editingMap, onClose }: Props) {
       cleanup = () => {
         ui.destroy();
         controller.destroy();
+        lighting.destroy();
+        liquids.destroy();
+        surfaceRenderer.destroy();
+        interiorRenderer.destroy();
         assets.destroy();
         scene.destroy();
         rootEl.innerHTML = '';

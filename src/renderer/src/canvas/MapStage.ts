@@ -288,6 +288,9 @@ export class MapStage {
     app.stage.on('pointerupoutside', (e) => {
       this.pointerUp(e);
     });
+    app.stage.on('pointercancel', () => {
+      this.pointerCancel();
+    });
     app.canvas.addEventListener('wheel', this.onWheel, { passive: false });
     app.canvas.addEventListener('contextmenu', this.onContextMenu);
     app.renderer.on('resize', () => {
@@ -341,6 +344,10 @@ export class MapStage {
     const crosshair = this.rulerMode || activeFog;
     this.app.canvas.style.cursor = crosshair ? 'crosshair' : '';
     for (const [id, view] of this.views) {
+      if (this.drag?.started === true && this.drag.items.some((item) => item.id === id)) {
+        view.container.cursor = 'grabbing';
+        continue;
+      }
       const token = this.scene.tokens.find((t) => t.id === id);
       view.container.cursor = crosshair ? 'crosshair' : token && this.scene.canDrag(token) ? 'grab' : 'pointer';
     }
@@ -709,13 +716,19 @@ export class MapStage {
     this.updateCursor();
   }
 
+  /** O sistema interrompeu o ponteiro: desfaz qualquer operação em andamento sem aplicar nada. */
+  private pointerCancel(): void {
+    this.pan = undefined;
+    this.rightAction = undefined;
+    this.rulerDragging = false;
+    this.fogBrush = undefined;
+    this.fogRect = undefined;
+    this.fogPreviewLayer.clear();
+    this.cancelDrag();
+    this.updateCursor();
+  }
+
   private tokenDown(id: string, e: FederatedPointerEvent): void {
-    // Botão direito durante um arrasto cancela o arrasto imediatamente.
-    if (e.button === 2 && this.drag) {
-      e.stopPropagation();
-      this.cancelDrag();
-      return;
-    }
     // Botão do meio sempre faz pan, inclusive sobre tokens.
     if (e.button === 1) {
       e.stopPropagation();
@@ -792,22 +805,7 @@ export class MapStage {
   }
 
   private stageDown(e: FederatedPointerEvent): void {
-    // Botão direito durante qualquer operação de arrasto cancela a operação.
     if (e.button === 2) {
-      if (this.drag) {
-        this.cancelDrag();
-        return;
-      }
-      if (this.rulerDragging) {
-        this.clearRuler();
-        return;
-      }
-      if (this.fogBrush || this.fogRect) {
-        this.fogBrush = undefined;
-        this.fogRect = undefined;
-        this.fogPreviewLayer.clear();
-        return;
-      }
       this.rightAction = {
         tokenId: null,
         startScreen: { x: e.global.x, y: e.global.y },
@@ -868,6 +866,13 @@ export class MapStage {
   }
 
   private pointerMove(e: FederatedPointerEvent): void {
+    // Apertar o direito com o esquerdo já apertado não gera `pointerdown` (Pointer Events):
+    // chega como `pointermove` com o botão em `buttons`. Cancela a operação em andamento.
+    if ((e.buttons & 2) !== 0 && (this.drag || this.rulerDragging || this.fogBrush || this.fogRect)) {
+      if (this.rulerDragging) this.clearRuler();
+      this.pointerCancel();
+      return;
+    }
     if (this.fogBrush) {
       const map = this.scene.map;
       if (!map || map.id !== this.fogBrush.mapId) return;
@@ -940,13 +945,12 @@ export class MapStage {
   }
 
   private pointerUp(e: FederatedPointerEvent): void {
-    if (e.button === 1) {
-      this.pan = undefined;
-      return;
-    }
+    // O `pointerup` só vem quando o último botão é solto, seja ele qual for.
+    this.pan = undefined;
+    const action = this.rightAction;
+    this.rightAction = undefined;
+    if (e.button === 1) return;
     if (e.button === 2) {
-      const action = this.rightAction;
-      this.rightAction = undefined;
       if (!action) return;
       if (action.panning) {
         this.updateCursor();

@@ -837,6 +837,8 @@ export class LiquidRenderer {
     parent.removeChild(rec.mesh);
     rec.mesh.geometry.destroy(true);
     rec.mesh.destroy();
+    rec.pbrMaterial.destroy();
+    rec.flatMaterial.destroy();
     this.records.delete(id);
     return true;
   }
@@ -1109,6 +1111,7 @@ export class LiquidRenderer {
         positions: new Float32Array([x0, py - 0.01, z0, x0, py - 0.01, z1, x1, py - 0.01, z1, x1, py - 0.01, z0]),
         normals: new Float32Array([0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0]),
         indices: new Uint16Array([0, 1, 2, 0, 2, 3]),
+        dynamic: true,
       });
       this.previewFillMaterial.baseColor = p.colorHex;
       if (!this.previewQuadMesh) {
@@ -1154,6 +1157,7 @@ export class LiquidRenderer {
       positions: new Float32Array(positions),
       colors: new Float32Array(colors),
       topology: 'line-list',
+      dynamic: true,
     });
     if (!this.overlayLinesMesh) {
       this.overlayLinesMesh = new Mesh3D({
@@ -1170,5 +1174,23 @@ export class LiquidRenderer {
       old.destroy(true);
       this.overlayLinesMesh.visible = true;
     }
+  }
+
+  destroy(): void {
+    this.clear();
+    if (this.overlayLinesMesh) {
+      this.overlayRoot.removeChild(this.overlayLinesMesh);
+      this.overlayLinesMesh.geometry.destroy(true);
+      this.overlayLinesMesh.destroy();
+      this.overlayLinesMesh = null;
+    }
+    if (this.previewQuadMesh) {
+      this.overlayRoot.removeChild(this.previewQuadMesh);
+      this.previewQuadMesh.geometry.destroy(true);
+      this.previewQuadMesh.destroy();
+      this.previewQuadMesh = null;
+    }
+    this.lineMaterial.destroy();
+    this.previewFillMaterial.destroy();
   }
 }

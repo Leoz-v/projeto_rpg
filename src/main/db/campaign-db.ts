@@ -82,7 +82,7 @@ const MIGRATIONS = [
   // Névoa de guerra do mapa (JSON) e alcance de visão próprio do token em pés (nota 0058).
   `ALTER TABLE maps ADD COLUMN fog TEXT;
    ALTER TABLE tokens ADD COLUMN vision_feet INTEGER;`,
-  // Orientação (graus 0..359) e elevação (pés) do token.
+  // Orientação (graus 0..359) e elevação (pés) do token (nota 0061).
   `ALTER TABLE tokens ADD COLUMN rotation INTEGER NOT NULL DEFAULT 0;
    ALTER TABLE tokens ADD COLUMN elevation INTEGER NOT NULL DEFAULT 0;`,
 ] as const;

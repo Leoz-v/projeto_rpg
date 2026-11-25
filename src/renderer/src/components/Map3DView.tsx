@@ -303,6 +303,16 @@ export function Map3DView({ view, map, maxima, selectedIds, targetedIds, fogTool
         scene.destroy();
         return;
       }
+      scene.onContextLost = () => {
+        if (!isCancelled()) {
+          setError('Contexto gráfico 3D (WebGL) perdido. Aguardando restauração…');
+        }
+      };
+      scene.onContextRestored = () => {
+        if (!isCancelled()) {
+          setError(null);
+        }
+      };
 
       // Controles padrão de mesa 3D: botão esquerdo seleciona/arrasta tokens e ferramentas, direito orbita (ou faz pan em Topo), meio faz pan.
       scene.setLeftButtonAction('none');
@@ -423,6 +433,10 @@ export function Map3DView({ view, map, maxima, selectedIds, targetedIds, fogTool
           fog3d.destroy();
           ruler3d.destroy();
           tokens3d.destroy();
+          lighting.destroy();
+          liquids.destroy();
+          surfaceRenderer.destroy();
+          interiorRenderer.destroy();
           assets.destroy();
           scene.destroy();
         },
