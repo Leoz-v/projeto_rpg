@@ -1,19 +1,15 @@
 {
   "mechanics": {},
   "entries": {
-    "feature:class:barbarian/brutal_strike": {
+    "feature:class:barbarian/brutal_strike#effects": {
       "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
+      "reason": "Forceful Blow e Hamstring Blow: empurrar e reduzir o deslocamento do alvo."
     },
     "feature:class:barbarian/extra_attack": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
     "feature:class:barbarian/improved_brutal_strike": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:class:barbarian/improved_brutal_strike_17": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
@@ -93,10 +89,6 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:class:cleric/improved_divine_strike": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
     "feature:class:cleric/improved_potent_spellcasting": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
@@ -122,10 +114,6 @@
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
     "feature:class:druid/improved_potent_spellcasting": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:class:druid/improved_primal_strike": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
@@ -341,9 +329,9 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:class:rogue/sneak_attack": {
+    "feature:class:rogue/sneak_attack#cunning_strike": {
       "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
+      "reason": "Cunning Strike e Devious Strikes trocam dados do Sneak Attack por efeitos."
     },
     "feature:class:rogue/steady_aim": {
       "category": "phase_4",
@@ -449,9 +437,9 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:class:warlock/eldritch_smite": {
+    "feature:class:warlock/eldritch_smite#prone": {
       "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
+      "reason": "Pode deixar o alvo Caído (Enorme ou menor)."
     },
     "feature:class:warlock/eldritch_spear": {
       "category": "phase_4",
@@ -473,9 +461,9 @@
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
-    "feature:class:warlock/lifedrinker": {
+    "feature:class:warlock/lifedrinker#heal": {
       "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
+      "reason": "Gasta um Dado de Vida para recuperar PV ao acertar."
     },
     "feature:class:warlock/magical_cunning#use": {
       "category": "phase_4",
@@ -625,14 +613,6 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:species:goliath/fires_burn": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:species:goliath/frosts_chill": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
     "feature:species:goliath/giant_ancestry_trait#use": {
       "category": "phase_4",
       "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
@@ -684,10 +664,6 @@
     "feature:species:tiefling/fiendish_legacy_trait": {
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
-    },
-    "feature:subclass:berserker/frenzy": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
     "feature:subclass:berserker/intimidating_presence": {
       "category": "phase_4",
@@ -782,10 +758,6 @@
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
     "feature:subclass:fiend_patron/hurl_through_hell": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:subclass:hunter/colossus_slayer": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
@@ -1065,10 +1037,6 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:flame_tongue": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
     "item:folding_boat": {
       "category": "gm",
       "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
@@ -1149,9 +1117,9 @@
       "category": "gm",
       "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
     },
-    "item:mace_of_disruption": {
+    "item:mace_of_disruption#destroy": {
       "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
+      "reason": "Salvaguarda de SAB ou é destruído, com 25 PV ou menos (resolução com salvaguarda)."
     },
     "item:mace_of_terror": {
       "category": "phase_4",
@@ -1193,9 +1161,9 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:oathbow": {
+    "item:oathbow#sworn_enemy": {
       "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
+      "reason": "Inimigo jurado: Vantagem e sem cobertura contra ele (alvo marcado)."
     },
     "item:oil_of_etherealness": {
       "category": "phase_4",
@@ -1393,29 +1361,17 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:staff_of_withering": {
+    "item:staff_of_withering#save": {
       "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
+      "reason": "Salvaguarda de CON ou Desvantagem em FOR e CON por 1 hora (resolução com salvaguarda)."
     },
     "item:stone_of_controlling_earth_elementals": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:sun_blade#undead_damage": {
+    "item:sword_of_wounding#save": {
       "category": "phase_4",
-      "reason": "+1d8 Radiant ao acertar um Undead: dano que depende do alvo (resolução do ataque)."
-    },
-    "item:sword_of_life_stealing": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:sword_of_sharpness": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:sword_of_wounding": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
+      "reason": "Salvaguarda de CON ou não recupera PV por 1 hora (resolução com salvaguarda)."
     },
     "item:talisman_of_pure_good": {
       "category": "gm",

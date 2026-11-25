@@ -117,7 +117,7 @@ export function leaveCombat(ctx: SessionContext, playerId: string, tokenId: stri
   const combatants = combat.combatants.filter((_, i) => i !== index);
   return [
     ...expired.ops,
-    ctx.replaceCombat({ round: position.round, turn: position.turn, combatants, effects: expired.effects }),
+    ctx.replaceCombat({ ...combat, round: position.round, turn: position.turn, combatants, effects: expired.effects }),
     ...(position.newRound ? [ctx.appendChat({ kind: 'combat_event', ...ctx.entryBase(playerId), event: 'round', round: position.round })] : []),
   ];
 }

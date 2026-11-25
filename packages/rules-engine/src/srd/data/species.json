@@ -845,7 +845,20 @@
                       "feature": {
                         "id": "fires_burn",
                         "name": "Fire's Burn (Fire Giant)",
-                        "description": "When you hit a target with an attack roll and deal damage to it, you can also deal 1d10 Fire damage to that target."
+                        "description": "When you hit a target with an attack roll and deal damage to it, you can also deal 1d10 Fire damage to that target.",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "fires_burn",
+                            "name": "Fire's Burn",
+                            "dice": "1d10",
+                            "mode": "choice",
+                            "damageType": "fire",
+                            "cost": {
+                              "resource": "giant_ancestry"
+                            }
+                          }
+                        ]
                       }
                     }
                   ]
@@ -859,7 +872,21 @@
                       "feature": {
                         "id": "frosts_chill",
                         "name": "Frost's Chill (Frost Giant)",
-                        "description": "When you hit a target with an attack roll and deal damage to it, you can also deal 1d6 Cold damage to that target and reduce its Speed by 10 feet until the start of your next turn."
+                        "description": "When you hit a target with an attack roll and deal damage to it, you can also deal 1d6 Cold damage to that target and reduce its Speed by 10 feet until the start of your next turn.",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "frosts_chill",
+                            "name": "Frost's Chill",
+                            "dice": "1d6",
+                            "mode": "choice",
+                            "damageType": "cold",
+                            "cost": {
+                              "resource": "giant_ancestry"
+                            },
+                            "note": "Deslocamento do alvo −10 ft até o início do seu próximo turno."
+                          }
+                        ]
                       }
                     }
                   ]

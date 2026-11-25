@@ -262,7 +262,7 @@ O valor do atributo passa a ser pelo menos `value` (ex.: Manoplas de Força do O
 - `damageType` ausente: o mesmo tipo do dano da arma (Vicious Weapon: "of the same type as the weapon's normal damage").
 - `scope: "weapon"` (só em itens): vale só nos ataques com a arma daquela entrada do inventário, como `attack.weapon`.
 - O `when` é avaliado no contexto do ataque. A ficha lista o dano extra em cada ataque; a rolagem soma quando o ataque acerta. O crítico dobra esses dados também (regra do SRD para dados de dano), na Fase 4.
-- Dano extra que depende do alvo ("contra Undead") ou de escolha por turno (Divine Strike, Sneak Attack) não usa este efeito: é resolução da Fase 4.
+- Dano extra que depende do alvo ("contra Undead") ou de escolha por turno (Divine Strike, Sneak Attack) não usa este efeito: usa `attack_rider` (3.29).
 
 ### 3.16 `crit_range`
 
@@ -433,6 +433,25 @@ Dano extra de quem conjurou quando acerta com uma jogada de ataque, com arma ou 
 - Sem `within`, o efeito fica no alvo marcado e vale só para quem conjurou (Hex, Hunter's Mark).
 - Com `within`, fica em quem conjurou e vale contra alvos até essa distância em pés (Conjure Minor Elementals). Sem a distância, vira lembrete.
 - Os dados dobram no Acerto Crítico. Só vale como efeito de magia (`spell`).
+
+### 3.29 `attack_rider`
+
+Dano extra do ataque com arma que depende do alvo, do d20 ou da escolha de quem ataca (nota 0077).
+
+```json
+{ "type": "attack_rider", "id": "colossus_slayer", "name": "Colossus Slayer", "dice": "1d8", "mode": "auto", "oncePerTurn": true, "injured": true }
+{ "type": "attack_rider", "id": "dragon_slayer", "name": "Dragon Slayer", "dice": "3d6", "mode": "auto", "scope": "weapon", "onlyTypes": ["dragon"] }
+{ "type": "attack_rider", "id": "fires_burn", "name": "Fire's Burn", "dice": "1d10", "damageType": "fire", "mode": "choice", "cost": { "resource": "giant_ancestry" } }
+```
+
+- `mode`: `auto` entra sozinho no acerto; `choice`, quando quem ataca marca.
+- `dice`: dados, ou `byLevel` (20 valores) pelo nível na escala da fonte. Um efeito de mesmo `id` que vem depois substitui o anterior (Improved Divine Strike).
+- `damageType`: um tipo, uma lista à escolha, ou ausente (o da arma).
+- Condições: `ability` (o atributo do ataque), `onlyTypes` e `exceptTypes` (o tipo do alvo), `injured` (o alvo já perdeu PV), `natural20`, e o `when` do ataque. Sem saber o alvo, um `auto` vira lembrete.
+- `sneak`: a regra do Sneak Attack; fora dela, o ataque leva um aviso e não é bloqueado.
+- `oncePerTurn`: o Host controla com o personagem no combate; fora dele, vale sempre.
+- `cost`: gasto só no acerto: `resource` (um uso), `pactSlot` (um espaço de Pacto, com `perSlotLevel` por círculo) ou `charges` da arma.
+- `scope: "weapon"`: como no `extra_damage`. Os dados dobram no Acerto Crítico; um número fixo, não. `note` vira lembrete no ataque.
 
 ### Efeitos numa arma
 

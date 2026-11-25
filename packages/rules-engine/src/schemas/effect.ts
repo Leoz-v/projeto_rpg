@@ -188,6 +188,39 @@ const ExtraDamageSchema = z.strictObject({
   ...common,
 });
 
+/**
+ * Dano extra do ataque com arma que depende do alvo, do d20 ou da escolha de
+ * quem ataca (3.29, nota 0077): Sneak Attack, Colossus Slayer, Dragon Slayer.
+ */
+const AttackRiderSchema = z.strictObject({
+  type: z.literal('attack_rider'),
+  /** O de mesmo id que vem depois substitui (Improved Divine Strike). */
+  id: IdSchema,
+  name: z.string().min(1).max(100),
+  /** Dados, ou uma tabela pelo nível na escala da fonte (índice 0 = nível 1). */
+  dice: z.union([DiceSchema, z.strictObject({ byLevel: z.array(DiceSchema).length(20) })]),
+  /** Um tipo, ou os tipos à escolha; ausente, o da arma. */
+  damageType: z.union([DamageTypeSchema, z.array(DamageTypeSchema).min(2)]).optional(),
+  mode: z.enum(['auto', 'choice']),
+  scope: z.literal('weapon').optional(),
+  oncePerTurn: z.literal(true).optional(),
+  ability: Ability.optional(),
+  onlyTypes: z.array(CreatureTypeSchema).min(1).optional(),
+  exceptTypes: z.array(CreatureTypeSchema).min(1).optional(),
+  injured: z.literal(true).optional(),
+  natural20: z.literal(true).optional(),
+  sneak: z.literal(true).optional(),
+  /** O que gasta no acerto: um uso do recurso, o espaço de Pacto (`perSlotLevel` por círculo) ou cargas da arma. */
+  cost: z
+    .union([
+      z.strictObject({ resource: IdSchema }),
+      z.strictObject({ pactSlot: z.literal(true), perSlotLevel: DiceSchema }),
+      z.strictObject({ charges: z.int().positive() }),
+    ])
+    .optional(),
+  ...common,
+});
+
 const CritRangeSchema = z.strictObject({
   type: z.literal('crit_range'),
   /** Crítico com este valor ou mais no d20. */
@@ -430,6 +463,7 @@ export const EffectSchema = z.discriminatedUnion('type', [
   GrantSenseSchema,
   DamageReductionSchema,
   ExtraDamageSchema,
+  AttackRiderSchema,
   CritRangeSchema,
   D20RuleSchema,
   D20BonusSchema,

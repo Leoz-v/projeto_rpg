@@ -207,6 +207,8 @@ export const IntentSchema = z.discriminatedUnion('kind', [
       advantage: z.boolean().optional(),
       disadvantage: z.boolean().optional(),
       visibility: VisibilitySchema,
+      /** Dano extra marcado por quem ataca (nota 0077), com o tipo quando há escolha. */
+      riders: z.array(z.strictObject({ id: IdSchema, damageType: DamageTypeSchema.optional() })).max(10).optional(),
     }),
   }),
   /** Multiattack de um monstro: os usos em ordem, cada um com a ação e os alvos (um no ataque). */

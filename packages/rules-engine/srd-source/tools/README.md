@@ -19,6 +19,7 @@ Scripts de desenvolvimento para gerar dados do compêndio a partir de `../SRD_CC
 | `import_magic_items.py` | `src/srd/data/magic-items.json` (258) | variantes transcritas contra as linhas das tabelas (com raridade), itens base existem, cada efeito curado tem o seu trecho de apoio na descrição |
 | `item_use.py` | curadoria de usar itens (nota 0074), lida por `import_gear.py` e `import_magic_items.py` | cada uso tem o seu trecho de apoio na descrição, e nenhuma curadoria fica sem item |
 | `item_casting.py` | curadoria das magias de itens e da última carga (nota 0075), lida por `import_magic_items.py` | cada magia existe, tem o seu trecho de apoio e cabe nas cargas; CD e última carga contra o texto |
+| `item_riders.py` | curadoria do dano extra das armas mágicas (nota 0077), lida por `import_magic_items.py` | cada arma existe e tem o seu trecho de apoio |
 | `automation_backlog.py` | `tests/srd/automation-backlog.json` (backlog da Fase 1.5) | toda exceção listada existe no compêndio e ainda não tem efeito (magias: ainda sem resolução); toda mecânica tem entradas; o teste `automation-backlog.test.ts` confere a classificação de novo, em TypeScript |
 | `import_monsters.py` | `src/srd/data/monsters.json` (330 criaturas) | números redundantes de cada bloco (XP e PB pelo ND, PV pela fórmula, modificadores, salvaguardas, perícias, Percepção passiva, iniciativa, dano médio) e referências a magias e itens; erros conhecidos do SRD listados no script |
 

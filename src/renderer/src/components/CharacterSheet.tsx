@@ -11,7 +11,7 @@ import { combatantOptions } from '../canvas/conditions';
 import { ConditionsControl } from './Conditions';
 import { HitPointsControl, HitPointsSummary } from './HitPoints';
 import { SaveEffectForm } from './SaveEffect';
-import { type Roller, RollToolbar, RollButton, useRoller } from './SheetRolls';
+import { choiceRiders, type Roller, RollToolbar, RollButton, useRoller } from './SheetRolls';
 import { DeathSavesPanel } from './DeathSaves';
 import { ConcentrationControl } from './Concentration';
 import { HitDiceControl } from './Rest';
@@ -338,7 +338,7 @@ function Attacks({ sheet, roller, onSelect }: { sheet: DerivedSheet; roller: Rol
                 <td className="hint">{a.mastery.available ? humanizeId(a.mastery.property) : ''}</td>
                 {roller && (
                   <td className="attack-rolls">
-                    <button type="button" className="secondary small" onClick={() => { roller.attack(a.instanceId); }}>
+                    <button type="button" className="secondary small" onClick={() => { roller.attack(a); }}>
                       atacar
                     </button>
                     <button type="button" className="secondary small" onClick={() => { roller.damage(a.instanceId, false); }}>
@@ -554,8 +554,7 @@ export function CharacterSheet({ view, characterId, onClose }: { view: TableView
                     hasVersatile={load.view.sheet.attacks.some((a) => a.versatileDice !== undefined)}
                     targets={Object.values(view.state.tokens)
                       .filter((t) => t.mapId === view.state.activeMapId && t.characterId !== characterId)
-                      .map((t) => ({ id: t.id, name: t.name }))}
-                  />
+                      .map((t) => ({ id: t.id, name: t.name }))} riders={choiceRiders(load.view.sheet)} />
                 )}
                 <Vitals
                   sheet={load.view.sheet}

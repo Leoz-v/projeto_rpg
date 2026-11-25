@@ -839,6 +839,8 @@ export const CombatSchema = z
     combatants: z.array(CombatantSchema).min(1).max(MAX_COMBATANTS),
     /** Combates gravados antes da versão 13 não têm o campo: começam sem efeitos. */
     effects: z.array(TimedEffectSchema).max(MAX_COMBATANTS * 4).default([]),
+    /** Dano extra de uma vez por turno já usado, no turno da rodada e do combatente anotados (nota 0077). */
+    usedRiders: z.array(z.strictObject({ characterId: UuidSchema, riderId: IdSchema, round: z.int().min(1), turnTokenId: UuidSchema })).max(200).optional(),
   })
   .refine((c) => c.turn < c.combatants.length, { message: 'turno fora da ordem' })
   .refine((c) => new Set(c.combatants.map((x) => x.tokenId)).size === c.combatants.length, { message: 'token repetido no combate' });

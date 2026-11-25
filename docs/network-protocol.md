@@ -2,7 +2,7 @@
 
 > **Contrato fechado.** Só existem as mensagens e os tipos de `Intent` listados aqui. Para criar um novo, primeiro atualize este documento (e `PROTOCOL_VERSION`, se a mudança for incompatível) e só depois o código. Os schemas Zod em `src/shared/protocol/` devem seguir este arquivo exatamente.
 
-- **Versão do protocolo:** `PROTOCOL_VERSION = 40`
+- **Versão do protocolo:** `PROTOCOL_VERSION = 41`
 - **Transporte:** WebSocket puro (`ws://`) sobre rede virtual (Tailscale/ZeroTier). Porta padrão do Host: `47820`.
 - **Formato:** um objeto JSON (UTF-8) por frame de texto. Frames binários não são usados.
 - **Validação:** toda mensagem recebida, nos dois lados, passa pelo schema Zod antes de qualquer processamento. Mensagem inválida gera `Error` com `code: "invalid_message"` e é descartada. A conexão **não** cai por causa disso.
@@ -276,7 +276,7 @@ Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do
 | `monster.lair` | 30 | `{ tokenId: string, lair: boolean }` | mestre |
 | `roll.d20`        | 7    | `{ characterId: string, target: SheetRollTarget, advantage?: boolean, disadvantage?: boolean, visibility: "public" \| "gm" }` | dono e mestre |
 | `roll.damage`     | 7    | `{ characterId: string, instanceId: string, critical?: boolean, versatile?: boolean, visibility: "public" \| "gm" }` | dono e mestre |
-| `attack.make`     | 8    | `{ attacker: { characterId: string, instanceId: string } \| { tokenId: string, actionId: string }, targetTokenId: string, advantage?: boolean, disadvantage?: boolean, visibility: "public" \| "gm" }` | personagem: dono e mestre; token: mestre e donos do token |
+| `attack.make`     | 8    | `{ attacker: { characterId: string, instanceId: string } \| { tokenId: string, actionId: string }, targetTokenId: string, advantage?: boolean, disadvantage?: boolean, visibility: "public" \| "gm", riders?: { id: string, damageType?: DamageType }[] (0..10) }` | personagem: dono e mestre; token: mestre e donos do token |
 | `attack.multi` | 32 | `{ tokenId: string, actionId?: string, option: int (0..9), steps: { actionId: string, targetTokenIds: string[] (0..20), advantage?: boolean, disadvantage?: boolean }[] (1..12), visibility: "public" \| "gm" }` | mestre; jogador nos próprios tokens |
 | `save.force`      | 9    | `{ source: { tokenId: string, actionId: string } \| { custom: { name: string (1..100), ability: Ability, dc: int (1..40), damage: { dice: string, type: DamageType }[] (0..5), onSuccess: "half" \| "none", conditions?: Condition[] } }, targetTokenIds: string[] (1..20, sem repetir), against?: { condition?: Condition, source?: "spell" \| "magic" }, visibility: "public" \| "gm" }` | ação do monstro: mestre e donos do token; efeito informado: todos |
 | `mastery.use`     | 10   | `{ entryId: string, targetTokenId?: string, advantage?: boolean, disadvantage?: boolean }` | quem fez o ataque e mestre |
@@ -478,6 +478,7 @@ Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do
   - **`token.hidden`:** o mestre esconde (`hidden: true`) ou revela (`hidden: false`) um token para os jogadores. O Host filtra o token do estado enviado a quem não é mestre (seção 2.12).
   - **`token.dead`:** o mestre marca (`dead: true`) ou desmarca (`dead: false`) um token como morto (override manual). Em um token ligado a personagem, também atualiza `characters[characterId].deathSaves.dead` (com registro `death_state` e quebra de Concentração ao morrer). Num monstro, marcar como morto encerra a Concentração dele.
   - **Marca automática a 0 PV:** quando um token que não é personagem cai a 0 PV (`hp.change` ou `damage.apply`) ou atinge Exaustão 6 (`exhaustion.set`), o Host marca `dead: true` automaticamente (assim jogadores também veem a marca visual mesmo sem receber `token.hp`). Quando o token é curado acima de 0 PV (`hp.change` de cura ou cura de magia), o Host limpa `dead: false`. O mestre sempre pode sobrescrever com `token.dead` (ex.: dano não letal a 0 PV).
+- **Dano extra nos ataques** (nota 0077, versão 41): `attack.make` com arma da ficha aceita `riders`, o dano extra de `mode: "choice"` que quem ataca marcou (`docs/effects-spec.md`, 3.29), com `damageType` quando há tipos à escolha. O que não está no ataque, repetido, já usado no turno ou sem o que gastar é `rule_violation`, antes de rolar. No acerto, os marcados e os automáticos entram como grupos do dano, com a fonte; o gasto só acontece no acerto. O combate guarda em `usedRiders` os de uma vez por turno (`characterId`, `riderId`, `round`, `turnTokenId`), que não chegam aos jogadores.
 - **Recusas** (`IntentResult` com `rejected`): `not_allowed` para permissão (jogador num `Intent` do mestre, token de outro jogador); `rule_violation` para estado inválido (mapa ou token inexistente, posição fora do mapa, monstro fora do compêndio, imagem que o Host não tem). Um `Intent` recusado não muda o estado nem o `rev`.
 
 ## 4. Sequência típica
