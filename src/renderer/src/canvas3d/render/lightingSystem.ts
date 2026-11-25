@@ -575,4 +575,15 @@ export class LightingManager {
       m.light.intensity = m.baseIntensity * s.pointLightIntensity * (1 + wave * m.flickerAmount);
     }
   }
+
+  destroy(): void {
+    for (const m of this.managedLights) {
+      this.lightsRoot.removeChild(m.light);
+      m.light.destroy();
+    }
+    this.managedLights.length = 0;
+    this.activePropLightCount = 0;
+    this.activeLavaLightCount = 0;
+    this.onMoodTintChange = undefined;
+  }
 }
