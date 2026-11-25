@@ -129,14 +129,47 @@ async function loadTexture(sha256: string): Promise<Texture | null> {
   return new Texture({ source: new ImageSource({ resource: img }) });
 }
 
+export interface WorldLayers {
+  world: Container;
+  backgroundLayer: Container;
+  gridLayer: Graphics;
+  tokenLayer: Container;
+  fogLayer: Container;
+  fogPreviewLayer: Graphics;
+  rulerLayer: Graphics;
+}
+
+/**
+ * Monta as camadas do mundo 2D na ordem de desenho e desativa o hit-testing nas
+ * camadas não interativas (principalmente névoa e régua, acima dos tokens): com
+ * `app.stage.eventMode = 'static'`, o PixiJS v8 propaga o modo para baixo e o
+ * sprite da névoa engoliria os cliques nos tokens se ficasse em `'passive'`.
+ */
+export function createWorldLayers(): WorldLayers {
+  const world = new Container();
+  const backgroundLayer = new Container();
+  const gridLayer = new Graphics();
+  const tokenLayer = new Container();
+  const fogLayer = new Container();
+  const fogPreviewLayer = new Graphics();
+  const rulerLayer = new Graphics();
+  backgroundLayer.eventMode = 'none';
+  gridLayer.eventMode = 'none';
+  fogLayer.eventMode = 'none';
+  fogPreviewLayer.eventMode = 'none';
+  rulerLayer.eventMode = 'none';
+  world.addChild(backgroundLayer, gridLayer, tokenLayer, fogLayer, fogPreviewLayer, rulerLayer);
+  return { world, backgroundLayer, gridLayer, tokenLayer, fogLayer, fogPreviewLayer, rulerLayer };
+}
+
 export class MapStage {
-  private readonly world = new Container();
-  private readonly backgroundLayer = new Container();
-  private readonly gridLayer = new Graphics();
-  private readonly tokenLayer = new Container();
-  private readonly fogLayer = new Container();
-  private readonly fogPreviewLayer = new Graphics();
-  private readonly rulerLayer = new Graphics();
+  private readonly world: Container;
+  private readonly backgroundLayer: Container;
+  private readonly gridLayer: Graphics;
+  private readonly tokenLayer: Container;
+  private readonly fogLayer: Container;
+  private readonly fogPreviewLayer: Graphics;
+  private readonly rulerLayer: Graphics;
   private readonly rulerHud = new Container();
   private readonly rulerBadgeBg = new Graphics();
   private readonly rulerBadgeText: Text;
@@ -174,7 +207,14 @@ export class MapStage {
     private readonly app: Application,
     private readonly events: MapStageEvents,
   ) {
-    this.world.addChild(this.backgroundLayer, this.gridLayer, this.tokenLayer, this.fogLayer, this.fogPreviewLayer, this.rulerLayer);
+    const layers = createWorldLayers();
+    this.world = layers.world;
+    this.backgroundLayer = layers.backgroundLayer;
+    this.gridLayer = layers.gridLayer;
+    this.tokenLayer = layers.tokenLayer;
+    this.fogLayer = layers.fogLayer;
+    this.fogPreviewLayer = layers.fogPreviewLayer;
+    this.rulerLayer = layers.rulerLayer;
     this.rulerBadgeText = new Text({
       text: '',
       style: {
@@ -202,6 +242,9 @@ export class MapStage {
       this.pointerUp();
     });
     app.stage.on('pointerupoutside', () => {
+      this.pointerUp();
+    });
+    app.stage.on('pointercancel', () => {
       this.pointerUp();
     });
     app.canvas.addEventListener('wheel', this.onWheel, { passive: false });
@@ -255,6 +298,10 @@ export class MapStage {
     const crosshair = this.rulerMode || activeFog;
     this.app.canvas.style.cursor = crosshair ? 'crosshair' : '';
     for (const [id, view] of this.views) {
+      if (this.drag?.id === id) {
+        view.container.cursor = 'grabbing';
+        continue;
+      }
       const token = this.scene.tokens.find((t) => t.id === id);
       view.container.cursor = crosshair ? 'crosshair' : token && this.scene.canDrag(token) ? 'grab' : 'pointer';
     }
@@ -551,11 +598,14 @@ export class MapStage {
   }
 
   private tokenDown(id: string, e: FederatedPointerEvent): void {
+    // Apenas botão esquerdo seleciona e arrasta tokens; botão do meio/direito continua fazendo pan do mapa.
+    if (e.button !== 0) return;
     // Em modo régua ou com ferramenta de névoa ativa, cliques não arrastam tokens.
     if (this.rulerMode) return;
     if (this.scene.viewer.role === 'gm' && this.scene.fogTool !== 'none') return;
     // O clique no token não vira arrasto da câmera.
     e.stopPropagation();
+    this.pan = undefined;
     // Permissão conferida na hora (a cena pode ter mudado desde que o token foi desenhado).
     const token = this.scene.tokens.find((t) => t.id === id);
     const container = this.views.get(id)?.container;
@@ -570,6 +620,7 @@ export class MapStage {
   }
 
   private stageDown(e: FederatedPointerEvent): void {
+    if (this.drag) return;
     const map = this.scene.map;
     if (map && this.scene.viewer.role === 'gm' && this.scene.fogTool !== 'none' && e.button === 0) {
       const world = screenToWorld(this.camera, e.global);
@@ -605,7 +656,7 @@ export class MapStage {
       }
       return;
     }
-    this.events.onSelect(null);
+    if (e.button === 0) this.events.onSelect(null);
     this.pan = { from: { x: e.global.x, y: e.global.y }, camera: this.camera };
   }
 
