@@ -244,6 +244,9 @@ export class MapStage {
     app.stage.on('pointerupoutside', () => {
       this.pointerUp();
     });
+    app.stage.on('pointercancel', () => {
+      this.pointerUp();
+    });
     app.canvas.addEventListener('wheel', this.onWheel, { passive: false });
     app.renderer.on('resize', () => {
       app.stage.hitArea = app.screen;
@@ -295,6 +298,10 @@ export class MapStage {
     const crosshair = this.rulerMode || activeFog;
     this.app.canvas.style.cursor = crosshair ? 'crosshair' : '';
     for (const [id, view] of this.views) {
+      if (this.drag?.id === id) {
+        view.container.cursor = 'grabbing';
+        continue;
+      }
       const token = this.scene.tokens.find((t) => t.id === id);
       view.container.cursor = crosshair ? 'crosshair' : token && this.scene.canDrag(token) ? 'grab' : 'pointer';
     }
@@ -591,11 +598,14 @@ export class MapStage {
   }
 
   private tokenDown(id: string, e: FederatedPointerEvent): void {
+    // Apenas botão esquerdo seleciona e arrasta tokens; botão do meio/direito continua fazendo pan do mapa.
+    if (e.button !== 0) return;
     // Em modo régua ou com ferramenta de névoa ativa, cliques não arrastam tokens.
     if (this.rulerMode) return;
     if (this.scene.viewer.role === 'gm' && this.scene.fogTool !== 'none') return;
     // O clique no token não vira arrasto da câmera.
     e.stopPropagation();
+    this.pan = undefined;
     // Permissão conferida na hora (a cena pode ter mudado desde que o token foi desenhado).
     const token = this.scene.tokens.find((t) => t.id === id);
     const container = this.views.get(id)?.container;
@@ -610,6 +620,7 @@ export class MapStage {
   }
 
   private stageDown(e: FederatedPointerEvent): void {
+    if (this.drag) return;
     const map = this.scene.map;
     if (map && this.scene.viewer.role === 'gm' && this.scene.fogTool !== 'none' && e.button === 0) {
       const world = screenToWorld(this.camera, e.global);
@@ -645,7 +656,7 @@ export class MapStage {
       }
       return;
     }
-    this.events.onSelect(null);
+    if (e.button === 0) this.events.onSelect(null);
     this.pan = { from: { x: e.global.x, y: e.global.y }, camera: this.camera };
   }
 

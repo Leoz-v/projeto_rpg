@@ -240,6 +240,8 @@ export class TokenRenderer3d {
     if (!enabled && this.drag) {
       const id = this.drag.tokenId;
       this.drag = null;
+      this.sceneMgr.orbit.enabled = true;
+      this.sceneMgr.app.canvas.style.cursor = '';
       this.revert(id);
     }
   }
@@ -256,7 +258,9 @@ export class TokenRenderer3d {
       if (ids.has(id)) continue;
       if (this.drag?.tokenId === id) {
         this.drag = null;
-        this.sceneMgr.setLeftButtonAction('pan');
+        this.sceneMgr.orbit.enabled = true;
+        this.sceneMgr.app.canvas.style.cursor = '';
+        if (this.interactionEnabled) this.sceneMgr.setLeftButtonAction('pan');
       }
       this.disposeEntry(entry);
       this.entries.delete(id);
@@ -352,6 +356,10 @@ export class TokenRenderer3d {
     if (this.destroyed) return;
     this.destroyed = true;
     this.eventAbort.abort();
+    if (this.drag) {
+      this.drag = null;
+      this.sceneMgr.orbit.enabled = true;
+    }
     this.sceneMgr.setKeyboardPanEnabled(true);
     for (const entry of this.entries.values()) {
       this.disposeEntry(entry);
@@ -574,23 +582,29 @@ export class TokenRenderer3d {
 
     canvas.addEventListener('contextmenu', (e) => { e.preventDefault(); }, { signal });
 
-    canvas.addEventListener(
+    // O EventSystem do PixiJS v8 registra `pointerdown` no canvas e `pointermove` no `document`
+    // em fase de captura durante `app.init()`, antes do TokenRenderer3d existir. Escutar em
+    // `window` na captura garante execução anterior ao PixiJS/OrbitCamera para que arrastar
+    // um token nunca mova o mapa junto.
+    window.addEventListener(
       'pointerdown',
       (e) => {
-        if (!this.interactionEnabled || e.button !== 0) return;
+        if (!this.interactionEnabled || e.button !== 0 || e.target !== canvas) return;
         this.downClient = { x: e.clientX, y: e.clientY };
         const ray = this.sceneMgr.clientPointToRay(e.clientX, e.clientY);
         const visibleTokens = Array.from(this.entries.values(), (entry) => entry.token);
         const hit = pickToken3d(ray, visibleTokens, this.grid, this.sceneMgr.viewMode);
         if (!hit) return;
 
-        // Bloqueia o OrbitCamera de receber este clique: arrastar o token nunca arrasta o mapa junto.
+        // Bloqueia o PixiJS/OrbitCamera de receber este clique: arrastar o token nunca arrasta o mapa junto.
         e.stopImmediatePropagation();
+        e.stopPropagation();
         e.preventDefault();
 
         this.events.onSelect(hit.id);
         if (this.sceneState.canDrag(hit)) {
           this.drag = { tokenId: hit.id, moved: false };
+          this.sceneMgr.orbit.enabled = false;
           this.sceneMgr.setLeftButtonAction('none');
           canvas.style.cursor = 'grabbing';
         }
@@ -598,11 +612,12 @@ export class TokenRenderer3d {
       { capture: true, signal },
     );
 
-    canvas.addEventListener(
+    window.addEventListener(
       'pointermove',
       (e) => {
         if (!this.drag) return;
         e.stopImmediatePropagation();
+        e.stopPropagation();
         const entry = this.entries.get(this.drag.tokenId);
         if (!entry) return;
         const ray = this.sceneMgr.clientPointToRay(e.clientX, e.clientY);
@@ -633,7 +648,8 @@ export class TokenRenderer3d {
 
       this.drag = null;
       canvas.style.cursor = '';
-      this.sceneMgr.setLeftButtonAction('pan');
+      this.sceneMgr.orbit.enabled = true;
+      if (this.interactionEnabled) this.sceneMgr.setLeftButtonAction('pan');
 
       const entry = this.entries.get(activeDrag.tokenId);
       const map = this.sceneState.map;
