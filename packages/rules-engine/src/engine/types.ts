@@ -1,4 +1,4 @@
-import type { Ability, DamageType, Condition, Sense, Size, Skill, WeaponMastery } from '../schemas/common';
+import type { Ability, CreatureType, DamageType, Condition, Sense, Size, Skill, WeaponMastery } from '../schemas/common';
 import type { Predicate } from '../schemas/predicate';
 import type { ChoiceOptions, Feature } from '../schemas/source';
 import type { SourceKindSchema } from '../schemas/character';
@@ -253,6 +253,14 @@ export interface Defenses {
   conditionImmunities: { condition: Condition; sources: SourceLabel[] }[];
 }
 
+/** Vantagem ou Desvantagem de quem ataca a criatura (`attacks_against`; nota 0062). */
+export interface AttacksAgainst {
+  mode: 'advantage' | 'disadvantage';
+  from?: readonly CreatureType[] | undefined;
+  note?: string | undefined;
+  source: SourceLabel;
+}
+
 export interface DerivedSheet {
   /** Sem escolhas pendentes nem erros. */
   complete: boolean;
@@ -283,6 +291,7 @@ export interface DerivedSheet {
   skills: Record<Skill, SkillStat>;
   senses: { sense: Sense; range: number; source: SourceLabel }[];
   defenses: Defenses;
+  attacksAgainst: AttacksAgainst[];
   proficiencies: {
     armor: string[];
     weapons: string[];

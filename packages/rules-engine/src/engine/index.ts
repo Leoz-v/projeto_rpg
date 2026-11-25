@@ -76,4 +76,5 @@ export {
   ownRollConditions,
   SPEED_ZERO_CONDITIONS,
 } from './conditions';
+export { attackedByEffects, creatureAc, creatureAttacksAgainst, creatureReminders, creatureRollEffects, hasUnsupportedCreatureEffect, type NamedEffects, withEffectDefenses } from './creature-effects';
 export { CONDITION_NAME, DAMAGE_NAME } from './names';

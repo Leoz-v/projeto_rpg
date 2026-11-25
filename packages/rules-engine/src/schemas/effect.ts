@@ -3,6 +3,7 @@ import {
   AbilitySchema,
   AttackKindSchema,
   ConditionSchema,
+  CreatureTypeSchema,
   DamageTypeSchema,
   DiceSchema,
   FeetSchema,
@@ -230,6 +231,24 @@ const D20BonusSchema = z.strictObject({
   ...common,
 });
 
+// --- attacks_against (3.26) / minimum_ac (3.27) --------------------------------
+
+/** Ataques contra a criatura têm Vantagem ou Desvantagem (Faerie Fire, Blur). */
+const AttacksAgainstSchema = z.strictObject({
+  type: z.literal('attacks_against'),
+  mode: z.enum(['advantage', 'disadvantage']),
+  /** Só de atacantes destes tipos (Protection from Evil and Good). */
+  from: z.array(CreatureTypeSchema).min(1).optional(),
+  ...common,
+});
+
+/** CA mínima, depois de fórmulas e bônus (Barkskin: 17). */
+const MinimumAcSchema = z.strictObject({
+  type: z.literal('minimum_ac'),
+  value: z.int().min(1).max(30),
+  ...common,
+});
+
 const DamageDieMinimumSchema = z.strictObject({
   type: z.literal('damage_die_minimum'),
   /** Cada dado de dano abaixo disto vale isto (Great Weapon Fighting: 3). */
@@ -396,6 +415,8 @@ export const EffectSchema = z.discriminatedUnion('type', [
   CritRangeSchema,
   D20RuleSchema,
   D20BonusSchema,
+  AttacksAgainstSchema,
+  MinimumAcSchema,
   DamageDieMinimumSchema,
   MinimumSpeedSchema,
   BaseOverrideSchema,

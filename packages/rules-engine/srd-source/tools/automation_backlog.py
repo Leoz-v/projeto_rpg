@@ -114,15 +114,13 @@ MONSTER_REASONS = {
 # As magias de dano, cura e condição têm resolução estruturada (`srd-source/tools/spell_resolution.py`, notas 0054
 # e 0056). As demais ficam aqui:
 SPELL = {
-    # PR 4b (nota 0060): efeitos em monstros, "ataques contra o alvo", efeitos numa arma e durações de um turno.
+    # PR 4b2 (nota 0062): dano extra contra um alvo marcado, efeitos numa arma, tamanho e durações de um turno.
     "temporary_effects": [
-        "bane", "barkskin", "blur", "enlarge_reduce", "faerie_fire", "hex", "hunters_mark", "magic_weapon",
-        "protection_from_evil_and_good", "ray_of_enfeeblement", "shield", "slow", "shillelagh", "conjure_minor_elementals",
-        "bestow_curse", "holy_aura",
+        "enlarge_reduce", "hex", "hunters_mark", "magic_weapon", "shield", "shillelagh", "conjure_minor_elementals", "bestow_curse",
     ],
 }
 SPELL_REASONS = {
-    "temporary_effects": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060).",
+    "temporary_effects": "Bônus ou penalidade que depende do alvo marcado, de uma arma, do tamanho ou de um turno: Fase 7, PR 4b2 (nota 0062).",
     "gm": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide.",
 }
 # Magias com dano, cura ou condição no texto que ficam sem resolução estruturada, com o motivo.
@@ -153,7 +151,10 @@ SPELL_REASON_OVERRIDE = {
 }
 # Partes pendentes de magias que já têm resolução estruturada.
 SPELL_PARTIAL = {
-    "spell:foresight#attacks_against": ("phase_7", "Outras criaturas têm Desvantagem nos ataques contra o alvo: ataques contra o alvo, PR 4b."),
+    "spell:faerie_fire#invisible": ("gm", "O alvo não se beneficia de Invisível: o mestre tira a condição ou ajusta a rolagem."),
+    "spell:holy_aura#blinded": ("gm", "Um Corruptor ou Morto-vivo que acerta o alvo corpo a corpo salva contra Cego: o mestre conduz."),
+    "spell:protection_from_evil_and_good#conditions": ("gm", "Não pode ser possuído nem Enfeitiçado ou Amedrontado por esses tipos: o mestre confere a origem."),
+    "spell:ray_of_enfeeblement#damage_and_attacks": ("gm", "Ataques com Força têm Desvantagem, -1d8 no dano, e Desvantagem no próximo ataque no sucesso: o mestre ajusta."),
     "spell:beacon_of_hope#max_healing": ("gm", "A cura recupera o máximo possível: o mestre ajusta o valor da cura."),
     "spell:heroes_feast#hp_max": ("gm", "PV máximos +2d10 (rolados uma vez, por 24 horas): o mestre rola e aplica como ajuste."),
     "spell:freedom_of_movement#restraints": ("gm", "Magias e efeitos mágicos não reduzem o Deslocamento nem impõem Paralisado ou Impedido: o mestre confere a origem."),

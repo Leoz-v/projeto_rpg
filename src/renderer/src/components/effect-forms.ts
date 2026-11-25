@@ -208,6 +208,10 @@ export function describeEffect(effect: Effect): string {
       return `+${effect.dice}${effect.damageType ? ` ${DAMAGE_LABEL[effect.damageType].toLowerCase()}` : ''} nos ataques${when}`;
     case 'd20_bonus':
       return `${effect.subtract ? '−' : '+'}${effect.dice} em ${targetLabel(effect.target, ROLL_TARGETS)}${when}`;
+    case 'attacks_against':
+      return `${effect.mode === 'advantage' ? 'Vantagem' : 'Desvantagem'} em ataques contra o alvo${effect.from ? ' (de certos tipos de criatura)' : ''}${when}`;
+    case 'minimum_ac':
+      return `CA mínima ${effect.value}${when}`;
     case 'set_base_ac':
       return `CA base ${effect.base}${effect.abilities.map((a) => ` + ${ABILITY_LABEL[a].short}`).join('')}${when}`;
     case 'damage_reduction':

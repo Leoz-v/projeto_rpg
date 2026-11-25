@@ -73,6 +73,8 @@ export const SpellSavePartSchema = z.strictObject({
   onFailConditions: z.array(ConditionSchema).default([]),
   /** Quem conjura escolhe uma das condições da falha (Blindness/Deafness). */
   conditionChoice: z.literal(true).optional(),
+  /** Efeitos do catálogo na falha, até a magia acabar (Bane, Slow; nota 0062). */
+  onFailEffects: z.array(EffectSchema).default([]),
   conditionsEnd: SpellConditionEndSchema.optional(),
 });
 

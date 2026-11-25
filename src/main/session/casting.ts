@@ -2,7 +2,7 @@ import { applyDamage, availableSpellSlots, availableUses, type DamageType, type 
 import { type ChatEntry, type IntentData, type PatchOp, type Role, type SessionCharacter, type SpellEffectPart, type Token, toPointer } from '../../shared/protocol';
 import { attackCircumstances, autoCriticalNotes, rollSaves, targetOf, withCircumstances } from './attacks';
 import { type SessionContext, violation } from './context';
-import { applyBuff, applyConditionPart, applyHealing, ConditionLedger, conditionTiming, imposeConditions, type SpellLink } from './spell-effects';
+import { applyBuff, applyConditionPart, applyHealing, ConditionLedger, conditionTiming, imposeConditions, putSpellEffects, type SpellLink } from './spell-effects';
 import { changeResource } from './resources';
 import { changeSpellSlot } from './spell-slots';
 import { concentrate } from './vitality';
@@ -180,7 +180,14 @@ export function useSpellEffect(ctx: SessionContext, playerId: string, role: Role
       spellOf,
       declared,
     });
-    if (conditions.length === 0 || saves.failed.length === 0) return saves.ops;
+    if (saves.failed.length === 0) return saves.ops;
+    // Na falha, os efeitos entram na ficha ou no token (Bane, Slow; nota 0062).
+    if (part.onFailEffects.length > 0) {
+      const put = putSpellEffects(ctx, { name: `${label} (${character.name})`, effects: part.onFailEffects, link, targets: saves.failed });
+      const results = saves.failed.map((t) => ({ targetTokenId: t.id, targetName: t.name, notes: put.notes.get(t.id) ?? [] }));
+      saves.ops.push(ctx.appendChat({ kind: 'spell_applied', ...ctx.entryBase(playerId), spellOf, casterName: character.name, label, results }), ...put.ops);
+    }
+    if (conditions.length === 0) return saves.ops;
     // Na falha, as condições entram direto (nota 0058).
     const timing = conditionTiming(ctx, part.conditionsEnd, link);
     const ledger = new ConditionLedger(ctx);

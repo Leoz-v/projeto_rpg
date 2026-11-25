@@ -172,7 +172,8 @@ function partSummary(part: SpellEffectPart, effect: NonNullable<CastEntry['effec
     how = `${count}dano direto`;
   }
   const extra = conditions.length > 0 ? ` · ${part.kind === 'attack' ? 'no acerto' : 'na falha'}: ${conditionText}${end}` : '';
-  return `${how}${damage ? ` · ${damage}` : ''}${extra}`;
+  const failEffects = part.kind === 'save' && part.onFailEffects.length > 0 ? ` · na falha: ${part.onFailEffects.map(describeEffect).join(' · ')}` : '';
+  return `${how}${damage ? ` · ${damage}` : ''}${extra}${failEffects}`;
 }
 
 /** Alvos e opções de uma parte: um alvo por ataque ou projétil (pode repetir), ou alvos distintos (salvaguarda, cura, condição). */

@@ -48,7 +48,7 @@ def atk(attack_kind, *damage, label=None, count=None, on_hit=(), on_miss=None, e
     return p
 
 
-def sv(ability, *damage, label=None, success="half", on_fail=(), count=None, end=None, choice=False):
+def sv(ability, *damage, label=None, success="half", on_fail=(), count=None, end=None, choice=False, effects=()):
     """Salvaguarda; `choice`: quem conjura escolhe uma das condições da falha."""
     p = _base("save", damage, label, count)
     p["ability"] = ability
@@ -57,6 +57,8 @@ def sv(ability, *damage, label=None, success="half", on_fail=(), count=None, end
         p["onFailConditions"] = list(on_fail)
     if choice:
         p["conditionChoice"] = True
+    if effects:
+        p["onFailEffects"] = list(effects)
     if end:
         p["conditionsEnd"] = end
     return p
@@ -100,8 +102,17 @@ def adv(target, when=None):
     return {"type": "advantage", "target": target, **({"when": when} if when else {})}
 
 
-def d20b(dice, target):
-    return {"type": "d20_bonus", "dice": dice, "target": target}
+def dis(target):
+    return {"type": "disadvantage", "target": target}
+
+
+def against(mode, types=None, note=None):
+    """Vantagem ou Desvantagem nos ataques contra o alvo (nota 0062)."""
+    return {"type": "attacks_against", "mode": mode, **({"from": types} if types else {}), **({"note": note} if note else {})}
+
+
+def d20b(dice, target, subtract=False):
+    return {"type": "d20_bonus", "dice": dice, "target": target, **({"subtract": True} if subtract else {})}
 
 
 def res(damage_type):
@@ -411,6 +422,28 @@ RESOLUTION = {
              "Each target's Hit Points increase by 5 for each spell slot level above 2"], None),
     "Beacon of Hope": ([buff(adv("save.wis"), adv("death_save"))],
                        ["each target has Advantage on Wisdom saving throws and Death Saving Throws"], None),
+    "Bane": ([sv("cha", success="none", effects=[d20b("1d4", "attack.all", True), d20b("1d4", "save.all", True)], count=(3, 1))],
+             ["Up to three creatures", "the target must subtract 1d4 from the attack roll or save",
+              "You can target one additional creature for each spell slot level above 1"], None),
+    "Barkskin": ([buff({"type": "minimum_ac", "value": 17}, count=(1,))], ["has an Armor Class of 17 if its AC is lower than that"], None),
+    "Blur": ([buff(against("disadvantage", note="não vale contra quem percebe o alvo com Visão às Cegas ou Visão Verdadeira"), count=(1,))],
+             ["any creature has Disadvantage on attack rolls against you", "if it perceives you with Blindsight or Truesight"], None),
+    "Faerie Fire": ([sv("dex", success="none", effects=[against("advantage", note="se o atacante puder ver o alvo")])],
+                    ["Attack rolls against an affected creature or object have Advantage if the attacker can see it"], None),
+    "Holy Aura": ([buff(adv("save.all"), against("disadvantage"))],
+                  ["creatures of your choice have Advantage on all saving throws, and other creatures have Disadvantage on attack rolls against them"], None),
+    "Protection from Evil and Good": ([buff(against("disadvantage", ["aberration", "celestial", "elemental", "fey", "fiend", "undead"]), count=(1,))],
+                                      ["Aberrations, Celestials, Elementals, Fey, Fiends, or Undead",
+                                       "Creatures of those types have Disadvantage on attack rolls against the target"], None),
+    "Ray of Enfeeblement": ([sv("con", success="none", count=(1,), effects=[
+        dis("save.str"), dis("check.str"),
+        remind("Ray of Enfeeblement: repete a salvaguarda de Constituição; no sucesso, o efeito acaba.", "turn_end")])],
+        ["the target has Disadvantage on Strength-based D20 Tests for the duration", "The target repeats the save at the end of each of its turns"], None),
+    "Slow": ([sv("wis", success="none", count=(6,), effects=[
+        fb("ac", -2), fb("save.dex", -2),
+        remind("Slow: Deslocamento pela metade, sem Reações, ação ou Ação Bônus (não as duas) e um só ataque; magia somática tem 25% de chance de falhar."),
+        remind("Slow: repete a salvaguarda de Sabedoria; no sucesso, o efeito acaba.", "turn_end")])],
+        ["up to six creatures", "a -2 penalty to AC and Dexterity saving throws", "it can't take Reactions", "An affected target repeats the save at the end of each of its turns"], None),
     "Bless": ([buff(d20b("1d4", "attack.all"), d20b("1d4", "save.all"), count=(3, 1))],
               ["You bless up to three creatures", "the target adds 1d4 to the attack roll or save",
                "You can target one additional creature for each spell slot level above 1"], None),
@@ -420,8 +453,8 @@ RESOLUTION = {
                         ["choose Strength, Dexterity, Intelligence, Wisdom, or Charisma", "the target has Advantage on ability checks using the chosen ability",
                          "You can target one additional creature for each spell slot level above 2"], None),
     "Foresight": ([buff(adv("attack.all"), adv("save.all"), adv("initiative"), adv("death_save"),
-                        *[adv(f"check.{a}") for a in ("str", "dex", "con", "int", "wis", "cha")], count=(1,))],
-                  ["the target has Advantage on D20 Tests"], None),
+                        *[adv(f"check.{a}") for a in ("str", "dex", "con", "int", "wis", "cha")], against("disadvantage"), count=(1,))],
+                  ["the target has Advantage on D20 Tests", "other creatures have Disadvantage on attack rolls against it"], None),
     "Guidance": ([buff(options=[(SKILL_PT[k], [d20b("1d4", f"skill.{k}")]) for k in SKILL_PT], count=(1,))],
                  ["choose a skill", "the creature adds 1d4 to any ability check using the chosen skill"], None),
     "Haste": ([buff(fb("ac", 2), adv("save.dex"),

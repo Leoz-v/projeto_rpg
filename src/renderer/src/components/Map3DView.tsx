@@ -3,7 +3,7 @@ import { ImageSource, Texture } from 'pixi.js';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { TableView } from '../../../shared/ipc';
 import type { GameMap, Point } from '../../../shared/protocol';
-import { conditionLabels, timedEffectLabels, tokenConditions } from '../canvas/conditions';
+import { conditionLabels, spellEffectLabels, timedEffectLabels, tokenConditions } from '../canvas/conditions';
 import type { FogTool } from '../canvas/fog-render';
 import { tokenHealth } from '../canvas/health';
 import type { MapStageHandle } from '../canvas/MapStage';
@@ -494,6 +494,7 @@ export function Map3DView({ view, map, maxima, selectedIds, targetedIds, fogTool
       activeId: state.combat?.combatants[state.combat.turn]?.tokenId ?? null,
       conditions: (token) => [
         ...conditionLabels(tokenConditions(token, state.characters)),
+        ...spellEffectLabels(token, state.characters),
         ...timedEffectLabels(token, { combat: state.combat, tokens: state.tokens }),
       ],
       health: (token) => tokenHealth(token, state.characters, maxima),

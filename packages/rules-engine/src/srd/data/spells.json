@@ -580,7 +580,32 @@
       "cleric",
       "warlock"
     ],
-    "description": "Up to three creatures of your choice that you can see within range must each make a Charisma saving throw. Whenever a target that fails this save makes an attack roll or a saving throw before the spell ends, the target must subtract 1d4 from the attack roll or save.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1."
+    "description": "Up to three creatures of your choice that you can see within range must each make a Charisma saving throw. Whenever a target that fails this save makes an attack roll or a saving throw before the spell ends, the target must subtract 1d4 from the attack roll or save.\nUsing a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1.",
+    "resolution": [
+      {
+        "kind": "save",
+        "count": {
+          "base": 3,
+          "perSlot": 1
+        },
+        "ability": "cha",
+        "onSuccess": "none",
+        "onFailEffects": [
+          {
+            "type": "d20_bonus",
+            "dice": "1d4",
+            "target": "attack.all",
+            "subtract": true
+          },
+          {
+            "type": "d20_bonus",
+            "dice": "1d4",
+            "target": "save.all",
+            "subtract": true
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "banishment",
@@ -622,7 +647,21 @@
       "druid",
       "ranger"
     ],
-    "description": "You touch a willing creature. Until the spell ends, the target's skin assumes a bark-like appearance, and the target has an Armor Class of 17 if its AC is lower than that."
+    "description": "You touch a willing creature. Until the spell ends, the target's skin assumes a bark-like appearance, and the target has an Armor Class of 17 if its AC is lower than that.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1
+        },
+        "effects": [
+          {
+            "type": "minimum_ac",
+            "value": 17
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "beacon_of_hope",
@@ -925,7 +964,22 @@
       "sorcerer",
       "wizard"
     ],
-    "description": "Your body becomes blurred. For the duration, any creature has Disadvantage on attack rolls against you. An attacker is immune to this effect if it perceives you with Blindsight or Truesight."
+    "description": "Your body becomes blurred. For the duration, any creature has Disadvantage on attack rolls against you. An attacker is immune to this effect if it perceives you with Blindsight or Truesight.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1
+        },
+        "effects": [
+          {
+            "type": "attacks_against",
+            "mode": "disadvantage",
+            "note": "não vale contra quem percebe o alvo com Visão às Cegas ou Visão Verdadeira"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "burning_hands",
@@ -3013,7 +3067,21 @@
       "bard",
       "druid"
     ],
-    "description": "Objects in a 20-foot Cube within range are outlined in blue, green, or violet light (your choice). Each creature in the Cube is also outlined if it fails a Dexterity saving throw. For the duration, objects and affected creatures shed Dim Light in a 10-foot radius and can't benefit from the Invisible condition.\nAttack rolls against an affected creature or object have Advantage if the attacker can see it."
+    "description": "Objects in a 20-foot Cube within range are outlined in blue, green, or violet light (your choice). Each creature in the Cube is also outlined if it fails a Dexterity saving throw. For the duration, objects and affected creatures shed Dim Light in a 10-foot radius and can't benefit from the Invisible condition.\nAttack rolls against an affected creature or object have Advantage if the attacker can see it.",
+    "resolution": [
+      {
+        "kind": "save",
+        "ability": "dex",
+        "onSuccess": "none",
+        "onFailEffects": [
+          {
+            "type": "attacks_against",
+            "mode": "advantage",
+            "note": "se o atacante puder ver o alvo"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "faithful_hound",
@@ -3686,6 +3754,10 @@
           {
             "type": "advantage",
             "target": "check.cha"
+          },
+          {
+            "type": "attacks_against",
+            "mode": "disadvantage"
           }
         ]
       }
@@ -4826,7 +4898,22 @@
     "classes": [
       "cleric"
     ],
-    "description": "For the duration, you emit an aura in a 30-foot Emanation. While in the aura, creatures of your choice have Advantage on all saving throws, and other creatures have Disadvantage on attack rolls against them. In addition, when a Fiend or an Undead hits an affected creature with a melee attack roll, the attacker must succeed on a Constitution saving throw or have the Blinded condition until the end of its next turn."
+    "description": "For the duration, you emit an aura in a 30-foot Emanation. While in the aura, creatures of your choice have Advantage on all saving throws, and other creatures have Disadvantage on attack rolls against them. In addition, when a Fiend or an Undead hits an affected creature with a melee attack roll, the attacker must succeed on a Constitution saving throw or have the Blinded condition until the end of its next turn.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "effects": [
+          {
+            "type": "advantage",
+            "target": "save.all"
+          },
+          {
+            "type": "attacks_against",
+            "mode": "disadvantage"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "hunters_mark",
@@ -6897,7 +6984,29 @@
       "warlock",
       "wizard"
     ],
-    "description": "Until the spell ends, one willing creature you touch is protected against creatures that are Aberrations, Celestials, Elementals, Fey, Fiends, or Undead. The protection grants several benefits. Creatures of those types have Disadvantage on attack rolls against the target. The target also can't be possessed by or gain the Charmed or Frightened conditions from them. If the target is already possessed, Charmed, or Frightened by such a creature, the target has Advantage on any new saving throw against the relevant effect."
+    "description": "Until the spell ends, one willing creature you touch is protected against creatures that are Aberrations, Celestials, Elementals, Fey, Fiends, or Undead. The protection grants several benefits. Creatures of those types have Disadvantage on attack rolls against the target. The target also can't be possessed by or gain the Charmed or Frightened conditions from them. If the target is already possessed, Charmed, or Frightened by such a creature, the target has Advantage on any new saving throw against the relevant effect.",
+    "resolution": [
+      {
+        "kind": "buff",
+        "count": {
+          "base": 1
+        },
+        "effects": [
+          {
+            "type": "attacks_against",
+            "mode": "disadvantage",
+            "from": [
+              "aberration",
+              "celestial",
+              "elemental",
+              "fey",
+              "fiend",
+              "undead"
+            ]
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "protection_from_poison",
@@ -7002,7 +7111,32 @@
       "warlock",
       "wizard"
     ],
-    "description": "A beam of enervating energy shoots from you toward a creature within range. The target must make a Constitution saving throw. On a successful save, the target has Disadvantage on the next attack roll it makes until the start of your next turn.\nOn a failed save, the target has Disadvantage on Strength-based D20 Tests for the duration. During that time, it also subtracts 1d8 from all its damage rolls. The target repeats the save at the end of each of its turns, ending the spell on a success."
+    "description": "A beam of enervating energy shoots from you toward a creature within range. The target must make a Constitution saving throw. On a successful save, the target has Disadvantage on the next attack roll it makes until the start of your next turn.\nOn a failed save, the target has Disadvantage on Strength-based D20 Tests for the duration. During that time, it also subtracts 1d8 from all its damage rolls. The target repeats the save at the end of each of its turns, ending the spell on a success.",
+    "resolution": [
+      {
+        "kind": "save",
+        "count": {
+          "base": 1
+        },
+        "ability": "con",
+        "onSuccess": "none",
+        "onFailEffects": [
+          {
+            "type": "disadvantage",
+            "target": "save.str"
+          },
+          {
+            "type": "disadvantage",
+            "target": "check.str"
+          },
+          {
+            "type": "reminder",
+            "on": "turn_end",
+            "note": "Ray of Enfeeblement: repete a salvaguarda de Constituição; no sucesso, o efeito acaba."
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "ray_of_frost",
@@ -7933,7 +8067,39 @@
       "sorcerer",
       "wizard"
     ],
-    "description": "You alter time around up to six creatures of your choice in a 40-foot Cube within range. Each target must succeed on a Wisdom saving throw or be affected by this spell for the duration.\nAn affected target's Speed is halved, it takes a -2 penalty to AC and Dexterity saving throws, and it can't take Reactions. On its turns, it can take either an action or a Bonus Action, not both, and it can make only one attack if it takes the Attack action. If it casts a spell with a Somatic component, there is a 25 percent chance the spell fails as a result of the target making the spell's gestures too slowly.\nAn affected target repeats the save at the end of each of its turns, ending the spell on itself on a success."
+    "description": "You alter time around up to six creatures of your choice in a 40-foot Cube within range. Each target must succeed on a Wisdom saving throw or be affected by this spell for the duration.\nAn affected target's Speed is halved, it takes a -2 penalty to AC and Dexterity saving throws, and it can't take Reactions. On its turns, it can take either an action or a Bonus Action, not both, and it can make only one attack if it takes the Attack action. If it casts a spell with a Somatic component, there is a 25 percent chance the spell fails as a result of the target making the spell's gestures too slowly.\nAn affected target repeats the save at the end of each of its turns, ending the spell on itself on a success.",
+    "resolution": [
+      {
+        "kind": "save",
+        "count": {
+          "base": 6
+        },
+        "ability": "wis",
+        "onSuccess": "none",
+        "onFailEffects": [
+          {
+            "type": "flat_bonus",
+            "target": "ac",
+            "value": -2
+          },
+          {
+            "type": "flat_bonus",
+            "target": "save.dex",
+            "value": -2
+          },
+          {
+            "type": "reminder",
+            "on": "turn_start",
+            "note": "Slow: Deslocamento pela metade, sem Reações, ação ou Ação Bônus (não as duas) e um só ataque; magia somática tem 25% de chance de falhar."
+          },
+          {
+            "type": "reminder",
+            "on": "turn_end",
+            "note": "Slow: repete a salvaguarda de Sabedoria; no sucesso, o efeito acaba."
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "sorcerous_burst",

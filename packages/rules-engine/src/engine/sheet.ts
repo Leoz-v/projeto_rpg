@@ -484,7 +484,13 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     { label: 'Modificador de DES', value: mod('dex') },
   ];
   const bestFormula = [defaultFormula, ...formulas].reduce((best, f) => (total(f) > total(best) ? f : best));
-  const ac = stat([...bestFormula, ...bonuses(['ac'])]);
+  const acParts = [...bestFormula, ...bonuses(['ac'])];
+  // CA mínima (Barkskin): completa o que falta, depois de tudo.
+  for (const { effect, source } of effectsOf('minimum_ac')) {
+    const current = total(acParts);
+    if (current < effect.value) acParts.push({ label: `Mínimo ${effect.value}`, value: effect.value - current, source });
+  }
+  const ac = stat(acParts);
 
   // --- PV ---------------------------------------------------------------------
 
@@ -901,6 +907,12 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     skills,
     senses: [...senseMap.values()],
     defenses,
+    attacksAgainst: effectsOf('attacks_against').map((e) => ({
+      mode: e.effect.mode,
+      ...(e.effect.from ? { from: e.effect.from } : {}),
+      ...(e.effect.note !== undefined ? { note: e.effect.note } : {}),
+      source: namedSource(e),
+    })),
     proficiencies,
     weaponMasteries,
     attacks,

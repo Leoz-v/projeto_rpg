@@ -85,6 +85,8 @@ const MIGRATIONS = [
   // Orientação (graus 0..359) e elevação (pés) do token (nota 0061).
   `ALTER TABLE tokens ADD COLUMN rotation INTEGER NOT NULL DEFAULT 0;
    ALTER TABLE tokens ADD COLUMN elevation INTEGER NOT NULL DEFAULT 0;`,
+  // Efeitos de magia sobre o token (JSON; nota 0062).
+  `ALTER TABLE tokens ADD COLUMN spell_effects TEXT NOT NULL DEFAULT '[]';`,
 ] as const;
 
 export const CAMPAIGN_DB_SCHEMA_VERSION = MIGRATIONS.length;
@@ -115,6 +117,7 @@ const TokenRow = z.object({
   vision_feet: z.number().nullable(),
   rotation: z.number(),
   elevation: z.number(),
+  spell_effects: z.string(),
 });
 const ChatRow = z.object({ entry: z.string() });
 const CharacterRow = z.object({ id: z.string(), owner_id: z.string(), name: z.string(), build: z.string(), inventory: z.string(), adjustments: z.string(), hp: z.string(), conditions: z.string(), death_saves: z.string(), concentration: z.string(), hit_dice_spent: z.string(), spell_slots_spent: z.string(), resources_spent: z.string() });
@@ -186,7 +189,7 @@ export class CampaignDb {
     );
     const tokens = Object.fromEntries(
       this.db
-        .prepare('SELECT id, map_id, name, x, y, size, monster_id, image, owner_ids, character_id, hp, conditions, vision_feet, rotation, elevation FROM tokens')
+        .prepare('SELECT id, map_id, name, x, y, size, monster_id, image, owner_ids, character_id, hp, conditions, vision_feet, rotation, elevation, spell_effects FROM tokens')
         .all()
         .map((row) => {
           const t = TokenRow.parse(row);
@@ -208,6 +211,7 @@ export class CampaignDb {
               visionFeet: t.vision_feet,
               rotation: t.rotation,
               elevation: t.elevation,
+              spellEffects: JSON.parse(t.spell_effects) as unknown,
             },
           ];
         }),
@@ -264,13 +268,13 @@ export class CampaignDb {
       );
       for (const m of Object.values(state.maps)) upsertMap.run(m.id, m.name, m.width, m.height, m.background, m.cellPx, m.scene3d, JSON.stringify(m.fog));
       const upsertToken = db.prepare(
-        `INSERT INTO tokens (id, map_id, name, x, y, size, monster_id, image, owner_ids, character_id, hp, conditions, vision_feet, rotation, elevation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO tokens (id, map_id, name, x, y, size, monster_id, image, owner_ids, character_id, hp, conditions, vision_feet, rotation, elevation, spell_effects) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (id) DO UPDATE SET map_id = excluded.map_id, name = excluded.name, x = excluded.x, y = excluded.y, size = excluded.size,
            monster_id = excluded.monster_id, image = excluded.image, owner_ids = excluded.owner_ids, character_id = excluded.character_id, hp = excluded.hp,
-           conditions = excluded.conditions, vision_feet = excluded.vision_feet, rotation = excluded.rotation, elevation = excluded.elevation`,
+           conditions = excluded.conditions, vision_feet = excluded.vision_feet, rotation = excluded.rotation, elevation = excluded.elevation, spell_effects = excluded.spell_effects`,
       );
       for (const t of Object.values(state.tokens)) {
-        upsertToken.run(t.id, t.mapId, t.name, t.position.x, t.position.y, t.size, t.monsterId, t.image, JSON.stringify(t.ownerIds), t.characterId, t.hp === null ? null : JSON.stringify(t.hp), JSON.stringify(t.conditions), t.visionFeet, t.rotation, t.elevation);
+        upsertToken.run(t.id, t.mapId, t.name, t.position.x, t.position.y, t.size, t.monsterId, t.image, JSON.stringify(t.ownerIds), t.characterId, t.hp === null ? null : JSON.stringify(t.hp), JSON.stringify(t.conditions), t.visionFeet, t.rotation, t.elevation, JSON.stringify(t.spellEffects));
       }
 
       this.removeMissing('characters', Object.keys(state.characters));

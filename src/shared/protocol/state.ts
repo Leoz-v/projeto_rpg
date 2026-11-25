@@ -61,6 +61,7 @@ export const SpellEffectPartSchema = z.discriminatedUnion('kind', [
     onSuccess: z.enum(['half', 'none']),
     onFailConditions: SpellEffectConditionsSchema,
     conditionChoice: z.literal(true).optional(),
+    onFailEffects: z.array(EffectSchema).max(MAX_ADJUSTMENT_EFFECTS).default([]),
     conditionsEnd: SpellConditionEndSchema.optional(),
   }),
   z.strictObject({ label: LabelSchema.optional(), kind: z.literal('damage'), damage: SpellEffectDamageSchema, count: SpellEffectCountSchema }),
@@ -302,7 +303,10 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('spell_effect_ended'),
     ...entryBase,
-    characterId: UuidSchema,
+    /** Ausente quando o efeito estava num token sem personagem (`tokenId`). */
+    characterId: UuidSchema.optional(),
+    tokenId: UuidSchema.optional(),
+    /** Nome do personagem ou do token. */
     characterName: NameSchema,
     effectName: LabelSchema,
     reason: z.enum(['concentration', 'removed']),
@@ -555,6 +559,19 @@ export const MapSchema = z.strictObject({
 });
 export type GameMap = z.infer<typeof MapSchema>;
 
+/**
+ * Ajuste do mestre (bênção, maldição, item caseiro): efeitos do catálogo
+ * (docs/effects-spec.md) por cima do cálculo base, sem mexer nas escolhas.
+ */
+export const SessionAdjustmentSchema = z.strictObject({
+  id: UuidSchema,
+  name: NameSchema,
+  effects: z.array(EffectSchema).min(1).max(MAX_ADJUSTMENT_EFFECTS),
+  /** Efeito de magia (nota 0060): quem conjurou e a magia. Com Concentração, sai quando ela acaba; o dono do personagem também pode tirar. */
+  spell: ConditionSpellSchema.optional(),
+});
+export type SessionAdjustment = z.infer<typeof SessionAdjustmentSchema>;
+
 export const TokenSchema = z.strictObject({
   id: UuidSchema,
   mapId: UuidSchema,
@@ -574,6 +591,8 @@ export const TokenSchema = z.strictObject({
   hp: HitPointStateSchema.extend({ max: z.int().min(1).max(MAX_HIT_POINTS) }).nullable(),
   /** Condições do token; vazias num token de personagem (valem as do personagem). */
   conditions: ConditionStateSchema,
+  /** Efeitos de magia sobre o token (nota 0062); vazios num token de personagem (vão nos ajustes dele). */
+  spellEffects: z.array(SessionAdjustmentSchema).max(MAX_ADJUSTMENTS).default([]),
   /** Alcance de visão próprio em pés (5–300), ou `null` para usar o padrão do mapa (nota 0056). */
   visionFeet: VisionFeetSchema.nullable(),
   /** Orientação do token em graus (0..359, sentido horário). */
@@ -582,19 +601,6 @@ export const TokenSchema = z.strictObject({
   elevation: TokenElevationSchema.default(0),
 });
 export type Token = z.infer<typeof TokenSchema>;
-
-/**
- * Ajuste do mestre (bênção, maldição, item caseiro): efeitos do catálogo
- * (docs/effects-spec.md) por cima do cálculo base, sem mexer nas escolhas.
- */
-export const SessionAdjustmentSchema = z.strictObject({
-  id: UuidSchema,
-  name: NameSchema,
-  effects: z.array(EffectSchema).min(1).max(MAX_ADJUSTMENT_EFFECTS),
-  /** Efeito de magia (nota 0060): quem conjurou e a magia. Com Concentração, sai quando ela acaba; o dono do personagem também pode tirar. */
-  spell: ConditionSpellSchema.optional(),
-});
-export type SessionAdjustment = z.infer<typeof SessionAdjustmentSchema>;
 
 /** Descanso em andamento: o tipo e quem descansa (nota 0050). */
 export const SessionRestSchema = z.strictObject({

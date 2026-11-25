@@ -1,4 +1,4 @@
-import { creatureD20, currentHitPoints, type D20RollInput, d20Mode, d20StepNotes, expiresAt, isDying, isBloodied, nextTurn, rollD20, sheetD20, sortByInitiative, type TriggerMoment, type TurnExpiry, turnAfterRemoval } from 'rules-engine';
+import { creatureD20, creatureReminders, currentHitPoints, type D20RollInput, d20Mode, d20StepNotes, expiresAt, isDying, isBloodied, nextTurn, rollD20, sheetD20, sortByInitiative, type TriggerMoment, type TurnExpiry, turnAfterRemoval } from 'rules-engine';
 import { applyPatch, type ChatEntry, type Combat, type ConditionState, type TimedEffect, type IntentData, type PatchOp, type Role, type SessionState, MAX_TURN_TRIGGER_ITEMS, MAX_COMBATANTS, MAX_INITIATIVE, MIN_INITIATIVE, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
 import { cancelRest } from './rest';
@@ -19,6 +19,7 @@ export function rollInitiatives(ctx: SessionContext, data: IntentData<'combat.st
     let advantage: string[];
     let disadvantage: string[];
     let rules: D20RollInput['rules'];
+    let bonusDice: D20RollInput['bonusDice'];
     const character = token.characterId !== null ? ctx.current.characters[token.characterId] : undefined;
     const sheet = character ? ctx.deps.characterSheet(character) : undefined;
     const roll = sheet ? sheetD20(sheet, { kind: 'initiative' }) : undefined;
@@ -28,16 +29,18 @@ export function rollInitiatives(ctx: SessionContext, data: IntentData<'combat.st
       advantage = roll.advantage;
       disadvantage = roll.disadvantage;
       rules = roll.input.rules;
+      bonusDice = roll.input.bonusDice;
     } else {
       if (!creature) notes.push(token.characterId !== null ? 'Personagem sem ficha: iniciativa +0' : 'Sem ficha nem bloco de monstro: iniciativa +0');
       // Bônus do bloco (ou +0), com a Exaustão e as condições (Incapacitado, Invisível).
-      const own = creatureD20({ label: 'Iniciativa', modifier: creature?.initiative ?? 0 }, ctx.conditionsOf(token), { kind: 'initiative' });
+      const own = creatureD20({ label: 'Iniciativa', modifier: creature?.initiative ?? 0 }, ctx.conditionsOf(token), { kind: 'initiative' }, {}, token.spellEffects);
+      bonusDice = own.input.bonusDice;
       modifier = own.input.modifier;
       advantage = own.advantage;
       disadvantage = own.disadvantage;
     }
     if (surprised.has(tokenId)) disadvantage = [...disadvantage, 'Surpresa'];
-    const input: D20RollInput = { modifier, mode: d20Mode(advantage.length > 0, disadvantage.length > 0), ...(rules ? { rules } : {}) };
+    const input: D20RollInput = { modifier, mode: d20Mode(advantage.length > 0, disadvantage.length > 0), ...(rules ? { rules } : {}), ...(bonusDice ? { bonusDice } : {}) };
     const result = rollD20(input, ctx.deps.rng);
     const total = Math.max(MIN_INITIATIVE, Math.min(MAX_INITIATIVE, result.total));
     return {
@@ -158,13 +161,19 @@ export function advanceTurn(ctx: SessionContext, playerId: string, role: Role): 
  * Lembretes (`reminder`) e cura do início do turno (`turn_start_heal`) da
  * ficha do personagem ligado ao token, no momento `on`, avaliados em `state`
  * (nota 0043). A cura entra nos PV do personagem; tudo vai numa entrada
- * `turn_trigger`, só se houver algo a dizer. Tokens sem personagem ou sem
- * ficha não têm lembretes.
+ * `turn_trigger`, só se houver algo a dizer. Um monstro só tem os
+ * lembretes dos efeitos de magia.
  */
 export function triggers(ctx: SessionContext, playerId: string, state: SessionState, on: TriggerMoment, tokenId: string): PatchOp[] {
   const token = state.tokens[tokenId];
   const character = token && token.characterId !== null ? state.characters[token.characterId] : undefined;
-  if (!token || !character) return [];
+  if (!token) return [];
+  if (!character) {
+    // Monstro: só os lembretes dos efeitos de magia (nota 0062).
+    const items = creatureReminders(token.spellEffects, on).map((r) => ({ source: r.source.slice(0, 100), text: r.text.slice(0, 500) }));
+    if (items.length === 0) return [];
+    return [ctx.appendChat({ kind: 'turn_trigger', ...ctx.entryBase(playerId), on, tokenId, name: token.name, items: items.slice(0, MAX_TURN_TRIGGER_ITEMS) })];
+  }
   const sheet = ctx.deps.characterSheet(character);
   if (!sheet) return [];
   const max = sheet.hpMax.total;
