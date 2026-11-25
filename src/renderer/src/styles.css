@@ -2475,3 +2475,10 @@ button.fog-tool.active {
   align-items: center;
   gap: 0.5rem;
 }
+
+.attack-riders {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  flex-basis: 100%;
+}

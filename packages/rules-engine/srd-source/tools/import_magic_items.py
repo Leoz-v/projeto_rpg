@@ -25,6 +25,7 @@ import json, re, subprocess, sys
 from pathlib import Path
 
 import item_casting
+import item_riders
 import item_use
 
 sys.stdout.reconfigure(encoding="utf-8")
@@ -32,6 +33,7 @@ HERE = Path(__file__).resolve().parent
 DATA = HERE.parent.parent / "src" / "srd" / "data"
 PDF = sys.argv[1] if len(sys.argv) > 1 else str(HERE.parent / "SRD_CC_v5.2.1.pdf")
 used = set()
+riders = set()
 problems = []
 
 CATEGORIES = {"Armor": "armor", "Weapon": "weapon", "Wondrous Item": "wondrous", "Potion": "potion", "Ring": "ring",
@@ -502,6 +504,7 @@ for n, h in enumerate(starts):
     item["description"] = description
     used |= item_use.put(item, item_use.MAGIC_USE, problems)
     item_casting.put(item, SPELL_IDS, problems)
+    riders |= item_riders.put(item, problems)
     if name == "Spell Scroll":
         for v, (level, (dc, atk)) in zip(item["variants"], enumerate(SCROLL_STATS), strict=True):
             v["scroll"] = {"level": level, "saveDc": dc, "attackBonus": atk}
@@ -512,6 +515,9 @@ for n, h in enumerate(starts):
 for k in list(item_casting.CASTING) + [k for ids in item_casting.LAST_CHARGE.values() for k in ids]:
     if k not in {i["id"] for i in items}:
         problems.append(f"curadoria de cargas sem item: {k}")
+for k in item_riders.RIDERS:
+    if k not in riders:
+        problems.append(f"dano extra curado sem item: {k}")
 for k in item_use.MAGIC_USE:
     if k not in used:
         problems.append(f"uso curado sem item: {k}")

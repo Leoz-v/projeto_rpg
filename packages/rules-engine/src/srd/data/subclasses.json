@@ -356,7 +356,42 @@
             "feature": {
               "id": "frenzy",
               "name": "Frenzy",
-              "description": "If you use Reckless Attack while your Rage is active, you deal extra damage to the first target you hit on your turn with a Strength-based attack. To determine the extra damage, roll a number of d6s equal to your Rage Damage bonus, and add them together. The damage has the same type as the weapon or Unarmed Strike used for the attack."
+              "description": "If you use Reckless Attack while your Rage is active, you deal extra damage to the first target you hit on your turn with a Strength-based attack. To determine the extra damage, roll a number of d6s equal to your Rage Damage bonus, and add them together. The damage has the same type as the weapon or Unarmed Strike used for the attack.",
+              "effects": [
+                {
+                  "type": "attack_rider",
+                  "id": "frenzy",
+                  "name": "Frenzy",
+                  "dice": {
+                    "byLevel": [
+                      "2d6",
+                      "2d6",
+                      "2d6",
+                      "2d6",
+                      "2d6",
+                      "2d6",
+                      "2d6",
+                      "2d6",
+                      "3d6",
+                      "3d6",
+                      "3d6",
+                      "3d6",
+                      "3d6",
+                      "3d6",
+                      "3d6",
+                      "4d6",
+                      "4d6",
+                      "4d6",
+                      "4d6",
+                      "4d6"
+                    ]
+                  },
+                  "mode": "choice",
+                  "oncePerTurn": true,
+                  "ability": "str",
+                  "note": "Só com Reckless Attack e a Rage ativa, no primeiro alvo do seu turno."
+                }
+              ]
             }
           }
         ]
@@ -1400,7 +1435,18 @@
                       "feature": {
                         "id": "colossus_slayer",
                         "name": "Colossus Slayer",
-                        "description": "When you hit a creature with a weapon, the weapon deals an extra 1d8 damage to the target if it's missing any of its Hit Points. You can deal this extra damage only once per turn."
+                        "description": "When you hit a creature with a weapon, the weapon deals an extra 1d8 damage to the target if it's missing any of its Hit Points. You can deal this extra damage only once per turn.",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "colossus_slayer",
+                            "name": "Colossus Slayer",
+                            "dice": "1d8",
+                            "mode": "auto",
+                            "oncePerTurn": true,
+                            "injured": true
+                          }
+                        ]
                       }
                     }
                   ]

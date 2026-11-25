@@ -1,3 +1,4 @@
+import type { AttackRider } from './attack-riders';
 import type { Ability, CreatureType, DamageType, Condition, Sense, Size, Skill, WeaponMastery } from '../schemas/common';
 import type { Predicate } from '../schemas/predicate';
 import type { ChoiceOptions, Feature } from '../schemas/source';
@@ -99,6 +100,8 @@ export interface WeaponAttack {
   damage: { dice: string; bonus: Stat; type: DamageType; dieMinimum?: { value: number; source: SourceLabel } | undefined };
   /** Dano extra ao acertar (Radiant Strikes, Vicious Weapon), com a fonte. */
   extraDamage: { dice: string; type: DamageType; source: SourceLabel }[];
+  /** Dano extra que depende do alvo, do d20 ou de escolha (nota 0077). */
+  riders: AttackRider[];
   /** Menor resultado do d20 que faz Acerto Crítico (20 sem efeitos `crit_range`). */
   critRange: number;
   /** Dano com duas mãos (propriedade Versatile). */

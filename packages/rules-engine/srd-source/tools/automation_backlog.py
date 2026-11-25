@@ -223,6 +223,14 @@ for it in load("magic-items.json"):
 # Entradas parciais (`<chave>#<aspecto>`): a fonte já tem efeitos, mas parte da mecânica segue pendente.
 # Valor: (categoria, motivo, mecânica só para `automate`).
 PARTIAL = {
+    "item:sword_of_wounding#save": ("phase_4", "Salvaguarda de CON ou não recupera PV por 1 hora (resolução com salvaguarda).", None),
+    "item:staff_of_withering#save": ("phase_4", "Salvaguarda de CON ou Desvantagem em FOR e CON por 1 hora (resolução com salvaguarda).", None),
+    "item:mace_of_disruption#destroy": ("phase_4", "Salvaguarda de SAB ou é destruído, com 25 PV ou menos (resolução com salvaguarda).", None),
+    "item:oathbow#sworn_enemy": ("phase_4", "Inimigo jurado: Vantagem e sem cobertura contra ele (alvo marcado).", None),
+    "feature:class:barbarian/brutal_strike#effects": ("phase_4", "Forceful Blow e Hamstring Blow: empurrar e reduzir o deslocamento do alvo.", None),
+    "feature:class:warlock/eldritch_smite#prone": ("phase_4", "Pode deixar o alvo Caído (Enorme ou menor).", None),
+    "feature:class:warlock/lifedrinker#heal": ("phase_4", "Gasta um Dado de Vida para recuperar PV ao acertar.", None),
+    "feature:class:rogue/sneak_attack#cunning_strike": ("phase_4", "Cunning Strike e Devious Strikes trocam dados do Sneak Attack por efeitos.", None),
     "item:dragon_orb#control": ("gm", "Controlar o orbe, o chamado dos dragões e o Suggestion dele: o mestre conduz.", None),
     "item:ring_of_elemental_command#focus": ("phase_4", "Elemental Bane, Compulsion e as propriedades do plano ligado: dependem do plano e do alvo.", None),
     "item:ring_of_shooting_stars#spheres": ("phase_4", "Lightning Spheres e Shooting Stars: salvaguardas com cargas variáveis.", None),
@@ -230,7 +238,6 @@ PARTIAL = {
     "item:staff_of_swarming_insects#insect_cloud": ("gm", "A nuvem de insetos muda a visibilidade da área: o mestre conduz.", None),
     "item:potion_of_vitality#hit_dice": ("phase_4", "Dados de Vida recuperam o máximo por 24 horas: muda a rolagem do descanso.", None),
     "item:bead_of_force#sphere": ("gm", "A esfera que prende ou empurra depende de quem está na área: o mestre conduz.", None),
-    "item:sun_blade#undead_damage": ("phase_4", "+1d8 Radiant ao acertar um Undead: dano que depende do alvo (resolução do ataque).", None),
     "item:boots_of_striding_and_springing#jump": ("gm", "Salto de 30 ft gastando 10 ft de movimento, uma vez por turno: o movimento não é controlado pelo Host.",
                                                   None),
     "feature:class:druid/archdruid#nature_magician": ("phase_4", "Nature Magician: converte usos de Wild Shape num espaço de magia (recurso). Longevity é narrativa.",

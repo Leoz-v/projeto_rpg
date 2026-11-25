@@ -77,6 +77,25 @@ test('a wand: the player casts with charges, the GM resolves the damage and the 
   await expect(wand).not.toContainText('Cargas 4/7');
 });
 
+test('Sneak Attack: the player marks it on the sheet, and the GM gets the damage to apply', async ({ table: { gm, player } }) => {
+  await createMap(gm, 'Caverna');
+  await placeMonster(gm, 'Zombie', { name: 'Zumbi' });
+  const id = await createCharacter(player, 'tiefling-rogue-5', 'Nix');
+  await send(player, { kind: 'inventory.add', data: { characterId: id, itemId: 'rapier' } });
+  const inventory = await openInventory(player, 'Nix');
+  await inventory.getByLabel('equipado').click();
+  await player.page.getByLabel('Alvo dos ataques').selectOption({ label: 'Zumbi' });
+  const sneak = player.page.getByLabel(/Sneak Attack/);
+  // Até acertar: a caixa se desmarca a cada ataque.
+  await expect(async () => {
+    await sneak.check();
+    await player.page.getByRole('region', { name: 'Ataques' }).getByRole('button', { name: 'atacar' }).click();
+    await expect(sneak).not.toBeChecked();
+    await expect(chat(gm)).toContainText('Sneak Attack', { timeout: 1500 });
+  }).toPass({ timeout: 30_000 });
+  await expect(chat(gm).getByRole('button', { name: /Aplicar/ }).first()).toBeVisible();
+});
+
 test('a spell scroll: the player picks the spell when adding it and reads it', async ({ table: { gm, player } }) => {
   await createCharacter(player, 'elf-wizard-7', 'Lia');
   const inventory = await openInventory(player, 'Lia');

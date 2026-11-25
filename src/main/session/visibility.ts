@@ -142,8 +142,11 @@ function redactCombat(combat: Combat | null, viewer: Viewer, tokens: SessionStat
   if (visible.length === 0) return null;
   const current = combat.combatants[combat.turn]?.tokenId;
   const turn = visible.findIndex((c) => c.tokenId === current);
+  // O que cada um já usou no turno é conta do Host (e cita o token da vez, que pode ser oculto).
+  const shown = { ...combat };
+  delete shown.usedRiders;
   return {
-    ...combat,
+    ...shown,
     turn: Math.max(0, turn),
     ...(turn < 0 ? { hiddenTurn: true } : {}),
     effects: combat.effects.filter((e) => !isHidden(e.sourceTokenId) && !isHidden(e.targetTokenId)),

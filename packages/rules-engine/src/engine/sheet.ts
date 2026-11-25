@@ -18,6 +18,8 @@ import { resolveBuild, type SourcedEffect } from './build';
 import { type ConditionRoll, conditionDefenses, conditionSource, effectiveConditions, ownRollConditions, SPEED_ZERO_CONDITIONS } from './conditions';
 import { availableCharges, type ChargedItem, chargedItem, itemSpellCosts, itemSpellLevel } from './item-charges';
 import { scrollOf, scrollReading } from './scrolls';
+import type { AttackRider } from './attack-riders';
+import { addDice } from './spells';
 import { itemUse, itemUseOptions } from './item-use';
 import { type MagicPart, resolveInventory } from './items';
 import { isWeaponProficient } from './proficiency';
@@ -667,6 +669,47 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       }),
     );
 
+  /** Círculo dos espaços de Pacto, se há. */
+  const pactSlotLevel = (): number | undefined => {
+    for (const c of build.classes) {
+      if (find(compendium.classes, c.classId)?.spellcasting?.progression === 'pact') return pactMagicSlots(c.level)?.level;
+    }
+    return undefined;
+  };
+  /** Dano extra condicional (nota 0077); o de mesmo id que vem depois substitui, no lugar do anterior. */
+  const attackRiders = (weapon: Weapon, instanceId: string, ability: Ability, roll: RollContext): AttackRider[] => {
+    const found = new Map<string, AttackRider>();
+    for (const e of effectsOf('attack_rider', roll)) {
+      const { effect } = e;
+      if (effect.scope === 'weapon' && e.refKey !== `item:${instanceId}`) continue;
+      if (effect.ability !== undefined && effect.ability !== ability) continue;
+      const pact = effect.cost && 'pactSlot' in effect.cost ? effect.cost : undefined;
+      const pactLevel = pact ? pactSlotLevel() : undefined;
+      if (pact && pactLevel === undefined) continue;
+      const base = typeof effect.dice === 'string' ? effect.dice : effect.dice.byLevel[Math.max(1, scaleLevel(e.classId)) - 1];
+      if (base === undefined) continue;
+      const { cost } = effect;
+      found.set(effect.id, {
+        id: effect.id,
+        name: effect.name,
+        dice: pact && pactLevel !== undefined ? addDice(base, pact.perSlotLevel, pactLevel) : base,
+        types: effect.damageType === undefined ? [weapon.damage.type] : typeof effect.damageType === 'string' ? [effect.damageType] : effect.damageType,
+        mode: effect.mode,
+        oncePerTurn: effect.oncePerTurn === true,
+        ...(effect.ability ? { ability: effect.ability } : {}),
+        ...(effect.onlyTypes ? { onlyTypes: effect.onlyTypes } : {}),
+        ...(effect.exceptTypes ? { exceptTypes: effect.exceptTypes } : {}),
+        injured: effect.injured === true,
+        natural20: effect.natural20 === true,
+        sneak: effect.sneak === true,
+        ...(cost ? { cost: 'resource' in cost ? { kind: 'resource' as const, resourceId: cost.resource } : 'charges' in cost ? { kind: 'charges' as const, amount: cost.charges } : { kind: 'pact_slot' as const } } : {}),
+        ...(effect.note !== undefined ? { note: effect.note } : {}),
+        source: namedSource(e),
+      });
+    }
+    return [...found.values()];
+  };
+
   const attackFor = (base: Weapon, instanceId: string, name: string): WeaponAttack => {
     const weapon = overriddenWeapon(base, instanceId);
     const finesse = weapon.properties.includes('finesse');
@@ -718,6 +761,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       extraDamage: effectsOf('extra_damage', attackCtx)
         .filter(({ effect, refKey }) => effect.scope !== 'weapon' || refKey === `item:${instanceId}`)
         .map((e) => ({ dice: e.effect.dice, type: e.effect.damageType ?? weapon.damage.type, source: namedSource(e) })),
+      riders: attackRiders(weapon, instanceId, ability, attackCtx),
       critRange: Math.min(CRITICAL_HIT, ...effectsOf('crit_range', attackCtx).map(({ effect }) => effect.min)),
       versatileDice: weapon.versatileDice,
       versatileDieMinimum: versatileCtx ? dieMinimum(versatileCtx) : undefined,

@@ -210,6 +210,8 @@ export function describeEffect(effect: Effect): string {
       return `${effect.subtract ? '−' : '+'}${effect.dice} em ${targetLabel(effect.target, ROLL_TARGETS)}${when}`;
     case 'attacks_against':
       return `${effect.mode === 'advantage' ? 'Vantagem' : 'Desvantagem'} em ataques contra o alvo${effect.from ? ' (de certos tipos de criatura)' : ''}${when}`;
+    case 'attack_rider':
+      return `${effect.name}: +${typeof effect.dice === 'string' ? effect.dice : effect.dice.byLevel[0]} nos ataques`;
     case 'target_damage':
       return `+${effect.dice} ${DAMAGE_LABEL[effect.damageType].toLowerCase()} nos ataques de quem conjurou${effect.within !== undefined ? ` (alvos a até ${effect.within} ft)` : ''}${when}`;
     case 'attack_ability':
