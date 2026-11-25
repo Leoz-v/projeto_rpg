@@ -55,7 +55,7 @@ const AUTO_CRITICAL_WITHIN_5: readonly Condition[] = ['paralyzed', 'unconscious'
 /** Distância em que o Caído e o crítico automático mudam ("within 5 feet"). */
 export const CLOSE_RANGE_FT = 5;
 
-export type ConditionRoll = { kind: 'attack'; attackKind?: 'melee' | 'ranged' | undefined } | { kind: 'check' } | { kind: 'initiative' } | { kind: 'save'; ability?: Ability | undefined };
+export type ConditionRoll = { kind: 'attack'; attackKind?: 'melee' | 'ranged' | 'spell' | undefined } | { kind: 'check' } | { kind: 'initiative' } | { kind: 'save'; ability?: Ability | undefined };
 
 export interface ConditionRollEffects {
   advantage: SourceLabel[];

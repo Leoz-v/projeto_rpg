@@ -99,7 +99,7 @@ export interface CreatureRollEffects {
 function rollTargets(roll: ConditionRoll): string[] {
   switch (roll.kind) {
     case 'attack':
-      return ['d20_test', 'attack.all', 'attack.weapon', ...(roll.attackKind ? [`attack.${roll.attackKind}`] : [])];
+      return ['d20_test', 'attack.all', ...(roll.attackKind === 'spell' ? [] : ['attack.weapon']), ...(roll.attackKind ? [`attack.${roll.attackKind}`] : [])];
     case 'save':
       return ['d20_test', 'save.all', ...(roll.ability ? [`save.${roll.ability}`] : [])];
     case 'initiative':

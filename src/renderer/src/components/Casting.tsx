@@ -127,6 +127,7 @@ export function CastSpellForm({ character, sheet, names }: { character: SessionC
 const usingLabel = (entry: Extract<ChatEntry, { kind: 'spell_cast' }>): string => {
   const { using } = entry;
   if (using === 'ritual') return 'ritual';
+  if (entry.tokenId !== undefined) return 'do bloco';
   if (using === 'free') return entry.level === 0 ? 'truque' : 'sem espaço';
   return using.slot === 'pact' ? 'espaço de Pacto' : `espaço de ${using.slot.level}º`;
 };
@@ -336,8 +337,9 @@ function SpellEffect({ entry, state, viewer }: { entry: CastEntry; state: Sessio
   const [open, setOpen] = useState<number | null>(null);
   const { effect } = entry;
   if (!effect) return null;
-  const character = state.characters[entry.characterId];
-  const canUse = viewer.role === 'gm' || character?.ownerId === viewer.playerId;
+  const character = entry.characterId !== undefined ? state.characters[entry.characterId] : undefined;
+  const casterToken = entry.tokenId !== undefined ? state.tokens[entry.tokenId] : undefined;
+  const canUse = viewer.role === 'gm' || character?.ownerId === viewer.playerId || casterToken?.ownerIds.includes(viewer.playerId) === true;
   // Partes já usadas (magia instantânea: uma vez cada).
   const used = new Set(state.chat.flatMap((e) => ('spellOf' in e && e.spellOf?.entryId === entry.id ? [e.spellOf.part] : [])));
   const once = entry.duration === 'Instantaneous';

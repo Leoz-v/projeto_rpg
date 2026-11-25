@@ -1,5 +1,5 @@
 import { applyHitPointChange, CONDITION_NAME, type Condition, type Effect, hasUnsupportedCreatureEffect, type ImposedConditions, sizeAtMost, rollDice, type TurnExpiry, withoutDependents } from 'rules-engine';
-import { type ChatEntry, type ConditionState, type IntentData, MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, type PatchOp, type Role, type SessionCharacter, type TableCondition, type Token, toPointer } from '../../shared/protocol';
+import { type ChatEntry, type ConditionState, type IntentData, MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, type PatchOp, type Role, sameSpellLink, type SpellLink, type SessionCharacter, type TableCondition, type Token, toPointer } from '../../shared/protocol';
 import { notAllowed, type SessionContext, violation } from './context';
 import { untilNextTurn } from './conditions';
 import { changeCharacterHp, concentrationBreaks } from './vitality';
@@ -9,12 +9,6 @@ import { changeCharacterHp, concentrationBreaks } from './vitality';
  * a cura nos PV (decisão do usuário, nota 0054) e as condições da falha, do
  * acerto ou sem salvaguarda. O mestre corrige pelos PV e pelas condições.
  */
-
-/** Magia de origem de uma condição: com Concentração, cai quando ela acaba. */
-export interface SpellLink {
-  characterId: string;
-  spellId: string;
-}
 
 /** Onde estão as condições de um token: no personagem ligado ou no próprio token. */
 interface Holder {
@@ -78,7 +72,7 @@ export function conditionTiming(
   if (end === 'spell') return { spell: link };
   if (end === undefined) return {};
   const combat = ctx.current.combat;
-  const casterToken = combat?.combatants.map((c) => ctx.current.tokens[c.tokenId]).find((t) => t?.characterId === link.characterId);
+  const casterToken = combat?.combatants.map((c) => ctx.current.tokens[c.tokenId]).find((t) => (t === undefined ? false : 'tokenId' in link ? t.id === link.tokenId : t.characterId === link.characterId));
   if (!casterToken) return { note: 'Sem combate com quem conjurou: a duração por turno fica com o mestre' };
   return { until: untilNextTurn(ctx, end === 'caster_turn_start' ? 'turn_start' : 'turn_end', casterToken.id) };
 }
@@ -328,7 +322,7 @@ function liftFromOthers(ctx: SessionContext, playerId: string, link: SpellLink, 
   const tokens = new Set(targets.map((t) => t.id));
   const characters = new Set(targets.map((t) => t.characterId));
   const lift = (path: string, list: SessionCharacter['adjustments'], who: { characterId: string } | { tokenId: string }, name: string): void => {
-    const gone = list.filter((a) => a.spell?.characterId === link.characterId && a.spell.spellId === link.spellId);
+    const gone = list.filter((a) => sameSpellLink(a.spell, link));
     const [first] = gone;
     if (!first) return;
     ops.push({ op: 'replace', path, value: list.filter((a) => !gone.includes(a)) });
@@ -394,7 +388,7 @@ export function removeTokenEffect(ctx: SessionContext, playerId: string, role: R
  */
 export function liftSpellConditions(ctx: SessionContext, playerId: string, link: SpellLink, spellName: string, own?: ConditionState): PatchOp[] {
   const ops: PatchOp[] = [];
-  const matches = (c: ConditionState['active'][number]): boolean => c.spell?.characterId === link.characterId && c.spell.spellId === link.spellId;
+  const matches = (c: ConditionState['active'][number]): boolean => sameSpellLink(c.spell, link);
   const lift = (path: string, state: ConditionState, name: string, logTarget: { characterId: string } | { tokenId: string }): void => {
     const removed = state.active.filter(matches);
     if (removed.length === 0) return;
@@ -406,10 +400,10 @@ export function liftSpellConditions(ctx: SessionContext, playerId: string, link:
     }
   };
   for (const character of Object.values(ctx.current.characters)) {
-    const state = character.id === link.characterId && own ? own : character.conditions;
+    const state = 'characterId' in link && character.id === link.characterId && own ? own : character.conditions;
     lift(toPointer('characters', character.id, 'conditions'), state, character.name, { characterId: character.id });
     // Os bônus e penalidades da magia (nota 0060) saem da ficha.
-    const linked = character.adjustments.filter((a) => a.spell?.characterId === link.characterId && a.spell.spellId === link.spellId);
+    const linked = character.adjustments.filter((a) => sameSpellLink(a.spell, link));
     if (linked.length > 0) {
       ops.push({ op: 'replace', path: toPointer('characters', character.id, 'adjustments'), value: character.adjustments.filter((a) => !linked.includes(a)) });
       ops.push(
@@ -426,7 +420,7 @@ export function liftSpellConditions(ctx: SessionContext, playerId: string, link:
   }
   for (const token of Object.values(ctx.current.tokens)) {
     if (token.characterId === null) lift(toPointer('tokens', token.id, 'conditions'), token.conditions, token.name, { tokenId: token.id });
-    const linked = token.spellEffects.filter((e) => e.spell?.characterId === link.characterId && e.spell.spellId === link.spellId);
+    const linked = token.spellEffects.filter((e) => sameSpellLink(e.spell, link));
     if (linked.length > 0) {
       ops.push({ op: 'replace', path: toPointer('tokens', token.id, 'spellEffects'), value: token.spellEffects.filter((e) => !linked.includes(e)) });
       ops.push(

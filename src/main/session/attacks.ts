@@ -1,5 +1,5 @@
 import { type Ability, applyDamage, applyHitPointChange, attackedByEffects, attackedConditions, type AttacksAgainst, cleaveDamageBonus, creatureAttacksAgainst, creatureD20, type CreatureType, type Condition, CONDITION_NAME, creatureSaveBonus, d20Mode, d20StepNotes, damageNotes, type DamageType, type Defenses, grazeDamage, type ImposedConditions, MASTERY_NAME, masteryOutcome, nextTurnRound, resolveAttack, resolveSave, rollActionDamage, type RollAgainst, rollD20, rollWeaponDamage, sheetD20, type SheetD20, type TargetDamage, targetDamage, TIMED_MASTERY_UNTIL, timedMastery, timedMasteryNote, toppleDc } from 'rules-engine';
-import { type ChatEntry, type TimedEffect, type IntentData, type PatchOp, type Role, type SessionState, type Token, toPointer, type Visibility } from '../../shared/protocol';
+import { type ChatEntry, type TimedEffect, type IntentData, type PatchOp, type Role, type SessionState, type Token, sameCaster, toPointer, type Visibility } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
 import { timedEffectEntry } from './combat';
 import { imposeFromAction } from './spell-effects';
@@ -146,11 +146,11 @@ export function withCircumstances(d20: SheetD20, around: AttackCircumstances): S
 }
 
 /** O dano extra do conjurador contra o alvo: as marcas dele no alvo e os efeitos nele mesmo que dependem da distância. */
-export function targetDamageOf(ctx: SessionContext, characterId: string, attackerToken: Token | undefined, target: Token): ReturnType<typeof targetDamage> {
+export function targetDamageOf(ctx: SessionContext, caster: { characterId: string } | { tokenId: string }, attackerToken: Token | undefined, target: Token): ReturnType<typeof targetDamage> {
   const onTarget = target.characterId !== null ? (ctx.current.characters[target.characterId]?.adjustments ?? []) : target.spellEffects;
   return targetDamage(
-    onTarget.filter((a) => a.spell?.characterId === characterId),
-    ctx.current.characters[characterId]?.adjustments ?? [],
+    onTarget.filter((a) => a.spell !== undefined && sameCaster(a.spell, { ...caster, spellId: a.spell.spellId })),
+    'characterId' in caster ? (ctx.current.characters[caster.characterId]?.adjustments ?? []) : (ctx.current.tokens[caster.tokenId]?.spellEffects ?? []),
     ctx.distanceBetween(attackerToken, target),
   );
 }
@@ -238,7 +238,7 @@ export function makeAttack(ctx: SessionContext, playerId: string, role: Role, da
   const around = attackCircumstances(ctx, attackerToken, target);
   const used = around.used;
   // Dano extra de quem conjurou contra este alvo (Hex, Hunter's Mark; nota 0063).
-  const extra = 'characterId' in data.attacker ? targetDamageOf(ctx, data.attacker.characterId, attackerToken, target) : { damage: [], reminders: [] };
+  const extra = targetDamageOf(ctx, 'characterId' in data.attacker ? { characterId: data.attacker.characterId } : { tokenId: data.attacker.tokenId }, attackerToken, target);
   const baseDamage = rollDamage;
   rollDamage = (critical, hit) => {
     const rolled = baseDamage(critical, hit);

@@ -1,4 +1,4 @@
-import { abilityModifier, baseItemOptions, type Compendium, type Creature, creatureSaveBonus } from 'rules-engine';
+import { abilityModifier, baseItemOptions, type Compendium, type Creature, creatureSaveBonus, monsterSpells } from 'rules-engine';
 import type { ItemSummary, MonsterAction, MonsterBlockView, MonsterSummary } from '../shared/ipc';
 
 /**
@@ -50,11 +50,26 @@ export function searchItems(compendium: Compendium, query: string, limit = 30): 
 }
 
 /** Bloco inteiro de um monstro; `null` se não existe. */
-export function monsterBlock(creatures: readonly Creature[], monsterId: string): MonsterBlockView | null {
+export function monsterBlock({ creatures, spells }: Pick<Compendium, 'creatures' | 'spells'>, monsterId: string): MonsterBlockView | null {
   const creature = creatures.find((c) => c.id === monsterId);
   if (!creature) return null;
   const stat = (a: keyof Creature['abilities']) => ({ modifier: abilityModifier(creature.abilities[a]), save: creatureSaveBonus(creature, a) });
-  return { creature, abilities: { str: stat('str'), dex: stat('dex'), con: stat('con'), int: stat('int'), wis: stat('wis'), cha: stat('cha') } };
+  const spellList = monsterSpells(creature).flatMap((s) => {
+    const spell = spells.find((x) => x.id === s.spellId);
+    if (!spell) return [];
+    return [
+      {
+        spellId: s.spellId,
+        name: spell.name,
+        level: s.level ?? spell.level,
+        concentration: spell.concentration,
+        structured: spell.resolution.length > 0,
+        ...(s.note !== undefined ? { note: s.note } : {}),
+        ...(s.use ? { use: s.use } : {}),
+      },
+    ];
+  });
+  return { creature, spells: spellList, abilities: { str: stat('str'), dex: stat('dex'), con: stat('con'), int: stat('int'), wis: stat('wis'), cha: stat('cha') } };
 }
 
 /** Ações de ataque e de salvaguarda de um monstro (as de texto e Spellcasting ficam no bloco, para o mestre). */

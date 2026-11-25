@@ -40,7 +40,18 @@ export type TurnExpiryValue = z.infer<typeof TurnExpirySchema>;
 
 /** Condições ativas de uma criatura na mesa e o nível de Exaustão. */
 /** Condição imposta por uma magia (nota 0056): quem conjurou e a magia; com Concentração, cai quando ela acaba. */
-export const ConditionSpellSchema = z.strictObject({ characterId: UuidSchema, spellId: IdSchema });
+export const ConditionSpellSchema = z.union([z.strictObject({ characterId: UuidSchema, spellId: IdSchema }), z.strictObject({ tokenId: UuidSchema, spellId: IdSchema })]);
+/** Quem conjurou (personagem, ou monstro pelo token; nota 0067) e a magia. */
+export type SpellLink = z.infer<typeof ConditionSpellSchema>;
+
+/** A mesma magia, conjurada por quem. */
+export const sameSpellLink = (a: SpellLink | undefined, b: SpellLink): boolean => a?.spellId === b.spellId && sameCaster(a, b);
+
+/** Conjuradas pelo mesmo personagem ou monstro. */
+export function sameCaster(a: SpellLink, b: SpellLink): boolean {
+  if ('characterId' in a) return 'characterId' in b && a.characterId === b.characterId;
+  return 'tokenId' in b && a.tokenId === b.tokenId;
+}
 
 export const ConditionStateSchema = z.strictObject({
   active: z
