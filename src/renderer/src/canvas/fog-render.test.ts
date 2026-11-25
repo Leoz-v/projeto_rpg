@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { defaultMapFog, emptyFogBits, encodeFogBits, NO_CONDITIONS, setFogCell, type GameMap, type Token, WORLD_UNITS_PER_CELL } from '../../../shared/protocol';
+import { defaultMapFog, emptyFogBits, encodeFogBits, setFogCell, type GameMap, WORLD_UNITS_PER_CELL } from '../../../shared/protocol';
 import { clampFogCell, fillFogImageData, worldToFogCell } from './fog-render';
+import { makeToken } from '../../../shared/protocol/test-fixtures';
 
 const MAP_ID = '00000000-0000-4000-8000-000000000001';
 const PLAYER_ID = '00000000-0000-4000-8000-000000000010';
@@ -38,24 +39,7 @@ describe('fog-render', () => {
         explored: { [PLAYER_ID]: encodeFogBits(explored) },
       },
     };
-    const hero: Token = {
-      id: '00000000-0000-4000-8000-000000000099',
-      mapId: MAP_ID,
-      name: 'Hero',
-      position: { x: 0, y: 0 },
-      size: 'medium',
-      monsterId: null,
-      image: null,
-      ownerIds: [PLAYER_ID],
-      characterId: null,
-      hp: null,
-      conditions: NO_CONDITIONS,
-      visionFeet: null, spellEffects: [], uses: { spent: {}, lair: false }, concentration: null,
-      rotation: 0,
-      elevation: 0,
-      hidden: false,
-      dead: false,
-    };
+    const hero = makeToken({ id: '00000000-0000-4000-8000-000000000099', mapId: MAP_ID, name: 'Hero', ownerIds: [PLAYER_ID] });
 
     const data = new Uint8ClampedArray(6 * 1 * 4);
     fillFogImageData(data, map, [hero], { role: 'player', playerId: PLAYER_ID });

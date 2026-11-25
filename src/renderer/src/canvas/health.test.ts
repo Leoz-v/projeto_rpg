@@ -1,26 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { SessionState, Token } from '../../../shared/protocol';
+import { makeToken } from '../../../shared/protocol/test-fixtures';
 import { healthColor, isTokenDead, tokenHealth } from './health';
 
-const token = (overrides: Partial<Token>): Token => ({
-  id: 't',
-  mapId: 'm',
-  name: 'Goblin',
-  position: { x: 0, y: 0 },
-  size: 'small',
-  monsterId: 'goblin',
-  image: null,
-  ownerIds: [],
-  characterId: null,
-  hp: null,
-  conditions: { active: [], exhaustion: 0 },
-  visionFeet: null, spellEffects: [], uses: { spent: {}, lair: false }, concentration: null,
-  rotation: 0,
-  elevation: 0,
-  hidden: false,
-  dead: false,
-  ...overrides,
-});
+const token = (overrides: Partial<Token>): Token => makeToken({ id: 't', mapId: 'm', name: 'Goblin', size: 'small', monsterId: 'goblin', ...overrides });
 
 describe('token health', () => {
   const characters = {
