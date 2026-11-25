@@ -36,6 +36,7 @@ const TEX_SIZE = 256;
 export interface TokenRenderer3dEvents {
   onSelect: (tokenId: string | null) => void;
   onMove: (tokenId: string, to: Point) => void;
+  onTokenContextMenu?: (tokenId: string, screen: Point) => void;
 }
 
 interface Token3dEntry {
@@ -93,8 +94,8 @@ function loadTokenImage(sha256: string): Promise<HTMLImageElement | null> {
   });
 }
 
-/** Gera a textura circular do token (medalhão colorido + retrato recortado ou iniciais). */
-function createMedallionTexture(name: string, fillCss: string, img: HTMLImageElement | null): Texture {
+/** Gera a textura circular do token (medalhão colorido + retrato recortado ou iniciais), com marcas de oculto e morto. */
+function createMedallionTexture(name: string, fillCss: string, img: HTMLImageElement | null, flags: { hidden: boolean; dead: boolean }): Texture {
   const canvas = document.createElement('canvas');
   canvas.width = TEX_SIZE;
   canvas.height = TEX_SIZE;
@@ -104,13 +105,17 @@ function createMedallionTexture(name: string, fillCss: string, img: HTMLImageEle
     const outerR = half * 0.92;
     const innerR = half * 0.84;
 
+    ctx.save();
+    if (flags.hidden) ctx.globalAlpha = 0.5;
     ctx.beginPath();
     ctx.arc(half, half, outerR, 0, Math.PI * 2);
     ctx.fillStyle = fillCss;
     ctx.fill();
     ctx.lineWidth = 10;
-    ctx.strokeStyle = COLORS.outline;
+    ctx.strokeStyle = flags.hidden ? '#a799ff' : COLORS.outline;
+    if (flags.hidden) ctx.setLineDash([14, 10]);
     ctx.stroke();
+    ctx.setLineDash([]);
 
     if (img) {
       ctx.save();
@@ -130,6 +135,29 @@ function createMedallionTexture(name: string, fillCss: string, img: HTMLImageEle
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(initialsOf(name), half, half + 4);
+    }
+    ctx.restore();
+
+    if (flags.dead) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(half, half, innerR + 4, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(20, 18, 28, 0.55)';
+      ctx.fill();
+      const inset = half * 0.45;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(half - inset, half - inset);
+      ctx.lineTo(half + inset, half + inset);
+      ctx.moveTo(half + inset, half - inset);
+      ctx.lineTo(half - inset, half + inset);
+      ctx.lineWidth = 28;
+      ctx.strokeStyle = COLORS.outline;
+      ctx.stroke();
+      ctx.lineWidth = 16;
+      ctx.strokeStyle = '#ff5555';
+      ctx.stroke();
+      ctx.restore();
     }
   }
   return new Texture({ source: new ImageSource({ resource: canvas }) });
@@ -194,12 +222,14 @@ export class TokenRenderer3d {
     activeId: null,
     conditions: () => [],
     health: () => null,
+    isDead: () => false,
     viewer: { role: 'player', playerId: '' },
     fogTool: 'none',
   };
 
   private drag: { tokenId: string; moved: boolean } | null = null;
   private downClient: { x: number; y: number } | null = null;
+  private rightDownClient: { x: number; y: number } | null = null;
   private interactionEnabled = true;
   private lastViewMode: CameraViewMode;
   private destroyed = false;
@@ -268,11 +298,12 @@ export class TokenRenderer3d {
 
     for (const token of visible) {
       const conditions = scene.conditions(token);
-      const signature = [token.name, token.size, token.image ?? '', token.ownerIds.length > 0].join('|');
+      const dead = scene.isDead(token);
+      const signature = [token.name, token.size, token.image ?? '', token.ownerIds.length > 0, token.hidden, dead].join('|');
       let entry = this.entries.get(token.id);
       if (entry?.signature !== signature) {
         if (entry) this.disposeEntry(entry);
-        entry = this.createEntry(token, signature);
+        entry = this.createEntry(token, signature, dead);
         this.entries.set(token.id, entry);
       } else {
         entry.token = token;
@@ -385,10 +416,11 @@ export class TokenRenderer3d {
     return p;
   }
 
-  private createEntry(token: Token, signature: string): Token3dEntry {
+  private createEntry(token: Token, signature: string, dead: boolean): Token3dEntry {
     const fillCss = token.ownerIds.length > 0 ? COLORS.playerToken : COLORS.otherToken;
-    const medallionTex = createMedallionTexture(token.name, fillCss, null);
-    const baseTex = createRingTexture(fillCss, `${fillCss}38`, 18);
+    const flags = { hidden: token.hidden, dead };
+    const medallionTex = createMedallionTexture(token.name, fillCss, null, flags);
+    const baseTex = createRingTexture(token.hidden ? '#a799ff' : fillCss, `${fillCss}${token.hidden ? '1c' : '38'}`, 18);
 
     const root = new Container3D({ label: `token_${token.id}` });
     this.tokensRoot.addChild(root);
@@ -458,8 +490,9 @@ export class TokenRenderer3d {
     root.addChild(turnRing, baseMesh, topDownMesh, selectRing, billboardMesh);
 
     const hud = new Container();
+    if (token.hidden) hud.alpha = 0.65;
     const nameLabel = new Text({
-      text: token.name,
+      text: token.hidden ? `${token.name} (oculto)` : token.name,
       style: {
         fill: COLORS.label,
         fontSize: 12,
@@ -518,7 +551,7 @@ export class TokenRenderer3d {
       const sha = token.image;
       void this.getImage(sha).then((img) => {
         if (!img || this.destroyed || this.entries.get(token.id) !== entry) return;
-        const nextTex = createMedallionTexture(token.name, fillCss, img);
+        const nextTex = createMedallionTexture(token.name, fillCss, img, flags);
         const prevTex = entry.medallionTex;
         entry.medallionTex = nextTex;
         entry.topDownMat.textures.baseColor = nextTex;
@@ -589,7 +622,12 @@ export class TokenRenderer3d {
     window.addEventListener(
       'pointerdown',
       (e) => {
-        if (!this.interactionEnabled || e.button !== 0 || e.target !== canvas) return;
+        if (!this.interactionEnabled || e.target !== canvas) return;
+        if (e.button === 2) {
+          this.rightDownClient = { x: e.clientX, y: e.clientY };
+          return;
+        }
+        if (e.button !== 0) return;
         this.downClient = { x: e.clientX, y: e.clientY };
         const ray = this.sceneMgr.clientPointToRay(e.clientX, e.clientY);
         const visibleTokens = Array.from(this.entries.values(), (entry) => entry.token);
@@ -633,9 +671,20 @@ export class TokenRenderer3d {
     const endDrag = (e: PointerEvent): void => {
       const activeDrag = this.drag;
       const down = this.downClient;
+      const rightDown = this.rightDownClient;
       this.downClient = null;
+      this.rightDownClient = null;
 
       if (!activeDrag) {
+        if (this.interactionEnabled && rightDown && e.button === 2 && Math.hypot(e.clientX - rightDown.x, e.clientY - rightDown.y) < 5) {
+          const ray = this.sceneMgr.clientPointToRay(e.clientX, e.clientY);
+          const visibleTokens = Array.from(this.entries.values(), (entry) => entry.token);
+          const hit = pickToken3d(ray, visibleTokens, this.grid, this.sceneMgr.viewMode);
+          if (hit) {
+            this.events.onTokenContextMenu?.(hit.id, { x: e.clientX, y: e.clientY });
+          }
+          return;
+        }
         if (this.interactionEnabled && down && e.button === 0 && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5) {
           const ray = this.sceneMgr.clientPointToRay(e.clientX, e.clientY);
           const visibleTokens = Array.from(this.entries.values(), (entry) => entry.token);

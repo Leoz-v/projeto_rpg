@@ -331,6 +331,20 @@ export const IntentSchema = z.discriminatedUnion('kind', [
       visionFeet: VisionFeetSchema.nullable(),
     }),
   }),
+  z.strictObject({
+    kind: z.literal('token.hidden'),
+    data: z.strictObject({
+      tokenId: UuidSchema,
+      hidden: z.boolean(),
+    }),
+  }),
+  z.strictObject({
+    kind: z.literal('token.dead'),
+    data: z.strictObject({
+      tokenId: UuidSchema,
+      dead: z.boolean(),
+    }),
+  }),
 ]);
 export type Intent = z.infer<typeof IntentSchema>;
 export type IntentKind = Intent['kind'];

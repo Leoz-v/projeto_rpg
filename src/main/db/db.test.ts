@@ -154,8 +154,8 @@ describe('CampaignDb', () => {
     maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: null, cellPx: null, scene3d: null, fog: { ...defaultMapFog(30, 20), autoEnabled: true, visionFeet: 45, rememberExplored: false } } },
     activeMapId: MAP,
     tokens: {
-      [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [], characterId: null, hp: { max: 7, damage: 2, temp: 0 }, conditions: { active: [{ condition: 'prone' }], exhaustion: 1 }, visionFeet: null },
-      [HERO_TOKEN]: { id: HERO_TOKEN, mapId: MAP, name: 'Thorin', position: { x: 0, y: 0 }, size: 'medium', monsterId: null, image: null, ownerIds: [ANA], characterId: HERO, hp: null, conditions: { active: [], exhaustion: 0 }, visionFeet: 120 },
+      [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [], characterId: null, hp: { max: 7, damage: 2, temp: 0 }, conditions: { active: [{ condition: 'prone' }], exhaustion: 1 }, visionFeet: null, hidden: true, dead: true },
+      [HERO_TOKEN]: { id: HERO_TOKEN, mapId: MAP, name: 'Thorin', position: { x: 0, y: 0 }, size: 'medium', monsterId: null, image: null, ownerIds: [ANA], characterId: HERO, hp: null, conditions: { active: [], exhaustion: 0 }, visionFeet: 120, hidden: false, dead: false },
     },
     characters: {
       [HERO]: {

@@ -45,6 +45,8 @@ export interface Scene {
   conditions: (token: Token) => readonly string[];
   /** PV para a barra do token, ou `null` (sem barra). */
   health: (token: Token) => Health | null;
+  /** Se o token deve exibir a marca visual de morto (0 PV / `deathSaves.dead` / override do mestre). */
+  isDead: (token: Token) => boolean;
   /** Quem está vendo o mapa (mestre ou jogador), para a névoa de guerra. */
   viewer: FogViewer;
   /** Ferramenta de edição de névoa ativa (só para o mestre). */
@@ -61,6 +63,7 @@ export interface MapStageEvents {
   onSelect: (tokenId: string | null) => void;
   onFogPaint: (mapId: string, mode: FogMode, cells: FogCell[]) => void;
   onFogRect: (mapId: string, mode: FogMode, from: FogCell, to: FogCell) => void;
+  onTokenContextMenu?: (tokenId: string, screen: Point) => void;
 }
 
 const COLORS = {
@@ -80,6 +83,8 @@ const COLORS = {
   rulerEnd: 0xff7849,
   rulerArea: 0xff7849,
   rulerBadgeBg: 0x0f131a,
+  deadCross: 0xff5555,
+  hiddenRing: 0xa799ff,
 };
 
 const ZOOM_SPEED = 0.0015;
@@ -189,12 +194,14 @@ export class MapStage {
     activeId: null,
     conditions: () => [],
     health: () => null,
+    isDead: () => false,
     viewer: { role: 'player', playerId: '' },
     fogTool: 'none',
   };
   private shownMapKey = '';
   private drag: { id: string; offset: Point } | undefined;
   private pan: { from: Point; camera: Camera } | undefined;
+  private rightDown: { tokenId: string; client: Point } | undefined;
   private rulerMode = false;
   private rulerOptions: RulerOptions = { ...DEFAULT_RULER_OPTIONS };
   private rulerDragging = false;
@@ -238,16 +245,17 @@ export class MapStage {
     app.stage.on('globalpointermove', (e) => {
       this.pointerMove(e);
     });
-    app.stage.on('pointerup', () => {
-      this.pointerUp();
+    app.stage.on('pointerup', (e) => {
+      this.pointerUp(e);
     });
-    app.stage.on('pointerupoutside', () => {
-      this.pointerUp();
+    app.stage.on('pointerupoutside', (e) => {
+      this.pointerUp(e);
     });
-    app.stage.on('pointercancel', () => {
-      this.pointerUp();
+    app.stage.on('pointercancel', (e) => {
+      this.pointerUp(e);
     });
     app.canvas.addEventListener('wheel', this.onWheel, { passive: false });
+    app.canvas.addEventListener('contextmenu', this.onContextMenu);
     app.renderer.on('resize', () => {
       app.stage.hitArea = app.screen;
     });
@@ -267,6 +275,7 @@ export class MapStage {
     this.renderedBgTexture?.destroy(true);
     this.renderedBgTexture = null;
     this.app.canvas.removeEventListener('wheel', this.onWheel);
+    this.app.canvas.removeEventListener('contextmenu', this.onContextMenu);
     this.app.destroy({ removeView: true }, { children: true, texture: true });
   }
 
@@ -516,11 +525,12 @@ export class MapStage {
     }
     for (const token of visible) {
       const conditions = this.scene.conditions(token);
-      const signature = [token.name, token.size, token.image ?? '', token.ownerIds.length > 0, conditions.join(',')].join('|');
+      const dead = this.scene.isDead(token);
+      const signature = [token.name, token.size, token.image ?? '', token.ownerIds.length > 0, token.hidden, dead, conditions.join(',')].join('|');
       let view = this.views.get(token.id);
       if (view?.signature !== signature) {
         const old = view?.container;
-        view = { ...this.drawToken(token, conditions), signature };
+        view = { ...this.drawToken(token, conditions, dead), signature };
         // Redesenhado no meio de um arrasto: continua onde o ponteiro está.
         if (old && this.drag?.id === token.id) view.container.position.copyFrom(old.position);
         old?.destroy({ children: true });
@@ -538,7 +548,7 @@ export class MapStage {
     }
   }
 
-  private drawToken(token: Token, conditions: readonly string[]): { container: Container; ring: Graphics; turn: Graphics; bar: Graphics } {
+  private drawToken(token: Token, conditions: readonly string[], dead: boolean): { container: Container; ring: Graphics; turn: Graphics; bar: Graphics } {
     const side = tokenSide(token.size);
     const radius = side / 2;
     const container = new Container();
@@ -546,13 +556,16 @@ export class MapStage {
     const disc = new Graphics()
       .circle(radius, radius, radius * 0.92)
       .fill(color)
-      .stroke({ width: Math.max(3, side * 0.04), color: COLORS.outline });
+      .stroke({ width: Math.max(3, side * 0.04), color: token.hidden ? COLORS.hiddenRing : COLORS.outline });
+    if (token.hidden) disc.alpha = 0.5;
     const ring = new Graphics().circle(radius, radius, radius * 0.98).stroke({ width: Math.max(4, side * 0.06), color: COLORS.selected });
     ring.visible = false;
     // Combatente da vez: um anel verde por fora do token.
     const turn = new Graphics().circle(radius, radius, radius * 1.1).stroke({ width: Math.max(4, side * 0.05), color: COLORS.active });
     turn.visible = false;
-    container.addChild(turn, disc, ring);
+    const portraitLayer = new Container();
+    if (token.hidden) portraitLayer.alpha = 0.5;
+    container.addChild(turn, disc, portraitLayer, ring);
 
     if (token.image) {
       const sha = token.image;
@@ -564,15 +577,34 @@ export class MapStage {
         sprite.position.set(side * 0.08, side * 0.08);
         const mask = new Graphics().circle(radius, radius, radius * 0.84).fill(0xffffff);
         sprite.mask = mask;
-        container.addChild(mask, sprite);
+        portraitLayer.addChild(mask, sprite);
       });
     }
 
+    if (dead) {
+      const crossInset = radius * 0.45;
+      const deadOverlay = new Graphics()
+        .circle(radius, radius, radius * 0.88)
+        .fill({ color: COLORS.outline, alpha: 0.55 })
+        .moveTo(radius - crossInset, radius - crossInset)
+        .lineTo(radius + crossInset, radius + crossInset)
+        .moveTo(radius + crossInset, radius - crossInset)
+        .lineTo(radius - crossInset, radius + crossInset)
+        .stroke({ width: Math.max(10, side * 0.14), color: COLORS.outline, cap: 'round' })
+        .moveTo(radius - crossInset, radius - crossInset)
+        .lineTo(radius + crossInset, radius + crossInset)
+        .moveTo(radius + crossInset, radius - crossInset)
+        .lineTo(radius - crossInset, radius + crossInset)
+        .stroke({ width: Math.max(6, side * 0.08), color: COLORS.deadCross, cap: 'round' });
+      container.addChild(deadOverlay);
+    }
+
     const label = new Text({
-      text: token.name,
+      text: token.hidden ? `${token.name} (oculto)` : token.name,
       style: { fill: COLORS.label, fontSize: 24, fontFamily: 'system-ui, sans-serif', stroke: { color: COLORS.background, width: 6 } },
       resolution: 2,
     });
+    if (token.hidden) label.alpha = 0.7;
     label.anchor.set(0.5, 0);
     label.position.set(radius, side + 4 + HEALTH_BAR_HEIGHT + 4);
     const bar = new Graphics();
@@ -598,11 +630,16 @@ export class MapStage {
   }
 
   private tokenDown(id: string, e: FederatedPointerEvent): void {
-    // Apenas botão esquerdo seleciona e arrasta tokens; botão do meio/direito continua fazendo pan do mapa.
-    if (e.button !== 0) return;
-    // Em modo régua ou com ferramenta de névoa ativa, cliques não arrastam tokens.
+    // Em modo régua ou com ferramenta de névoa ativa, cliques não arrastam tokens nem abrem menu.
     if (this.rulerMode) return;
     if (this.scene.viewer.role === 'gm' && this.scene.fogTool !== 'none') return;
+    // Botão direito em um token: registra para abrir o menu de contexto se não virar pan.
+    if (e.button === 2) {
+      this.rightDown = { tokenId: id, client: { x: e.clientX, y: e.clientY } };
+      return;
+    }
+    // Apenas botão esquerdo seleciona e arrasta tokens; botão do meio continua fazendo pan do mapa.
+    if (e.button !== 0) return;
     // O clique no token não vira arrasto da câmera.
     e.stopPropagation();
     this.pan = undefined;
@@ -704,9 +741,15 @@ export class MapStage {
     }
   }
 
-  private pointerUp(): void {
+  private pointerUp(e?: FederatedPointerEvent): void {
+    const rightDown = this.rightDown;
+    this.rightDown = undefined;
     this.rulerDragging = false;
     this.pan = undefined;
+    if (rightDown && e && e.button === 2 && Math.hypot(e.clientX - rightDown.client.x, e.clientY - rightDown.client.y) < 5) {
+      this.events.onTokenContextMenu?.(rightDown.tokenId, { x: e.clientX, y: e.clientY });
+      return;
+    }
     if (this.fogBrush) {
       const { mapId, mode, cells } = this.fogBrush;
       this.fogBrush = undefined;
@@ -794,5 +837,9 @@ export class MapStage {
   private readonly onWheel = (e: WheelEvent): void => {
     e.preventDefault();
     this.setCamera(zoomAt(this.camera, { x: e.offsetX, y: e.offsetY }, Math.exp(-e.deltaY * ZOOM_SPEED)));
+  };
+
+  private readonly onContextMenu = (e: MouseEvent): void => {
+    e.preventDefault();
   };
 }

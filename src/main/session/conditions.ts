@@ -78,13 +78,16 @@ export function changeConditions(ctx: SessionContext, playerId: string, role: Ro
     { op: 'replace', path: holder.path, value: state },
     ctx.appendChat({ kind: 'condition_changed', ...ctx.entryBase(playerId), target: holder.logTarget, targetName: holder.name, change, notes }),
   ];
-  // Exaustão 6 mata: no personagem, o estado das Salvaguardas contra a Morte registra a morte.
+  // Exaustão 6 mata: no personagem, o estado das Salvaguardas contra a Morte registra a morte; no token, marca `dead`.
   const character = 'characterId' in holder.logTarget ? ctx.current.characters[holder.logTarget.characterId] : undefined;
   let deathSaves = character?.deathSaves;
   if (character && change.kind === 'exhaustion' && change.to >= MAX_EXHAUSTION_LEVEL && !character.deathSaves.dead) {
     deathSaves = { ...character.deathSaves, dead: true };
     ops.push({ op: 'replace', path: toPointer('characters', character.id, 'deathSaves'), value: deathSaves });
     ops.push(deathStateEntry(ctx, playerId, character, 'exhaustion', deathSaves, [`Exaustão ${MAX_EXHAUSTION_LEVEL}: morto`]));
+  } else if ('tokenId' in holder.logTarget && change.kind === 'exhaustion' && change.to >= MAX_EXHAUSTION_LEVEL) {
+    const token = ctx.current.tokens[holder.logTarget.tokenId];
+    if (token && !token.dead) ops.push({ op: 'replace', path: toPointer('tokens', token.id, 'dead'), value: true });
   }
   // Incapacitado (ou o que o inclui) ou morto: a Concentração termina.
   if (character && deathSaves) ops.push(...concentrationBreaks(ctx, playerId, character, state, deathSaves));

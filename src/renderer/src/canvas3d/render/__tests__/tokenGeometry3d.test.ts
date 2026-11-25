@@ -24,6 +24,8 @@ function makeToken(overrides: Partial<Token> = {}): Token {
     hp: null,
     conditions: { active: [], exhaustion: 0 },
     visionFeet: null,
+    hidden: false,
+    dead: false,
     ...overrides,
   };
 }

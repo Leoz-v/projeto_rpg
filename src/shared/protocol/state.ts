@@ -576,6 +576,10 @@ export const TokenSchema = z.strictObject({
   conditions: ConditionStateSchema,
   /** Alcance de visão próprio em pés (5–300), ou `null` para usar o padrão do mapa (nota 0056). */
   visionFeet: VisionFeetSchema.nullable(),
+  /** Se o token está oculto dos jogadores pelo mestre (seção 2.12, nota 0061). */
+  hidden: z.boolean(),
+  /** Se o token está marcado como morto (automático a 0 PV em monstros ou override do mestre; nota 0061). */
+  dead: z.boolean(),
 });
 export type Token = z.infer<typeof TokenSchema>;
 

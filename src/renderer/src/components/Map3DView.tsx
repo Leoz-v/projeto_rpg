@@ -2,10 +2,10 @@ import { FlatMaterial, Mesh3D, PlaneGeometry } from '@pixi/3d';
 import { ImageSource, Texture } from 'pixi.js';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { TableView } from '../../../shared/ipc';
-import type { GameMap } from '../../../shared/protocol';
+import type { GameMap, Point } from '../../../shared/protocol';
 import { conditionLabels, timedEffectLabels, tokenConditions } from '../canvas/conditions';
 import type { FogTool } from '../canvas/fog-render';
-import { tokenHealth } from '../canvas/health';
+import { isTokenDead, tokenHealth } from '../canvas/health';
 import type { MapStageHandle } from '../canvas/MapStage';
 import { DEFAULT_RULER_OPTIONS, type RulerOptions } from '../canvas/ruler';
 import {
@@ -30,6 +30,7 @@ import { sendIntent } from '../store/table';
 import { FogHudControls } from './FogHudControls';
 import type { MapViewerMode } from './MapView';
 import { RulerOptionsBar } from './RulerControls';
+import { TokenContextMenu } from './TokenContextMenu';
 
 /**
  * Visualização 3D da mesa (somente leitura do terreno): usada por jogadores e
@@ -92,10 +93,11 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
   const [rulerOptions, setRulerOptions] = useState<RulerOptions>({ ...DEFAULT_RULER_OPTIONS });
   const [fogHudOpen, setFogHudOpen] = useState(false);
   const [previewTokenVision, setPreviewTokenVision] = useState(true);
+  const [contextMenu, setContextMenu] = useState<{ tokenId: string; position: Point } | null>(null);
 
-  const latest = useRef({ onSelect, onStage });
+  const latest = useRef({ onSelect, onStage, isGm });
   useLayoutEffect(() => {
-    latest.current = { onSelect, onStage };
+    latest.current = { onSelect, onStage, isGm };
   });
 
   const sceneHash = map.scene3d;
@@ -225,6 +227,10 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
             setError(refused);
             if (refused) tokens3d.revert(tokenId);
           });
+        },
+        onTokenContextMenu: (tokenId, screen) => {
+          if (!latest.current.isGm) return;
+          setContextMenu({ tokenId, position: screen });
         },
       });
 
@@ -368,6 +374,10 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
             if (refused) tokens3d.revert(tokenId);
           });
         },
+        onTokenContextMenu: (tokenId, screen) => {
+          if (!latest.current.isGm) return;
+          setContextMenu({ tokenId, position: screen });
+        },
       });
 
       scene.app.ticker.add((ticker) => {
@@ -437,6 +447,7 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
 
   const { state, info } = view;
   const selectedToken = selectedId !== null ? (state.tokens[selectedId] ?? null) : null;
+  const menuToken = isGm && contextMenu !== null ? (state.tokens[contextMenu.tokenId] ?? null) : null;
   const showFogHud = isGm && (fogHudOpen || fogTool !== 'none');
 
   useEffect(() => {
@@ -453,6 +464,7 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
         ...timedEffectLabels(token, { combat: state.combat, tokens: state.tokens }),
       ],
       health: (token) => tokenHealth(token, state.characters, maxima),
+      isDead: (token) => isTokenDead(token, state.characters),
       viewer: viewerInfo,
       fogTool: isGm ? fogTool : 'none',
     });
@@ -639,6 +651,17 @@ export function Map3DView({ view, map, maxima, selectedId, fogTool, onFogTool, o
         <p className="map-error error" role="alert">
           {error}
         </p>
+      )}
+      {menuToken && contextMenu && (
+        <TokenContextMenu
+          token={menuToken}
+          characters={state.characters}
+          position={contextMenu.position}
+          onClose={() => {
+            setContextMenu(null);
+          }}
+          onError={setError}
+        />
       )}
     </section>
   );

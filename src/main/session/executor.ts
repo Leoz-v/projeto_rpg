@@ -11,7 +11,7 @@ import { changeSpellSlot } from './spell-slots';
 import { changeResource } from './resources';
 import { castSpell, useSpellEffect } from './casting';
 import { clearFogMemory, configureFog, fillManualFog, paintManualFog, rectManualFog, setTokenVision } from './fog';
-import { createMap, createToken, moveToken, roll, updateMap } from './map-tokens';
+import { createMap, createToken, moveToken, roll, setTokenDead, setTokenHidden, updateMap } from './map-tokens';
 import { changeHp, concentrate, concentrationBreaks, deathStateEntry, endConcentration, inCombat, rollDeathSave } from './vitality';
 
 export type { Identity, IntentOutcome, IntentResultPayload, SessionDeps, StateChange } from './context';
@@ -308,6 +308,12 @@ export class HostSession extends SessionContext {
       case 'token.vision':
         this.requireGm(role);
         return setTokenVision(this, intent.data);
+      case 'token.hidden':
+        this.requireGm(role);
+        return setTokenHidden(this, intent.data);
+      case 'token.dead':
+        this.requireGm(role);
+        return setTokenDead(this, playerId, intent.data);
     }
   }
 }

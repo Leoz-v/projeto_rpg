@@ -1,4 +1,4 @@
-import { type Ability, applyDamage, applyHitPointChange, attackedConditions, cleaveDamageBonus, conditionDefenses, creatureD20, type Condition, CONDITION_NAME, creatureDefenses, creatureSaveBonus, d20Mode, d20StepNotes, damageNotes, type DamageType, type Defenses, grazeDamage, MASTERY_NAME, masteryOutcome, nextTurnRound, resolveAttack, resolveSave, rollActionDamage, type RollAgainst, rollD20, rollWeaponDamage, sheetD20, type SheetD20, TIMED_MASTERY_UNTIL, timedMastery, timedMasteryNote, toppleDc } from 'rules-engine';
+import { type Ability, applyDamage, applyHitPointChange, attackedConditions, cleaveDamageBonus, conditionDefenses, creatureD20, type Condition, CONDITION_NAME, creatureDefenses, creatureSaveBonus, currentHitPoints, d20Mode, d20StepNotes, damageNotes, type DamageType, type Defenses, grazeDamage, MASTERY_NAME, masteryOutcome, nextTurnRound, resolveAttack, resolveSave, rollActionDamage, type RollAgainst, rollD20, rollWeaponDamage, sheetD20, type SheetD20, TIMED_MASTERY_UNTIL, timedMastery, timedMasteryNote, toppleDc } from 'rules-engine';
 import { type ChatEntry, type TimedEffect, type IntentData, type PatchOp, type Role, type SessionState, type Token, toPointer, type Visibility } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
 import { timedEffectEntry } from './combat';
@@ -412,6 +412,9 @@ export function applyProposal(ctx: SessionContext, playerId: string, proposalId:
     if (!token.hp) throw violation('O alvo não tem PV (defina os PV máximos no painel)');
     result = applyHitPointChange(token.hp.max, token.hp, { kind: 'damage', amount });
     ops = [{ op: 'replace', path: toPointer('tokens', token.id, 'hp'), value: { max: token.hp.max, ...result.state } }];
+    if (currentHitPoints(token.hp.max, result.state) === 0 && !token.dead) {
+      ops.push({ op: 'replace', path: toPointer('tokens', token.id, 'dead'), value: true });
+    }
   }
   const notes = [
     ...(result.absorbed > 0 ? [`${result.absorbed} absorvido(s) pelos PV temporários`] : []),

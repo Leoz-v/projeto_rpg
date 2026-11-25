@@ -46,6 +46,8 @@ describe('fog-render', () => {
       hp: null,
       conditions: NO_CONDITIONS,
       visionFeet: null,
+      hidden: false,
+      dead: false,
     };
 
     const data = new Uint8ClampedArray(6 * 1 * 4);

@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { TableView } from '../../../shared/ipc';
-import type { GameMap } from '../../../shared/protocol';
+import type { GameMap, Point } from '../../../shared/protocol';
 import { conditionLabels, timedEffectLabels, tokenConditions } from '../canvas/conditions';
 import type { FogTool } from '../canvas/fog-render';
-import { tokenHealth } from '../canvas/health';
+import { isTokenDead, tokenHealth } from '../canvas/health';
 import { MapStage, type MapStageHandle, type RenderedMapBackground } from '../canvas/MapStage';
 import { DEFAULT_RULER_OPTIONS, type RulerOptions } from '../canvas/ruler';
 import { render3dMapTo2dCanvas } from '../canvas3d/render/mapConversion';
@@ -11,6 +11,7 @@ import { sendIntent } from '../store/table';
 import { FogHudControls } from './FogHudControls';
 import { Map3DView } from './Map3DView';
 import { RulerOptionsBar } from './RulerControls';
+import { TokenContextMenu } from './TokenContextMenu';
 
 /**
  * O mapa ativo: liga o `MapStage` (PixiJS 2D) ou o `Map3DView` (PixiJS 3D) ao
@@ -70,14 +71,18 @@ function Map2DView({ view, maxima, selectedId, fogTool, onFogTool, onSelect, onS
   const [rulerOptions, setRulerOptions] = useState<RulerOptions>({ ...DEFAULT_RULER_OPTIONS });
   const [fogHudOpen, setFogHudOpen] = useState(false);
   const [previewTokenVision, setPreviewTokenVision] = useState(true);
+  const [contextMenu, setContextMenu] = useState<{ tokenId: string; position: Point } | null>(null);
   const [renderResult, setRenderResult] = useState<
     { key: string; bg: RenderedMapBackground } | { key: string; error: string } | null
   >(null);
 
+  const { state, info } = view;
+  const isGm = info.role === 'gm';
+
   // O palco é criado uma vez; os callbacks leem sempre a versão atual.
-  const latest = useRef({ onSelect, onStage });
+  const latest = useRef({ onSelect, onStage, isGm });
   useLayoutEffect(() => {
-    latest.current = { onSelect, onStage };
+    latest.current = { onSelect, onStage, isGm };
   });
 
   useEffect(() => {
@@ -101,6 +106,10 @@ function Map2DView({ view, maxima, selectedId, fogTool, onFogTool, onSelect, onS
       onFogRect: (mapId, mode, from, to) => {
         void sendIntent({ kind: 'fog.manual.rect', data: { mapId, mode, from, to } }).then(setError);
       },
+      onTokenContextMenu: (tokenId, screen) => {
+        if (!latest.current.isGm) return;
+        setContextMenu({ tokenId, position: screen });
+      },
     }).then((s) => {
       // Desmontou antes de o PixiJS terminar de iniciar (StrictMode faz isso no desenvolvimento).
       if (cancelled) {
@@ -118,10 +127,9 @@ function Map2DView({ view, maxima, selectedId, fogTool, onFogTool, onSelect, onS
     };
   }, []);
 
-  const { state, info } = view;
   const map = state.activeMapId !== null ? (state.maps[state.activeMapId] ?? null) : null;
-  const isGm = info.role === 'gm';
   const selectedToken = selectedId !== null ? (state.tokens[selectedId] ?? null) : null;
+  const menuToken = isGm && contextMenu !== null ? (state.tokens[contextMenu.tokenId] ?? null) : null;
   const showFogHud = isGm && (fogHudOpen || fogTool !== 'none');
   const scene3dHash = map?.scene3d ?? null;
   const mapName = map?.name ?? '';
@@ -164,6 +172,7 @@ function Map2DView({ view, maxima, selectedId, fogTool, onFogTool, onSelect, onS
       activeId: state.combat?.combatants[state.combat.turn]?.tokenId ?? null,
       conditions: (token) => [...conditionLabels(tokenConditions(token, state.characters)), ...timedEffectLabels(token, { combat: state.combat, tokens: state.tokens })],
       health: (token) => tokenHealth(token, state.characters, maxima),
+      isDead: (token) => isTokenDead(token, state.characters),
       viewer: { role: info.role, playerId: info.playerId, previewTokenId: isGm && previewTokenVision ? selectedId : null },
       fogTool: isGm ? fogTool : 'none',
     });
@@ -287,6 +296,17 @@ function Map2DView({ view, maxima, selectedId, fogTool, onFogTool, onSelect, onS
         <p className="map-error error" role="alert">
           {visibleError}
         </p>
+      )}
+      {menuToken && contextMenu && (
+        <TokenContextMenu
+          token={menuToken}
+          characters={state.characters}
+          position={contextMenu.position}
+          onClose={() => {
+            setContextMenu(null);
+          }}
+          onError={setError}
+        />
       )}
     </section>
   );
