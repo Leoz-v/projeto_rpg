@@ -11,8 +11,9 @@
  */
 
 import type { Container3D} from '@pixi/3d';
-import { PointLight } from '@pixi/3d';
-import { METERS_PER_HEIGHT_UNIT, TILE_SIZE_METERS } from '../terrain/constants';
+import { FlatMaterial, Mesh3D, PointLight, SphereGeometry } from '@pixi/3d';
+import type { MapLayer, ResolvedLightSource } from '../../../../shared/protocol';
+import { METERS_PER_FOOT, METERS_PER_HEIGHT_UNIT, TILE_SIZE_METERS } from '../terrain/constants';
 import type { TerrainGrid } from '../terrain/terrainGrid';
 import type { PlacedAsset, WorldLabAssetEntry } from './assetManager';
 import { stablePhase } from './objectAnimator';
@@ -351,6 +352,7 @@ export class LightingManager {
   private readonly scene: LightingSceneHost;
   private readonly lightsRoot: Container3D;
   private readonly managedLights: ManagedPointLight[] = [];
+  private readonly darknessMeshes: Mesh3D[] = [];
 
   settings: LightingSettings = createDefaultLightingSettings('daylight');
   private mapWidth = 32;
@@ -463,19 +465,93 @@ export class LightingManager {
     this.onMoodTintChange?.(computeUnlitMoodTintHex(s));
   }
 
-  /** Rebuilds dynamic PointLight emitters from placed light props and lava terrain tiles on the active layer. */
-  syncLightSources(grid: TerrainGrid, placedAssets: readonly PlacedAsset[], layerOffsetY = 0): void {
+  /** Rebuilds dynamic PointLight emitters from runtime lights, active placed light props, and lava terrain tiles. */
+  syncLightSources(
+    grid: TerrainGrid,
+    placedAssets: readonly PlacedAsset[],
+    layerOffsetY = 0,
+    options?: {
+      readonly layer?: MapLayer;
+      readonly runtimeLights?: readonly ResolvedLightSource[];
+      readonly showDarknessSpheres?: boolean;
+    },
+  ): void {
     for (const m of this.managedLights) {
       this.lightsRoot.removeChild(m.light);
       m.light.destroy();
     }
     this.managedLights.length = 0;
+    for (const mesh of this.darknessMeshes) {
+      this.lightsRoot.removeChild(mesh);
+      mesh.geometry.destroy(true);
+      mesh.material.destroy();
+      mesh.destroy();
+    }
+    this.darknessMeshes.length = 0;
     this.activePropLightCount = 0;
     this.activeLavaLightCount = 0;
 
-    // 1. Add dynamic PointLights for every light-emitting placed prop (torches, wall torches, braziers, cressets)
+    const targetLayer: MapLayer = options?.layer ?? 'surface';
+
+    // 1. Runtime map/spell/token light sources & Magical Darkness zones
+    for (const src of options?.runtimeLights ?? []) {
+      if (src.layer !== targetLayer) continue;
+      const groundY = grid.sampleHeightAtTileCoord(src.x, src.y) * METERS_PER_HEIGHT_UNIT + layerOffsetY;
+      const wx = src.x * TILE_SIZE_METERS;
+      const wz = src.y * TILE_SIZE_METERS;
+      const wy = groundY + src.elevationFeet * METERS_PER_FOOT;
+
+      if (src.kind === 'darkness') {
+        if (options?.showDarknessSpheres !== false && src.darknessFeet > 0) {
+          const radius = Math.max(0.5, src.darknessFeet * METERS_PER_FOOT);
+          const geo = new SphereGeometry({ radius, widthSegments: 20, heightSegments: 14 });
+          const mat = new FlatMaterial({
+            baseColor: 0x0b0716,
+            alphaMode: 'blend',
+            alpha: 0.72,
+            doubleSided: true,
+          });
+          const mesh = new Mesh3D({
+            geometry: geo,
+            material: mat,
+            castShadow: false,
+            receiveShadow: false,
+            label: `darkness_zone_${src.id}`,
+          });
+          mesh.position.set(wx, wy, wz);
+          this.lightsRoot.addChild(mesh);
+          this.darknessMeshes.push(mesh);
+        }
+        continue;
+      }
+
+      if (this.managedLights.length >= MAX_ACTIVE_POINT_LIGHTS) continue;
+      const rangeMeters = Math.max(1.5, (src.brightFeet + src.dimFeet) * METERS_PER_FOOT);
+      const light = new PointLight({
+        color: hexStringToNumber(src.color, 0xff9442),
+        intensity: 15,
+        range: rangeMeters,
+        radius: 0.3,
+        label: `runtime_light_${src.id}`,
+      });
+      light.position.set(wx, wy, wz);
+      this.lightsRoot.addChild(light);
+
+      this.managedLights.push({
+        light,
+        baseIntensity: 15,
+        baseRange: rangeMeters,
+        flickerAmount: src.flicker ? 0.14 : 0,
+        phase: stablePhase(src.id, src.kind),
+        sourceKind: 'prop',
+      });
+      this.activePropLightCount++;
+    }
+
+    // 2. Add dynamic PointLights for active placed light-emitting props (skipping off/removed overrides)
     for (const p of placedAssets) {
       if (this.managedLights.length >= MAX_ACTIVE_POINT_LIGHTS) break;
+      if (p.propLightState === 'off' || p.propLightState === 'removed') continue;
       const profile = classifyPropLightSource(p.entry);
       if (!profile) continue;
 
@@ -582,6 +658,13 @@ export class LightingManager {
       m.light.destroy();
     }
     this.managedLights.length = 0;
+    for (const mesh of this.darknessMeshes) {
+      this.lightsRoot.removeChild(mesh);
+      mesh.geometry.destroy(true);
+      mesh.material.destroy();
+      mesh.destroy();
+    }
+    this.darknessMeshes.length = 0;
     this.activePropLightCount = 0;
     this.activeLavaLightCount = 0;
     this.onMoodTintChange = undefined;
