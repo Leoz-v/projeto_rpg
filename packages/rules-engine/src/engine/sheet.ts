@@ -18,6 +18,7 @@ import { resolveBuild, type SourcedEffect } from './build';
 import { type ConditionRoll, conditionDefenses, conditionSource, effectiveConditions, ownRollConditions, SPEED_ZERO_CONDITIONS } from './conditions';
 import { type MagicPart, resolveInventory } from './items';
 import { isWeaponProficient } from './proficiency';
+import { deriveVisionProfile } from './vision';
 import {
   abilityModifier,
   casterLevelContribution,
@@ -877,6 +878,10 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
   const keepConcentration = [...new Set(effectsOf('keep_concentration').map(({ effect }) => effect.spellId))];
 
   const errors = issues.filter((i) => i.severity === 'error');
+  const vision = deriveVisionProfile(
+    all.filter((e) => applies(e.effect) === true).map((e) => e.effect),
+    currentConditions,
+  );
   return {
     complete: build.pending.length === 0 && errors.length === 0,
     pending: build.pending,
@@ -900,6 +905,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     saves,
     skills,
     senses: [...senseMap.values()],
+    vision,
     defenses,
     proficiencies,
     weaponMasteries,

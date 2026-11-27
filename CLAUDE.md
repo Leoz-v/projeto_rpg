@@ -43,7 +43,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
   - **Processo main (`src/main/`, Node):** infraestrutura e orquestração — servidor/cliente WebSocket, acesso ao SQLite, cache de assets por SHA-256, protocolo customizado `vtt-asset://`, auto-updater e o **executor da sessão do Host** (recebe `Intent`, chama o motor de regras, persiste e transmite o resultado). **Não implementa regras de D&D**, só chama o motor.
   - **Preload (`src/preload/`):** ponte mínima e tipada entre main e renderer via `contextBridge`. Nada além de expor a API de IPC.
   - **Renderer (`src/renderer/`):** interface reativa (`pt-BR`), renderização do mapa PixiJS e despacho de intenções. Sem acesso a Node.
-  - **Motor de regras (`packages/rules-engine/`, nome do pacote: `rules-engine`):** TypeScript puro, sem dependência de UI, Electron ou APIs do Node. Contém schemas Zod, cálculo de ficha derivada, resolução de ações/efeitos e gerador de RNG auditável/injetável. Exporta `rules-engine` (tudo, incluindo o compêndio), `rules-engine/schemas` (só os schemas), `rules-engine/space` (espaço por tamanho de criatura), `rules-engine/hit-points` (PV atuais), `rules-engine/rest` (Dados de Vida), `rules-engine/spell-slots` (espaços de magia) e `rules-engine/resources` (usos de recursos): o que roda no renderer ou em `src/shared/` importa dos subcaminhos, para o compêndio não entrar no pacote da tela.
+  - **Motor de regras (`packages/rules-engine/`, nome do pacote: `rules-engine`):** TypeScript puro, sem dependência de UI, Electron ou APIs do Node. Contém schemas Zod, cálculo de ficha derivada, resolução de ações/efeitos e gerador de RNG auditável/injetável. Exporta `rules-engine` (tudo, incluindo o compêndio), `rules-engine/schemas` (só os schemas), `rules-engine/space` (espaço por tamanho de criatura), `rules-engine/hit-points` (PV atuais), `rules-engine/rest` (Dados de Vida), `rules-engine/spell-slots` (espaços de magia), `rules-engine/resources` (usos de recursos) e `rules-engine/vision` (visão e iluminação): o que roda no renderer ou em `src/shared/` importa dos subcaminhos, para o compêndio não entrar no pacote da tela.
   - **Compartilhado (`src/shared/`):** tipos e schemas Zod do protocolo de rede e da API de IPC, usados por main, preload e renderer.
 - **Segurança do Electron (obrigatório):** `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`, Content Security Policy restritiva no renderer, e todo payload de IPC e de rede validado com Zod no processo main.
 - **Topologia multiplayer (sem nuvem):**
@@ -215,6 +215,14 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - ✅ Integração do motor e editor 3D (`PROTOCOL_VERSION = 23`, `<campanha>.db` v14, `vtt-3d://`, `map.create`/`map.update` com `scene3d` via `AssetStore`), visualização de mesa (`Map3DView`) integrada ao fluxo natural de mapas com tokens 3D (planos no modo Topo, billboard em 3D/Ortho, arrasto e movimento por teclado) e editor completo (`Map3DEditorModal`) exclusivo do mestre.
    - ✅ Visualização bidirecional 2D/3D (`mapConversion.ts`): qualquer mapa pode ser aberto no visualizador 2D ou 3D (pela barra do mapa ou pelo painel do mestre). Mapas 2D abertos em 3D são montados em um plano horizontal na escala exata do grid com a imagem do mapa; mapas 3D abertos em 2D têm a câmera ortográfica de topo renderizada em imagem 2D com dimensão e resolução por tile adequadas (cacheada por SHA-256).
    - Visão de jogador (linha de visão/névoa) e navegação específica de jogador em 3D.
+10. **Iluminação dinâmica, visão de D&D e colisão (nota 0061):**
+   - ✅ Regras de visão e iluminação no motor (`rules-engine/vision`, efeito `vision_range`, `grant_sense` com `magicalDarkness`, `VisionProfile` em `DerivedSheet` e predefinições SRD de luz/magias).
+   - Colisão e oclusão compartilhada 2D/3D (paredes, portas, janelas, altura do terreno e extração de mapas 3D).
+   - Fontes de luz dinâmicas, horário/interior, zonas de *Darkness* e controle em tempo de execução de tochas do mapa.
+   - Visão guiada pela ficha na autoridade do Host (`visibility.ts` / `fog.ts`).
+   - Renderização 2D (mapa de luz ocluído e *Darkvision* em preto e branco).
+   - Renderização 3D (`ShaderBit` de luz ocluída, *Darkvision* em P&B e controle de tochas).
+   - UI da mesa e da ficha para ambiente, luzes, paredes/portas e alcance de visão.
 
 *Extras futuros:* ações de monstro com Multiattack e magias, exportar e abrir campanha de arquivo, criação de token a partir de imagem com recorte/moldura automáticos, spawn de vários inimigos de uma vez (a numeração Goblin 1, Goblin 2… já existe, um por vez), colar texto de ficha de monstro e converter para o schema.
 

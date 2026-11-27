@@ -77,3 +77,27 @@ export {
   SPEED_ZERO_CONDITIONS,
 } from './conditions';
 export { CONDITION_NAME, DAMAGE_NAME } from './names';
+export {
+  ambientLightLevel,
+  classifyPerception,
+  creatureVisionProfile,
+  type DarknessContribution,
+  DEFAULT_VISION_PROFILE,
+  deriveVisionProfile,
+  type IlluminationContribution,
+  isPerceived,
+  type LightContribution,
+  type LightLevel,
+  type LightPreset,
+  lightPresetForItem,
+  lightPresetForSpell,
+  type MapEnvironment,
+  maxVisionRangeFeet,
+  type PerceptionInput,
+  type PerceptionKind,
+  resolveEffectiveLight,
+  SRD_LIGHT_GEAR_PRESETS,
+  SRD_LIGHT_SPELL_PRESETS,
+  type TimeOfDay,
+  type VisionProfile,
+} from './vision';

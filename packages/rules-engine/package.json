@@ -12,7 +12,8 @@
     "./hit-points": "./src/engine/hit-points.ts",
     "./rest": "./src/engine/rest.ts",
     "./spell-slots": "./src/engine/spell-slots.ts",
-    "./resources": "./src/engine/resources.ts"
+    "./resources": "./src/engine/resources.ts",
+    "./vision": "./src/engine/vision.ts"
   },
   "scripts": {
     "test": "vitest run",
