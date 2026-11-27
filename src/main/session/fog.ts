@@ -1,8 +1,9 @@
 import {
   applyFogCells,
   applyFogRect,
-  computePlayerVision,
-  computeTokenVision,
+  computeMapLightGrid,
+  computePlayerVisionGrid,
+  computeTokenVisionGrid,
   decodeFogBits,
   emptyFogBits,
   encodeFogBits,
@@ -12,13 +13,15 @@ import {
   type GameMap,
   type IntentData,
   type PatchOp,
+  type SessionState,
   type Token,
   toPointer,
   unionFogBits,
 } from '../../shared/protocol';
 import { type SessionContext, violation } from './context';
+import { isTokenControlledBy } from './vision';
 
-/** Névoa de guerra (nota 0056): ações do mestre e atualização automática da memória explorada. */
+/** Névoa de guerra (nota 0056 + nota 0061): ações do mestre e memória explorada com oclusão, luz e sentidos da ficha. */
 
 function requireCellInside(map: GameMap, cell: { x: number; y: number }): void {
   if (cell.x < 0 || cell.x >= map.width || cell.y < 0 || cell.y >= map.height) {
@@ -26,37 +29,51 @@ function requireCellInside(map: GameMap, cell: { x: number; y: number }): void {
   }
 }
 
+function tokenPlayerOwners(state: SessionState, token: Token): string[] {
+  const charOwner = token.characterId !== null ? state.characters[token.characterId]?.ownerId : undefined;
+  return charOwner !== undefined && !token.ownerIds.includes(charOwner)
+    ? [...token.ownerIds, charOwner]
+    : [...token.ownerIds];
+}
+
 /**
  * Atualiza `map.fog.explored` para os jogadores (ou tokens sem dono, para pré-visualização
- * do mestre) quando a névoa automática e a memória explorada estão ativas. Células cobertas
- * pela névoa manual nunca entram na memória até serem reveladas pelo mestre.
+ * do mestre) usando o solver ocluído (paredes, luz e `VisionProfile` da ficha/monstro).
+ * Células cobertas pela névoa manual nunca entram na memória até serem reveladas pelo mestre.
  */
-export function recordExploredOps(map: GameMap, tokens: readonly Token[], targetIds?: readonly string[]): PatchOp[] {
+export function recordExploredOps(
+  ctx: SessionContext,
+  map: GameMap,
+  tokens: readonly Token[],
+  targetIds?: readonly string[],
+  stateOverride?: SessionState,
+): PatchOp[] {
   if (!map.fog.autoEnabled || !map.fog.rememberExplored) return [];
-  const manual = decodeFogBits(map.fog.manual, map.width, map.height);
+  const state = stateOverride ?? ctx.current;
+  const manualFogBits = decodeFogBits(map.fog.manual, map.width, map.height);
+  const scene = ctx.vision.sceneFor(map);
   const playerTargets = new Set<string>();
   const unownedTokenTargets = new Map<string, Token>();
 
-  if (targetIds) {
-    const allowed = new Set(targetIds);
-    for (const token of tokens) {
-      if (token.mapId !== map.id) continue;
-      if (token.ownerIds.length > 0) {
-        for (const ownerId of token.ownerIds) if (allowed.has(ownerId)) playerTargets.add(ownerId);
-      } else if (allowed.has(token.id)) {
-        unownedTokenTargets.set(token.id, token);
+  const allowed = targetIds ? new Set(targetIds) : undefined;
+  for (const token of tokens) {
+    if (token.mapId !== map.id) continue;
+    const owners = tokenPlayerOwners(state, token);
+    if (owners.length > 0) {
+      for (const ownerId of owners) {
+        if (!allowed || allowed.has(ownerId)) playerTargets.add(ownerId);
       }
-    }
-  } else {
-    for (const token of tokens) {
-      if (token.mapId !== map.id) continue;
-      if (token.ownerIds.length > 0) {
-        for (const ownerId of token.ownerIds) playerTargets.add(ownerId);
-      } else {
-        unownedTokenTargets.set(token.id, token);
-      }
+    } else if (!allowed || allowed.has(token.id)) {
+      unownedTokenTargets.set(token.id, token);
     }
   }
+
+  if (playerTargets.size === 0 && unownedTokenTargets.size === 0) return [];
+
+  const lightGrid = computeMapLightGrid(map, tokens, {
+    heightfield: scene.heightfield,
+    bakedPropLights: scene.bakedPropLights,
+  });
 
   const ops: PatchOp[] = [];
   const appendForKey = (key: string, vision: Uint8Array): void => {
@@ -73,12 +90,21 @@ export function recordExploredOps(map: GameMap, tokens: readonly Token[], target
   };
 
   for (const playerId of playerTargets) {
-    appendForKey(playerId, computePlayerVision(map, tokens, playerId));
+    const grid = computePlayerVisionGrid(
+      map,
+      tokens,
+      (t) => ctx.vision.profileFor(state, state.tokens[t.id] ?? (t as Token), map),
+      (t) => isTokenControlledBy(t, state.characters, playerId),
+      { lightGrid, manualFogBits, heightfield: scene.heightfield },
+    );
+    appendForKey(playerId, grid.seenBits);
   }
   for (const [tokenId, token] of unownedTokenTargets) {
-    const vision = computeTokenVision(map, token, map.fog.visionFeet);
-    for (let i = 0; i < vision.length; i++) vision[i] = (vision[i] ?? 0) & ~(manual[i] ?? 0);
-    appendForKey(tokenId, vision);
+    const grid = computeTokenVisionGrid(map, token, ctx.vision.profileFor(state, token, map), lightGrid, {
+      manualFogBits,
+      heightfield: scene.heightfield,
+    });
+    appendForKey(tokenId, grid.seenBits);
   }
   return ops;
 }
@@ -91,7 +117,7 @@ export function paintManualFog(ctx: SessionContext, data: IntentData<'fog.manual
   const ops: PatchOp[] = [{ op: 'replace', path: toPointer('maps', map.id, 'fog', 'manual'), value: nextManual }];
   if (data.mode === 'reveal') {
     const updatedMap: GameMap = { ...map, fog: { ...map.fog, manual: nextManual } };
-    ops.push(...recordExploredOps(updatedMap, Object.values(ctx.current.tokens)));
+    ops.push(...recordExploredOps(ctx, updatedMap, Object.values(ctx.current.tokens)));
   }
   return ops;
 }
@@ -105,7 +131,7 @@ export function rectManualFog(ctx: SessionContext, data: IntentData<'fog.manual.
   const ops: PatchOp[] = [{ op: 'replace', path: toPointer('maps', map.id, 'fog', 'manual'), value: nextManual }];
   if (data.mode === 'reveal') {
     const updatedMap: GameMap = { ...map, fog: { ...map.fog, manual: nextManual } };
-    ops.push(...recordExploredOps(updatedMap, Object.values(ctx.current.tokens)));
+    ops.push(...recordExploredOps(ctx, updatedMap, Object.values(ctx.current.tokens)));
   }
   return ops;
 }
@@ -117,7 +143,7 @@ export function fillManualFog(ctx: SessionContext, data: IntentData<'fog.manual.
   const ops: PatchOp[] = [{ op: 'replace', path: toPointer('maps', map.id, 'fog', 'manual'), value: nextManual }];
   if (data.mode === 'reveal') {
     const updatedMap: GameMap = { ...map, fog: { ...map.fog, manual: nextManual } };
-    ops.push(...recordExploredOps(updatedMap, Object.values(ctx.current.tokens)));
+    ops.push(...recordExploredOps(ctx, updatedMap, Object.values(ctx.current.tokens)));
   }
   return ops;
 }
@@ -138,7 +164,7 @@ export function configureFog(ctx: SessionContext, data: IntentData<'fog.config'>
     nextFog.rememberExplored = data.rememberExplored;
     ops.push({ op: 'replace', path: toPointer('maps', map.id, 'fog', 'rememberExplored'), value: data.rememberExplored });
   }
-  ops.push(...recordExploredOps({ ...map, fog: nextFog }, Object.values(ctx.current.tokens)));
+  ops.push(...recordExploredOps(ctx, { ...map, fog: nextFog }, Object.values(ctx.current.tokens)));
   return ops;
 }
 
@@ -159,6 +185,7 @@ export function setTokenVision(ctx: SessionContext, data: IntentData<'token.visi
   const map = ctx.map(token.mapId);
   const ops: PatchOp[] = [{ op: 'replace', path: toPointer('tokens', token.id, 'visionFeet'), value: data.visionFeet }];
   const tokens = Object.values(ctx.current.tokens).map((t) => (t.id === token.id ? { ...t, visionFeet: data.visionFeet } : t));
-  ops.push(...recordExploredOps(map, tokens, token.ownerIds.length > 0 ? token.ownerIds : [token.id]));
+  const owners = tokenPlayerOwners(ctx.current, token);
+  ops.push(...recordExploredOps(ctx, map, tokens, owners.length > 0 ? owners : [token.id]));
   return ops;
 }

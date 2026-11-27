@@ -12,7 +12,7 @@ import { ASSET_SCHEME, AssetError, assetResponse, AssetStore, create3dAssetHandl
 import { characterSheet, creationOptions } from './character-sheet';
 import { monsterActions, searchItems, searchMonsters } from './compendium';
 import { AppDb, CampaignLibrary, CampaignNotFoundError } from './db';
-import { cryptoRng } from './session';
+import { cryptoRng, resolveAllTokenVisionProfiles } from './session';
 import { localAddresses, TableController, TableError } from './table';
 import { UpdateError, UpdateService } from './updater/update-service';
 
@@ -174,6 +174,14 @@ function registerIpc(appDb: AppDb, table: TableController, library: CampaignLibr
       const max = characterSheet(c, getCompendium()).sheet?.hpMax.total;
       return max === undefined ? [] : [[c.id, max]];
     }));
+  });
+  handle(IpcChannel.tokenVisionProfiles, () => {
+    const state = table.view()?.state;
+    if (!state) return {};
+    return resolveAllTokenVisionProfiles(state, {
+      characterSheet: (c) => characterSheet(c, getCompendium()).sheet ?? undefined,
+      creature: (id) => getCompendium().creatures.find((cr) => cr.id === id),
+    });
   });
   handle(IpcChannel.searchItems, (payload) => searchItems(getCompendium(), parse(z.string().max(100), payload)));
   handle(IpcChannel.characterSheet, (payload) => {

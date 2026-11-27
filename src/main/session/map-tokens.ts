@@ -71,7 +71,9 @@ export function moveToken(ctx: SessionContext, playerId: string, role: Role, dat
   }
   const ops: PatchOp[] = [{ op: 'replace', path: toPointer('tokens', token.id, 'position'), value: data.to }];
   const nextTokens = Object.values(ctx.current.tokens).map((t) => (t.id === token.id ? { ...t, position: data.to } : t));
-  ops.push(...recordExploredOps(map, nextTokens, token.ownerIds.length > 0 ? token.ownerIds : [token.id]));
+  const charOwner = token.characterId !== null ? ctx.current.characters[token.characterId]?.ownerId : undefined;
+  const targetOwners = charOwner !== undefined && !token.ownerIds.includes(charOwner) ? [...token.ownerIds, charOwner] : token.ownerIds;
+  ops.push(...recordExploredOps(ctx, map, nextTokens, targetOwners.length > 0 ? targetOwners : [token.id]));
   return ops;
 }
 
@@ -162,6 +164,8 @@ export function createToken(ctx: SessionContext, data: IntentData<'token.create'
     visionFeet: null,
   };
   const ops: PatchOp[] = [{ op: 'add', path: toPointer('tokens', token.id), value: token }];
-  ops.push(...recordExploredOps(map, [...Object.values(ctx.current.tokens), token], ownerIds.length > 0 ? ownerIds : [token.id]));
+  const charOwner = token.characterId !== null ? ctx.current.characters[token.characterId]?.ownerId : undefined;
+  const targetOwners = charOwner !== undefined && !ownerIds.includes(charOwner) ? [...ownerIds, charOwner] : ownerIds;
+  ops.push(...recordExploredOps(ctx, map, [...Object.values(ctx.current.tokens), token], targetOwners.length > 0 ? targetOwners : [token.id]));
   return ops;
 }

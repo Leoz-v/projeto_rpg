@@ -1,6 +1,7 @@
 import type { AppInfo, HostTableRequest, IpcError, JoinTableRequest, Preferences } from './ipc-schemas';
 import type { DerivedSheet } from 'rules-engine';
 import type { Ability, Condition, DamageType, Size } from 'rules-engine/schemas';
+import type { VisionProfile } from 'rules-engine/vision';
 import type { Intent, IntentResultSchema, Role, SessionState } from './protocol';
 import type { z } from 'zod';
 
@@ -23,6 +24,7 @@ export const IpcChannel = {
   creationOptions: 'compendium:creation-options',
   searchItems: 'compendium:search-items',
   characterHpMaxima: 'table:character-hp-maxima',
+  tokenVisionProfiles: 'table:token-vision-profiles',
   monsterActions: 'compendium:monster-actions',
   sendIntent: 'table:intent',
   chatHistory: 'table:chat-history',
@@ -185,6 +187,8 @@ export interface VttApi {
   monsterActions(monsterId: string): Promise<IpcResult<MonsterAction[]>>;
   /** PV máximos da ficha de cada personagem da mesa atual (os sem atributos ficam de fora). */
   characterHpMaxima(): Promise<IpcResult<Record<string, number>>>;
+  /** Perfis de visão derivados para cada token visível na mesa atual (ficha, monstro e condições). */
+  tokenVisionProfiles(): Promise<IpcResult<Record<string, VisionProfile>>>;
   /** Espécies, antecedentes e classes do compêndio. */
   creationOptions(): Promise<IpcResult<CreationOptions>>;
   /** Abre o seletor de arquivos e importa uma imagem; `null` se o usuário cancelou. */

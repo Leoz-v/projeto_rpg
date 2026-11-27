@@ -15,6 +15,7 @@ import {
   WORLD_UNITS_PER_CELL,
 } from '../../shared/protocol';
 import { notAllowed, type SessionContext, violation } from './context';
+import { recordExploredOps } from './fog';
 
 /** Iluminação dinâmica em tempo de execução: ambiente, luzes e overrides de tochas 3D (nota 0061). */
 
@@ -53,7 +54,10 @@ export function configureLighting(ctx: SessionContext, data: IntentData<'lightin
     timeOfDay: data.timeOfDay ?? map.lighting.timeOfDay,
     ambientOverride: data.ambientOverride === undefined ? map.lighting.ambientOverride : data.ambientOverride,
   };
-  return [{ op: 'replace', path: toPointer('maps', map.id, 'lighting'), value: next }];
+  return [
+    { op: 'replace', path: toPointer('maps', map.id, 'lighting'), value: next },
+    ...recordExploredOps(ctx, { ...map, lighting: next }, Object.values(ctx.current.tokens)),
+  ];
 }
 
 export function addLight(ctx: SessionContext, playerId: string, role: Role, data: IntentData<'light.add'>): PatchOp[] {
@@ -86,7 +90,12 @@ export function addLight(ctx: SessionContext, playerId: string, role: Role, data
     ...(input.spell ? { spell: input.spell } : {}),
     ...(input.itemInstanceId !== undefined ? { itemInstanceId: input.itemInstanceId } : {}),
   };
-  return [{ op: 'replace', path: toPointer('maps', map.id, 'lights'), value: [...map.lights, light] }];
+  const nextLights = [...map.lights, light];
+  const ops: PatchOp[] = [{ op: 'replace', path: toPointer('maps', map.id, 'lights'), value: nextLights }];
+  if (light.kind === 'light' && light.enabled) {
+    ops.push(...recordExploredOps(ctx, { ...map, lights: nextLights }, Object.values(ctx.current.tokens)));
+  }
+  return ops;
 }
 
 export function updateLight(ctx: SessionContext, playerId: string, role: Role, data: IntentData<'light.update'>): PatchOp[] {
@@ -117,7 +126,10 @@ export function updateLight(ctx: SessionContext, playerId: string, role: Role, d
     ...(data.attach !== undefined ? { attach: data.attach } : {}),
   };
   const nextLights = map.lights.map((l, i) => (i === index ? next : l));
-  return [{ op: 'replace', path: toPointer('maps', map.id, 'lights'), value: nextLights }];
+  return [
+    { op: 'replace', path: toPointer('maps', map.id, 'lights'), value: nextLights },
+    ...recordExploredOps(ctx, { ...map, lights: nextLights }, Object.values(ctx.current.tokens)),
+  ];
 }
 
 export function toggleLight(ctx: SessionContext, playerId: string, role: Role, data: IntentData<'light.toggle'>): PatchOp[] {
@@ -129,7 +141,10 @@ export function toggleLight(ctx: SessionContext, playerId: string, role: Role, d
     throw notAllowed('Você não pode alterar esta fonte de luz');
   }
   const nextLights = map.lights.map((l, i) => (i === index ? { ...l, enabled: !l.enabled } : l));
-  return [{ op: 'replace', path: toPointer('maps', map.id, 'lights'), value: nextLights }];
+  return [
+    { op: 'replace', path: toPointer('maps', map.id, 'lights'), value: nextLights },
+    ...recordExploredOps(ctx, { ...map, lights: nextLights }, Object.values(ctx.current.tokens)),
+  ];
 }
 
 export function removeLight(ctx: SessionContext, playerId: string, role: Role, data: IntentData<'light.remove'>): PatchOp[] {
@@ -140,7 +155,11 @@ export function removeLight(ctx: SessionContext, playerId: string, role: Role, d
     throw notAllowed('Você não pode remover esta fonte de luz');
   }
   const nextLights = map.lights.filter((l) => l.id !== data.lightId);
-  return [{ op: 'replace', path: toPointer('maps', map.id, 'lights'), value: nextLights }];
+  const ops: PatchOp[] = [{ op: 'replace', path: toPointer('maps', map.id, 'lights'), value: nextLights }];
+  if (existing.kind === 'darkness') {
+    ops.push(...recordExploredOps(ctx, { ...map, lights: nextLights }, Object.values(ctx.current.tokens)));
+  }
+  return ops;
 }
 
 export function setMapPropLight(ctx: SessionContext, playerId: string, role: Role, data: IntentData<'map_prop_light.set'>): PatchOp[] {
@@ -174,7 +193,11 @@ export function setMapPropLight(ctx: SessionContext, playerId: string, role: Rol
   if (data.state === 'on') {
     if (!(data.propLightId in next)) return [];
     const entries = Object.entries(next).filter(([k]) => k !== data.propLightId);
-    return [{ op: 'replace', path: toPointer('maps', map.id, 'propLightOverrides'), value: Object.fromEntries(entries) }];
+    const nextOverrides = Object.fromEntries(entries);
+    return [
+      { op: 'replace', path: toPointer('maps', map.id, 'propLightOverrides'), value: nextOverrides },
+      ...recordExploredOps(ctx, { ...map, propLightOverrides: nextOverrides }, Object.values(ctx.current.tokens)),
+    ];
   }
   if (!(data.propLightId in next) && Object.keys(next).length >= MAX_PROP_LIGHT_OVERRIDES) {
     throw violation(`Limite de ${MAX_PROP_LIGHT_OVERRIDES} overrides de luz por mapa atingido`);

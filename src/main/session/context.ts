@@ -1,6 +1,7 @@
 import { type Condition, type Creature, type DerivedSheet, distanceFeet, effectiveConditions, type Rng, type Size, spaceSquares, type Spell } from 'rules-engine';
 import type { z } from 'zod';
 import { type ChatEntry, type Combat, NO_CONDITIONS, type GameMap, type IntentRejectCode, type IntentResultSchema, type PatchOp, type Point, type Role, type SessionCharacter, type SessionState, type Token, WORLD_UNITS_PER_CELL } from '../../shared/protocol';
+import { createSessionVisionResolver, type SessionVisionResolver } from './vision';
 
 export type IntentResultPayload = z.infer<typeof IntentResultSchema>['payload'];
 
@@ -73,8 +74,11 @@ export const violation = (message: string): Rejection => new Rejection('rule_vio
 export class SessionContext {
   /** Estado completo (visão do mestre). */
   current!: SessionState;
+  readonly vision: SessionVisionResolver;
 
-  constructor(readonly deps: SessionDeps) {}
+  constructor(readonly deps: SessionDeps) {
+    this.vision = createSessionVisionResolver(deps);
+  }
 
   requireGm(role: Role): void {
     if (role !== 'gm') throw notAllowed('Só o mestre pode fazer isso');
