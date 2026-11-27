@@ -2,6 +2,7 @@ import { applyHitPointChange, CONDITION_NAME, type Condition, conditionDefenses,
 import { type ChatEntry, type ConditionState, MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, type PatchOp, type SessionCharacter, type TableCondition, type Token, toPointer } from '../../shared/protocol';
 import type { SessionContext } from './context';
 import { untilNextTurn } from './conditions';
+import { removeSpellLights } from './lights';
 import { changeCharacterHp, concentrationBreaks } from './vitality';
 
 /**
@@ -334,5 +335,6 @@ export function liftSpellConditions(ctx: SessionContext, playerId: string, link:
   for (const token of Object.values(ctx.current.tokens)) {
     if (token.characterId === null) lift(toPointer('tokens', token.id, 'conditions'), token.conditions, token.name, { tokenId: token.id });
   }
+  ops.push(...removeSpellLights(ctx, link));
   return ops;
 }

@@ -1,8 +1,9 @@
 import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, DiceSchema, EffectSchema, IdSchema, SpellConditionEndSchema, InventorySchema, SizeSchema, TriggerMomentSchema, WeaponMasterySchema } from 'rules-engine/schemas';
 import { z } from 'zod';
-import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_COMBATANTS, MAX_HIT_POINTS, MAX_INITIATIVE, MAX_MAP_WALLS, MAX_SAVE_TARGETS, MAX_SPELL_OPTIONS, MAX_SPELL_PARTS, MAX_TURN_TRIGGER_ITEMS, MIN_INITIATIVE } from './constants';
+import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_COMBATANTS, MAX_HIT_POINTS, MAX_INITIATIVE, MAX_MAP_LIGHTS, MAX_MAP_WALLS, MAX_SAVE_TARGETS, MAX_SPELL_OPTIONS, MAX_SPELL_PARTS, MAX_TURN_TRIGGER_ITEMS, MIN_INITIATIVE } from './constants';
 import { ChatTextSchema, ConcentrationSchema, ConditionSpellSchema, HitDiceSpentSchema, HitDieSchema, SpellSlotRefSchema, SpellSlotsSpentSchema, ResourcesSpentSchema, ConditionStateSchema, DeathSavesSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
 import { WallSegmentSchema } from '../collision';
+import { defaultMapLighting, MapLightingConfigSchema, MapLightSourceSchema, PropLightOverridesSchema } from '../lighting';
 import { MapFogSchema, VisionFeetSchema } from './fog';
 
 /** `SessionState` (docs/network-protocol.md, seção 5). */
@@ -555,6 +556,12 @@ export const MapSchema = z.strictObject({
   fog: MapFogSchema,
   /** Segmentos de parede, porta, janela e penhasco para colisão e oclusão (nota 0061). */
   walls: z.array(WallSegmentSchema).max(MAX_MAP_WALLS).default([]),
+  /** Configuração de ambiente e horário do mapa (nota 0061). */
+  lighting: MapLightingConfigSchema.default(() => defaultMapLighting()),
+  /** Fontes de luz e zonas de escuridão mágica em tempo de execução (nota 0061). */
+  lights: z.array(MapLightSourceSchema).max(MAX_MAP_LIGHTS).default([]),
+  /** Overrides em tempo de execução de tochas/braseiros já existentes no mapa 3D (nota 0061). */
+  propLightOverrides: PropLightOverridesSchema.default({}),
 });
 export type GameMap = z.infer<typeof MapSchema>;
 
