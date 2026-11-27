@@ -13,6 +13,7 @@ import { castSpell, useSpellEffect } from './casting';
 import { clearFogMemory, configureFog, fillManualFog, paintManualFog, rectManualFog, setTokenVision } from './fog';
 import { createMap, createToken, moveToken, roll, updateMap } from './map-tokens';
 import { changeHp, concentrate, concentrationBreaks, deathStateEntry, endConcentration, inCombat, rollDeathSave } from './vitality';
+import { addWalls, removeWalls, replaceWalls, toggleDoor, updateWall } from './walls';
 
 export type { Identity, IntentOutcome, IntentResultPayload, SessionDeps, StateChange } from './context';
 
@@ -308,6 +309,20 @@ export class HostSession extends SessionContext {
       case 'token.vision':
         this.requireGm(role);
         return setTokenVision(this, intent.data);
+      case 'wall.add':
+        this.requireGm(role);
+        return addWalls(this, intent.data);
+      case 'wall.update':
+        this.requireGm(role);
+        return updateWall(this, intent.data);
+      case 'wall.remove':
+        this.requireGm(role);
+        return removeWalls(this, intent.data);
+      case 'wall.replace':
+        this.requireGm(role);
+        return replaceWalls(this, intent.data);
+      case 'door.toggle':
+        return toggleDoor(this, playerId, role, intent.data);
     }
   }
 }

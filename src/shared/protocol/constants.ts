@@ -26,6 +26,9 @@ export const DEFAULT_VISION_FEET = 60;
 export const MIN_VISION_FEET = 5;
 export const MAX_VISION_FEET = 300;
 export const MAX_FOG_PAINT_CELLS = 2000;
+/** Limites de colisão e paredes por mapa (nota 0061). */
+export const MAX_MAP_WALLS = 2000;
+export const DOOR_INTERACT_CELLS = 2;
 /** Entradas no inventário de um personagem e quantidade por entrada. */
 export const MAX_INVENTORY_ITEMS = 500;
 export const MAX_ITEM_QUANTITY = 9999;

@@ -1,7 +1,8 @@
 import { ABILITY_ROLL_SETS, AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, DiceSchema, EffectSchema, IdSchema, SpellConditionEndSchema, InventorySchema, SizeSchema, TriggerMomentSchema, WeaponMasterySchema } from 'rules-engine/schemas';
 import { z } from 'zod';
-import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_COMBATANTS, MAX_HIT_POINTS, MAX_INITIATIVE, MAX_SAVE_TARGETS, MAX_SPELL_OPTIONS, MAX_SPELL_PARTS, MAX_TURN_TRIGGER_ITEMS, MIN_INITIATIVE } from './constants';
+import { MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, MAX_COMBATANTS, MAX_HIT_POINTS, MAX_INITIATIVE, MAX_MAP_WALLS, MAX_SAVE_TARGETS, MAX_SPELL_OPTIONS, MAX_SPELL_PARTS, MAX_TURN_TRIGGER_ITEMS, MIN_INITIATIVE } from './constants';
 import { ChatTextSchema, ConcentrationSchema, ConditionSpellSchema, HitDiceSpentSchema, HitDieSchema, SpellSlotRefSchema, SpellSlotsSpentSchema, ResourcesSpentSchema, ConditionStateSchema, DeathSavesSchema, HitPointStateSchema, InstanceIdSchema, LabelSchema, TableConditionSchema, TurnExpirySchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, UuidSchema } from './common';
+import { WallSegmentSchema } from '../collision';
 import { MapFogSchema, VisionFeetSchema } from './fog';
 
 /** `SessionState` (docs/network-protocol.md, seção 5). */
@@ -552,6 +553,8 @@ export const MapSchema = z.strictObject({
   scene3d: Sha256Schema.nullable().default(null),
   /** Névoa de guerra manual e automática do mapa (nota 0058). */
   fog: MapFogSchema,
+  /** Segmentos de parede, porta, janela e penhasco para colisão e oclusão (nota 0061). */
+  walls: z.array(WallSegmentSchema).max(MAX_MAP_WALLS).default([]),
 });
 export type GameMap = z.infer<typeof MapSchema>;
 

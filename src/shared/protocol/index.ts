@@ -7,3 +7,4 @@ export * from './intents';
 export * from './messages';
 export * from './patch';
 export * from './state';
+export * from '../collision';
