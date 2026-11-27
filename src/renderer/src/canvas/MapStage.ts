@@ -8,12 +8,16 @@ import {
   type FogCell,
   type FogMode,
   type GameMap,
+  type NewWallSegment,
   type Point,
+  pointToSegmentDistance,
   type SessionState,
   type Token,
+  type WallKind,
   type WallSegment,
   WORLD_UNITS_PER_CELL,
 } from '../../../shared/protocol';
+import { snapWallCoord, type WallTool } from '../components/lighting-hud-helpers';
 import {
   clampFogCell,
   fogSignature,
@@ -69,6 +73,8 @@ export interface Scene {
   viewer: FogViewer;
   /** Ferramenta de edição de névoa ativa (só para o mestre). */
   fogTool: FogTool;
+  /** Ferramenta de edição de paredes/portas no 2D (só para o mestre). */
+  wallTool?: WallTool;
   /** Perfis de visão por token vindos da ficha/monstro (IPC). */
   visionProfiles?: Readonly<Record<string, VisionProfile>>;
   /** Personagens da sessão, para associar dono e condições à visão. */
@@ -90,6 +96,8 @@ export interface MapStageEvents {
   onDoorToggle?: (mapId: string, wallId: string) => void;
   onLightToggle?: (mapId: string, lightId: string) => void;
   onPropLightToggle?: (mapId: string, propLightId: string, nextState: 'on' | 'off') => void;
+  onWallAdd?: (mapId: string, wall: NewWallSegment) => void;
+  onWallRemove?: (mapId: string, wallIds: string[]) => void;
 }
 
 const COLORS = {
@@ -260,6 +268,7 @@ export class MapStage {
   private rulerPoints: GridCell[] = [];
   private fogBrush: { mapId: string; mode: FogMode; cells: Map<string, FogCell> } | undefined;
   private fogRect: { mapId: string; mode: FogMode; from: FogCell; to: FogCell } | undefined;
+  private wallDraft: { mapId: string; kind: WallKind; x1: number; y1: number; x2: number; y2: number } | undefined;
   private destroyed = false;
 
   private constructor(
@@ -363,9 +372,13 @@ export class MapStage {
     this.updateCursor();
   }
 
+  private activeWallTool(): WallTool {
+    return this.scene.viewer.role === 'gm' ? (this.scene.wallTool ?? 'none') : 'none';
+  }
+
   private updateCursor(): void {
     const activeFog = this.scene.viewer.role === 'gm' && this.scene.fogTool !== 'none';
-    const crosshair = this.rulerMode || activeFog;
+    const crosshair = this.rulerMode || activeFog || this.activeWallTool() !== 'none';
     this.app.canvas.style.cursor = crosshair ? 'crosshair' : '';
     for (const [id, view] of this.views) {
       if (this.drag?.id === id) {
@@ -670,9 +683,9 @@ export class MapStage {
   private tokenDown(id: string, e: FederatedPointerEvent): void {
     // Apenas botão esquerdo seleciona e arrasta tokens; botão do meio/direito continua fazendo pan do mapa.
     if (e.button !== 0) return;
-    // Em modo régua ou com ferramenta de névoa ativa, cliques não arrastam tokens.
+    // Em modo régua ou com ferramenta de névoa/paredes ativa, cliques não arrastam tokens.
     if (this.rulerMode) return;
-    if (this.scene.viewer.role === 'gm' && this.scene.fogTool !== 'none') return;
+    if (this.scene.viewer.role === 'gm' && (this.scene.fogTool !== 'none' || this.activeWallTool() !== 'none')) return;
     // O clique no token não vira arrasto da câmera.
     e.stopPropagation();
     this.pan = undefined;
@@ -692,6 +705,31 @@ export class MapStage {
   private stageDown(e: FederatedPointerEvent): void {
     if (this.drag) return;
     const map = this.scene.map;
+    const wallTool = this.activeWallTool();
+    if (map && wallTool !== 'none' && e.button === 0) {
+      const world = screenToWorld(this.camera, e.global);
+      const cellX = world.x / WORLD_UNITS_PER_CELL;
+      const cellY = world.y / WORLD_UNITS_PER_CELL;
+      if (wallTool === 'erase') {
+        let bestId: string | null = null;
+        let bestDist = 0.4;
+        for (const w of map.walls) {
+          if (w.layer !== 'surface') continue;
+          const d = pointToSegmentDistance({ x: cellX, y: cellY }, w);
+          if (d <= bestDist) {
+            bestDist = d;
+            bestId = w.id;
+          }
+        }
+        if (bestId !== null) this.events.onWallRemove?.(map.id, [bestId]);
+        return;
+      }
+      const x1 = snapWallCoord(cellX, map.width);
+      const y1 = snapWallCoord(cellY, map.height);
+      this.wallDraft = { mapId: map.id, kind: wallTool, x1, y1, x2: x1, y2: y1 };
+      this.drawWallPreview();
+      return;
+    }
     if (map && this.scene.viewer.role === 'gm' && this.scene.fogTool !== 'none' && e.button === 0) {
       const world = screenToWorld(this.camera, e.global);
       if (this.scene.fogTool === 'brush-cover' || this.scene.fogTool === 'brush-reveal') {
@@ -731,6 +769,19 @@ export class MapStage {
   }
 
   private pointerMove(e: FederatedPointerEvent): void {
+    if (this.wallDraft) {
+      const map = this.scene.map;
+      if (!map || map.id !== this.wallDraft.mapId) return;
+      const world = screenToWorld(this.camera, e.global);
+      const x2 = snapWallCoord(world.x / WORLD_UNITS_PER_CELL, map.width);
+      const y2 = snapWallCoord(world.y / WORLD_UNITS_PER_CELL, map.height);
+      if (x2 !== this.wallDraft.x2 || y2 !== this.wallDraft.y2) {
+        this.wallDraft.x2 = x2;
+        this.wallDraft.y2 = y2;
+        this.drawWallPreview();
+      }
+      return;
+    }
     if (this.fogBrush) {
       const map = this.scene.map;
       if (!map || map.id !== this.fogBrush.mapId) return;
@@ -777,6 +828,22 @@ export class MapStage {
   private pointerUp(): void {
     this.rulerDragging = false;
     this.pan = undefined;
+    if (this.wallDraft) {
+      const draft = this.wallDraft;
+      this.wallDraft = undefined;
+      this.fogPreviewLayer.clear();
+      if (Math.hypot(draft.x2 - draft.x1, draft.y2 - draft.y1) >= 0.25) {
+        this.events.onWallAdd?.(draft.mapId, {
+          x1: draft.x1,
+          y1: draft.y1,
+          x2: draft.x2,
+          y2: draft.y2,
+          kind: draft.kind,
+          layer: 'surface',
+        });
+      }
+      return;
+    }
     if (this.fogBrush) {
       const { mapId, mode, cells } = this.fogBrush;
       this.fogBrush = undefined;
@@ -904,9 +971,24 @@ export class MapStage {
     g.stroke({ width: 6, color, alpha: 0.9 });
   }
 
+  private drawWallPreview(): void {
+    const g = this.fogPreviewLayer.clear();
+    if (!this.wallDraft) return;
+    const { kind, x1, y1, x2, y2 } = this.wallDraft;
+    const color =
+      kind === 'door' ? 0xfb923c : kind === 'window' ? 0x38bdf8 : kind === 'terrain_wall' ? 0xa3e635 : 0xf59e0b;
+    const wx1 = x1 * WORLD_UNITS_PER_CELL;
+    const wy1 = y1 * WORLD_UNITS_PER_CELL;
+    const wx2 = x2 * WORLD_UNITS_PER_CELL;
+    const wy2 = y2 * WORLD_UNITS_PER_CELL;
+    g.circle(wx1, wy1, 10).fill({ color, alpha: 0.9 });
+    g.circle(wx2, wy2, 10).fill({ color, alpha: 0.9 });
+    g.moveTo(wx1, wy1).lineTo(wx2, wy2).stroke({ width: 8, color, alpha: 0.9, cap: 'round' });
+  }
+
   private isOverlayInteractive(): boolean {
     if (this.rulerMode) return false;
-    return !(this.scene.viewer.role === 'gm' && this.scene.fogTool !== 'none');
+    return !(this.scene.viewer.role === 'gm' && (this.scene.fogTool !== 'none' || this.activeWallTool() !== 'none'));
   }
 
   private syncWallAndDoorOverlays(map: GameMap): void {

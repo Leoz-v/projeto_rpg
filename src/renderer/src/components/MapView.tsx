@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { VisionProfile } from 'rules-engine/vision';
 import type { TableView } from '../../../shared/ipc';
-import { extractPropLightsFrom3dMapDocument, type ExtractedPropLight, type GameMap } from '../../../shared/protocol';
+import { extractPropLightsFrom3dMapDocument, type ExtractedPropLight, type GameMap, WORLD_UNITS_PER_CELL } from '../../../shared/protocol';
 import { conditionLabels, timedEffectLabels, tokenConditions } from '../canvas/conditions';
 import type { FogTool } from '../canvas/fog-render';
 import { tokenHealth } from '../canvas/health';
@@ -10,8 +10,11 @@ import { DEFAULT_RULER_OPTIONS, type RulerOptions } from '../canvas/ruler';
 import { render3dMapTo2dCanvas } from '../canvas3d/render/mapConversion';
 import { sendIntent } from '../store/table';
 import { FogHudControls } from './FogHudControls';
+import { LightingHudControls } from './LightingHudControls';
+import type { WallTool } from './lighting-hud-helpers';
 import { Map3DView } from './Map3DView';
 import { RulerOptionsBar } from './RulerControls';
+import { WallHudControls } from './WallHudControls';
 
 /**
  * O mapa ativo: liga o `MapStage` (PixiJS 2D) ou o `Map3DView` (PixiJS 3D) ao
@@ -121,6 +124,10 @@ function Map2DView({ view, maxima, visionProfiles, selectedId, fogTool, onFogToo
   const [rulerActive, setRulerActive] = useState(false);
   const [rulerOptions, setRulerOptions] = useState<RulerOptions>({ ...DEFAULT_RULER_OPTIONS });
   const [fogHudOpen, setFogHudOpen] = useState(false);
+  const [lightingHudOpen, setLightingHudOpen] = useState(false);
+  const [wallHudOpen, setWallHudOpen] = useState(false);
+  const [wallTool, setWallTool] = useState<WallTool>('none');
+  const [cameraCenterCell, setCameraCenterCell] = useState<{ x: number; y: number } | undefined>(undefined);
   const [previewTokenVision, setPreviewTokenVision] = useState(true);
   const [renderResult, setRenderResult] = useState<
     { key: string; bg: RenderedMapBackground } | { key: string; error: string } | null
@@ -162,6 +169,12 @@ function Map2DView({ view, maxima, visionProfiles, selectedId, fogTool, onFogToo
       onPropLightToggle: (mapId, propLightId, nextState) => {
         void sendIntent({ kind: 'map_prop_light.set', data: { mapId, propLightId, state: nextState } }).then(setError);
       },
+      onWallAdd: (mapId, wall) => {
+        void sendIntent({ kind: 'wall.add', data: { mapId, walls: [wall] } }).then(setError);
+      },
+      onWallRemove: (mapId, wallIds) => {
+        void sendIntent({ kind: 'wall.remove', data: { mapId, wallIds } }).then(setError);
+      },
     }).then((s) => {
       // Desmontou antes de o PixiJS terminar de iniciar (StrictMode faz isso no desenvolvimento).
       if (cancelled) {
@@ -184,6 +197,7 @@ function Map2DView({ view, maxima, visionProfiles, selectedId, fogTool, onFogToo
   const isGm = info.role === 'gm';
   const selectedToken = selectedId !== null ? (state.tokens[selectedId] ?? null) : null;
   const showFogHud = isGm && (fogHudOpen || fogTool !== 'none');
+  const showWallHud = isGm && (wallHudOpen || wallTool !== 'none');
   const scene3dHash = map?.scene3d ?? null;
   const mapName = map?.name ?? '';
   const bakedPropLights = useBaked3dPropLights(scene3dHash);
@@ -228,15 +242,16 @@ function Map2DView({ view, maxima, visionProfiles, selectedId, fogTool, onFogToo
       health: (token) => tokenHealth(token, state.characters, maxima),
       viewer: { role: info.role, playerId: info.playerId, previewTokenId: isGm && previewTokenVision ? selectedId : null },
       fogTool: isGm ? fogTool : 'none',
+      wallTool: isGm ? wallTool : 'none',
       visionProfiles,
       characters: state.characters,
       bakedPropLights,
     });
-  }, [stage, map, activeRenderedBg, state.tokens, state.characters, state.combat, maxima, visionProfiles, bakedPropLights, info.role, info.playerId, isGm, selectedId, previewTokenVision, fogTool]);
+  }, [stage, map, activeRenderedBg, state.tokens, state.characters, state.combat, maxima, visionProfiles, bakedPropLights, info.role, info.playerId, isGm, selectedId, previewTokenVision, fogTool, wallTool]);
 
   useEffect(() => {
-    stage?.setRulerMode(rulerActive && fogTool === 'none' && map !== null);
-  }, [stage, rulerActive, fogTool, map]);
+    stage?.setRulerMode(rulerActive && fogTool === 'none' && wallTool === 'none' && map !== null);
+  }, [stage, rulerActive, fogTool, wallTool, map]);
 
   useEffect(() => {
     stage?.setRulerOptions(rulerOptions);
@@ -254,6 +269,7 @@ function Map2DView({ view, maxima, visionProfiles, selectedId, fogTool, onFogToo
         setRulerActive((prev) => !prev);
       } else if (e.code === 'Escape') {
         setRulerActive(false);
+        setWallTool('none');
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -294,6 +310,9 @@ function Map2DView({ view, maxima, visionProfiles, selectedId, fogTool, onFogToo
                   if (next) {
                     onFogTool('none');
                     setFogHudOpen(false);
+                    setLightingHudOpen(false);
+                    setWallHudOpen(false);
+                    setWallTool('none');
                   }
                   return next;
                 });
@@ -301,24 +320,74 @@ function Map2DView({ view, maxima, visionProfiles, selectedId, fogTool, onFogToo
             >
               Régua
             </button>
-            {isGm && (
-              <button
-                type="button"
-                className={showFogHud ? 'active' : ''}
-                aria-pressed={showFogHud}
-                title="Controles de névoa de guerra manual e automática"
-                onClick={() => {
-                  if (showFogHud) {
-                    setFogHudOpen(false);
-                    onFogTool('none');
-                  } else {
+            <button
+              type="button"
+              className={lightingHudOpen ? 'active' : ''}
+              aria-pressed={lightingHudOpen}
+              title="Iluminação do mapa, tochas, lanternas e magias de luz/escuridão"
+              onClick={() => {
+                setLightingHudOpen((prev) => {
+                  const next = !prev;
+                  if (next) {
+                    const vc = stage?.viewCenter();
+                    if (vc) {
+                      setCameraCenterCell({ x: vc.x / WORLD_UNITS_PER_CELL, y: vc.y / WORLD_UNITS_PER_CELL });
+                    }
                     setRulerActive(false);
-                    setFogHudOpen(true);
+                    onFogTool('none');
+                    setFogHudOpen(false);
+                    setWallHudOpen(false);
+                    setWallTool('none');
                   }
-                }}
-              >
-                Névoa
-              </button>
+                  return next;
+                });
+              }}
+            >
+              Luz
+            </button>
+            {isGm && (
+              <>
+                <button
+                  type="button"
+                  className={showWallHud ? 'active' : ''}
+                  aria-pressed={showWallHud}
+                  title="Desenhar paredes, portas, janelas e bloqueios no mapa"
+                  onClick={() => {
+                    if (showWallHud) {
+                      setWallHudOpen(false);
+                      setWallTool('none');
+                    } else {
+                      setRulerActive(false);
+                      setLightingHudOpen(false);
+                      setFogHudOpen(false);
+                      onFogTool('none');
+                      setWallHudOpen(true);
+                    }
+                  }}
+                >
+                  Paredes
+                </button>
+                <button
+                  type="button"
+                  className={showFogHud ? 'active' : ''}
+                  aria-pressed={showFogHud}
+                  title="Controles de névoa de guerra manual e automática"
+                  onClick={() => {
+                    if (showFogHud) {
+                      setFogHudOpen(false);
+                      onFogTool('none');
+                    } else {
+                      setRulerActive(false);
+                      setLightingHudOpen(false);
+                      setWallHudOpen(false);
+                      setWallTool('none');
+                      setFogHudOpen(true);
+                    }
+                  }}
+                >
+                  Névoa
+                </button>
+              </>
             )}
             {isGm && onEdit3dMap && map.scene3d !== null && (
               <button
@@ -333,6 +402,30 @@ function Map2DView({ view, maxima, visionProfiles, selectedId, fogTool, onFogToo
             )}
           </div>
           {rulerActive && <RulerOptionsBar options={rulerOptions} onChange={setRulerOptions} />}
+          {lightingHudOpen && (
+            <LightingHudControls
+              map={map}
+              isGm={isGm}
+              playerId={info.playerId}
+              selectedToken={selectedToken}
+              tokens={Object.values(state.tokens)}
+              characters={state.characters}
+              bakedPropLights={bakedPropLights}
+              {...(cameraCenterCell ? { viewCenterCell: cameraCenterCell } : {})}
+              onError={setError}
+            />
+          )}
+          {showWallHud && (
+            <WallHudControls
+              map={map}
+              wallTool={wallTool}
+              onWallTool={(tool) => {
+                onFogTool('none');
+                setWallTool(tool);
+              }}
+              onError={setError}
+            />
+          )}
           {showFogHud && (
             <FogHudControls
               map={map}
@@ -362,6 +455,7 @@ export function MapView({ view, viewerMode, onViewerModeChange, selectedId, fogT
   const map = state.activeMapId !== null ? (state.maps[state.activeMapId] ?? null) : null;
   const maxima = useHpMaxima(state.characters);
   const visionProfiles = useTokenVisionProfiles(state.tokens, state.characters);
+  const bakedPropLights = useBaked3dPropLights(map?.scene3d ?? null);
   if (map !== null && viewerMode === '3d') {
     return (
       <Map3DView
@@ -369,6 +463,7 @@ export function MapView({ view, viewerMode, onViewerModeChange, selectedId, fogT
         map={map}
         maxima={maxima}
         visionProfiles={visionProfiles}
+        bakedPropLights={bakedPropLights}
         selectedId={selectedId}
         fogTool={info.role === 'gm' ? fogTool : 'none'}
         onFogTool={onFogTool}

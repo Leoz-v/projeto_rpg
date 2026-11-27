@@ -6,10 +6,12 @@ import type { TableView } from '../../../shared/ipc';
 import {
   extractHeightfieldFromMapDoc,
   extractPropLightsFrom3dMapDocument,
+  type ExtractedPropLight,
   type GameMap,
   resolveActiveLightSources,
   type SessionCharacter,
   type Token,
+  WORLD_UNITS_PER_CELL,
 } from '../../../shared/protocol';
 import { conditionLabels, timedEffectLabels, tokenConditions } from '../canvas/conditions';
 import type { FogTool, FogViewer } from '../canvas/fog-render';
@@ -41,6 +43,7 @@ import { METERS_PER_FOOT, TILE_SIZE_METERS } from '../canvas3d/terrain/constants
 import { TerrainGrid } from '../canvas3d/terrain/terrainGrid';
 import { sendIntent } from '../store/table';
 import { FogHudControls } from './FogHudControls';
+import { LightingHudControls } from './LightingHudControls';
 import type { MapViewerMode } from './MapView';
 import { RulerOptionsBar } from './RulerControls';
 
@@ -59,6 +62,7 @@ interface Props {
   map: GameMap;
   maxima: Record<string, number>;
   visionProfiles?: Readonly<Record<string, VisionProfile>>;
+  bakedPropLights?: readonly ExtractedPropLight[];
   selectedId: string | null;
   fogTool: FogTool;
   onFogTool: (tool: FogTool) => void;
@@ -122,7 +126,7 @@ function load2dBackgroundImage(sha256: string): Promise<HTMLImageElement> {
   });
 }
 
-export function Map3DView({ view, map, maxima, visionProfiles, selectedId, fogTool, onFogTool, onSelect, onStage, isGm, onViewerModeChange, onEditMap }: Props) {
+export function Map3DView({ view, map, maxima, visionProfiles, bakedPropLights = [], selectedId, fogTool, onFogTool, onSelect, onStage, isGm, onViewerModeChange, onEditMap }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<ActiveViewer | null>(null);
   const [viewer, setViewer] = useState<ActiveViewer | null>(null);
@@ -133,6 +137,8 @@ export function Map3DView({ view, map, maxima, visionProfiles, selectedId, fogTo
   const [rulerActive, setRulerActive] = useState(false);
   const [rulerOptions, setRulerOptions] = useState<RulerOptions>({ ...DEFAULT_RULER_OPTIONS });
   const [fogHudOpen, setFogHudOpen] = useState(false);
+  const [lightingHudOpen, setLightingHudOpen] = useState(false);
+  const [cameraCenterCell, setCameraCenterCell] = useState<{ x: number; y: number } | undefined>(undefined);
   const [previewTokenVision, setPreviewTokenVision] = useState(true);
 
   const latest = useRef({ onSelect, onStage });
@@ -722,12 +728,37 @@ export function Map3DView({ view, map, maxima, visionProfiles, selectedId, fogTo
               if (next) {
                 onFogTool('none');
                 setFogHudOpen(false);
+                setLightingHudOpen(false);
               }
               return next;
             });
           }}
         >
           Régua
+        </button>
+        <button
+          type="button"
+          className={lightingHudOpen ? 'active' : ''}
+          aria-pressed={lightingHudOpen}
+          title="Iluminação do mapa, tochas, lanternas e magias de luz/escuridão"
+          onClick={() => {
+            setLightingHudOpen((prev) => {
+              const next = !prev;
+              if (next) {
+                const v = viewerRef.current;
+                if (v) {
+                  const pt = cameraTargetToWorld2d(v.scene.orbit.target.x, v.scene.orbit.target.z);
+                  setCameraCenterCell({ x: pt.x / WORLD_UNITS_PER_CELL, y: pt.y / WORLD_UNITS_PER_CELL });
+                }
+                setRulerActive(false);
+                onFogTool('none');
+                setFogHudOpen(false);
+              }
+              return next;
+            });
+          }}
+        >
+          Luz
         </button>
         {isGm && (
           <button
@@ -741,6 +772,7 @@ export function Map3DView({ view, map, maxima, visionProfiles, selectedId, fogTo
                 onFogTool('none');
               } else {
                 setRulerActive(false);
+                setLightingHudOpen(false);
                 setFogHudOpen(true);
               }
             }}
@@ -767,6 +799,19 @@ export function Map3DView({ view, map, maxima, visionProfiles, selectedId, fogTo
         )}
       </div>
       {rulerActive && <RulerOptionsBar options={rulerOptions} onChange={setRulerOptions} />}
+      {lightingHudOpen && (
+        <LightingHudControls
+          map={map}
+          isGm={isGm}
+          playerId={info.playerId}
+          selectedToken={selectedToken}
+          tokens={Object.values(state.tokens)}
+          characters={state.characters}
+          bakedPropLights={bakedPropLights}
+          {...(cameraCenterCell ? { viewCenterCell: cameraCenterCell } : {})}
+          onError={setError}
+        />
+      )}
       {showFogHud && (
         <FogHudControls
           map={map}
