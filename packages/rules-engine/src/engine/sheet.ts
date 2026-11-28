@@ -24,6 +24,7 @@ import { resolveFeatureUses } from './feature-uses';
 import { itemUse, itemUseOptions } from './item-use';
 import { type MagicPart, resolveInventory } from './items';
 import { isWeaponProficient } from './proficiency';
+import { deriveVisionProfile } from './vision';
 import {
   abilityModifier,
   casterLevelContribution,
@@ -970,6 +971,10 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
   const keepConcentration = [...new Set(effectsOf('keep_concentration').map(({ effect }) => effect.spellId))];
 
   const errors = issues.filter((i) => i.severity === 'error');
+  const vision = deriveVisionProfile(
+    all.filter((e) => applies(e.effect) === true).map((e) => e.effect),
+    currentConditions,
+  );
   return {
     complete: build.pending.length === 0 && errors.length === 0,
     pending: build.pending,
@@ -999,6 +1004,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     skills,
     checks,
     senses: [...senseMap.values()],
+    vision,
     defenses,
     attacksAgainst: effectsOf('attacks_against').map((e) => ({
       mode: e.effect.mode,

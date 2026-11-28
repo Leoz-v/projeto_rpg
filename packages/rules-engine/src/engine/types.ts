@@ -5,6 +5,7 @@ import type { Predicate } from '../schemas/predicate';
 import type { ChoiceOptions, Feature } from '../schemas/source';
 import type { SourceKindSchema } from '../schemas/character';
 import type { ResourceRecharge, SpellUsesSchema, TriggerMoment } from '../schemas/effect';
+import type { VisionProfile } from './vision';
 import type { z } from 'zod';
 
 /** De onde veio um valor: fonte de construção, item, ajuste do mestre ou regra do motor. */
@@ -310,6 +311,7 @@ export interface DerivedSheet {
   /** Testes de atributo sem perícia. */
   checks: Record<Ability, RollStat>;
   senses: { sense: Sense; range: number; source: SourceLabel }[];
+  vision: VisionProfile;
   defenses: Defenses;
   attacksAgainst: AttacksAgainst[];
   proficiencies: {

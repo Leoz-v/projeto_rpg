@@ -14,7 +14,8 @@
     "./spell-slots": "./src/engine/spell-slots.ts",
     "./resources": "./src/engine/resources.ts",
     "./monster-uses": "./src/engine/monster-uses.ts",
-    "./multiattack": "./src/engine/multiattack.ts"
+    "./multiattack": "./src/engine/multiattack.ts",
+    "./vision": "./src/engine/vision.ts"
   },
   "scripts": {
     "test": "vitest run",

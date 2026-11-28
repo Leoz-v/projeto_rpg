@@ -199,7 +199,9 @@ export function describeEffect(effect: Effect): string {
       if (effect.category === 'save') return `Proficiência na salvaguarda de ${ABILITY_LABEL[effect.id].long}${when}`;
       return `Proficiência: ${humanizeId(effect.id)}${when}`;
     case 'grant_sense':
-      return `${SENSE_LABEL[effect.sense]} ${effect.range} ft${when}`;
+      return `${SENSE_LABEL[effect.sense]} ${effect.range} ft${effect.magicalDarkness ? ' (enxerga em escuridão mágica)' : ''}${when}`;
+    case 'vision_range':
+      return `${effect.mode === 'cap' ? 'Limite de visão normal' : 'Visão normal'}: ${effect.range === 'unlimited' ? 'ilimitada' : `${effect.range} ft`}${when}`;
     case 'ability_increase':
       return `${ABILITY_LABEL[effect.ability].long} +${effect.value} (máx. ${effect.max})${when}`;
     case 'condition':

@@ -151,9 +151,14 @@ Fórmula base de Classe de Armadura.
 { "type": "grant_sense", "sense": "darkvision", "range": 60, "extend": true }
 ```
 
+```json
+{ "type": "grant_sense", "sense": "darkvision", "range": 120, "magicalDarkness": true }
+```
+
 - `sense`: `darkvision`, `blindsight`, `tremorsense`, `truesight`. `range` em pés.
 - Vale o maior `range` de cada sentido (não se acumulam).
 - `extend: true` ("se você já tem Darkvision, o alcance aumenta em 60 ft", Goggles of Night): soma `range` ao alcance que as outras fontes dão; sem outra fonte, concede `range`. Vários `extend` se somam.
+- `magicalDarkness: true` (só quando `sense === "darkvision"`): permite enxergar normalmente na escuridão mágica até o alcance concedido (ex.: *Devil's Sight* do Bruxo). Não se soma a Darkvision comum: o perfil de visão mantém `magicalDarknessVisionFeet` separado de `darkvisionFeet`.
 
 ### 3.8 `set_minimum_score`
 
@@ -470,6 +475,21 @@ Característica que o jogador usa na mesa (nota 0078). A ficha a lista em `featu
 
 Acrescenta uma parte a uma característica de outra fonte: `{ "type": "feature_use_part", "use": "lay_on_hands", "part": { … } }` (Restoring Touch, Mindless Rage).
 
+### 3.32 `vision_range`
+
+Configura o alcance de visão normal em áreas iluminadas para a ficha (`VisionProfile.normalRangeFeet`, nota 0061).
+
+```json
+{ "type": "vision_range", "range": 120 }
+{ "type": "vision_range", "range": "unlimited" }
+{ "type": "vision_range", "range": 30, "mode": "cap" }
+```
+
+- `range`: inteiro não negativo múltiplo de `5` (em pés) ou `"unlimited"`. Sem nenhum efeito `vision_range`, a visão normal em áreas iluminadas é `"unlimited"` (`null` no perfil derivado).
+- `mode`: `"set"` (padrão) ou `"cap"`.
+  - Entre vários `"set"`, vale o maior alcance (`"unlimited"` supera qualquer valor finito).
+  - Entre vários `"cap"`, vale o menor limite finito, que limita o alcance base resolvido (útil para maldições, clima ou restrições da mesa).
+
 ### Efeitos numa arma
 
 Um ajuste com `weapon` (o `instanceId` do inventário) vale como se os efeitos fossem do próprio item (nota 0063): `attack.weapon` e `damage.weapon` (Magic Weapon), `base_override` e os efeitos com `scope: "weapon"`.
@@ -485,7 +505,7 @@ Um token de monstro guarda os efeitos de magia em `spellEffects` (nota 0062). O 
 3. Modificadores, bônus de proficiência (pelo nível de personagem, mais `flat_bonus` em `proficiency_bonus`) e proficiências (`grant_proficiency`).
 4. `set_base_ac` (maior fórmula) + `flat_bonus` em `ac`, e por fim `minimum_ac`.
 5. Demais `flat_bonus`, `half_proficiency`, deslocamentos (`grant_speed`), sentidos, resistências e imunidades.
-6. Condições (incluindo exaustão) por último.
+6. Condições (incluindo exaustão) por último, e derivação do perfil de visão (`vision`: `blinded` e `unconscious` zeram sentidos baseados em visão, preservando `blindsight` e `tremorsense`).
 
 Cada número da ficha guarda a lista de contribuições com a fonte de cada uma, para a UI mostrar a conta completa.
 

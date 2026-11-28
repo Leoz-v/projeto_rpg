@@ -156,12 +156,27 @@ const GrantSpellSchema = z.strictObject({
 
 // --- grant_sense (3.7) ------------------------------------------------------
 
-const GrantSenseSchema = z.strictObject({
-  type: z.literal('grant_sense'),
-  sense: SenseSchema,
-  range: FeetSchema.positive(),
-  /** Soma ao alcance dado por outras fontes (ou concede, se não houver). */
-  extend: z.literal(true).optional(),
+const GrantSenseSchema = z
+  .strictObject({
+    type: z.literal('grant_sense'),
+    sense: SenseSchema,
+    range: FeetSchema.positive(),
+    /** Soma ao alcance dado por outras fontes (ou concede, se não houver). */
+    extend: z.literal(true).optional(),
+    /** Enxerga normalmente na escuridão mágica até o alcance concedido (só `darkvision`). */
+    magicalDarkness: z.literal(true).optional(),
+    ...common,
+  })
+  .refine((e) => e.magicalDarkness === undefined || e.sense === 'darkvision', {
+    message: 'magicalDarkness só vale para darkvision',
+  });
+
+// --- vision_range (3.32) ----------------------------------------------------
+
+const VisionRangeSchema = z.strictObject({
+  type: z.literal('vision_range'),
+  range: z.union([FeetSchema, z.literal('unlimited')]),
+  mode: z.enum(['set', 'cap']).optional(),
   ...common,
 });
 
@@ -485,6 +500,7 @@ export const BaseEffectSchema = z.discriminatedUnion('type', [
   TurnStartHealSchema,
   KeepConcentrationSchema,
   ResourceSchema,
+  VisionRangeSchema,
 ]);
 export type BaseEffect = z.infer<typeof BaseEffectSchema>;
 

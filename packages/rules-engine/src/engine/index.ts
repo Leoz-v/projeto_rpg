@@ -90,3 +90,27 @@ export { availableMonsterUses, LEGENDARY_ACTIONS_ID, LEGENDARY_RESISTANCE_ID, ty
 export { multiattackFits, type MultiattackSlot, multiattackSlots } from './multiattack';
 export { type MonsterSpell, monsterSpells } from './monster-spells';
 export { CONDITION_NAME, DAMAGE_NAME } from './names';
+export {
+  ambientLightLevel,
+  classifyPerception,
+  creatureVisionProfile,
+  type DarknessContribution,
+  DEFAULT_VISION_PROFILE,
+  deriveVisionProfile,
+  type IlluminationContribution,
+  isPerceived,
+  type LightContribution,
+  type LightLevel,
+  type LightPreset,
+  lightPresetForItem,
+  lightPresetForSpell,
+  type MapEnvironment,
+  maxVisionRangeFeet,
+  type PerceptionInput,
+  type PerceptionKind,
+  resolveEffectiveLight,
+  SRD_LIGHT_GEAR_PRESETS,
+  SRD_LIGHT_SPELL_PRESETS,
+  type TimeOfDay,
+  type VisionProfile,
+} from './vision';
