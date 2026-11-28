@@ -132,7 +132,7 @@ export type HostMessage =
   | z.infer<typeof PingSchema>
   | z.infer<typeof PongSchema>
   | z.infer<typeof ErrorMessageSchema>;
-export const HostMessageSchema: z.ZodType<HostMessage, unknown> = z.discriminatedUnion('type', [
+export const HostMessageSchema: z.ZodType<HostMessage> = z.discriminatedUnion('type', [
   HandshakeAcceptSchema,
   HandshakeRejectSchema,
   IntentResultSchema,
