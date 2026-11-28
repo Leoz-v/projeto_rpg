@@ -3,6 +3,7 @@ import type { DerivedSheet, Stat } from 'rules-engine';
 import { currentHitPoints } from 'rules-engine/hit-points';
 import { ABILITIES, SKILLS } from 'rules-engine/schemas';
 import type { CharacterSheetView, TableView } from '../../../shared/ipc';
+import type { SessionAdjustment } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
 import { AbilityScoresEditor } from './AbilityScoresEditor';
 import { Adjustments } from './Adjustments';
@@ -11,6 +12,7 @@ import { combatantOptions } from '../canvas/conditions';
 import { ConditionsControl } from './Conditions';
 import { FeatureUses } from './FeatureUses';
 import { HitPointsControl, HitPointsSummary } from './HitPoints';
+import { formatVisionSummary } from './lighting-hud-helpers';
 import { SaveEffectForm } from './SaveEffect';
 import { choiceRiders, type Roller, RollToolbar, RollButton, useRoller } from './SheetRolls';
 import { DeathSavesPanel } from './DeathSaves';
@@ -262,11 +264,136 @@ function TagList({ title, items }: { title: string; items: string[] }) {
   );
 }
 
-function Traits({ sheet, names, onSelect }: { sheet: DerivedSheet; names: Record<string, string>; onSelect: (d: Detail) => void }) {
+const VISION_ADJUSTMENT_NAME = 'Alcance de visão';
+
+function VisionSection({
+  characterId,
+  sheet,
+  adjustments,
+  isGm,
+}: {
+  characterId: string;
+  sheet: DerivedSheet;
+  adjustments: readonly SessionAdjustment[];
+  isGm: boolean;
+}) {
+  const lines = formatVisionSummary(sheet.vision);
+  const currentNormal = sheet.vision.normalRangeFeet;
+  const [rangeDraft, setRangeDraft] = useState(currentNormal !== null ? String(currentNormal) : '60');
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const applyNormalRange = async (range: 'unlimited' | number): Promise<void> => {
+    setBusy(true);
+    setError(null);
+    try {
+      const existing = adjustments.filter((a) => a.name === VISION_ADJUSTMENT_NAME);
+      for (const adj of existing) {
+        const rmErr = await sendIntent({ kind: 'adjustment.remove', data: { characterId, adjustmentId: adj.id } });
+        if (rmErr) {
+          setError(rmErr);
+          return;
+        }
+      }
+      if (range !== 'unlimited') {
+        const addErr = await sendIntent({
+          kind: 'adjustment.add',
+          data: {
+            characterId,
+            name: VISION_ADJUSTMENT_NAME,
+            effects: [{ type: 'vision_range', mode: 'set', range }],
+          },
+        });
+        if (addErr) setError(addErr);
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="tag-list vision-section">
+      <h3>Visão</h3>
+      <ul className="vision-summary">
+        {lines.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
+      {isGm && (
+        <div className="vision-config-row">
+          <span className="hint">Alcance normal:</span>
+          <button
+            type="button"
+            className={`secondary small${currentNormal === null ? ' active' : ''}`}
+            disabled={busy}
+            onClick={() => void applyNormalRange('unlimited')}
+          >
+            Ilimitado
+          </button>
+          {[30, 60, 120].map((ft) => (
+            <button
+              key={ft}
+              type="button"
+              className={`secondary small${currentNormal === ft ? ' active' : ''}`}
+              disabled={busy}
+              onClick={() => {
+                setRangeDraft(String(ft));
+                void applyNormalRange(ft);
+              }}
+            >
+              {ft} ft
+            </button>
+          ))}
+          <input
+            type="number"
+            min={0}
+            max={1000}
+            step={5}
+            aria-label="Alcance normal personalizado em pés"
+            value={rangeDraft}
+            disabled={busy}
+            onChange={(e) => {
+              setRangeDraft(e.target.value);
+            }}
+          />
+          <button
+            type="button"
+            className="secondary small"
+            disabled={busy}
+            onClick={() => {
+              const parsed = Math.max(0, Math.min(1000, Math.round(Number(rangeDraft))));
+              if (Number.isFinite(parsed)) void applyNormalRange(parsed);
+            }}
+          >
+            Aplicar
+          </button>
+        </div>
+      )}
+      {error && <p className="error">{error}</p>}
+    </div>
+  );
+}
+
+function Traits({
+  characterId,
+  sheet,
+  adjustments,
+  isGm,
+  names,
+  onSelect,
+}: {
+  characterId: string;
+  sheet: DerivedSheet;
+  adjustments: readonly SessionAdjustment[];
+  isGm: boolean;
+  names: Record<string, string>;
+  onSelect: (d: Detail) => void;
+}) {
   const { defenses, proficiencies } = sheet;
   const expertiseTools = new Set(proficiencies.tools.filter((t) => t.level === 'expertise').map((t) => t.id));
   return (
     <section aria-label="Defesas, sentidos e treinamentos" className="traits">
+      <VisionSection characterId={characterId} sheet={sheet} adjustments={adjustments} isGm={isGm} />
       <TagList title="Sentidos" items={sheet.senses.map((s) => `${SENSE_LABEL[s.sense]} ${s.range} ft`)} />
       <TagList title="Resistências" items={defenses.resistances.map((r) => DAMAGE_LABEL[r.damageType])} />
       <TagList title="Imunidades" items={[...defenses.damageImmunities.map((r) => DAMAGE_LABEL[r.damageType]), ...defenses.conditionImmunities.map((c) => CONDITION_LABEL[c.condition])]} />
@@ -602,7 +729,7 @@ export function CharacterSheet({ view, characterId, onClose }: { view: TableView
                       slots={<SpellSlotsControl character={record} spellcasting={load.view.sheet.spellcasting} canEdit={canEdit} />}
                       cast={canEdit ? <CastSpellForm character={record} sheet={load.view.sheet} names={load.view.names} /> : null}
                     />
-                    <Traits sheet={load.view.sheet} names={load.view.names} onSelect={setDetail} />
+                    <Traits characterId={record.id} sheet={load.view.sheet} adjustments={record.adjustments} isGm={isGm} names={load.view.names} onSelect={setDetail} />
                   </div>
                 </div>
                 {canEdit && view.state.activeMapId !== null && (
