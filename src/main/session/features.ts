@@ -1,8 +1,9 @@
-import { availableUses, featureEnded, isPoolUse, poolConditions, type ResolvedFeaturePart, type SheetFeatureUse, type TurnExpiry, wearsHeavyArmor } from 'rules-engine';
+import { applyDamage, availableUses, damageNotes, featureEnded, rollActionDamage, isPoolUse, poolConditions, type ResolvedFeaturePart, type SheetFeatureUse, type TurnExpiry, wearsHeavyArmor } from 'rules-engine';
 import { type IntentData, MAX_ADJUSTMENTS, type PatchOp, type Role, type SessionCharacter, type SessionState, type Token, toPointer } from '../../shared/protocol';
 import { untilNextTurn } from './conditions';
 import { type SessionContext, violation } from './context';
-import { selfTarget } from './items';
+import { applyItemFailure, selfTarget } from './items';
+import { creatureTypeOf, rollSaves, targetOf } from './attacks';
 import { changeResource } from './resources';
 import { applyConditionPart, applyHealing, ConditionLedger, liftConditions } from './spell-effects';
 import { endConcentration } from './vitality';
@@ -18,7 +19,11 @@ interface Using {
   character: SessionCharacter;
   use: SheetFeatureUse;
   data: IntentData<'feature.use'>;
+  /** O primeiro alvo (o único, fora de `many`). */
   target: Token;
+  targets: Token[];
+  /** Quem falhou na última salvaguarda (para o `fail_damage`). */
+  failed: Token[];
 }
 
 /** Até o fim (ou o início) do próximo turno de quem usou, com ele no combate. */
@@ -41,7 +46,24 @@ export function useFeature(ctx: SessionContext, playerId: string, role: Role, da
   if (character.deathSaves.dead) throw violation(`${character.name} está morto`);
   if (use.forbidHeavyArmor && wearsHeavyArmor(character.inventory, (id) => ctx.deps.item(id))) throw violation(`${use.name}: não com armadura pesada`);
   if (use.targets === 'self' && data.targetTokenId !== undefined) throw violation(`${use.name} só age em quem usa`);
-  const target = data.targetTokenId !== undefined ? ctx.token(data.targetTokenId) : selfTarget(ctx, character).token;
+  let targets: Token[];
+  if (use.targets === 'many') {
+    // Vários alvos, escolhidos no mapa (a área fica com quem usa; nota 0082).
+    if (data.targetTokenId !== undefined) throw violation(`${use.name}: escolha os alvos na lista`);
+    const ids = data.targetTokenIds ?? [];
+    if (ids.length === 0) throw violation(`${use.name}: escolha os alvos`);
+    if (new Set(ids).size !== ids.length) throw violation('Alvo repetido');
+    if (use.maxTargets !== undefined && ids.length > use.maxTargets) throw violation(`${use.name}: no máximo ${use.maxTargets} alvo(s)`);
+    targets = ids.map((id) => ctx.token(id));
+  } else {
+    if (data.targetTokenIds !== undefined) throw violation(`${use.name} tem um alvo só`);
+    targets = [data.targetTokenId !== undefined ? ctx.token(data.targetTokenId) : selfTarget(ctx, character).token];
+  }
+  const [target] = targets;
+  if (!target) throw violation(`${use.name}: escolha os alvos`);
+  const choices = use.parts.flatMap((p) => (p.kind === 'save' && Array.isArray(p.damage?.type) ? p.damage.type : []));
+  if (data.damageType !== undefined && !choices.includes(data.damageType)) throw violation(`${use.name} não deixa escolher esse tipo de dano`);
+  if (choices.length > 0 && data.damageType === undefined) throw violation(`${use.name}: escolha o tipo de dano`);
 
   // O custo: fixo, ou o que se tirou da reserva.
   let amount = use.cost?.amount ?? 0;
@@ -63,7 +85,7 @@ export function useFeature(ctx: SessionContext, playerId: string, role: Role, da
     if (resource) notes.push(`${resource.name}: ${availableUses(resource.max, character.resourcesSpent, resource.id) - amount}/${resource.max}`);
   }
   const base = ctx.entryBase(playerId);
-  const using: Using = { playerId, character, use, data, target };
+  const using: Using = { playerId, character, use, data, target, targets, failed: [] };
   const partOps = use.parts.flatMap((part, i) => {
     const done = usePart(ctx, using, part, { entryId: base.id, part: i });
     notes.push(...done.notes);
@@ -113,9 +135,72 @@ function usePart(ctx: SessionContext, using: Using, part: ResolvedFeaturePart, s
     }
     case 'inspire':
       return inspire(ctx, using, part.dice);
+    case 'save':
+      return forceSave(ctx, using, part, spellOf);
+    case 'fail_damage':
+      return failDamage(ctx, using, part, spellOf);
     case 'buff':
       return startState(ctx, using, part);
   }
+}
+
+/**
+ * Salvaguarda dos alvos (Breath Weapon, Turn Undead; nota 0082): a regra das
+ * magias e dos itens (`rollSaves`), com o dano como proposta para o mestre e
+ * as condições da falha direto, que podem acabar com dano. Alvos fora de
+ * `onlyTypes` ficam de fora, com nota.
+ */
+function forceSave(ctx: SessionContext, using: Using, part: Extract<ResolvedFeaturePart, { kind: 'save' }>, spellOf: SpellOf): { ops: PatchOp[]; notes: string[] } {
+  const { playerId, character, use, data } = using;
+  const label = use.name.slice(0, 100);
+  const notes: string[] = [];
+  const only = part.onlyTypes;
+  const rolling = only
+    ? using.targets.filter((t) => {
+        const type = creatureTypeOf(ctx, t);
+        if (type !== undefined && only.includes(type)) return true;
+        notes.push(`${t.name}: ${type === undefined ? 'tipo de criatura desconhecido' : 'não é do tipo que a característica afeta'}`);
+        return false;
+      })
+    : using.targets;
+  using.failed = [];
+  if (rolling.length === 0) return { ops: [], notes };
+  const type = Array.isArray(part.damage?.type) ? data.damageType : part.damage?.type;
+  const damage = part.damage && type !== undefined ? [{ dice: part.damage.dice, type }] : [];
+  const item = part.conditions.length > 0 ? { label, conditions: part.conditions, ...(part.endsOnDamage ? { endsOnDamage: spellOf.entryId } : {}) } : undefined;
+  const [first] = part.conditions;
+  const saves = rollSaves(ctx, playerId, {
+    actorName: character.name,
+    effect: { name: label, ability: part.ability, dc: part.dc, damage, onSuccess: part.onSuccess, conditions: part.conditions },
+    against: first !== undefined ? { condition: first } : undefined,
+    targets: rolling,
+    visibility: 'public',
+    spellOf,
+    ...(item ? { pending: { item } } : {}),
+  });
+  using.failed = saves.failed;
+  const ops = [...saves.ops, ...(item && saves.failed.length > 0 ? applyItemFailure(ctx, playerId, item, saves.failed) : [])];
+  return { ops, notes };
+}
+
+/** Dano a mais em quem falhou (Sear Undead): rolado uma vez, com as defesas de cada um, como proposta. */
+function failDamage(ctx: SessionContext, using: Using, part: Extract<ResolvedFeaturePart, { kind: 'fail_damage' }>, spellOf: SpellOf): { ops: PatchOp[]; notes: string[] } {
+  const { playerId, character, use, failed } = using;
+  if (failed.length === 0 || part.dice === '0') return { ops: [], notes: [] };
+  const groups = rollActionDamage([{ dice: part.dice, type: part.type }], false, ctx.deps.rng);
+  const amount = groups.reduce((sum, g) => sum + g.total, 0);
+  const entryId = ctx.deps.newId();
+  const ops: PatchOp[] = [];
+  const results = failed.map((target) => {
+    const applied = applyDamage(targetOf(ctx, target).defenses, [{ amount, type: part.type }], ctx.deps.rng);
+    const proposalId = applied.total > 0 ? ctx.deps.newId() : undefined;
+    if (proposalId !== undefined) ops.push({ op: 'add', path: toPointer('proposals', proposalId), value: { id: proposalId, entryId, targetTokenId: target.id, targetName: target.name, amount: applied.total } });
+    return { targetTokenId: target.id, targetName: target.name, groups, total: applied.total, defenses: damageNotes(applied), ...(proposalId !== undefined ? { proposalId } : {}) };
+  });
+  return {
+    ops: [ctx.appendChat({ kind: 'spell_damage', id: entryId, at: ctx.deps.now(), authorId: playerId, spellOf, casterName: character.name, label: use.name.slice(0, 100), visibility: 'public', results }), ...ops],
+    notes: [],
+  };
 }
 
 /** Bardic Inspiration: o dado fica com outro personagem, um de cada vez (nota 0079). */

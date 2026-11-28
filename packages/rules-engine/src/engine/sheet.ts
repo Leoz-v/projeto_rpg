@@ -985,7 +985,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     featureUses: resolveFeatureUses(
       effectsOf('feature_use').map((e) => ({ effect: e.effect, classId: e.classId, source: namedSource(e) })),
       effectsOf('feature_use_part').map((e) => ({ effect: e.effect, classId: e.classId, source: namedSource(e) })),
-      { bonus: bonusValue, scaleLevel },
+      { bonus: bonusValue, scaleLevel, spellDc: (classId) => casterClasses.find((c) => c.classId === classId)?.saveDc.total },
     ),
     selfInspirations: resolveSelfInspirations(
       effectsOf('self_inspiration').map((e) => ({ effect: e.effect, classId: e.classId, source: namedSource(e) })),

@@ -1,5 +1,5 @@
 import { CONDITION_NAME, nextTurnRound, type TurnExpiry, withoutDependents } from 'rules-engine';
-import { applyPatch, type ChatEntry, type ConditionState, type TableCondition, type Intent, type IntentData, type PatchOp, type Role, type SessionCharacter, MAX_EXHAUSTION_LEVEL, toPointer } from '../../shared/protocol';
+import { applyPatch, type ChatEntry, type ConditionState, type TableCondition, type Intent, type IntentData, type PatchOp, type Role, type SessionCharacter, type Token, MAX_EXHAUSTION_LEVEL, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
 import { endTokenConcentration, tokenConcentrationBreaks } from './monster-concentration';
 import { recordExploredOps } from './fog';
@@ -132,3 +132,41 @@ export function untilNextTurn(ctx: SessionContext, at: TurnExpiry['at'], tokenId
   if (index < 0) throw violation('A duração precisa de um combatente do combate');
   return { at, tokenId, round: nextTurnRound(combat, index) };
 }
+
+/**
+ * O alvo sofreu dano: saem as condições que acabam com dano (Turn Undead,
+ * Abjure Foes; nota 0082), menos as do uso que causou este dano (`root`, o
+ * Sear Undead do mesmo Turn Undead). `prior`: as operações da mesma mudança,
+ * para partir das condições já mudadas (Inconsciente ao cair a 0 PV).
+ */
+export function damageEndsConditions(ctx: SessionContext, playerId: string, token: Token | undefined, characterId: string | undefined, root: string | undefined, prior: readonly PatchOp[]): PatchOp[] {
+  const character = characterId !== undefined ? ctx.current.characters[characterId] : token?.characterId != null ? ctx.current.characters[token.characterId] : undefined;
+  let path: string;
+  let state: ConditionState;
+  let name: string;
+  let logTarget: { characterId: string } | { tokenId: string };
+  if (character) {
+    path = toPointer('characters', character.id, 'conditions');
+    state = character.conditions;
+    name = character.name;
+    logTarget = { characterId: character.id };
+  } else if (token) {
+    path = toPointer('tokens', token.id, 'conditions');
+    state = token.conditions;
+    name = token.name;
+    logTarget = { tokenId: token.id };
+  } else return [];
+  const changed = [...prior].reverse().find((op) => op.op === 'replace' && op.path === path);
+  if (changed && hasValue(changed)) state = changed.value as ConditionState;
+  const ended = state.active.filter((c) => c.endsOnDamage !== undefined && c.endsOnDamage.entryId !== root);
+  if (ended.length === 0) return [];
+  const gone = new Set(ended.map((c) => c.condition));
+  const kept = state.active.filter((c) => !gone.has(c.condition) && !(c.with !== undefined && gone.has(c.with)));
+  const removed = state.active.filter((c) => !kept.includes(c));
+  return [
+    { op: 'replace', path, value: { ...state, active: kept } },
+    ...removed.map((c) => ctx.appendChat({ kind: 'condition_changed', ...ctx.entryBase(playerId), target: logTarget, targetName: name, change: { kind: 'removed', condition: c.condition }, notes: ['Sofreu dano'] })),
+  ];
+}
+
+const hasValue = (op: PatchOp): op is Extract<PatchOp, { value: unknown }> => 'value' in op;

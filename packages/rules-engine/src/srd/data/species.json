@@ -44,6 +44,57 @@
                         "type": "resistance",
                         "damageType": "acid"
                       }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "feature_use",
+                        "id": "breath_weapon",
+                        "name": "Breath Weapon",
+                        "action": "No lugar de um ataque",
+                        "cost": {
+                          "resource": "breath_weapon"
+                        },
+                        "targets": "many",
+                        "note": "Cone de 15 ft ou Linha de 30 ft × 5 ft",
+                        "parts": [
+                          {
+                            "kind": "save",
+                            "ability": "dex",
+                            "dc": {
+                              "ability": "con"
+                            },
+                            "damage": {
+                              "dice": {
+                                "byLevel": [
+                                  "1d10",
+                                  "1d10",
+                                  "1d10",
+                                  "1d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "4d10",
+                                  "4d10",
+                                  "4d10",
+                                  "4d10"
+                                ]
+                              },
+                              "type": "acid"
+                            },
+                            "onSuccess": "half"
+                          }
+                        ]
+                      }
                     }
                   ]
                 },
@@ -57,6 +108,57 @@
                       "effect": {
                         "type": "resistance",
                         "damageType": "lightning"
+                      }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "feature_use",
+                        "id": "breath_weapon",
+                        "name": "Breath Weapon",
+                        "action": "No lugar de um ataque",
+                        "cost": {
+                          "resource": "breath_weapon"
+                        },
+                        "targets": "many",
+                        "note": "Cone de 15 ft ou Linha de 30 ft × 5 ft",
+                        "parts": [
+                          {
+                            "kind": "save",
+                            "ability": "dex",
+                            "dc": {
+                              "ability": "con"
+                            },
+                            "damage": {
+                              "dice": {
+                                "byLevel": [
+                                  "1d10",
+                                  "1d10",
+                                  "1d10",
+                                  "1d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "4d10",
+                                  "4d10",
+                                  "4d10",
+                                  "4d10"
+                                ]
+                              },
+                              "type": "lightning"
+                            },
+                            "onSuccess": "half"
+                          }
+                        ]
                       }
                     }
                   ]
@@ -72,6 +174,57 @@
                         "type": "resistance",
                         "damageType": "fire"
                       }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "feature_use",
+                        "id": "breath_weapon",
+                        "name": "Breath Weapon",
+                        "action": "No lugar de um ataque",
+                        "cost": {
+                          "resource": "breath_weapon"
+                        },
+                        "targets": "many",
+                        "note": "Cone de 15 ft ou Linha de 30 ft × 5 ft",
+                        "parts": [
+                          {
+                            "kind": "save",
+                            "ability": "dex",
+                            "dc": {
+                              "ability": "con"
+                            },
+                            "damage": {
+                              "dice": {
+                                "byLevel": [
+                                  "1d10",
+                                  "1d10",
+                                  "1d10",
+                                  "1d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "4d10",
+                                  "4d10",
+                                  "4d10",
+                                  "4d10"
+                                ]
+                              },
+                              "type": "fire"
+                            },
+                            "onSuccess": "half"
+                          }
+                        ]
+                      }
                     }
                   ]
                 },
@@ -85,6 +238,57 @@
                       "effect": {
                         "type": "resistance",
                         "damageType": "lightning"
+                      }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "feature_use",
+                        "id": "breath_weapon",
+                        "name": "Breath Weapon",
+                        "action": "No lugar de um ataque",
+                        "cost": {
+                          "resource": "breath_weapon"
+                        },
+                        "targets": "many",
+                        "note": "Cone de 15 ft ou Linha de 30 ft × 5 ft",
+                        "parts": [
+                          {
+                            "kind": "save",
+                            "ability": "dex",
+                            "dc": {
+                              "ability": "con"
+                            },
+                            "damage": {
+                              "dice": {
+                                "byLevel": [
+                                  "1d10",
+                                  "1d10",
+                                  "1d10",
+                                  "1d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "4d10",
+                                  "4d10",
+                                  "4d10",
+                                  "4d10"
+                                ]
+                              },
+                              "type": "lightning"
+                            },
+                            "onSuccess": "half"
+                          }
+                        ]
                       }
                     }
                   ]
@@ -100,6 +304,57 @@
                         "type": "resistance",
                         "damageType": "acid"
                       }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "feature_use",
+                        "id": "breath_weapon",
+                        "name": "Breath Weapon",
+                        "action": "No lugar de um ataque",
+                        "cost": {
+                          "resource": "breath_weapon"
+                        },
+                        "targets": "many",
+                        "note": "Cone de 15 ft ou Linha de 30 ft × 5 ft",
+                        "parts": [
+                          {
+                            "kind": "save",
+                            "ability": "dex",
+                            "dc": {
+                              "ability": "con"
+                            },
+                            "damage": {
+                              "dice": {
+                                "byLevel": [
+                                  "1d10",
+                                  "1d10",
+                                  "1d10",
+                                  "1d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "4d10",
+                                  "4d10",
+                                  "4d10",
+                                  "4d10"
+                                ]
+                              },
+                              "type": "acid"
+                            },
+                            "onSuccess": "half"
+                          }
+                        ]
+                      }
                     }
                   ]
                 },
@@ -113,6 +368,57 @@
                       "effect": {
                         "type": "resistance",
                         "damageType": "fire"
+                      }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "feature_use",
+                        "id": "breath_weapon",
+                        "name": "Breath Weapon",
+                        "action": "No lugar de um ataque",
+                        "cost": {
+                          "resource": "breath_weapon"
+                        },
+                        "targets": "many",
+                        "note": "Cone de 15 ft ou Linha de 30 ft × 5 ft",
+                        "parts": [
+                          {
+                            "kind": "save",
+                            "ability": "dex",
+                            "dc": {
+                              "ability": "con"
+                            },
+                            "damage": {
+                              "dice": {
+                                "byLevel": [
+                                  "1d10",
+                                  "1d10",
+                                  "1d10",
+                                  "1d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "4d10",
+                                  "4d10",
+                                  "4d10",
+                                  "4d10"
+                                ]
+                              },
+                              "type": "fire"
+                            },
+                            "onSuccess": "half"
+                          }
+                        ]
                       }
                     }
                   ]
@@ -128,6 +434,57 @@
                         "type": "resistance",
                         "damageType": "poison"
                       }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "feature_use",
+                        "id": "breath_weapon",
+                        "name": "Breath Weapon",
+                        "action": "No lugar de um ataque",
+                        "cost": {
+                          "resource": "breath_weapon"
+                        },
+                        "targets": "many",
+                        "note": "Cone de 15 ft ou Linha de 30 ft × 5 ft",
+                        "parts": [
+                          {
+                            "kind": "save",
+                            "ability": "dex",
+                            "dc": {
+                              "ability": "con"
+                            },
+                            "damage": {
+                              "dice": {
+                                "byLevel": [
+                                  "1d10",
+                                  "1d10",
+                                  "1d10",
+                                  "1d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "4d10",
+                                  "4d10",
+                                  "4d10",
+                                  "4d10"
+                                ]
+                              },
+                              "type": "poison"
+                            },
+                            "onSuccess": "half"
+                          }
+                        ]
+                      }
                     }
                   ]
                 },
@@ -141,6 +498,57 @@
                       "effect": {
                         "type": "resistance",
                         "damageType": "fire"
+                      }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "feature_use",
+                        "id": "breath_weapon",
+                        "name": "Breath Weapon",
+                        "action": "No lugar de um ataque",
+                        "cost": {
+                          "resource": "breath_weapon"
+                        },
+                        "targets": "many",
+                        "note": "Cone de 15 ft ou Linha de 30 ft × 5 ft",
+                        "parts": [
+                          {
+                            "kind": "save",
+                            "ability": "dex",
+                            "dc": {
+                              "ability": "con"
+                            },
+                            "damage": {
+                              "dice": {
+                                "byLevel": [
+                                  "1d10",
+                                  "1d10",
+                                  "1d10",
+                                  "1d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "4d10",
+                                  "4d10",
+                                  "4d10",
+                                  "4d10"
+                                ]
+                              },
+                              "type": "fire"
+                            },
+                            "onSuccess": "half"
+                          }
+                        ]
                       }
                     }
                   ]
@@ -156,6 +564,57 @@
                         "type": "resistance",
                         "damageType": "cold"
                       }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "feature_use",
+                        "id": "breath_weapon",
+                        "name": "Breath Weapon",
+                        "action": "No lugar de um ataque",
+                        "cost": {
+                          "resource": "breath_weapon"
+                        },
+                        "targets": "many",
+                        "note": "Cone de 15 ft ou Linha de 30 ft × 5 ft",
+                        "parts": [
+                          {
+                            "kind": "save",
+                            "ability": "dex",
+                            "dc": {
+                              "ability": "con"
+                            },
+                            "damage": {
+                              "dice": {
+                                "byLevel": [
+                                  "1d10",
+                                  "1d10",
+                                  "1d10",
+                                  "1d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "4d10",
+                                  "4d10",
+                                  "4d10",
+                                  "4d10"
+                                ]
+                              },
+                              "type": "cold"
+                            },
+                            "onSuccess": "half"
+                          }
+                        ]
+                      }
                     }
                   ]
                 },
@@ -169,6 +628,57 @@
                       "effect": {
                         "type": "resistance",
                         "damageType": "cold"
+                      }
+                    },
+                    {
+                      "kind": "effect",
+                      "effect": {
+                        "type": "feature_use",
+                        "id": "breath_weapon",
+                        "name": "Breath Weapon",
+                        "action": "No lugar de um ataque",
+                        "cost": {
+                          "resource": "breath_weapon"
+                        },
+                        "targets": "many",
+                        "note": "Cone de 15 ft ou Linha de 30 ft × 5 ft",
+                        "parts": [
+                          {
+                            "kind": "save",
+                            "ability": "dex",
+                            "dc": {
+                              "ability": "con"
+                            },
+                            "damage": {
+                              "dice": {
+                                "byLevel": [
+                                  "1d10",
+                                  "1d10",
+                                  "1d10",
+                                  "1d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "2d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "3d10",
+                                  "4d10",
+                                  "4d10",
+                                  "4d10",
+                                  "4d10"
+                                ]
+                              },
+                              "type": "cold"
+                            },
+                            "onSuccess": "half"
+                          }
+                        ]
                       }
                     }
                   ]

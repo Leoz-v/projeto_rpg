@@ -443,7 +443,40 @@
             "feature": {
               "id": "intimidating_presence",
               "name": "Intimidating Presence",
-              "description": "As a Bonus Action, each creature of your choice in a 30-foot Emanation originating from you must make a Wisdom saving throw (DC 8 plus your Strength modifier and Proficiency Bonus). On a failed save, a creature has the Frightened condition for 1 minute, repeating the save at the end of each of its turns. Once you use this feature, you can't use it again until you finish a Long Rest unless you expend a use of your Rage (no action required) to restore your use of it."
+              "description": "As a Bonus Action, each creature of your choice in a 30-foot Emanation originating from you must make a Wisdom saving throw (DC 8 plus your Strength modifier and Proficiency Bonus). On a failed save, a creature has the Frightened condition for 1 minute, repeating the save at the end of each of its turns. Once you use this feature, you can't use it again until you finish a Long Rest unless you expend a use of your Rage (no action required) to restore your use of it.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "intimidating_presence",
+                  "name": "Intimidating Presence",
+                  "max": 1,
+                  "recharge": "long_rest"
+                },
+                {
+                  "type": "feature_use",
+                  "id": "intimidating_presence",
+                  "name": "Intimidating Presence",
+                  "action": "Ação Bônus",
+                  "cost": {
+                    "resource": "intimidating_presence"
+                  },
+                  "targets": "many",
+                  "duration": "1 minuto",
+                  "note": "Criaturas à sua escolha numa Emanação de 30 ft; repetem a salvaguarda no fim de cada turno delas. Sem uso, gaste um de Rage para recuperar (pela ficha)",
+                  "parts": [
+                    {
+                      "kind": "save",
+                      "ability": "wis",
+                      "dc": {
+                        "ability": "str"
+                      },
+                      "conditions": [
+                        "frightened"
+                      ]
+                    }
+                  ]
+                }
+              ]
             }
           }
         ]

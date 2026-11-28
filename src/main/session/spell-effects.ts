@@ -90,7 +90,7 @@ export function imposeConditions(
   ledger: ConditionLedger,
   target: Token,
   conditions: readonly Condition[],
-  timing: { spell?: SpellLink; until?: TurnExpiry; note?: string; with?: TableCondition },
+  timing: { spell?: SpellLink; until?: TurnExpiry; note?: string; with?: TableCondition; endsOnDamage?: { entryId: string } },
   source: string,
 ): { ops: PatchOp[]; notes: string[] } {
   const holder = ledger.holder(target);
@@ -108,7 +108,7 @@ export function imposeConditions(
       notes.push(`Já estava ${CONDITION_NAME[condition]}`);
       continue;
     }
-    state = { ...state, active: [...state.active, { condition, ...(timing.until ? { until: timing.until } : {}), ...(timing.spell ? { spell: timing.spell } : {}), ...(timing.with ? { with: timing.with } : {}) }] };
+    state = { ...state, active: [...state.active, { condition, ...(timing.until ? { until: timing.until } : {}), ...(timing.spell ? { spell: timing.spell } : {}), ...(timing.with ? { with: timing.with } : {}), ...(timing.endsOnDamage ? { endsOnDamage: timing.endsOnDamage } : {}) }] };
     added.push(condition);
     notes.push(CONDITION_NAME[condition]);
   }

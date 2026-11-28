@@ -75,7 +75,9 @@ Histórico completo do projeto: cada fase, os PRs em que foi dividida, as versõ
    - Bardic Inspiration (PR 4b, em duas partes; ver `docs/decisions/0079-bardic-inspiration.md`):
      - ✅ 4b1 (`inspiration.*`, `attack.resolve`, parte `inspire` e efeito `self_inspiration`, `PROTOCOL_VERSION = 45`, `<campanha>.db` v23, `engine/inspiration.ts`): o dado guardado por quem recebe (um de cada vez, expira no fim de um descanso), somado depois de ver a rolagem da ficha, e o ataque que erra espera o dado; Peerless Skill no mesmo fluxo.
      - ✅ 4b2 (`inspiration.save`, `pendingInspirations`, `PROTOCOL_VERSION = 46`): a falha de salvaguarda (forçada, de Concentração e contra a Morte) de quem tem o dado espera o jogador, como a Resistência Lendária. Ver `docs/decisions/0080-salvaguardas-com-inspiracao.md`.
-   - Características com salvaguarda (Stunning Strike, Breath Weapon, Channel Divinity).
+   - Características com salvaguarda (PR 5, em duas partes; ver `docs/decisions/0082-caracteristicas-com-salvaguarda.md`):
+     - ✅ 5a (partes `save` e `fail_damage`, alvos `many`, `endsOnDamage`, `PROTOCOL_VERSION = 47`): Breath Weapon das 10 ancestralidades, Divine Spark com dano, Turn Undead com Sear Undead, Abjure Foes e Intimidating Presence, com os alvos escolhidos no mapa e as condições que acabam com dano.
+     - 5b: as do acerto (Stunning Strike, Cunning Strike e Devious Strikes, Open Hand Technique, Quivering Palm, Hurl Through Hell, o Caído do Eldritch Smite).
    - Reações e mudanças na rolagem (Uncanny Dodge, Evasion, Indomitable): a redesenhar depois dos outros.
 
 ## Trilhas paralelas

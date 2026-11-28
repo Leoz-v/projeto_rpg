@@ -55,7 +55,7 @@ export function sameCaster(a: SpellLink, b: SpellLink): boolean {
 
 export const ConditionStateSchema = z.strictObject({
   active: z
-    .array(z.strictObject({ condition: TableConditionSchema, until: TurnExpirySchema.optional(), spell: ConditionSpellSchema.optional(), /** Sai junto com esta (Impedido enquanto Agarrado; nota 0065). */ with: TableConditionSchema.optional() }))
+    .array(z.strictObject({ condition: TableConditionSchema, until: TurnExpirySchema.optional(), spell: ConditionSpellSchema.optional(), /** Sai junto com esta (Impedido enquanto Agarrado; nota 0065). */ with: TableConditionSchema.optional(), /** Acaba se o alvo sofrer dano, menos o do uso `entryId` (Turn Undead; nota 0082). */ endsOnDamage: z.strictObject({ entryId: UuidSchema }).optional() }))
     .max(TableConditionSchema.options.length)
     .refine((list) => new Set(list.map((c) => c.condition)).size === list.length, { message: 'condição repetida' }),
   exhaustion: z.int().min(0).max(MAX_EXHAUSTION_LEVEL),

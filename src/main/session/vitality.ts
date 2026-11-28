@@ -1,6 +1,7 @@
 import { applyHitPointChange, clampHitPoints, DEATH_SAVE_DC, inspirationUseless, currentHitPoints, d20StepNotes, type DerivedSheet, effectiveConditions, deathAfterDamage, deathAfterHealing, type DeathSaveState, type HitPointChange, type HitPointResult, resolveDeathSave, concentrationDc, rollD20, sheetD20, withoutDependents } from 'rules-engine';
 import { type ChatEntry, type ConditionState, type IntentData, type PatchOp, type Role, type SessionCharacter, type SessionState, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
+import { damageEndsConditions } from './conditions';
 import { canInspire, pendingInspiration } from './inspiration';
 import { tokenDamaged } from './monster-concentration';
 import { liftSpellConditions } from './spell-effects';
@@ -19,7 +20,8 @@ export function changeHp(ctx: SessionContext, playerId: string, role: Role, data
     const character = ctx.ownCharacter(playerId, role, data.target.characterId);
     const sheet = ctx.deps.characterSheet(character);
     if (!sheet) throw violation('O personagem ainda não tem ficha (defina os atributos)');
-    return changeCharacterHp(ctx, playerId, character, sheet, { kind: change.kind, amount: change.amount }).ops;
+    const ops = changeCharacterHp(ctx, playerId, character, sheet, { kind: change.kind, amount: change.amount }).ops;
+    return change.kind === 'damage' && change.amount > 0 ? [...ops, ...damageEndsConditions(ctx, playerId, undefined, character.id, undefined, ops)] : ops;
   }
   const token = ctx.token(data.target.tokenId);
   if (role !== 'gm' && !token.ownerIds.includes(playerId)) throw notAllowed('Você não controla este token');
@@ -44,6 +46,7 @@ export function changeHp(ctx: SessionContext, playerId: string, role: Role, data
     ops.push({ op: 'replace', path: toPointer('tokens', token.id, 'dead'), value: false });
   }
   if (change.kind === 'damage') ops.push(...tokenDamaged(ctx, playerId, token, hp, Math.trunc(change.amount)));
+  if (change.kind === 'damage' && change.amount > 0) ops.push(...damageEndsConditions(ctx, playerId, token, undefined, undefined, ops));
   return ops;
 }
 

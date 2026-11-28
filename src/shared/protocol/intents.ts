@@ -143,6 +143,10 @@ export const IntentSchema = z.discriminatedUnion('kind', [
       featureId: IdSchema,
       /** Alvo; ausente, quem usa. */
       targetTokenId: UuidSchema.optional(),
+      /** Vários alvos (características de área ou "à sua escolha"; nota 0082). */
+      targetTokenIds: z.array(UuidSchema).min(1).max(MAX_SAVE_TARGETS).optional(),
+      /** Tipo de dano escolhido, quando a característica deixa a escolha (Divine Spark). */
+      damageType: DamageTypeSchema.optional(),
       /** Reserva (Lay On Hands): PV a curar e condições a terminar. */
       amount: z.int().min(0).max(1000).optional(),
       conditions: z.array(TableConditionSchema).max(15).optional(),

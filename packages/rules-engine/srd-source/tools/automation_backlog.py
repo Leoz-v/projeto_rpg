@@ -224,7 +224,6 @@ for it in load("magic-items.json"):
 PARTIAL = {
     "feature:subclass:berserker/mindless_rage#immunity": ("phase_4", "Imunidade a Charmed e Frightened enquanto a Rage dura: as que já havia terminam ao entrar.", None),
     "feature:class:barbarian/reckless_attack#advantage": ("phase_4", "Vantagem nos ataques com Força: declarada por quem ataca.", None),
-    "feature:class:cleric/channel_divinity#effects": ("phase_4", "Divine Spark contra um alvo e Turn Undead: salvaguardas.", None),
     "feature:class:ranger/tireless#exhaustion": ("phase_4", "A Exaustão cai 1 no descanso curto.", None),
     "item:sword_of_wounding#save": ("phase_4", "Salvaguarda de CON ou não recupera PV por 1 hora (resolução com salvaguarda).", None),
     "item:staff_of_withering#save": ("phase_4", "Salvaguarda de CON ou Desvantagem em FOR e CON por 1 hora (resolução com salvaguarda).", None),
@@ -256,7 +255,6 @@ RESOURCE_USES = [
     "feature:class:monk/monks_focus", "feature:class:paladin/channel_divinity",
     "feature:class:rogue/stroke_of_luck", "feature:class:sorcerer/font_of_magic",
     "feature:class:sorcerer/sorcerous_restoration", "feature:class:warlock/magical_cunning", "feature:class:wizard/arcane_recovery",
-    "feature:species:dragonborn/breath_weapon",
     "feature:species:goliath/giant_ancestry_trait",
     "feature:species:orc/relentless_endurance", "feature:subclass:circle_of_the_land/natural_recovery",
     "feature:subclass:fiend_patron/dark_ones_own_luck",

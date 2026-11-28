@@ -855,8 +855,8 @@ export const PendingSaveSchema = z.strictObject({
   impose: z.strictObject({ actorTokenId: UuidSchema, actionId: IdSchema }).optional(),
   /** Efeitos e condições da magia. */
   spell: z.strictObject({ entryId: UuidSchema, part: z.int().min(0).max(MAX_SPELL_PARTS - 1), option: z.int().min(0).optional(), condition: TableConditionSchema.optional() }).optional(),
-  /** Condições de um item usado (nota 0074). */
-  item: z.strictObject({ label: LabelSchema, conditions: z.array(TableConditionSchema).min(1).max(15) }).optional(),
+  /** Condições de um item usado (nota 0074) ou de uma característica (nota 0082), com o uso cujo dano não as encerra. */
+  item: z.strictObject({ label: LabelSchema, conditions: z.array(TableConditionSchema).min(1).max(15), endsOnDamage: UuidSchema.optional() }).optional(),
   /** Concentração que acaba na falha. */
   concentration: IdSchema.optional(),
 });
