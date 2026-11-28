@@ -241,14 +241,15 @@ export function Adjustments({ character, isGm, canEdit = false }: { character: S
             <div>
               <strong>{a.name}</strong>
               {a.spell && <span className="tag">magia</span>}
+              {a.feature && <span className="tag">característica</span>}
               <p className="hint">{a.effects.map(describeEffect).join(' · ')}</p>
             </div>
-            {(isGm || (a.spell !== undefined && canEdit)) && (
+            {(isGm || ((a.spell !== undefined || a.feature !== undefined) && canEdit)) && (
               <button
                 type="button"
                 className="link danger"
                 onClick={() => {
-                  if (!window.confirm(a.spell ? `Encerrar o efeito "${a.name}"?` : `Remover o ajuste "${a.name}"?`)) return;
+                  if (!window.confirm(a.spell || a.feature ? `Encerrar o efeito "${a.name}"?` : `Remover o ajuste "${a.name}"?`)) return;
                   void sendIntent({ kind: 'adjustment.remove', data: { characterId: character.id, adjustmentId: a.id } }).then(setError);
                 }}
               >

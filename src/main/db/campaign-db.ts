@@ -82,6 +82,18 @@ const MIGRATIONS = [
   // Névoa de guerra do mapa (JSON) e alcance de visão próprio do token em pés (nota 0058).
   `ALTER TABLE maps ADD COLUMN fog TEXT;
    ALTER TABLE tokens ADD COLUMN vision_feet INTEGER;`,
+  // Orientação (graus 0..359) e elevação (pés) do token (nota 0061).
+  `ALTER TABLE tokens ADD COLUMN rotation INTEGER NOT NULL DEFAULT 0;
+   ALTER TABLE tokens ADD COLUMN elevation INTEGER NOT NULL DEFAULT 0;`,
+  // Efeitos de magia sobre o token (JSON; nota 0062).
+  `ALTER TABLE tokens ADD COLUMN spell_effects TEXT NOT NULL DEFAULT '[]';`,
+  // Usos limitados do monstro (JSON; nota 0064).
+  `ALTER TABLE tokens ADD COLUMN uses TEXT NOT NULL DEFAULT '{"spent":{},"lair":false}';`,
+  // Concentração do monstro (JSON ou null; nota 0068).
+  `ALTER TABLE tokens ADD COLUMN concentration TEXT NOT NULL DEFAULT 'null';`,
+  // Tokens ocultos pelo mestre e indicação de morto (nota 0070).
+  `ALTER TABLE tokens ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0;
+   ALTER TABLE tokens ADD COLUMN dead INTEGER NOT NULL DEFAULT 0;`,
   // Segmentos de parede, porta, janela e penhasco do mapa em JSON (nota 0061).
   `ALTER TABLE maps ADD COLUMN walls TEXT NOT NULL DEFAULT '[]';`,
   // Iluminação dinâmica: ambiente/horário, fontes em tempo de execução e overrides de tochas 3D (nota 0061).
@@ -116,6 +128,13 @@ const TokenRow = z.object({
   hp: z.string().nullable(),
   conditions: z.string(),
   vision_feet: z.number().nullable(),
+  rotation: z.number(),
+  elevation: z.number(),
+  spell_effects: z.string(),
+  uses: z.string(),
+  concentration: z.string(),
+  hidden: z.number(),
+  dead: z.number(),
 });
 const ChatRow = z.object({ entry: z.string() });
 const CharacterRow = z.object({ id: z.string(), owner_id: z.string(), name: z.string(), build: z.string(), inventory: z.string(), adjustments: z.string(), hp: z.string(), conditions: z.string(), death_saves: z.string(), concentration: z.string(), hit_dice_spent: z.string(), spell_slots_spent: z.string(), resources_spent: z.string() });
@@ -191,7 +210,7 @@ export class CampaignDb {
     );
     const tokens = Object.fromEntries(
       this.db
-        .prepare('SELECT id, map_id, name, x, y, size, monster_id, image, owner_ids, character_id, hp, conditions, vision_feet FROM tokens')
+        .prepare('SELECT id, map_id, name, x, y, size, monster_id, image, owner_ids, character_id, hp, conditions, vision_feet, rotation, elevation, spell_effects, uses, concentration, hidden, dead FROM tokens')
         .all()
         .map((row) => {
           const t = TokenRow.parse(row);
@@ -211,6 +230,13 @@ export class CampaignDb {
               hp: t.hp === null ? null : (JSON.parse(t.hp) as unknown),
               conditions: JSON.parse(t.conditions) as unknown,
               visionFeet: t.vision_feet,
+              rotation: t.rotation,
+              elevation: t.elevation,
+              spellEffects: JSON.parse(t.spell_effects) as unknown,
+              uses: JSON.parse(t.uses) as unknown,
+              concentration: JSON.parse(t.concentration) as unknown,
+              hidden: t.hidden !== 0,
+              dead: t.dead !== 0,
             },
           ];
         }),
@@ -239,7 +265,7 @@ export class CampaignDb {
       .all()
       .map((row): unknown => JSON.parse(ChatRow.parse(row).entry));
 
-    const parsed = SessionStateSchema.safeParse({ campaign: { id: campaign.id, name: campaign.name }, players, chat, maps, activeMapId: campaign.active_map_id, tokens, characters, proposals: {}, combat: campaign.combat === null ? null : (JSON.parse(campaign.combat) as unknown), rest: campaign.rest === null ? null : (JSON.parse(campaign.rest) as unknown) });
+    const parsed = SessionStateSchema.safeParse({ campaign: { id: campaign.id, name: campaign.name }, players, chat, maps, activeMapId: campaign.active_map_id, tokens, characters, proposals: {}, pendingSaves: {}, combat: campaign.combat === null ? null : (JSON.parse(campaign.combat) as unknown), rest: campaign.rest === null ? null : (JSON.parse(campaign.rest) as unknown) });
     if (!parsed.success) throw new CampaignDbError(`Arquivo da campanha inválido: ${parsed.error.issues[0]?.message ?? 'erro desconhecido'}`);
     return parsed.data;
   }
@@ -267,13 +293,13 @@ export class CampaignDb {
       );
       for (const m of Object.values(state.maps)) upsertMap.run(m.id, m.name, m.width, m.height, m.background, m.cellPx, m.scene3d, JSON.stringify(m.fog), JSON.stringify(m.walls), JSON.stringify(m.lighting), JSON.stringify(m.lights), JSON.stringify(m.propLightOverrides));
       const upsertToken = db.prepare(
-        `INSERT INTO tokens (id, map_id, name, x, y, size, monster_id, image, owner_ids, character_id, hp, conditions, vision_feet) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO tokens (id, map_id, name, x, y, size, monster_id, image, owner_ids, character_id, hp, conditions, vision_feet, rotation, elevation, spell_effects, uses, concentration, hidden, dead) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (id) DO UPDATE SET map_id = excluded.map_id, name = excluded.name, x = excluded.x, y = excluded.y, size = excluded.size,
            monster_id = excluded.monster_id, image = excluded.image, owner_ids = excluded.owner_ids, character_id = excluded.character_id, hp = excluded.hp,
-           conditions = excluded.conditions, vision_feet = excluded.vision_feet`,
+           conditions = excluded.conditions, vision_feet = excluded.vision_feet, rotation = excluded.rotation, elevation = excluded.elevation, spell_effects = excluded.spell_effects, uses = excluded.uses, concentration = excluded.concentration, hidden = excluded.hidden, dead = excluded.dead`,
       );
       for (const t of Object.values(state.tokens)) {
-        upsertToken.run(t.id, t.mapId, t.name, t.position.x, t.position.y, t.size, t.monsterId, t.image, JSON.stringify(t.ownerIds), t.characterId, t.hp === null ? null : JSON.stringify(t.hp), JSON.stringify(t.conditions), t.visionFeet);
+        upsertToken.run(t.id, t.mapId, t.name, t.position.x, t.position.y, t.size, t.monsterId, t.image, JSON.stringify(t.ownerIds), t.characterId, t.hp === null ? null : JSON.stringify(t.hp), JSON.stringify(t.conditions), t.visionFeet, t.rotation, t.elevation, JSON.stringify(t.spellEffects), JSON.stringify(t.uses), JSON.stringify(t.concentration), t.hidden ? 1 : 0, t.dead ? 1 : 0);
       }
 
       this.removeMissing('characters', Object.keys(state.characters));

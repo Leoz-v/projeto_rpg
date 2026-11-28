@@ -34,6 +34,7 @@ function setup(sewerDoc?: unknown): HostSession {
     characterSheet: (c) => characterSheet(c, compendium).sheet ?? undefined,
     monsterHpMax: () => undefined,
     creature: () => undefined,
+    item: () => undefined,
     spell: (id) => compendium.spells.find((s) => s.id === id),
     assetExists: (sha) => sha === SEWER_SHA && sewerDoc !== undefined,
     readAsset: (sha) => (sha === SEWER_SHA && sewerDoc !== undefined ? Buffer.from(JSON.stringify(sewerDoc), 'utf8') : undefined),
@@ -156,6 +157,25 @@ describe('HostSession: dynamic lighting, carried lights, spells, and map torch o
     // Ending concentration automatically removes the Darkness zone
     expect(session.handle(ANA.playerId, { kind: 'concentration.end', data: { characterId: charId } }).result.status).toBe('applied');
     expect(session.state.maps[mapId]?.lights.length).toBe(0);
+  });
+
+  it('links lights to a spell cast by a token (monster casters) with token-control permissions', () => {
+    const session = setup();
+    session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Covil', width: 10, height: 10 } });
+    const mapId = Object.keys(session.state.maps)[0] ?? '';
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Familiar', position: { x: 0, y: 0 }, size: 'tiny', ownerIds: [ANA.playerId] } });
+    const tokenId = Object.keys(session.state.tokens)[0] ?? '';
+    const light = (spell: { tokenId: string; spellId: string }): Intent => ({
+      kind: 'light.add',
+      data: { mapId, light: { name: 'Darkness', kind: 'darkness', darknessFeet: 15, spellLevel: 2, attach: { kind: 'point', x: 5, y: 5 }, spell } },
+    });
+
+    expect(session.handle(BRUNO.playerId, light({ tokenId, spellId: 'darkness' })).result.status).toBe('rejected');
+    expect(session.handle(ANA.playerId, light({ tokenId, spellId: 'darkness' })).result.status).toBe('applied');
+    const lightId = session.state.maps[mapId]?.lights[0]?.id ?? '';
+    expect(session.handle(BRUNO.playerId, { kind: 'light.toggle', data: { mapId, lightId } }).result.status).toBe('rejected');
+    expect(session.handle(ANA.playerId, { kind: 'light.toggle', data: { mapId, lightId } }).result.status).toBe('applied');
+    expect(session.state.maps[mapId]?.lights[0]?.spell).toEqual({ tokenId, spellId: 'darkness' });
   });
 
   it('controls existing 3D map torches on the fly without editing scene3d', () => {

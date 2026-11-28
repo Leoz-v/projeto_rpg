@@ -228,6 +228,31 @@
                   "name": "Draconic Flight",
                   "max": 1,
                   "recharge": "long_rest"
+                },
+                {
+                  "type": "feature_use",
+                  "id": "draconic_flight",
+                  "name": "Draconic Flight",
+                  "parts": [
+                    {
+                      "kind": "buff",
+                      "effects": [
+                        {
+                          "type": "grant_speed",
+                          "speed": "fly",
+                          "value": "walk"
+                        }
+                      ],
+                      "endsOn": [
+                        "incapacitated"
+                      ]
+                    }
+                  ],
+                  "action": "Ação Bônus",
+                  "cost": {
+                    "resource": "draconic_flight"
+                  },
+                  "duration": "10 minutos"
                 }
               ]
             }
@@ -317,6 +342,29 @@
                     "proficiency": 1
                   },
                   "recharge": "long_rest"
+                },
+                {
+                  "type": "feature_use",
+                  "id": "stonecunning",
+                  "name": "Stonecunning",
+                  "parts": [
+                    {
+                      "kind": "buff",
+                      "effects": [
+                        {
+                          "type": "grant_sense",
+                          "sense": "tremorsense",
+                          "range": 60,
+                          "note": "Só tocando pedra."
+                        }
+                      ]
+                    }
+                  ],
+                  "action": "Ação Bônus",
+                  "cost": {
+                    "resource": "stonecunning"
+                  },
+                  "duration": "10 minutos"
                 }
               ]
             }
@@ -845,7 +893,20 @@
                       "feature": {
                         "id": "fires_burn",
                         "name": "Fire's Burn (Fire Giant)",
-                        "description": "When you hit a target with an attack roll and deal damage to it, you can also deal 1d10 Fire damage to that target."
+                        "description": "When you hit a target with an attack roll and deal damage to it, you can also deal 1d10 Fire damage to that target.",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "fires_burn",
+                            "name": "Fire's Burn",
+                            "dice": "1d10",
+                            "mode": "choice",
+                            "damageType": "fire",
+                            "cost": {
+                              "resource": "giant_ancestry"
+                            }
+                          }
+                        ]
                       }
                     }
                   ]
@@ -859,7 +920,21 @@
                       "feature": {
                         "id": "frosts_chill",
                         "name": "Frost's Chill (Frost Giant)",
-                        "description": "When you hit a target with an attack roll and deal damage to it, you can also deal 1d6 Cold damage to that target and reduce its Speed by 10 feet until the start of your next turn."
+                        "description": "When you hit a target with an attack roll and deal damage to it, you can also deal 1d6 Cold damage to that target and reduce its Speed by 10 feet until the start of your next turn.",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "frosts_chill",
+                            "name": "Frost's Chill",
+                            "dice": "1d6",
+                            "mode": "choice",
+                            "damageType": "cold",
+                            "cost": {
+                              "resource": "giant_ancestry"
+                            },
+                            "note": "Deslocamento do alvo −10 ft até o início do seu próximo turno."
+                          }
+                        ]
                       }
                     }
                   ]
@@ -955,6 +1030,33 @@
                   "name": "Large Form",
                   "max": 1,
                   "recharge": "long_rest"
+                },
+                {
+                  "type": "feature_use",
+                  "id": "large_form",
+                  "name": "Large Form",
+                  "parts": [
+                    {
+                      "kind": "buff",
+                      "effects": [
+                        {
+                          "type": "advantage",
+                          "target": "check.str"
+                        },
+                        {
+                          "type": "flat_bonus",
+                          "target": "speed.walk",
+                          "value": 10
+                        }
+                      ]
+                    }
+                  ],
+                  "action": "Ação Bônus",
+                  "cost": {
+                    "resource": "large_form"
+                  },
+                  "duration": "10 minutos",
+                  "note": "O tamanho do token não muda sozinho."
                 }
               ]
             }
@@ -1117,6 +1219,26 @@
                     "proficiency": 1
                   },
                   "recharge": "short_rest"
+                },
+                {
+                  "type": "feature_use",
+                  "id": "adrenaline_rush",
+                  "name": "Adrenaline Rush",
+                  "parts": [
+                    {
+                      "kind": "heal",
+                      "bonus": [
+                        {
+                          "proficiency": 1
+                        }
+                      ],
+                      "temporary": true
+                    }
+                  ],
+                  "action": "Ação Bônus (com Disparada)",
+                  "cost": {
+                    "resource": "adrenaline_rush"
+                  }
                 }
               ]
             }

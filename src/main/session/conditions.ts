@@ -1,6 +1,7 @@
-import { conditionDefenses, CONDITION_NAME, creatureDefenses, nextTurnRound, type TurnExpiry } from 'rules-engine';
+import { CONDITION_NAME, nextTurnRound, type TurnExpiry, withoutDependents } from 'rules-engine';
 import { applyPatch, type ChatEntry, type ConditionState, type TableCondition, type Intent, type IntentData, type PatchOp, type Role, type SessionCharacter, MAX_EXHAUSTION_LEVEL, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
+import { endTokenConcentration, tokenConcentrationBreaks } from './monster-concentration';
 import { recordExploredOps } from './fog';
 import { concentrationBreaks, deathStateEntry } from './vitality';
 
@@ -29,8 +30,7 @@ export function conditionHolder(
       character = linked;
     } else {
       if (role !== 'gm' && !token.ownerIds.includes(playerId)) throw notAllowed('Você não controla este token');
-      const creature = token.monsterId !== null ? ctx.deps.creature(token.monsterId) : undefined;
-      const defenses = creature ? conditionDefenses(ctx.conditionsOf(token).conditions, creatureDefenses(creature).defenses) : undefined;
+      const defenses = ctx.creatureOf(token)?.defenses;
       // Do bloco, e as que vêm das condições (Petrificado é imune a Envenenado).
       const immune = new Set<string>(defenses ? defenses.conditionImmunities.map((c) => c.condition) : ctx.conditionsOf(token).conditions.has('petrified') ? ['poisoned'] : []);
       return { path: toPointer('tokens', token.id, 'conditions'), state: token.conditions, name: token.name, immune, logTarget: { tokenId: token.id } };
@@ -39,6 +39,11 @@ export function conditionHolder(
   const sheet = ctx.deps.characterSheet(character);
   const immune = new Set<string>(sheet ? sheet.defenses.conditionImmunities.map((c) => c.condition) : []);
   return { path: toPointer('characters', character.id, 'conditions'), state: character.conditions, name: character.name, immune, logTarget: { characterId: character.id } };
+}
+
+/** Notas das condições que saíram junto com `condition`. */
+function endedTogether(before: ConditionState['active'], after: ConditionState['active'], condition: TableCondition): string[] {
+  return before.filter((c) => c.condition !== condition && !after.some((a) => a.condition === c.condition)).map((c) => `Também acabou: ${CONDITION_NAME[c.condition]}`);
 }
 
 export function changeConditions(ctx: SessionContext, playerId: string, role: Role, intent: Extract<Intent, { kind: 'condition.add' | 'condition.remove' | 'exhaustion.set' }>): PatchOp[] {
@@ -71,7 +76,8 @@ export function changeConditions(ctx: SessionContext, playerId: string, role: Ro
       change = { kind: 'added', condition };
     } else {
       if (!has) throw violation(`${holder.name} não está ${CONDITION_NAME[condition]}`);
-      state = { ...holder.state, active: holder.state.active.filter((c) => c.condition !== condition) };
+      state = { ...holder.state, active: withoutDependents(holder.state.active.filter((c) => c.condition !== condition)) };
+      notes.push(...endedTogether(holder.state.active, state.active, condition));
       change = { kind: 'removed', condition };
     }
   }
@@ -79,15 +85,20 @@ export function changeConditions(ctx: SessionContext, playerId: string, role: Ro
     { op: 'replace', path: holder.path, value: state },
     ctx.appendChat({ kind: 'condition_changed', ...ctx.entryBase(playerId), target: holder.logTarget, targetName: holder.name, change, notes }),
   ];
-  // Exaustão 6 mata: no personagem, o estado das Salvaguardas contra a Morte registra a morte.
+  // Exaustão 6 mata: no personagem, o estado das Salvaguardas contra a Morte registra a morte; no token, marca `dead`.
   const character = 'characterId' in holder.logTarget ? ctx.current.characters[holder.logTarget.characterId] : undefined;
   let deathSaves = character?.deathSaves;
   if (character && change.kind === 'exhaustion' && change.to >= MAX_EXHAUSTION_LEVEL && !character.deathSaves.dead) {
     deathSaves = { ...character.deathSaves, dead: true };
     ops.push({ op: 'replace', path: toPointer('characters', character.id, 'deathSaves'), value: deathSaves });
     ops.push(deathStateEntry(ctx, playerId, character, 'exhaustion', deathSaves, [`Exaustão ${MAX_EXHAUSTION_LEVEL}: morto`]));
+  } else if ('tokenId' in holder.logTarget && change.kind === 'exhaustion' && change.to >= MAX_EXHAUSTION_LEVEL) {
+    const token = ctx.current.tokens[holder.logTarget.tokenId];
+    if (token && !token.dead) ops.push({ op: 'replace', path: toPointer('tokens', token.id, 'dead'), value: true });
+    if (token) ops.push(...endTokenConcentration(ctx, playerId, token, 'dead', state));
   }
   // Incapacitado (ou o que o inclui) ou morto: a Concentração termina.
+  if ('tokenId' in holder.logTarget) ops.push(...tokenConcentrationBreaks(ctx, playerId, ctx.token(holder.logTarget.tokenId), state));
   if (character && deathSaves) ops.push(...concentrationBreaks(ctx, playerId, character, state, deathSaves));
 
   if (intent.kind === 'condition.remove' && (intent.data.condition === 'blinded' || intent.data.condition === 'unconscious')) {

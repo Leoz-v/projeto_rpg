@@ -33,6 +33,7 @@ function setup(overrides: Partial<SessionDeps> = {}): HostSession {
     characterSheet: (c) => characterSheet(c, compendium).sheet ?? undefined,
     monsterHpMax: (id) => (id === 'goblin' ? 7 : undefined),
     creature: (id) => compendium.creatures.find((c) => c.id === id),
+    item: () => undefined,
     spell: (id) => compendium.spells.find((s) => s.id === id),
     assetExists: (sha) => sha === KNOWN_IMAGE,
     ...overrides,
@@ -377,7 +378,7 @@ describe('HostSession: characters', () => {
   it('restores saved characters', () => {
     const first = setup();
     const id = create(first, ANA.playerId);
-    const restored = new HostSession(CAMPAIGN, GM, { rng: cryptoRng, now: Date.now, newId: randomUUID, monsterExists: () => false, assetExists: () => false, pruneSteps: (s) => s, itemProblems: () => [], characterSheet: () => undefined, monsterHpMax: () => undefined, creature: () => undefined, spell: () => undefined }, first.state);
+    const restored = new HostSession(CAMPAIGN, GM, { rng: cryptoRng, now: Date.now, newId: randomUUID, monsterExists: () => false, assetExists: () => false, pruneSteps: (s) => s, itemProblems: () => [], characterSheet: () => undefined, monsterHpMax: () => undefined, creature: () => undefined, item: () => undefined, spell: () => undefined }, first.state);
     expect(restored.state.characters[id]?.name).toBe('Thorin');
   });
 });
@@ -2351,12 +2352,23 @@ describe('HostSession: spell buffs on the sheet (note 0060)', () => {
   };
 
   /** Morg (bruxo golias 5, Bless e Guidance pelo Magic Initiate) e um Goblin Warrior. */
-  function table(rolls: number[] = [10]) {
+  function table(rolls: number[] = [10], resolutionOf?: string) {
+    const spell = (id: string) => compendium.spells.find((s) => s.id === id);
     const session = setup({
       rng: sequence(rolls),
       itemProblems: () => [],
       monsterExists: (id) => compendium.creatures.some((c) => c.id === id),
       monsterHpMax: (id) => compendium.creatures.find((c) => c.id === id)?.hp.average,
+      // Morg só conhece Bless e Guidance: o teste troca a resolução do Bless pela de outra magia.
+      ...(resolutionOf !== undefined
+        ? {
+            item: () => undefined,
+            spell: (id: string) => {
+              const found = spell(id);
+              return found && id === 'bless' ? { ...found, resolution: spell(resolutionOf)?.resolution ?? [] } : found;
+            },
+          }
+        : {}),
     });
     session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10 } });
     const mapId = Object.keys(session.state.maps)[0] ?? '';
@@ -2424,16 +2436,150 @@ describe('HostSession: spell buffs on the sheet (note 0060)', () => {
     expect(t.character().adjustments[0]).toMatchObject({ name: 'Guidance: Furtividade (Morg)', effects: [{ type: 'd20_bonus', target: 'skill.stealth' }] });
   });
 
-  it('a monster token is left to the GM with a note; the owner can end a spell effect but not a GM adjustment', () => {
+  it('a monster token holds the effect; the owner can end a spell effect but not a GM adjustment', () => {
     const t = table();
     const entryId = t.cast('bless', 'free');
     t.use(entryId, [t.goblin, t.morg]);
-    expect(t.session.state.chat.at(-1)).toMatchObject({ results: [{ targetName: 'Goblin 1', notes: ['Efeito de magia em monstro: o mestre acompanha (ainda não entra no bloco)'] }, { targetName: 'Morg' }] });
+    expect(t.session.state.chat.at(-1)).toMatchObject({ results: [{ targetName: 'Goblin 1', notes: ['Efeito no token'] }, { targetName: 'Morg' }] });
     t.session.handle(GM.playerId, { kind: 'adjustment.add', data: { characterId: t.id, name: 'Bênção do Templo', effects: [{ type: 'flat_bonus', target: 'ac', value: 1 }] } });
     const [spellEffect, blessing] = t.character().adjustments;
     expect(rejection(t.session.handle(ANA.playerId, { kind: 'adjustment.remove', data: { characterId: t.id, adjustmentId: blessing?.id ?? '' } }))).toBe('not_allowed');
     expect(applied(t.session.handle(ANA.playerId, { kind: 'adjustment.remove', data: { characterId: t.id, adjustmentId: spellEffect?.id ?? '' } }))).toBe(true);
     expect(t.character().adjustments.map((a) => a.name)).toEqual(['Bênção do Templo']);
     expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'spell_effect_ended', reason: 'removed' });
+  });
+
+  it("Bane's failed save lowers the monster's attacks; a success leaves no effect", () => {
+    // Salvaguarda 2 (falha); ataque: d20 = 15, Bane 1d4 = 3.
+    const t = table([2, 15, 3], 'bane');
+    t.use(t.cast('bless', 'free'), [t.goblin]);
+    expect(t.session.state.tokens[t.goblin]?.spellEffects).toHaveLength(1);
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'spell_applied', results: [{ targetName: 'Goblin 1', notes: ['Efeito no token'] }] });
+    t.session.handle(GM.playerId, { kind: 'attack.make', data: { attacker: { tokenId: t.goblin, actionId: 'scimitar' }, targetTokenId: t.morg, visibility: 'public' } });
+    expect(t.session.state.chat.findLast((e) => e.kind === 'attack_roll')).toMatchObject({ natural: 15, notes: ['Bless (Morg): −3 (−1d4)'], total: 16 });
+
+    const saved = table([20], 'bane');
+    saved.use(saved.cast('bless', 'free'), [saved.goblin]);
+    expect(saved.session.state.tokens[saved.goblin]?.spellEffects).toEqual([]);
+  });
+
+  it('Blur on a character gives the monster Disadvantage on the attack', () => {
+    const t = table([12], 'blur');
+    t.use(t.cast('bless', 'free'), [t.morg]);
+    t.session.handle(GM.playerId, { kind: 'attack.make', data: { attacker: { tokenId: t.goblin, actionId: 'scimitar' }, targetTokenId: t.morg, visibility: 'public' } });
+    expect(t.session.state.chat.findLast((e) => e.kind === 'attack_roll')).toMatchObject({ mode: 'disadvantage', disadvantage: ['Bless (Morg)'] });
+  });
+
+  it("Hunter's Mark moves to the new target; Hex needs the ability to be chosen", () => {
+    const t = table([10], 'hunters_mark');
+    const entryId = t.cast('bless', 'free');
+    t.use(entryId, [t.goblin]);
+    expect(t.session.state.tokens[t.goblin]?.spellEffects).toHaveLength(1);
+    t.use(entryId, [t.morg]);
+    expect(t.session.state.tokens[t.goblin]?.spellEffects).toEqual([]);
+    expect(t.character().adjustments).toMatchObject([{ effects: [{ type: 'target_damage', dice: '1d6', damageType: 'force' }] }]);
+    expect(t.session.state.chat.some((e) => e.kind === 'spell_effect_ended' && e.reason === 'replaced' && e.characterName === 'Goblin 1')).toBe(true);
+    // A marca do Morg só vale para ele: o ataque do goblin não rola o dado extra.
+    t.session.handle(GM.playerId, { kind: 'attack.make', data: { attacker: { tokenId: t.goblin, actionId: 'scimitar' }, targetTokenId: t.morg, visibility: 'public' } });
+    const attack = t.session.state.chat.findLast((e) => e.kind === 'attack_roll');
+    expect(attack?.kind === 'attack_roll' ? (attack.damage?.groups ?? []).filter((g) => g.source !== undefined) : ['?']).toEqual([]);
+
+    const hexed = table([10], 'hex');
+    const hex = hexed.cast('bless', 'free');
+    expect(rejection(hexed.use(hex, [hexed.goblin]))).toBe('rule_violation');
+    expect(applied(hexed.use(hex, [hexed.goblin], 0))).toBe(true);
+    expect(hexed.session.state.tokens[hexed.goblin]?.spellEffects).toMatchObject([{ name: 'Bless: Força (Morg)', effects: [{ type: 'target_damage' }, { type: 'disadvantage', target: 'check.str' }] }]);
+  });
+
+  it('the mark adds its damage to the hits of who cast it', () => {
+    const t = table([15], 'hunters_mark');
+    t.session.handle(ANA.playerId, { kind: 'inventory.add', data: { characterId: t.id, itemId: 'dagger' } });
+    const item = t.character().inventory.items.find((i) => i.itemId === 'dagger');
+    t.session.handle(ANA.playerId, { kind: 'inventory.update', data: { characterId: t.id, instanceId: item?.instanceId ?? '', equipped: true } });
+    t.use(t.cast('bless', 'free'), [t.goblin]);
+    expect(applied(t.session.handle(ANA.playerId, { kind: 'attack.make', data: { attacker: { characterId: t.id, instanceId: item?.instanceId ?? '' }, targetTokenId: t.goblin, visibility: 'public' } }))).toBe(true);
+    const attack = t.session.state.chat.findLast((e) => e.kind === 'attack_roll');
+    expect(attack).toMatchObject({ hit: true, damage: { groups: [{ type: 'piercing' }, { dice: '1d6', type: 'force', source: 'Bless (Morg)' }] } });
+
+    const melee = table([10], 'magic_weapon');
+    expect(rejection(melee.use(melee.cast('bless', 'free'), [melee.morg]))).toBe('rule_violation');
+  });
+
+  it('Magic Weapon goes on the chosen nonmagical weapon', () => {
+    const t = table([10], 'magic_weapon');
+    t.session.handle(ANA.playerId, { kind: 'inventory.add', data: { characterId: t.id, itemId: 'dagger' } });
+    const weaponId = t.character().inventory.items.find((i) => i.itemId === 'dagger')?.instanceId ?? '';
+    t.session.handle(ANA.playerId, { kind: 'inventory.update', data: { characterId: t.id, instanceId: weaponId, equipped: true } });
+    const entryId = t.cast('bless', 'free');
+    const on = (targetTokenIds: string[]) => t.session.handle(ANA.playerId, { kind: 'spell.effect', data: { entryId, part: 0, targetTokenIds, weaponId } });
+    expect(rejection(on([t.goblin]))).toBe('rule_violation');
+    expect(applied(on([t.morg]))).toBe(true);
+    expect(t.character().adjustments).toMatchObject([{ weapon: weaponId }]);
+    expect(SessionStateSchema.safeParse(t.session.state).success).toBe(true);
+  });
+
+  it("Shield ends at the start of the caster's next turn; without combat, a note says so", () => {
+    const t = table([10], 'shield');
+    t.use(t.cast('bless', 'free'), [t.morg]);
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'spell_applied', results: [{ notes: ['Efeito na ficha', 'Sem combate com quem conjurou: a duração por turno fica com o mestre'] }] });
+    t.session.handle(GM.playerId, { kind: 'combat.start', data: { tokenIds: [t.morg, t.goblin] } });
+    t.use(t.cast('bless', { slot: 'pact' }), [t.morg]);
+    expect(t.character().adjustments).toMatchObject([{ until: { at: 'turn_start', tokenId: t.morg } }]);
+    t.session.handle(GM.playerId, { kind: 'combat.next' , data: {} });
+    t.session.handle(GM.playerId, { kind: 'combat.next' , data: {} });
+    expect(t.character().adjustments).toEqual([]);
+    expect(t.session.state.chat.some((e) => e.kind === 'spell_effect_ended' && e.reason === 'duration')).toBe(true);
+  });
+
+  it('on a monster token: only the GM or its controller ends the effect, and the Concentration ending lifts it', () => {
+    const t = table();
+    t.use(t.cast('bless', 'free'), [t.goblin]);
+    const effects = () => t.session.state.tokens[t.goblin]?.spellEffects ?? [];
+    expect(effects()).toMatchObject([{ name: 'Bless (Morg)', spell: { characterId: t.id, spellId: 'bless' } }]);
+    const effectId = effects()[0]?.id ?? '';
+    expect(rejection(t.session.handle(ANA.playerId, { kind: 'token.effect_remove', data: { tokenId: t.goblin, effectId } }))).toBe('not_allowed');
+    t.session.handle(ANA.playerId, { kind: 'concentration.end', data: { characterId: t.id } });
+    expect(effects()).toEqual([]);
+    expect(t.session.state.chat.at(-1)).toMatchObject({ kind: 'spell_effect_ended', tokenId: t.goblin, characterName: 'Goblin 1', reason: 'concentration' });
+
+    t.use(t.cast('bless', { slot: 'pact' }), [t.goblin]);
+    expect(applied(t.session.handle(GM.playerId, { kind: 'token.effect_remove', data: { tokenId: t.goblin, effectId: effects()[0]?.id ?? '' } }))).toBe(true);
+    expect(effects()).toEqual([]);
+    expect(rejection(t.session.handle(GM.playerId, { kind: 'token.effect_remove', data: { tokenId: t.goblin, effectId } }))).toBe('rule_violation');
+    expect(SessionStateSchema.safeParse(t.session.state).success).toBe(true);
+  });
+});
+
+describe('HostSession: token.update (rotation & elevation)', () => {
+  it('allows GM and token owners to update rotation and elevation, and rejects other players', () => {
+    const session = setup();
+    session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Arena', width: 10, height: 10 } });
+    const mapId = session.state.activeMapId;
+    expect(mapId).not.toBeNull();
+    if (mapId === null) return;
+    session.handle(GM.playerId, {
+      kind: 'token.create',
+      data: { mapId, name: 'Ana', position: { x: 100, y: 100 }, size: 'medium', ownerIds: [ANA.playerId] },
+    });
+    session.handle(GM.playerId, {
+      kind: 'token.create',
+      data: { mapId, name: 'Goblin', position: { x: 300, y: 300 }, size: 'small' },
+    });
+    const tokens = Object.values(session.state.tokens);
+    const anaToken = tokens.find((t) => t.name === 'Ana');
+    const goblinToken = tokens.find((t) => t.name === 'Goblin');
+    expect(anaToken).toBeDefined();
+    expect(goblinToken).toBeDefined();
+    if (!anaToken || !goblinToken) return;
+
+    expect(anaToken.rotation).toBe(0);
+    expect(anaToken.elevation).toBe(0);
+
+    expect(applied(session.handle(ANA.playerId, { kind: 'token.update', data: { tokenId: anaToken.id, rotation: 135, elevation: 15 } }))).toBe(true);
+    expect(session.state.tokens[anaToken.id]).toMatchObject({ rotation: 135, elevation: 15 });
+
+    expect(rejection(session.handle(ANA.playerId, { kind: 'token.update', data: { tokenId: goblinToken.id, rotation: 90 } }))).toBe('not_allowed');
+    expect(applied(session.handle(GM.playerId, { kind: 'token.update', data: { tokenId: goblinToken.id, rotation: 270, elevation: -10 } }))).toBe(true);
+    expect(session.state.tokens[goblinToken.id]).toMatchObject({ rotation: 270, elevation: -10 });
   });
 });

@@ -1,5 +1,5 @@
 import type { AppInfo, HostTableRequest, IpcError, JoinTableRequest, Preferences } from './ipc-schemas';
-import type { DerivedSheet } from 'rules-engine';
+import type { Creature, DerivedSheet } from 'rules-engine';
 import type { Ability, Condition, DamageType, Size } from 'rules-engine/schemas';
 import type { VisionProfile } from 'rules-engine/vision';
 import type { Intent, IntentResultSchema, Role, SessionState } from './protocol';
@@ -26,6 +26,7 @@ export const IpcChannel = {
   characterHpMaxima: 'table:character-hp-maxima',
   tokenVisionProfiles: 'table:token-vision-profiles',
   monsterActions: 'compendium:monster-actions',
+  monsterBlock: 'compendium:monster-block',
   sendIntent: 'table:intent',
   chatHistory: 'table:chat-history',
   tableEvent: 'table:event',
@@ -76,11 +77,23 @@ export interface ItemSummary {
   rarity?: string[];
   attunement: boolean;
   attunementBy?: string;
-  variants: { id: string; name: string }[];
+  /** `spells`: as magias que cabem, na variante de um pergaminho (nota 0076). */
+  variants: { id: string; name: string; spells?: { id: string; name: string }[] }[];
   bases: { id: string; name: string }[];
 }
 
 /** Ação de um monstro do compêndio que o mestre usa com o token: ataque ou salvaguarda. */
+/** Bloco de um monstro com os modificadores e salvaguardas calculados pelo motor. */
+export interface MonsterBlockView {
+  creature: Creature;
+  abilities: Record<Ability, { modifier: number; save: number }>;
+  /** Magias do bloco (nota 0067), com o nome e o que a mesa resolve. */
+  spells: { spellId: string; name: string; level: number; concentration: boolean; structured: boolean; note?: string; use?: { id: string; perDay: number } }[];
+}
+
+/** Limite de uso publicado no bloco. */
+type ActionLimit = NonNullable<Creature['actions'][number]['limit']>;
+
 export type MonsterAction =
   | {
       kind: 'attack';
@@ -91,6 +104,7 @@ export type MonsterAction =
       damage: { dice: string; type: DamageType }[];
       reach?: number;
       range?: number;
+      limit?: ActionLimit;
     }
   | {
       kind: 'save';
@@ -101,6 +115,7 @@ export type MonsterAction =
       damage: { dice: string; type: DamageType }[];
       onSuccess: 'half' | 'none';
       conditions: Condition[];
+      limit?: ActionLimit;
     };
 
 /** Um asset importado ou salvo: use `vtt-asset://<sha256>` para exibir/carregar e o `sha256` nos `Intent`. */
@@ -185,6 +200,8 @@ export interface VttApi {
   searchItems(query: string): Promise<IpcResult<ItemSummary[]>>;
   /** Ações de ataque e de salvaguarda do bloco de estatísticas de um monstro. */
   monsterActions(monsterId: string): Promise<IpcResult<MonsterAction[]>>;
+  /** Bloco de estatísticas inteiro de um monstro; `null` se não existe. */
+  monsterBlock(monsterId: string): Promise<IpcResult<MonsterBlockView | null>>;
   /** PV máximos da ficha de cada personagem da mesa atual (os sem atributos ficam de fora). */
   characterHpMaxima(): Promise<IpcResult<Record<string, number>>>;
   /** Perfis de visão derivados para cada token visível na mesa atual (ficha, monstro e condições). */

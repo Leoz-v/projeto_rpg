@@ -85,9 +85,9 @@ describe('SRD curation (Phase 5, turn and initiative reminders)', () => {
     }
   };
   walk([srd.classes, srd.subclasses, srd.feats]);
-  // Só os momentos dos lembretes e curas (a característica pode ter outros efeitos, como `resource`).
+  // Só os momentos dos lembretes e curas (a característica pode ter outros efeitos, como `resource` e `feature_use`).
   const moments = (id: string) =>
-    (features.get(id)?.effects ?? []).filter((e) => (e as { type: string }).type !== 'resource').map((e) => (e as { type: string; on?: string }).on ?? (e as { type: string }).type);
+    (features.get(id)?.effects ?? []).filter((e) => !['resource', 'feature_use'].includes((e as { type: string }).type)).map((e) => (e as { type: string; on?: string }).on ?? (e as { type: string }).type);
 
   it.each([
     ['persistent_rage', 'initiative'],

@@ -24,10 +24,16 @@ Ver docs/decisions/0014-itens-magicos.md.
 import json, re, subprocess, sys
 from pathlib import Path
 
+import item_casting
+import item_riders
+import item_use
+
 sys.stdout.reconfigure(encoding="utf-8")
 HERE = Path(__file__).resolve().parent
 DATA = HERE.parent.parent / "src" / "srd" / "data"
 PDF = sys.argv[1] if len(sys.argv) > 1 else str(HERE.parent / "SRD_CC_v5.2.1.pdf")
+used = set()
+riders = set()
 problems = []
 
 CATEGORIES = {"Armor": "armor", "Weapon": "weapon", "Wondrous Item": "wondrous", "Potion": "potion", "Ring": "ring",
@@ -383,6 +389,9 @@ for _vid, _ability, _label in [("agility", "dex", "Dexterity"), ("fortitude", "c
     VARIANT_EFFECTS[("Ioun Stone", _vid)] = ([{"type": "ability_increase", "ability": _ability, "value": 2, "max": 20}],
                                              f"Your {_label} increases by 2, to a maximum of 20")
 
+SPELL_IDS = {sp["id"] for sp in load("spells.json")}
+# Pergaminho: CD e bônus de ataque por círculo (0 = truque).
+SCROLL_STATS = [(13, 5), (13, 5), (13, 5), (15, 7), (15, 7), (17, 9), (17, 9), (18, 10), (18, 10), (19, 11)]
 # --- Leitura dos itens ---------------------------------------------------------------------------------------
 lines = text(209, 253)
 lines = lines[lines.index("Magic Items A-Z") + 1:]
@@ -493,8 +502,25 @@ for n, h in enumerate(starts):
             if quote not in description.replace("\n", " "):
                 problems.append(f"{who}: efeito curado sem o texto de apoio '{quote}'")
     item["description"] = description
+    used |= item_use.put(item, item_use.MAGIC_USE, problems)
+    item_casting.put(item, SPELL_IDS, problems)
+    riders |= item_riders.put(item, problems)
+    if name == "Spell Scroll":
+        for v, (level, (dc, atk)) in zip(item["variants"], enumerate(SCROLL_STATS), strict=True):
+            v["scroll"] = {"level": level, "saveDc": dc, "attackBonus": atk}
+            if f"{dc} +{atk}" not in description.replace("\n", " "):
+                problems.append(f"{who}: CD e bônus do círculo {level} sem o texto de apoio")
     items.append(item)
 
+for k in list(item_casting.CASTING) + [k for ids in item_casting.LAST_CHARGE.values() for k in ids]:
+    if k not in {i["id"] for i in items}:
+        problems.append(f"curadoria de cargas sem item: {k}")
+for k in item_riders.RIDERS:
+    if k not in riders:
+        problems.append(f"dano extra curado sem item: {k}")
+for k in item_use.MAGIC_USE:
+    if k not in used:
+        problems.append(f"uso curado sem item: {k}")
 names = {i["name"] for i in items}
 for k in list(EFFECTS) + list(CHOICE_VARIANTS) + list(TABLE_VARIANTS) + list(PLUS) + [n for n, _ in VARIANT_EFFECTS]:
     if k not in names:
@@ -507,8 +533,8 @@ for it in items:
     if len(it["description"]) < 30:
         problems.append(f"{it['name']}: descrição curta demais")
 
-ORDER = ["id", "name", "kind", "category", "rarity", "attunement", "activation", "weight", "base", "variants", "charges", "consumable",
-         "effects", "description"]
+ORDER = ["id", "name", "kind", "category", "rarity", "attunement", "activation", "weight", "base", "variants", "charges", "casting", "consumable",
+         "use", "effects", "description"]
 items = [{k: it[k] for k in ORDER if k in it} for it in items]
 with open(DATA / "magic-items.json", "w", encoding="utf-8", newline="\n") as fh:
     json.dump(items, fh, indent=2, ensure_ascii=False)

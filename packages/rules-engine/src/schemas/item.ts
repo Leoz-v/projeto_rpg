@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { AbilitySchema, DamageSchema, DiceSchema, FeetSchema, IdSchema, TextSchema, WeaponMasterySchema, WeaponPropertySchema } from './common';
 import { EffectSchema } from './effect';
+import { ItemUseSchema } from './item-use';
 
 /**
  * Itens do compêndio (SRD ou homebrew). Um item carrega seus efeitos
@@ -108,6 +109,8 @@ export const GearSchema = z.strictObject({
   kind: z.literal('gear'),
   /** Consumido ao usar (poções, pergaminhos, munição). */
   consumable: z.boolean().default(false),
+  /** O que acontece ao usar (nota 0074). */
+  use: ItemUseSchema.optional(),
   /** Foco de conjuração: arcano (Feiticeiro, Bruxo, Mago), druídico (Druida, Patrulheiro) ou símbolo sagrado (Clérigo, Paladino). */
   focus: z.enum(['arcane', 'druidic', 'holy_symbol']).optional(),
   /** Conteúdo de um pacote (Explorer's Pack etc.), em unidades. */
@@ -153,7 +156,28 @@ export const MagicVariantSchema = z.strictObject({
   cost: CostSchema.optional(),
   /** Somados aos efeitos do item. */
   effects: z.array(EffectSchema).default([]),
+  /** O uso desta variante, no lugar do uso do item. */
+  use: ItemUseSchema.optional(),
+  /** Pergaminho de magia (nota 0076): o círculo, a CD e o bônus de ataque. A magia fica na entrada do inventário. */
+  scroll: z.strictObject({ level: z.int().min(0).max(9), saveDc: z.int().min(1).max(40), attackBonus: z.int().min(0).max(20) }).optional(),
 });
+export type MagicVariant = z.infer<typeof MagicVariantSchema>;
+
+/** Magia que o item conjura (nota 0075). */
+export const ItemSpellSchema = z
+  .strictObject({
+    spellId: IdSchema,
+    /** Cargas gastas (0: à vontade). */
+    charges: z.int().nonnegative(),
+    /** Círculo fixado pelo item ("level 5 version"). */
+    level: z.int().min(1).max(9).optional(),
+    /** Até quantas cargas: cada uma a mais sobe um círculo. */
+    maxCharges: z.int().positive().optional(),
+    /** Ressalva do texto, como nota ("Só afeta Feras"). */
+    note: TextSchema.optional(),
+  })
+  .refine((s) => s.maxCharges === undefined || s.maxCharges > s.charges, { message: 'maxCharges menor que charges' });
+export type ItemSpell = z.infer<typeof ItemSpellSchema>;
 
 export const MagicItemSchema = z
   .strictObject({
@@ -166,9 +190,21 @@ export const MagicItemSchema = z
     attunement: AttunementSchema.optional(),
     base: MagicBaseSchema.optional(),
     variants: z.array(MagicVariantSchema).default([]),
-    /** Cargas máximas e recuperação, como publicadas (o gasto é estado de sessão, Fase 4). */
-    charges: z.strictObject({ max: z.int().positive(), regain: z.string().optional() }).optional(),
+    /** Cargas máximas e recuperação, como publicada (`regain`) e em dados (`regainDice`). O gasto fica no inventário. */
+    charges: z
+      .strictObject({
+        max: z.int().positive(),
+        regain: z.string().optional(),
+        regainDice: DiceSchema.optional(),
+        /** Ao gastar a última: destruído, destruído com 1 no d20, ou outra consequência (com 1 ou 20) que o mestre aplica. */
+        lastCharge: z.enum(['destroyed', 'destroyed_on_1', 'gm']).optional(),
+      })
+      .optional(),
+    /** Magias conjuradas com as cargas (nota 0075). `saveDc`: CD do item; ausente, a de quem o segura. `carried`: basta carregar. */
+    casting: z.strictObject({ saveDc: z.int().min(1).max(40).optional(), carried: z.literal(true).optional(), spells: z.array(ItemSpellSchema).min(1) }).optional(),
     consumable: z.boolean().default(false),
+    /** O que acontece ao usar (nota 0074). */
+    use: ItemUseSchema.optional(),
   })
   .superRefine((m, ctx) => {
     if ((m.rarity === undefined) === (m.variants.length === 0)) {

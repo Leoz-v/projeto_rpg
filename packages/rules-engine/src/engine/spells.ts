@@ -1,3 +1,4 @@
+import type { Effect } from '../schemas/effect';
 import type { DamageType } from '../schemas/common';
 import type { Spell, SpellPart } from '../schemas/spell';
 
@@ -91,6 +92,11 @@ export interface ResolvedSpellDamage {
   type: DamageType | DamageType[];
 }
 
+export interface ResolvedSpellOption {
+  label: string;
+  effects: Effect[];
+}
+
 /**
  * Uma parte da magia com os dados e a quantidade já calculados para quem
  * conjura. Ataque e dano direto: `count` ataques ou projéteis (1 sem
@@ -100,10 +106,10 @@ export interface ResolvedSpellDamage {
 export type ResolvedSpellPart =
   | (Omit<PartOf<'attack'>, 'damage' | 'count'> & { damage: ResolvedSpellDamage[]; count: number })
   | (Omit<PartOf<'damage'>, 'damage' | 'count'> & { damage: ResolvedSpellDamage[]; count: number })
-  | (Omit<PartOf<'save'>, 'damage' | 'count'> & { damage: ResolvedSpellDamage[]; count?: number | undefined })
+  | (Omit<PartOf<'save'>, 'damage' | 'count' | 'options'> & { options: ResolvedSpellOption[]; damage: ResolvedSpellDamage[]; count?: number | undefined })
   | (Omit<PartOf<'heal'>, 'healing' | 'count'> & { /** Expressão de dados, ou `full` (todos os PV). */ healing: string; count?: number | undefined })
   | (Omit<PartOf<'condition'>, 'count'> & { count?: number | undefined })
-  | (Omit<PartOf<'buff'>, 'count' | 'upcast'> & { count?: number | undefined });
+  | (Omit<PartOf<'buff'>, 'count' | 'upcast' | 'variants' | 'options'> & { options: ResolvedSpellOption[]; count?: number | undefined });
 
 export function resolveSpellParts(spell: Spell, options: SpellCastOptions): ResolvedSpellPart[] {
   const above = spell.level === 0 ? 0 : Math.max(0, (options.slotLevel ?? spell.level) - spell.level);
@@ -117,6 +123,9 @@ export function resolveSpellParts(spell: Spell, options: SpellCastOptions): Reso
     const base = (count?.base ?? 1) + (count?.perSlot ?? 0) * above;
     return spell.cantripUpgrade === 'count' ? base * tier : base;
   };
+  const repeated = (effects: readonly Effect[]): Effect[] => Array.from({ length: above }, () => effects).flat();
+  const resolvedOptions = (list: PartOf<'buff'>['options']): ResolvedSpellOption[] => list.map((o) => ({ label: o.label, effects: [...o.effects, ...repeated(o.upcast)] }));
+  const slot = Math.max(spell.level, options.slotLevel ?? spell.level);
   return spell.resolution.map((part): ResolvedSpellPart => {
     switch (part.kind) {
       case 'attack':
@@ -125,8 +134,8 @@ export function resolveSpellParts(spell: Spell, options: SpellCastOptions): Reso
         return { ...rest, damage: damage.map((d) => ({ dice: amount(d), type: d.type })), count: total(count) };
       }
       case 'save': {
-        const { damage, count, ...rest } = part;
-        return { ...rest, damage: damage.map((d) => ({ dice: amount(d), type: d.type })), ...(count ? { count: total(count) } : {}) };
+        const { damage, count, options: choices, ...rest } = part;
+        return { ...rest, options: resolvedOptions(choices), damage: damage.map((d) => ({ dice: amount(d), type: d.type })), ...(count ? { count: total(count) } : {}) };
       }
       case 'heal': {
         const { healing, count, ...rest } = part;
@@ -138,8 +147,9 @@ export function resolveSpellParts(spell: Spell, options: SpellCastOptions): Reso
       }
       case 'buff': {
         // Aid: +5 PV, e +5 por círculo acima (os `flat_bonus` do mesmo alvo se somam).
-        const { count, upcast, effects, ...rest } = part;
-        return { ...rest, effects: [...effects, ...Array.from({ length: above }, () => upcast).flat()], ...(count ? { count: total(count) } : {}) };
+        const { count, upcast, effects, options: choices, variants, ...rest } = part;
+        const variant = variants.findLast((v) => (v.slot === undefined || slot >= v.slot) && (v.level === undefined || options.characterLevel >= v.level));
+        return { ...rest, effects: [...(variant?.effects ?? effects), ...repeated(upcast)], options: resolvedOptions(choices), ...(count ? { count: total(count) } : {}) };
       }
     }
   });

@@ -2,7 +2,7 @@ import { spaceSquares } from 'rules-engine/space';
 import type { Size } from 'rules-engine/schemas';
 import { type GameMap, type Point, type Token, WORLD_UNITS_PER_CELL } from '../../../../shared/protocol';
 import { placeToken, tokenSide } from '../../canvas/geometry';
-import { METERS_PER_HEIGHT_UNIT, TILE_SIZE_METERS } from '../terrain/constants';
+import { METERS_PER_FOOT, METERS_PER_HEIGHT_UNIT, TILE_SIZE_METERS } from '../terrain/constants';
 import type { Ray3 } from '../terrain/raycast';
 import type { TerrainGrid } from '../terrain/terrainGrid';
 import type { CameraViewMode } from './sceneManager';
@@ -25,31 +25,32 @@ export interface TokenFootprint3d {
   tileZ: number;
 }
 
-export function tokenTo3dFootprint(token: Pick<Token, 'position' | 'size'>, grid: TerrainGrid): TokenFootprint3d {
+export function tokenTo3dFootprint(token: Pick<Token, 'position' | 'size'> & { elevation?: number }, grid: TerrainGrid): TokenFootprint3d {
   const sideUnits = tokenSide(token.size);
   const tileX = (token.position.x + sideUnits / 2) / WORLD_UNITS_PER_CELL;
   const tileZ = (token.position.y + sideUnits / 2) / WORLD_UNITS_PER_CELL;
   const centerX = tileX * TILE_SIZE_METERS;
   const centerZ = tileZ * TILE_SIZE_METERS;
-  const groundY = grid.sampleHeightAtTileCoord(tileX, tileZ) * METERS_PER_HEIGHT_UNIT;
+  const groundY = grid.sampleHeightAtTileCoord(tileX, tileZ) * METERS_PER_HEIGHT_UNIT + (token.elevation ?? 0) * METERS_PER_FOOT;
   const sideMeters = spaceSquares(token.size) * TILE_SIZE_METERS;
   return { centerX, centerZ, groundY, sideMeters, tileX, tileZ };
 }
 
 /**
  * Converte um ponto 3D no terreno (metros) na posição lógica 2D (canto superior
- * esquerdo) encaixada no grid e limitada ao mapa — idêntico ao 2D.
+ * esquerdo) encaixada no grid (ou livre com `snapToGrid = false`) e limitada ao mapa.
  */
 export function world3dToTokenCorner(
   worldX: number,
   worldZ: number,
   size: Size,
   map: Pick<GameMap, 'width' | 'height'>,
+  snapToGrid = true,
 ): Point {
   const sideUnits = tokenSide(size);
   const centerUnitsX = (worldX / TILE_SIZE_METERS) * WORLD_UNITS_PER_CELL;
   const centerUnitsY = (worldZ / TILE_SIZE_METERS) * WORLD_UNITS_PER_CELL;
-  return placeToken({ x: centerUnitsX - sideUnits / 2, y: centerUnitsY - sideUnits / 2 }, size, map);
+  return placeToken({ x: centerUnitsX - sideUnits / 2, y: centerUnitsY - sideUnits / 2 }, size, map, snapToGrid);
 }
 
 /** Converte o alvo da câmera 3D (metros) no centro lógico 2D usado pelo painel do mestre. */
