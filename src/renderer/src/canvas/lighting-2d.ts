@@ -301,11 +301,23 @@ function bestPerceptionForPixel(
 }
 
 /**
- * Compõe o buffer de máscara de visão/iluminação (`maskCanvas`) e a camada aditiva de cores
+ * Compõe o buffer de máscara de visão/iluminação (`mask`) e a camada aditiva de cores
  * de luz (`tintCanvas`) em sub-resolução suave por polígonos ocluídos.
+ *
+ * A máscara guarda dados (não cor) nos quatro canais, inclusive com alfa 0
+ * (`MASK_BRIGHT`). Por isso é um buffer de bytes e não um `<canvas>`: o canvas
+ * guarda a cor pré-multiplicada pelo alfa e zera o RGB dos pixels com alfa 0,
+ * o que deixava o mapa todo preto.
  */
+/** Máscara RGBA em bytes crus (sem pré-multiplicação), redimensionada pelo `composeSmooth2dVisionAndLight`. */
+export interface VisionMaskBuffer {
+  width: number;
+  height: number;
+  data: Uint8ClampedArray;
+}
+
 export function composeSmooth2dVisionAndLight(
-  maskCanvas: HTMLCanvasElement,
+  mask: VisionMaskBuffer,
   tintCanvas: HTMLCanvasElement,
   map: GameMap,
   tokens: readonly Token[],
@@ -317,18 +329,18 @@ export function composeSmooth2dVisionAndLight(
   const pxW = map.width * scale;
   const pxH = map.height * scale;
 
-  if (maskCanvas.width !== pxW || maskCanvas.height !== pxH) {
-    maskCanvas.width = pxW;
-    maskCanvas.height = pxH;
+  if (mask.width !== pxW || mask.height !== pxH || mask.data.length !== pxW * pxH * 4) {
+    mask.width = pxW;
+    mask.height = pxH;
+    mask.data = new Uint8ClampedArray(pxW * pxH * 4);
   }
   if (tintCanvas.width !== pxW || tintCanvas.height !== pxH) {
     tintCanvas.width = pxW;
     tintCanvas.height = pxH;
   }
 
-  const mCtx = maskCanvas.getContext('2d');
   const tCtx = tintCanvas.getContext('2d');
-  if (!mCtx || !tCtx) return { selfUnseenTokenIds };
+  if (!tCtx) return { selfUnseenTokenIds };
 
   tCtx.clearRect(0, 0, pxW, pxH);
   const sources = resolveActiveLightSources(map, tokens, options?.bakedPropLights);
@@ -336,8 +348,7 @@ export function composeSmooth2dVisionAndLight(
   fillLightLevelBuffer(lightLevels, pxW, pxH, scale, map, sources, tCtx);
 
   const manual = decodeFogBits(map.fog.manual, map.width, map.height);
-  const outImg = mCtx.createImageData(pxW, pxH);
-  const out = outImg.data;
+  const out = mask.data;
 
   const isPreview =
     viewer.role === 'gm' && viewer.previewTokenId !== undefined && viewer.previewTokenId !== null;
@@ -376,7 +387,6 @@ export function composeSmooth2dVisionAndLight(
         }
       }
     }
-    mCtx.putImageData(outImg, 0, 0);
     return { selfUnseenTokenIds };
   }
 
@@ -437,8 +447,6 @@ export function composeSmooth2dVisionAndLight(
       }
     }
   }
-
-  mCtx.putImageData(outImg, 0, 0);
 
   // Marca tokens do jogador que estão no próprio centro em escuridão completa (ex.: humano sem tocha).
   if (map.fog.autoEnabled) {

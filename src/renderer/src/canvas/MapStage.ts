@@ -1,6 +1,6 @@
 // O PixiJS gera código de shader com `new Function`, que a CSP da tela bloqueia; este módulo troca por versões prontas.
 import 'pixi.js/unsafe-eval';
-import { Application, CanvasSource, Container, type FederatedPointerEvent, Graphics, ImageSource, Sprite, Text, Texture } from 'pixi.js';
+import { Application, BufferImageSource, CanvasSource, Container, type FederatedPointerEvent, Graphics, ImageSource, Sprite, Text, Texture } from 'pixi.js';
 import type { GridCell } from 'rules-engine/space';
 import type { VisionProfile } from 'rules-engine/vision';
 import {
@@ -28,7 +28,7 @@ import {
 } from './fog-render';
 import { type Camera, fitMap, placeToken, screenToWorld, stepRotation, toggleSelection, tokenSide, worldToScreen, zoomAt } from './geometry';
 import { type Health, healthColor } from './health';
-import { composeSmooth2dVisionAndLight } from './lighting-2d';
+import { composeSmooth2dVisionAndLight, type VisionMaskBuffer } from './lighting-2d';
 import { backgroundWorldSize } from './map-grid';
 import {
   DEFAULT_RULER_OPTIONS,
@@ -282,7 +282,7 @@ export class MapStage {
   private readonly rulerBadgeText: Text;
   private readonly views = new Map<string, TokenView>();
   private readonly textures = new Map<string, Promise<Texture | null>>();
-  private visionMaskCanvas: HTMLCanvasElement | undefined;
+  private visionMask: VisionMaskBuffer | undefined;
   private visionMaskSprite: Sprite | undefined;
   private visionMaskTexture: Texture | undefined;
   private lightTintCanvas: HTMLCanvasElement | undefined;
@@ -392,7 +392,7 @@ export class MapStage {
     this.visionFilter?.destroy();
     this.visionFilter = undefined;
     this.visionMaskSprite?.destroy();
-    this.visionMaskTexture?.destroy(true);
+    if (this.visionMaskTexture !== Texture.EMPTY) this.visionMaskTexture?.destroy(true);
     this.lightTintSprite?.destroy();
     this.lightTintTexture?.destroy(true);
     this.app.canvas.removeEventListener('wheel', this.onWheel);
@@ -1206,17 +1206,13 @@ export class MapStage {
       return;
     }
 
-    if (!this.visionMaskCanvas || !this.lightTintCanvas || !this.visionMaskSprite || !this.lightTintSprite || !this.visionMaskTexture || !this.lightTintTexture) {
-      this.visionMaskCanvas = document.createElement('canvas');
+    if (!this.visionMask || !this.lightTintCanvas || !this.visionMaskSprite || !this.lightTintSprite || !this.visionMaskTexture || !this.lightTintTexture) {
+      this.visionMask = { width: 0, height: 0, data: new Uint8ClampedArray(0) };
       this.lightTintCanvas = document.createElement('canvas');
-      this.visionMaskCanvas.width = map.width;
-      this.visionMaskCanvas.height = map.height;
       this.lightTintCanvas.width = map.width;
       this.lightTintCanvas.height = map.height;
 
-      this.visionMaskTexture = new Texture({
-        source: new CanvasSource({ resource: this.visionMaskCanvas, scaleMode: 'linear' }),
-      });
+      this.visionMaskTexture = Texture.EMPTY;
       this.visionMaskSprite = new Sprite(this.visionMaskTexture);
       this.visionMaskSprite.renderable = false;
       this.visionMaskSprite.eventMode = 'none';
@@ -1233,8 +1229,9 @@ export class MapStage {
       this.sceneLayer.filters = [this.visionFilter];
     }
 
+    const maskData = this.visionMask.data;
     const { selfUnseenTokenIds } = composeSmooth2dVisionAndLight(
-      this.visionMaskCanvas,
+      this.visionMask,
       this.lightTintCanvas,
       map,
       this.scene.tokens,
@@ -1244,7 +1241,23 @@ export class MapStage {
 
     const worldW = map.width * WORLD_UNITS_PER_CELL;
     const worldH = map.height * WORLD_UNITS_PER_CELL;
-    this.visionMaskTexture.source.update();
+    if (this.visionMask.data !== maskData || this.visionMaskTexture === Texture.EMPTY) {
+      // Tamanho novo: outra textura sobre o buffer novo. O filtro lê a textura do sprite a cada quadro.
+      if (this.visionMaskTexture !== Texture.EMPTY) this.visionMaskTexture.destroy(true);
+      this.visionMaskTexture = new Texture({
+        source: new BufferImageSource({
+          resource: this.visionMask.data,
+          width: this.visionMask.width,
+          height: this.visionMask.height,
+          format: 'rgba8unorm',
+          alphaMode: 'no-premultiply-alpha',
+          scaleMode: 'linear',
+        }),
+      });
+      this.visionMaskSprite.texture = this.visionMaskTexture;
+    } else {
+      this.visionMaskTexture.source.update();
+    }
     this.lightTintTexture.source.update();
     this.visionMaskSprite.visible = true;
     this.visionMaskSprite.width = worldW;
@@ -1259,15 +1272,13 @@ export class MapStage {
   }
 
   private isCellRevealedForPlayer(map: GameMap, cellX: number, cellY: number): boolean {
-    const mask = this.visionMaskCanvas;
-    if (!mask) return true;
-    const ctx2d = mask.getContext('2d');
-    if (!ctx2d || map.width <= 0 || map.height <= 0) return true;
+    const mask = this.visionMask;
+    if (!mask || mask.width <= 0 || mask.height <= 0 || map.width <= 0 || map.height <= 0) return true;
     const px = Math.min(mask.width - 1, Math.max(0, Math.floor((cellX / map.width) * mask.width)));
     const py = Math.min(mask.height - 1, Math.max(0, Math.floor((cellY / map.height) * mask.height)));
-    const pixel = ctx2d.getImageData(px, py, 1, 1).data;
-    const bright = pixel[1] ?? 0;
-    const fogFill = pixel[3] ?? 255;
+    const offset = (py * mask.width + px) * 4;
+    const bright = mask.data[offset + 1] ?? 0;
+    const fogFill = mask.data[offset + 3] ?? 255;
     return bright > 0 || fogFill < 250;
   }
 
