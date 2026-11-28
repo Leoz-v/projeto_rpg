@@ -9,6 +9,7 @@ import { CAMPAIGN_DB_SCHEMA_VERSION, CampaignDb, CampaignDbError } from './campa
 import { CampaignLibrary, CampaignNotFoundError } from './library';
 import { DatabaseTooNewError, migrate } from './migrate';
 import { openDatabase, userVersion } from './sqlite';
+import { makeToken } from '../../shared/protocol/test-fixtures';
 
 /** Integração das migrações e dos repositórios SQLite (CLAUDE.md: testes de migração). */
 
@@ -126,7 +127,7 @@ describe('CampaignDb', () => {
   const HERO_TOKEN = randomUUID();
 
   const state = (overrides: Partial<SessionState> = {}): SessionState => ({
-    proposals: {},
+    proposals: {}, pendingSaves: {},
     combat: null,
     rest: null,
     campaign: { id: randomUUID(), name: 'A Mina Perdida' },
@@ -154,8 +155,8 @@ describe('CampaignDb', () => {
     maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: null, cellPx: null, scene3d: null, fog: { ...defaultMapFog(30, 20), autoEnabled: true, visionFeet: 45, rememberExplored: false }, walls: [], lighting: defaultMapLighting(), lights: [], propLightOverrides: {} } },
     activeMapId: MAP,
     tokens: {
-      [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [], characterId: null, hp: { max: 7, damage: 2, temp: 0 }, conditions: { active: [{ condition: 'prone' }], exhaustion: 1 }, visionFeet: null },
-      [HERO_TOKEN]: { id: HERO_TOKEN, mapId: MAP, name: 'Thorin', position: { x: 0, y: 0 }, size: 'medium', monsterId: null, image: null, ownerIds: [ANA], characterId: HERO, hp: null, conditions: { active: [], exhaustion: 0 }, visionFeet: 120 },
+      [TOKEN]: makeToken({ id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', hp: { max: 7, damage: 2, temp: 0 }, conditions: { active: [{ condition: 'prone' }], exhaustion: 1 }, spellEffects: [{ id: HERO, name: 'Bane (Thorin)', effects: [{ type: 'd20_bonus', dice: '1d4', target: 'save.all', subtract: true }], spell: { characterId: HERO, spellId: 'bane' } }], rotation: 90, elevation: 15, hidden: true, dead: true }),
+      [HERO_TOKEN]: makeToken({ id: HERO_TOKEN, mapId: MAP, name: 'Thorin', position: { x: 0, y: 0 }, size: 'medium', ownerIds: [ANA], characterId: HERO, visionFeet: 120 }),
     },
     characters: {
       [HERO]: {
@@ -381,25 +382,24 @@ describe('CampaignDb', () => {
     migrated.close();
   });
 
-  it('migrates v16 campaign databases to v17 and round-trips lighting, lights, and propLightOverrides', () => {
-    expect(CAMPAIGN_DB_SCHEMA_VERSION).toBe(17);
-    const path = join(tempDir(), 'v16.db');
+  it('migrates v15 campaign databases to the latest version and round-trips lighting, lights, and propLightOverrides', () => {
+    const path = join(tempDir(), 'v15-lighting.db');
     const legacy = openDatabase(path);
     legacy.exec(`
       CREATE TABLE campaign (id TEXT PRIMARY KEY, name TEXT NOT NULL, created_at INTEGER NOT NULL, active_map_id TEXT, combat TEXT, rest TEXT) STRICT;
       CREATE TABLE players (id TEXT PRIMARY KEY, display_name TEXT NOT NULL, role TEXT NOT NULL CHECK (role IN ('gm', 'player'))) STRICT;
-      CREATE TABLE maps (id TEXT PRIMARY KEY, name TEXT NOT NULL, width INTEGER NOT NULL, height INTEGER NOT NULL, background TEXT, cell_px INTEGER, scene_3d TEXT, fog TEXT, walls TEXT NOT NULL DEFAULT '[]') STRICT;
+      CREATE TABLE maps (id TEXT PRIMARY KEY, name TEXT NOT NULL, width INTEGER NOT NULL, height INTEGER NOT NULL, background TEXT, cell_px INTEGER, scene_3d TEXT, fog TEXT) STRICT;
       CREATE TABLE tokens (id TEXT PRIMARY KEY, map_id TEXT NOT NULL REFERENCES maps (id) ON DELETE CASCADE, name TEXT NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL, size TEXT NOT NULL, monster_id TEXT, image TEXT, owner_ids TEXT NOT NULL, character_id TEXT, hp TEXT, conditions TEXT NOT NULL DEFAULT '{"active":[],"exhaustion":0}', vision_feet INTEGER) STRICT;
       CREATE TABLE chat (seq INTEGER PRIMARY KEY, id TEXT NOT NULL UNIQUE, entry TEXT NOT NULL) STRICT;
       CREATE TABLE characters (id TEXT PRIMARY KEY, owner_id TEXT NOT NULL REFERENCES players (id), name TEXT NOT NULL, build TEXT NOT NULL, inventory TEXT NOT NULL DEFAULT '{"currency":{"cp":0,"sp":0,"ep":0,"gp":0,"pp":0},"items":[]}', adjustments TEXT NOT NULL DEFAULT '[]', hp TEXT NOT NULL DEFAULT '{"damage":0,"temp":0}', conditions TEXT NOT NULL DEFAULT '{"active":[],"exhaustion":0}', death_saves TEXT NOT NULL DEFAULT '{"successes":0,"failures":0,"stable":false,"dead":false}', concentration TEXT NOT NULL DEFAULT 'null', hit_dice_spent TEXT NOT NULL DEFAULT '{}', spell_slots_spent TEXT NOT NULL DEFAULT '{"byLevel":{},"pact":0}', resources_spent TEXT NOT NULL DEFAULT '{}') STRICT;
-      PRAGMA user_version = 16;
+      PRAGMA user_version = 15;
     `);
-    legacy.prepare('INSERT INTO campaign (id, name, created_at, active_map_id) VALUES (?, ?, ?, ?)').run(randomUUID(), 'V16', 0, MAP);
-    legacy.prepare('INSERT INTO maps (id, name, width, height, background, cell_px, scene_3d, fog, walls) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(MAP, 'Masmorra', 20, 20, null, null, null, null, '[]');
+    legacy.prepare('INSERT INTO campaign (id, name, created_at, active_map_id) VALUES (?, ?, ?, ?)').run(randomUUID(), 'V15', 0, MAP);
+    legacy.prepare('INSERT INTO maps (id, name, width, height, background, cell_px, scene_3d, fog) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(MAP, 'Masmorra', 20, 20, null, null, null, null);
     legacy.close();
 
     const migrated = CampaignDb.open(path);
-    expect(migrated.migration).toEqual({ from: 16, to: 17, backup: `${path}.bak` });
+    expect(migrated.migration).toEqual({ from: 15, to: CAMPAIGN_DB_SCHEMA_VERSION, backup: `${path}.bak` });
     const loaded = migrated.load();
     expect(loaded.maps[MAP]?.lighting).toEqual(defaultMapLighting('exterior', 'day'));
     expect(loaded.maps[MAP]?.lights).toEqual([]);

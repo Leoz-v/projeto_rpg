@@ -1,4 +1,4 @@
-import { type Condition, type Creature, type DerivedSheet, distanceFeet, effectiveConditions, type Rng, type Size, spaceSquares, type Spell } from 'rules-engine';
+import { type Condition, conditionDefenses, type Creature, creatureAc, creatureDefenses, type Defenses, type DerivedSheet, distanceFeet, effectiveConditions, type Item, type Rng, type Size, spaceSquares, type Spell, withEffectDefenses } from 'rules-engine';
 import type { z } from 'zod';
 import { type ChatEntry, type Combat, NO_CONDITIONS, type GameMap, type IntentRejectCode, type IntentResultSchema, type PatchOp, type Point, type Role, type SessionCharacter, type SessionState, type Token, WORLD_UNITS_PER_CELL } from '../../shared/protocol';
 
@@ -19,13 +19,15 @@ export interface SessionDeps {
   /** Tira dos passos as seleções que nenhuma escolha usa mais (`pruneSelections` do motor, com o compêndio). */
   pruneSteps(steps: SessionCharacter['steps']): SessionCharacter['steps'];
   /** Problemas de uma entrada nova do inventário (`inventoryEntryProblems` do motor); vazio = pode entrar. */
-  itemProblems(entry: { itemId: string; baseItemId?: string | undefined; variantId?: string | undefined }): string[];
+  itemProblems(entry: { itemId: string; baseItemId?: string | undefined; variantId?: string | undefined; spellId?: string | undefined }): string[];
   /** Ficha calculada pelo motor; `undefined` sem ficha (atributos não definidos). */
   characterSheet(character: SessionCharacter): DerivedSheet | undefined;
   /** PV médios do bloco de estatísticas de um monstro do compêndio. */
   monsterHpMax(monsterId: string): number | undefined;
   /** Bloco de estatísticas de um monstro do compêndio. */
   creature(monsterId: string): Creature | undefined;
+  /** Item do compêndio (usar um item, nota 0074). */
+  item(itemId: string): Item | undefined;
   /** Magia do compêndio (nome, círculo, texto): Concentração e conjurar. */
   spell(spellId: string): Spell | undefined;
 }
@@ -154,11 +156,30 @@ export class SessionContext {
     return { conditions: effectiveConditions(state.active.map((c) => c.condition)), exhaustion: state.exhaustion };
   }
 
+  /** O bloco do monstro com as condições e os efeitos de magia do token (nota 0062). */
+  creatureOf(token: Token): { creature: Creature; ac: number; defenses: Defenses; reminders: string[] } | undefined {
+    const creature = token.monsterId !== null ? this.deps.creature(token.monsterId) : undefined;
+    if (!creature) return undefined;
+    const { defenses, reminders } = creatureDefenses(creature);
+    return {
+      creature,
+      ac: creatureAc(creature.ac, token.spellEffects),
+      defenses: withEffectDefenses(conditionDefenses(this.conditionsOf(token).conditions, defenses), token.spellEffects),
+      reminders,
+    };
+  }
+
   /** Distância em pés entre dois tokens do mesmo mapa (motor); `undefined` sem o atacante no mapa do alvo. */
   distanceBetween(a: Token | undefined, b: Token): number | undefined {
     if (!a || a.mapId !== b.mapId) return undefined;
     const footprint = (t: Token) => ({ x: t.position.x / WORLD_UNITS_PER_CELL, y: t.position.y / WORLD_UNITS_PER_CELL, size: t.size });
     return distanceFeet(footprint(a), footprint(b));
+  }
+
+  /** Um estado impede conjurar e se concentrar (Rage; nota 0078). */
+  requireCanCastNow(character: SessionCharacter): void {
+    const state = character.adjustments.find((a) => a.feature?.noSpells);
+    if (state) throw violation(`${character.name} não pode conjurar: ${state.name}`);
   }
 
   /** Tira o personagem do descanso em andamento (dano interrompe; SRD 5.2.1, "Short Rest"); o último a sair encerra o descanso. */

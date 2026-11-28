@@ -1,6 +1,6 @@
 import { loadSrdCompendium } from 'rules-engine';
 import { describe, expect, it } from 'vitest';
-import { monsterActions, searchItems, searchMonsters } from './compendium';
+import { monsterActions, monsterBlock, searchItems, searchMonsters } from './compendium';
 
 describe('searchMonsters (SRD compendium)', () => {
   const { creatures } = loadSrdCompendium();
@@ -56,7 +56,18 @@ describe('monsterActions', () => {
       damage: [{ dice: '4d6', type: 'acid' }],
       onSuccess: 'half',
       conditions: [],
+      limit: { recharge: 6 },
     });
     expect(monsterActions(creatures, 'nao_existe')).toEqual([]);
+  });
+});
+
+describe('monsterBlock', () => {
+  it('gives the whole stat block with modifiers and saves', () => {
+    const block = monsterBlock(loadSrdCompendium(), 'adult_red_dragon');
+    expect(block?.abilities).toMatchObject({ str: { modifier: 8, save: 8 }, dex: { modifier: 0, save: 6 } });
+    expect(block?.spells.find((s) => s.spellId === 'fireball')).toMatchObject({ name: 'Fireball', structured: true, use: { id: 'spell_fireball', perDay: 1 } });
+    expect(block?.creature.traits.map((t) => t.id)).toContain('legendary_resistance');
+    expect(monsterBlock({ creatures: [], spells: [] }, 'x')).toBeNull();
   });
 });

@@ -71,6 +71,23 @@ export function ConcentrationControl({
   );
 }
 
+/** A Concentração de um token de monstro (nota 0068). */
+export function TokenConcentration({ tokenId, current, canEdit }: { tokenId: string; current: Concentration | null; canEdit: boolean }) {
+  const [error, setError] = useState<string | null>(null);
+  if (!current) return null;
+  return (
+    <p className="concentration">
+      <strong>Concentração:</strong> {current.name}{' '}
+      {canEdit && (
+        <button type="button" className="link" onClick={() => void sendIntent({ kind: 'concentration.end', data: { tokenId } }).then(setError)}>
+          encerrar
+        </button>
+      )}
+      {error !== null && <span className="error">{error}</span>}
+    </p>
+  );
+}
+
 export function ConcentrationBody({ entry, header }: { entry: Extract<ChatEntry, { kind: 'concentration' }>; header: ReactNode }) {
   const text =
     entry.event === 'started'

@@ -62,3 +62,9 @@ export function cellDistanceFeet(from: GridCell, to: GridCell): number {
   if (from.x === to.x && from.y === to.y) return 0;
   return distanceFeet({ x: from.x, y: from.y, size: 'medium' }, { x: to.x, y: to.y, size: 'medium' });
 }
+
+/** Tamanhos do menor ao maior (SRD 5.2.1, "Size"). */
+const SIZE_ORDER: readonly Size[] = ['tiny', 'small', 'medium', 'large', 'huge', 'gargantuan'];
+
+/** O alvo é do tamanho `max` ou menor. */
+export const sizeAtMost = (size: Size, max: Size): boolean => SIZE_ORDER.indexOf(size) <= SIZE_ORDER.indexOf(max);

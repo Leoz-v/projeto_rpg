@@ -19,6 +19,7 @@ const api: VttApi = {
   creationOptions: () => ipcRenderer.invoke(IpcChannel.creationOptions),
   searchItems: (query) => ipcRenderer.invoke(IpcChannel.searchItems, query),
   characterHpMaxima: () => ipcRenderer.invoke(IpcChannel.characterHpMaxima),
+  monsterBlock: (monsterId) => ipcRenderer.invoke(IpcChannel.monsterBlock, monsterId),
   monsterActions: (monsterId) => ipcRenderer.invoke(IpcChannel.monsterActions, monsterId),
   getUpdateStatus: () => ipcRenderer.invoke(IpcChannel.getUpdateStatus),
   installUpdate: () => ipcRenderer.invoke(IpcChannel.installUpdate),

@@ -23,6 +23,7 @@ function setup(sceneDoc?: unknown): HostSession {
     characterSheet: () => undefined,
     monsterHpMax: () => undefined,
     creature: () => undefined,
+    item: () => undefined,
     spell: () => undefined,
     assetExists: (sha) => sha === SCENE_3D_SHA && sceneDoc !== undefined,
     readAsset: (sha) => (sha === SCENE_3D_SHA && sceneDoc !== undefined ? Buffer.from(JSON.stringify(sceneDoc), 'utf8') : undefined),

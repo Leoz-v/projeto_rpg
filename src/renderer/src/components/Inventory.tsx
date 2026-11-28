@@ -1,8 +1,10 @@
 import { type SyntheticEvent, useEffect, useState } from 'react';
 import type { DerivedSheet, InventoryLine } from 'rules-engine';
 import type { ItemSummary } from '../../../shared/ipc';
-import type { SessionCharacter } from '../../../shared/protocol';
+import type { SessionCharacter, SessionState } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
+import { ItemChargesControl } from './ItemCharges';
+import { ItemUseForm } from './ItemUse';
 
 /**
  * Inventário na ficha. A lista e o que está ativo vêm do motor (`sheet.inventory`);
@@ -93,8 +95,12 @@ function AddItem({ character, onError }: { character: SessionCharacter; onError:
   const [item, setItem] = useState<ItemSummary | null>(null);
   const [variantId, setVariantId] = useState('');
   const [baseId, setBaseId] = useState('');
+  const [spellId, setSpellId] = useState('');
   const [quantity, setQuantity] = useState(1);
   const results = useItemSearch(item ? '' : query);
+  // Pergaminho: as magias do círculo da variante; a primeira vale até escolher outra.
+  const spells = item?.variants.find((v) => v.id === variantId)?.spells ?? [];
+  const scrollSpell = spells.find((s) => s.id === spellId) ?? spells[0];
 
   const choose = (found: ItemSummary): void => {
     setItem(found);
@@ -112,6 +118,7 @@ function AddItem({ character, onError }: { character: SessionCharacter; onError:
         characterId: character.id,
         itemId: item.id,
         ...(item.variants.length > 0 ? { variantId } : {}),
+        ...(scrollSpell ? { spellId: scrollSpell.id } : {}),
         ...(item.bases.length > 1 ? { baseItemId: baseId } : {}),
         ...(quantity > 1 ? { quantity } : {}),
       },
@@ -194,6 +201,23 @@ function AddItem({ character, onError }: { character: SessionCharacter; onError:
               </select>
             </label>
           )}
+          {scrollSpell && (
+            <label>
+              Magia
+              <select
+                value={scrollSpell.id}
+                onChange={(e) => {
+                  setSpellId(e.target.value);
+                }}
+              >
+                {spells.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {item.bases.length > 1 && (
             <label>
               Item base
@@ -231,7 +255,8 @@ function AddItem({ character, onError }: { character: SessionCharacter; onError:
   );
 }
 
-export function Inventory({ character, sheet, canEdit }: { character: SessionCharacter; sheet: DerivedSheet; canEdit: boolean }) {
+export function Inventory({ character, sheet, state, canEdit }: { character: SessionCharacter; sheet: DerivedSheet; state: SessionState; canEdit: boolean }) {
+  const [usingId, setUsingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const id = character.id;
   const update = (line: InventoryLine, change: { equipped?: boolean; attuned?: boolean; quantity?: number }): void => {
@@ -258,6 +283,9 @@ export function Inventory({ character, sheet, canEdit }: { character: SessionCha
             <li key={line.instanceId} className={line.active ? 'active' : ''}>
               <span className="item-name">
                 {line.name}
+                {line.scroll?.spell != null && `: ${line.scroll.spell}`}
+                {line.scroll?.problem !== undefined && <span className="tag">{line.scroll.problem}</span>}
+                {line.scroll?.checkDc !== undefined && <span className="hint"> teste CD {line.scroll.checkDc}</span>}
                 {line.quantity > 1 && <span className="hint"> × {line.quantity}</span>}
                 {(line.equipped || line.attuned) && !line.active && <span className="tag">sem efeito</span>}
               </span>
@@ -287,6 +315,28 @@ export function Inventory({ character, sheet, canEdit }: { character: SessionCha
                       sintonizado
                     </label>
                   )}
+                  {line.scroll?.spell != null && (
+                    <button
+                      type="button"
+                      className="link"
+                      onClick={() => {
+                        void sendIntent({ kind: 'item.read', data: { characterId: id, instanceId: line.instanceId } }).then(setError);
+                      }}
+                    >
+                      ler
+                    </button>
+                  )}
+                  {line.use && (
+                    <button
+                      type="button"
+                      className="link"
+                      onClick={() => {
+                        setUsingId(usingId === line.instanceId ? null : line.instanceId);
+                      }}
+                    >
+                      usar
+                    </button>
+                  )}
                   {line.quantity > 1 && (
                     <button
                       type="button"
@@ -310,6 +360,18 @@ export function Inventory({ character, sheet, canEdit }: { character: SessionCha
                 </span>
               ) : (
                 <span className="hint">{[line.equipped ? 'equipado' : '', line.attuned ? 'sintonizado' : ''].filter(Boolean).join(', ')}</span>
+              )}
+              {canEdit && line.charges && <ItemChargesControl character={character} line={line} charges={line.charges} />}
+              {canEdit && line.use && usingId === line.instanceId && (
+                <ItemUseForm
+                  character={character}
+                  line={line}
+                  use={line.use}
+                  state={state}
+                  onDone={() => {
+                    setUsingId(null);
+                  }}
+                />
               )}
             </li>
           ))}

@@ -210,6 +210,22 @@ export function describeEffect(effect: Effect): string {
       return `+${effect.dice}${effect.damageType ? ` ${DAMAGE_LABEL[effect.damageType].toLowerCase()}` : ''} nos ataques${when}`;
     case 'd20_bonus':
       return `${effect.subtract ? '−' : '+'}${effect.dice} em ${targetLabel(effect.target, ROLL_TARGETS)}${when}`;
+    case 'attacks_against':
+      return `${effect.mode === 'advantage' ? 'Vantagem' : 'Desvantagem'} em ataques contra o alvo${effect.from ? ' (de certos tipos de criatura)' : ''}${when}`;
+    case 'feature_use':
+      return `Usar: ${effect.name}`;
+    case 'feature_use_part':
+      return `Parte de ${humanizeId(effect.use)}`;
+    case 'attack_rider':
+      return `${effect.name}: +${typeof effect.dice === 'string' ? effect.dice : effect.dice.byLevel[0]} nos ataques`;
+    case 'target_damage':
+      return `+${effect.dice} ${DAMAGE_LABEL[effect.damageType].toLowerCase()} nos ataques de quem conjurou${effect.within !== undefined ? ` (alvos a até ${effect.within} ft)` : ''}${when}`;
+    case 'attack_ability':
+      return `Ataca com ${ABILITY_LABEL[effect.ability].long}${when}`;
+    case 'base_override':
+      return `Arma alterada${effect.damageDice ? `: dano ${effect.damageDice}` : ''}${effect.damageType ? ` ${DAMAGE_LABEL[effect.damageType].toLowerCase()}` : ''}${when}`;
+    case 'minimum_ac':
+      return `CA mínima ${effect.value}${when}`;
     case 'set_base_ac':
       return `CA base ${effect.base}${effect.abilities.map((a) => ` + ${ABILITY_LABEL[a].short}`).join('')}${when}`;
     case 'damage_reduction':
