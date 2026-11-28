@@ -116,8 +116,23 @@ export const ClientMessageSchema = z.discriminatedUnion('type', [
 ]);
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
 
-/** O que um cliente aceita do Host. */
-export const HostMessageSchema = z.discriminatedUnion('type', [
+/**
+ * O que um cliente aceita do Host. O tipo vem declarado, mensagem por
+ * mensagem: inferido da união inteira, ele passa do tamanho que o TypeScript
+ * consegue escrever numa declaração (TS7056 nos projetos `composite`).
+ */
+export type HostMessage =
+  | z.infer<typeof HandshakeAcceptSchema>
+  | z.infer<typeof HandshakeRejectSchema>
+  | z.infer<typeof IntentResultSchema>
+  | z.infer<typeof StateSnapshotSchema>
+  | z.infer<typeof StatePatchSchema>
+  | z.infer<typeof ChatHistorySchema>
+  | z.infer<typeof AssetChunkSchema>
+  | z.infer<typeof PingSchema>
+  | z.infer<typeof PongSchema>
+  | z.infer<typeof ErrorMessageSchema>;
+export const HostMessageSchema: z.ZodType<HostMessage> = z.discriminatedUnion('type', [
   HandshakeAcceptSchema,
   HandshakeRejectSchema,
   IntentResultSchema,
@@ -129,4 +144,3 @@ export const HostMessageSchema = z.discriminatedUnion('type', [
   PongSchema,
   ErrorMessageSchema,
 ]);
-export type HostMessage = z.infer<typeof HostMessageSchema>;
