@@ -1,7 +1,7 @@
 import { Filter, type FilterSystem, GlProgram, GpuProgram, Matrix, type RenderSurface, type Sprite, type Texture, UniformGroup } from 'pixi.js';
 
 /**
- * Filtro PixiJS v8 de iluminação e Darkvision seletiva (nota 0061):
+ * Filtro PixiJS v8 de iluminação e Darkvision seletiva (nota 0081):
  * dessatura apenas regiões com `mask.r > 0` (Darkvision B&W e memória explorada)
  * preservando cores vivas onde há luz, e aplica névoa/escuridão conforme `mask.gb/a`.
  */

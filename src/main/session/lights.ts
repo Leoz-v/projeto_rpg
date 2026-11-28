@@ -19,7 +19,7 @@ import {
 import { notAllowed, type SessionContext, violation } from './context';
 import { recordExploredOps } from './fog';
 
-/** Iluminação dinâmica em tempo de execução: ambiente, luzes e overrides de tochas 3D (nota 0061). */
+/** Iluminação dinâmica em tempo de execução: ambiente, luzes e overrides de tochas 3D (nota 0081). */
 
 function validateAttachment(ctx: SessionContext, map: GameMap, attach: LightAttachment, playerId: string, role: Role): void {
   if (attach.kind === 'point') {

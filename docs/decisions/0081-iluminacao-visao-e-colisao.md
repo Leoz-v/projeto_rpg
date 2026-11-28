@@ -1,4 +1,6 @@
-# 0061 — Iluminação dinâmica, visão de D&D e colisão com paredes e terreno
+# 0081 — Iluminação dinâmica, visão de D&D e colisão com paredes e terreno
+
+> Numerada 0061 por engano quando entrou (repetia a nota de controles do mouse); renumerada na revisão de 28/11/2026. O conteúdo não mudou.
 
 ## Contexto
 

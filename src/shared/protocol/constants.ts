@@ -26,10 +26,10 @@ export const DEFAULT_VISION_FEET = 60;
 export const MIN_VISION_FEET = 5;
 export const MAX_VISION_FEET = 300;
 export const MAX_FOG_PAINT_CELLS = 2000;
-/** Limites de colisão e paredes por mapa (nota 0061). */
+/** Limites de colisão e paredes por mapa (nota 0081). */
 export const MAX_MAP_WALLS = 2000;
 export const DOOR_INTERACT_CELLS = 2;
-/** Limites de fontes de luz dinâmicas e overrides de tochas do mapa (nota 0061). */
+/** Limites de fontes de luz dinâmicas e overrides de tochas do mapa (nota 0081). */
 export const MAX_MAP_LIGHTS = 100;
 export const MAX_PROP_LIGHT_OVERRIDES = 500;
 export const LIGHT_INTERACT_CELLS = 2;

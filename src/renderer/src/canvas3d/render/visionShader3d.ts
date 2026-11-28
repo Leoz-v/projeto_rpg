@@ -32,7 +32,7 @@ import {
 import type { LightingPresetId } from './lightingSystem';
 
 /**
- * ShaderBit `@pixi/3d` e gerador de máscara de visão/iluminação ocluída em 3D (nota 0061):
+ * ShaderBit `@pixi/3d` e gerador de máscara de visão/iluminação ocluída em 3D (nota 0081):
  * - Impede vazamento de `PointLight` sem sombras através de paredes e da laje entre superfície e subsolo;
  * - Aplica Darkvision seletiva em preto e branco apenas onde não há luz;
  * - Mantém áreas iluminadas em cores vivas e oculta regiões não vistas.

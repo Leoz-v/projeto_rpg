@@ -40,7 +40,7 @@ import { tokenSide } from './geometry';
 import { spaceSquares } from 'rules-engine/space';
 
 /**
- * Compositor 2D suave por polígonos de visibilidade/iluminação (nota 0061):
+ * Compositor 2D suave por polígonos de visibilidade/iluminação (nota 0081):
  * gera em paralelo a máscara de percepção do filtro `VisionLightingFilter` e o mapa
  * de cores de luz ocluídas por paredes/portas, sem vazar luz nem visão através de obstáculos.
  */

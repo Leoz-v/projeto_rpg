@@ -94,9 +94,9 @@ const MIGRATIONS = [
   // Tokens ocultos pelo mestre e indicação de morto (nota 0070).
   `ALTER TABLE tokens ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0;
    ALTER TABLE tokens ADD COLUMN dead INTEGER NOT NULL DEFAULT 0;`,
-  // Segmentos de parede, porta, janela e penhasco do mapa em JSON (nota 0061).
+  // Segmentos de parede, porta, janela e penhasco do mapa em JSON (nota 0081).
   `ALTER TABLE maps ADD COLUMN walls TEXT NOT NULL DEFAULT '[]';`,
-  // Iluminação dinâmica: ambiente/horário, fontes em tempo de execução e overrides de tochas 3D (nota 0061).
+  // Iluminação dinâmica: ambiente/horário, fontes em tempo de execução e overrides de tochas 3D (nota 0081).
   `ALTER TABLE maps ADD COLUMN lighting TEXT NOT NULL DEFAULT '{"environment":"exterior","timeOfDay":"day","ambientOverride":null}';
    ALTER TABLE maps ADD COLUMN lights TEXT NOT NULL DEFAULT '[]';
    ALTER TABLE maps ADD COLUMN prop_light_overrides TEXT NOT NULL DEFAULT '{}';`,

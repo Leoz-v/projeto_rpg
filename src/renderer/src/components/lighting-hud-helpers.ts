@@ -2,7 +2,7 @@ import type { LightPreset, MapEnvironment, TimeOfDay, VisionProfile } from 'rule
 import type { AmbientLight, LightAttachment, NewMapLightSource } from '../../../shared/protocol';
 
 /**
- * Tipos e auxiliares puros para os controles de iluminação, paredes/portas e visão na mesa (nota 0061).
+ * Tipos e auxiliares puros para os controles de iluminação, paredes/portas e visão na mesa (nota 0081).
  */
 
 export type WallTool = 'none' | 'wall' | 'door' | 'window' | 'terrain_wall' | 'erase';

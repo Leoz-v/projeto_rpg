@@ -1,7 +1,7 @@
 import { type MapLayer, type WallSegment, wallBlocksLight, wallBlocksMovement, wallBlocksVision } from './types';
 
 /**
- * Geometria 2D de oclusão e colisão em coordenadas de células do grid (nota 0061).
+ * Geometria 2D de oclusão e colisão em coordenadas de células do grid (nota 0081).
  * Módulo puro sem dependências de UI, PixiJS, Electron ou Node.
  */
 
