@@ -61,6 +61,8 @@ export interface AttackInput {
   autoCritical?: boolean | undefined;
   /** No erro, metade do dano (Acid Arrow): rolado sem crítico, cada tipo arredondado para baixo. */
   onMiss?: 'half' | undefined;
+  /** O d20 já rolado (o ataque que esperou a inspiração; nota 0079): não rola de novo. */
+  rolled?: D20RollResult | undefined;
 }
 
 export interface AttackResult {
@@ -71,7 +73,7 @@ export interface AttackResult {
 }
 
 export function resolveAttack(input: AttackInput, rng: Rng): AttackResult {
-  const roll = rollD20(input.d20, rng);
+  const roll = input.rolled ?? rollD20(input.d20, rng);
   const hit = roll.critical || (!roll.fumble && roll.total >= input.targetAc);
   if (!hit && input.onMiss !== 'half') return { roll, hit, critical: false };
   const critical = hit && (roll.critical || input.autoCritical === true);

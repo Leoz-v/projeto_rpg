@@ -10,6 +10,7 @@ export { isConsumed, itemSaveApplies, itemSaveDc, itemUse, itemUseDamages, itemU
 export { availableCharges, type ChargedItem, chargedItem, type ItemCaster, itemCaster, itemMagicProblems, itemSpellCosts, itemSpellLevel, lastChargeOutcome } from './item-charges';
 export { type Scroll, scrollOf, type ScrollReading, scrollReading, scrollSpells } from './scrolls';
 export { type AppliedRider, type AttackRider, type ChosenRider, chosenRiderProblems, ridersOnHit, type RiderTarget, sneakAttackAllowed } from './attack-riders';
+export { addInspirationDie, type InspirationRoll, inspirationRollOf, inspirationUseless, type SheetSelfInspiration } from './inspiration';
 export { featureEnded, isPoolUse, poolConditions, type ResolvedFeaturePart, type SheetFeatureUse, wearsHeavyArmor } from './feature-uses';
 export { baseItemOptions, inventoryEntryProblems } from './items';
 export { ABILITY_ROLL_DICE, ABILITY_ROLL_SIDES, type AbilityRollSet, rollAbilityScores, usesRolledValues } from './ability-scores';

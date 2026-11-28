@@ -95,9 +95,11 @@ type UseData = Omit<IntentData<'feature.use'>, 'characterId' | 'featureId'>;
 type PoolCondition = NonNullable<UseData['conditions']>[number];
 
 function UseForm({ character, sheet, state, use, left, onUse }: { character: SessionCharacter; sheet: DerivedSheet; state: SessionState; use: SheetFeatureUse; left: number | undefined; onUse: (data: UseData) => void }) {
-  const others = Object.values(state.tokens).filter((t) => t.mapId === state.activeMapId && t.characterId !== character.id);
+  // Bardic Inspiration: só outro personagem guarda o dado (nota 0079).
+  const inspires = use.parts.some((p) => p.kind === 'inspire');
+  const others = Object.values(state.tokens).filter((t) => t.mapId === state.activeMapId && t.characterId !== character.id && (!inspires || t.characterId !== null));
   const weapons = sheet.attacks.filter((a) => a.kind === 'melee');
-  const [target, setTarget] = useState(SELF);
+  const [target, setTarget] = useState(inspires ? (others[0]?.id ?? '') : SELF);
   const [amount, setAmount] = useState('0');
   const [conditions, setConditions] = useState<PoolCondition[]>([]);
   const [weapon, setWeapon] = useState(weapons[0]?.instanceId ?? '');
@@ -122,7 +124,8 @@ function UseForm({ character, sheet, state, use, left, onUse }: { character: Ses
         <label>
           Alvo
           <select value={target} onChange={(e) => { setTarget(e.target.value); }}>
-            <option value={SELF}>{character.name} (quem usa)</option>
+            {!inspires && <option value={SELF}>{character.name} (quem usa)</option>}
+            {inspires && others.length === 0 && <option value="">nenhum outro personagem no mapa</option>}
             {others.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name}
@@ -161,7 +164,7 @@ function UseForm({ character, sheet, state, use, left, onUse }: { character: Ses
           </select>
         </label>
       )}
-      <button type="submit" className="small" disabled={pool && (total < 1 || (left !== undefined && total > left))}>
+      <button type="submit" className="small" disabled={(pool && (total < 1 || (left !== undefined && total > left))) || (inspires && target === '')}>
         Confirmar{pool && ` (gasta ${total})`}
       </button>
     </form>

@@ -250,7 +250,7 @@ PARTIAL = {
 }
 # Recursos contados pelo efeito `resource` (nota 0052): o uso em si (ação, rolagem, escolha) segue pendente.
 RESOURCE_USES = [
-    "feature:class:bard/bardic_inspiration", "feature:class:bard/font_of_inspiration",
+    "feature:class:bard/font_of_inspiration",
     "feature:class:cleric/divine_intervention", "feature:class:druid/wild_shape",
     "feature:class:fighter/action_surge", "feature:class:fighter/indomitable",
     "feature:class:monk/monks_focus", "feature:class:paladin/channel_divinity",

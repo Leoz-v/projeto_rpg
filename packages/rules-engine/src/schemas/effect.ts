@@ -521,6 +521,8 @@ export const FeatureUsePartSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('condition'), conditions: z.array(ConditionSchema.exclude(['exhaustion'])).min(1), until: UntilTurnSchema }),
   /** Recupera todos os usos de outro recurso (Uncanny Metabolism). */
   z.strictObject({ kind: z.literal('regain'), resource: IdSchema }),
+  /** Dá um dado de inspiração ao alvo, que o guarda e soma depois de uma rolagem (Bardic Inspiration; nota 0079). */
+  z.strictObject({ kind: z.literal('inspire'), dice: LevelDiceSchema }),
   /** Estado em quem usou: efeitos na ficha até ser encerrado. */
   z.strictObject({
     kind: z.literal('buff'),
@@ -555,6 +557,24 @@ export type FeatureUse = z.infer<typeof FeatureUseSchema>;
 const FeatureUseExtensionSchema = z.strictObject({ type: z.literal('feature_use_part'), use: IdSchema, part: FeatureUsePartSchema, ...common });
 export type FeatureUseExtension = z.infer<typeof FeatureUseExtensionSchema>;
 
-export const EffectSchema = z.discriminatedUnion('type', [...BaseEffectSchema.options, FeatureUseSchema, FeatureUseExtensionSchema]);
+/**
+ * O próprio personagem soma o dado de inspiração a uma rolagem sua que falhou,
+ * gastando um uso do recurso (Peerless Skill; nota 0079).
+ */
+const SelfInspirationSchema = z.strictObject({
+  type: z.literal('self_inspiration'),
+  id: IdSchema,
+  name: z.string().min(1).max(100),
+  resource: IdSchema,
+  dice: LevelDiceSchema,
+  /** As rolagens em que vale: testes de atributo, jogadas de ataque, salvaguardas. */
+  rolls: z.array(z.enum(['check', 'attack', 'save'])).min(1),
+  /** Se a rolagem continuar falhando, o uso não é gasto. */
+  keepOnFailure: z.literal(true).optional(),
+  ...common,
+});
+export type SelfInspiration = z.infer<typeof SelfInspirationSchema>;
+
+export const EffectSchema = z.discriminatedUnion('type', [...BaseEffectSchema.options, FeatureUseSchema, FeatureUseExtensionSchema, SelfInspirationSchema]);
 export type Effect = z.infer<typeof EffectSchema>;
 export type EffectType = Effect['type'];

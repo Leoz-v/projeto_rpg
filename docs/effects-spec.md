@@ -467,7 +467,8 @@ Característica que o jogador usa na mesa (nota 0078). A ficha a lista em `featu
 ```
 
 - `cost`: usos do recurso (`amount`, padrão 1). `targets`: `self` ou `one`. `forbidHeavyArmor`: não com armadura pesada. `action`, `duration` e `note` são texto para a mesa.
-- Partes, na ordem: `heal` (dados, `bonus` somados, `minimum`, `temporary`), `pool_heal` e `pool_restore` (a reserva gasta o que quem usa escolher), `restore` (condições que terminam), `condition` (com `until`), `regain` (todos os usos de outro recurso) e `buff` (estado em quem usou).
+- Partes, na ordem: `heal` (dados, `bonus` somados, `minimum`, `temporary`), `pool_heal` e `pool_restore` (a reserva gasta o que quem usa escolher), `restore` (condições que terminam), `condition` (com `until`), `regain` (todos os usos de outro recurso) e `buff` (estado em quem usou), e `inspire` (o dado de inspiração que o alvo guarda; nota 0079).
+- `inspire`: `dice` é uma expressão ou `byLevel` (20 valores) pelo nível na escala da fonte. O alvo é outro personagem, que guarda um dado de cada vez e o soma depois de ver uma rolagem dele (Teste d20) que falhou. O dado acaba ao ser usado, descartado ou no fim de um descanso (a mesa não tem relógio para a hora do texto).
 - `buff`: os efeitos do catálogo ficam na ficha como ajuste ligado à característica, com os números do momento, até o dono encerrar, o `until` ou um `endsOn` (`incapacitated`, `unconscious`, `heavy_armor`; a morte, sempre). `noSpells`: não conjura nem se concentra. `weapon`: os efeitos são de uma arma corpo a corpo.
 - Um de mesmo `id` que vem depois substitui o anterior (Persistent Rage).
 
@@ -489,6 +490,18 @@ Configura o alcance de visão normal em áreas iluminadas para a ficha (`VisionP
 - `mode`: `"set"` (padrão) ou `"cap"`.
   - Entre vários `"set"`, vale o maior alcance (`"unlimited"` supera qualquer valor finito).
   - Entre vários `"cap"`, vale o menor limite finito, que limita o alcance base resolvido (útil para maldições, clima ou restrições da mesa).
+
+### 3.33 `self_inspiration`
+
+O próprio personagem soma o dado de inspiração a uma rolagem sua que falhou, gastando um uso do recurso (Peerless Skill, nota 0079).
+
+```json
+{ "type": "self_inspiration", "id": "peerless_skill", "name": "Peerless Skill", "resource": "bardic_inspiration", "dice": { "byLevel": ["1d6", "…"] }, "rolls": ["check", "attack"], "keepOnFailure": true }
+```
+
+- `rolls`: as rolagens em que vale: `check` (perícias e iniciativa), `attack` e `save` (salvaguardas, inclusive contra a Morte).
+- `dice`: como no `inspire` (3.30). `keepOnFailure`: se a rolagem continuar falhando, o uso não é gasto (o Host só sabe com a CD ou a CA; na rolagem solta, gasta e avisa).
+- Usado como o dado guardado: depois de ver a rolagem, por quem a fez. Um de mesmo `id` que vem depois substitui.
 
 ### Efeitos numa arma
 

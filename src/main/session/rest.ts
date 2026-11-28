@@ -1,6 +1,7 @@
 import { availableHitDice, currentHitPoints, exhaustionAfterLongRest, hitDieHealing, MIN_HP_TO_REST, resourcesAfterRest, spellSlotsAfterRest } from 'rules-engine';
 import { type IntentData, type PatchOp, type Role, type SessionCharacter, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation } from './context';
+import { expireInspirations } from './inspiration';
 import { changeCharacterHp } from './vitality';
 
 /** Descansos e Dados de Vida (nota 0050). Funções do executor da sessão (`HostSession`), sobre o `SessionContext`. */
@@ -59,9 +60,13 @@ export function finishRest(ctx: SessionContext, playerId: string): PatchOp[] {
     ops.push(...result.ops);
     if (rest.kind === 'long' || result.recovered.length > 0) notes.push(`${character.name}: ${result.recovered.length > 0 ? result.recovered.join(', ') : 'nada a recuperar'}`);
   }
+  // A hora do dado de inspiração passou (nota 0079).
+  const expired = expireInspirations(ctx);
+  notes.push(...expired.notes);
   return [
     { op: 'replace', path: '/rest', value: null },
     ...ops,
+    ...expired.ops,
     ctx.appendChat({ kind: 'rest', ...ctx.entryBase(playerId), event: 'finished', rest: rest.kind, characters: characters.map((c) => ({ characterId: c.id, name: c.name })), notes: notes.slice(0, 50) }),
   ];
 }

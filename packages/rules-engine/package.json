@@ -15,7 +15,8 @@
     "./resources": "./src/engine/resources.ts",
     "./monster-uses": "./src/engine/monster-uses.ts",
     "./multiattack": "./src/engine/multiattack.ts",
-    "./vision": "./src/engine/vision.ts"
+    "./vision": "./src/engine/vision.ts",
+    "./inspiration": "./src/engine/inspiration.ts"
   },
   "scripts": {
     "test": "vitest run",
