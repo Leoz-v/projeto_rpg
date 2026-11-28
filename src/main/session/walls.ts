@@ -13,6 +13,7 @@ import {
   toPointer,
 } from '../../shared/protocol';
 import { notAllowed, type SessionContext, violation } from './context';
+import { recordExploredOps } from './fog';
 
 /** Paredes, portas e janelas do mapa: validação e ações no executor da sessão (nota 0061). */
 
@@ -82,7 +83,10 @@ export function updateWall(ctx: SessionContext, data: IntentData<'wall.update'>)
   };
   validateSegment(map, next);
   const nextWalls = map.walls.map((w, i) => (i === index ? next : w));
-  return [{ op: 'replace', path: toPointer('maps', map.id, 'walls'), value: nextWalls }];
+  return [
+    { op: 'replace', path: toPointer('maps', map.id, 'walls'), value: nextWalls },
+    ...recordExploredOps(ctx, { ...map, walls: nextWalls }, Object.values(ctx.current.tokens)),
+  ];
 }
 
 export function removeWalls(ctx: SessionContext, data: IntentData<'wall.remove'>): PatchOp[] {
@@ -90,7 +94,10 @@ export function removeWalls(ctx: SessionContext, data: IntentData<'wall.remove'>
   const removeSet = new Set(data.wallIds);
   const nextWalls = map.walls.filter((w) => !removeSet.has(w.id));
   if (nextWalls.length === map.walls.length) return [];
-  return [{ op: 'replace', path: toPointer('maps', map.id, 'walls'), value: nextWalls }];
+  return [
+    { op: 'replace', path: toPointer('maps', map.id, 'walls'), value: nextWalls },
+    ...recordExploredOps(ctx, { ...map, walls: nextWalls }, Object.values(ctx.current.tokens)),
+  ];
 }
 
 export function replaceWalls(ctx: SessionContext, data: IntentData<'wall.replace'>): PatchOp[] {
@@ -103,7 +110,11 @@ export function replaceWalls(ctx: SessionContext, data: IntentData<'wall.replace
     throw violation(`Limite de ${MAX_MAP_WALLS} paredes por mapa atingido`);
   }
   const inserted = data.walls.map((w) => buildWallSegment(ctx, map, w));
-  return [{ op: 'replace', path: toPointer('maps', map.id, 'walls'), value: [...kept, ...inserted] }];
+  const nextWalls = [...kept, ...inserted];
+  return [
+    { op: 'replace', path: toPointer('maps', map.id, 'walls'), value: nextWalls },
+    ...recordExploredOps(ctx, { ...map, walls: nextWalls }, Object.values(ctx.current.tokens)),
+  ];
 }
 
 export function toggleDoor(ctx: SessionContext, playerId: string, role: Role, data: IntentData<'door.toggle'>): PatchOp[] {
@@ -128,5 +139,9 @@ export function toggleDoor(ctx: SessionContext, playerId: string, role: Role, da
   }
 
   const nextWalls = map.walls.map((w, i) => (i === index ? { ...w, open: !w.open } : w));
-  return [{ op: 'replace', path: toPointer('maps', map.id, 'walls'), value: nextWalls }];
+  const ops: PatchOp[] = [{ op: 'replace', path: toPointer('maps', map.id, 'walls'), value: nextWalls }];
+  if (!door.open) {
+    ops.push(...recordExploredOps(ctx, { ...map, walls: nextWalls }, Object.values(ctx.current.tokens)));
+  }
+  return ops;
 }

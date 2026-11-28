@@ -1,8 +1,32 @@
 import { chargedItem, NO_DEATH_SAVES, NO_SPELL_SLOTS_SPENT, rollAbilityScores, usesRolledValues } from 'rules-engine';
-import { NO_CONDITIONS, type IntentData, type PatchOp, type Role, type SessionCharacter, MAX_ADJUSTMENTS, MAX_INVENTORY_ITEMS, MAX_ITEM_QUANTITY, toPointer } from '../../shared/protocol';
+import { applyPatch, NO_CONDITIONS, type IntentData, type PatchOp, type Role, type SessionCharacter, MAX_ADJUSTMENTS, MAX_INVENTORY_ITEMS, MAX_ITEM_QUANTITY, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed, EMPTY_INVENTORY, type InventoryEntry } from './context';
+import { recordExploredOps } from './fog';
 
 /** Personagens, inventário e ajustes do mestre (Fase 3). Funções do executor da sessão (`HostSession`), sobre o `SessionContext`. */
+
+function withCharacterExploredOps(ctx: SessionContext, characterId: string, baseOps: PatchOp[]): PatchOp[] {
+  if (baseOps.length === 0) return baseOps;
+  const mapIds = new Set<string>();
+  for (const token of Object.values(ctx.current.tokens)) {
+    if (token.characterId !== characterId) continue;
+    const map = ctx.current.maps[token.mapId];
+    if (map?.fog.autoEnabled && map.fog.rememberExplored) mapIds.add(map.id);
+  }
+  if (mapIds.size === 0) return baseOps;
+
+  const nextState = applyPatch(ctx.current, baseOps);
+  const updatedChar = nextState.characters[characterId];
+  const nextTokens = Object.values(nextState.tokens);
+  const ops = [...baseOps];
+  for (const mapId of mapIds) {
+    const map = nextState.maps[mapId];
+    if (map) {
+      ops.push(...recordExploredOps(ctx, map, nextTokens, updatedChar ? [updatedChar.ownerId] : undefined, nextState));
+    }
+  }
+  return ops;
+}
 
 export function createCharacter(ctx: SessionContext, playerId: string, role: Role, data: IntentData<'character.create'>): PatchOp[] {
   const ownerId = data.ownerId ?? playerId;
@@ -36,7 +60,7 @@ export function updateCharacter(ctx: SessionContext, playerId: string, role: Rol
   }
   // Desfazer uma escolha deixa soltas as seleções de dentro dela: o Host as descarta.
   if (data.steps !== undefined) set('steps', ctx.deps.pruneSteps(data.steps));
-  return ops;
+  return withCharacterExploredOps(ctx, character.id, ops);
 }
 
 /**
@@ -129,7 +153,7 @@ export function updateItem(ctx: SessionContext, playerId: string, role: Role, da
   if (data.equipped !== undefined) ops.push({ op: 'replace', path: `${path}/equipped`, value: data.equipped });
   if (data.attuned !== undefined) ops.push({ op: 'replace', path: `${path}/attuned`, value: data.attuned });
   if (data.quantity !== undefined) ops.push({ op: 'replace', path: `${path}/quantity`, value: data.quantity });
-  return ops;
+  return withCharacterExploredOps(ctx, character.id, ops);
 }
 
 /** Ajuste do mestre: os efeitos já vêm validados pelo catálogo (schema do motor). */
@@ -137,5 +161,5 @@ export function addAdjustment(ctx: SessionContext, playerId: string, role: Role,
   const character = ctx.ownCharacter(playerId, role, data.characterId);
   if (character.adjustments.length >= MAX_ADJUSTMENTS) throw violation(`No máximo ${MAX_ADJUSTMENTS} ajustes por personagem`);
   const adjustment = { id: ctx.deps.newId(), name: data.name, effects: data.effects };
-  return [{ op: 'add', path: toPointer('characters', character.id, 'adjustments', '-'), value: adjustment }];
+  return withCharacterExploredOps(ctx, character.id, [{ op: 'add', path: toPointer('characters', character.id, 'adjustments', '-'), value: adjustment }]);
 }

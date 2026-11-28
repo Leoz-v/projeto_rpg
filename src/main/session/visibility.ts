@@ -1,22 +1,27 @@
+import { DEFAULT_VISION_PROFILE, type VisionProfile } from 'rules-engine/vision';
 import {
   type ChatEntry,
   ChatEntrySchema,
   type Combat,
   CombatSchema,
-  computePlayerVision,
+  computeMapLightGrid,
+  decodeFogBits,
   type GameMap,
-  isTokenVisibleToPlayer,
+  isTokenPerceivedByPlayer,
   type MapFog,
   MapFogSchema,
+  type MapLightGrid,
   MapSchema,
   type PatchOp,
   type Role,
   type SessionState,
+  type TerrainHeightfield,
   type Token,
   TokenSchema,
   toPointer,
   NO_MONSTER_USES,
 } from '../../shared/protocol';
+import { createSessionVisionResolver, isTokenControlledBy, type SessionVisionResolver } from './vision';
 
 /**
  * Visibilidade por cliente (docs/network-protocol.md, seção 2.12): o mestre vê
@@ -30,14 +35,26 @@ import {
  * - em `maps[id].fog.explored`, cada jogador só recebe a própria entrada;
  * - tokens ocultos pelo mestre (`hidden: true`) nunca chegam a jogadores, nem
  *   na ordem do combate, nem nas entradas do log (nota 0071);
- * - tokens que o jogador não controla só chegam quando ao menos uma célula do
- *   token está atualmente visível (fora da névoa manual e, com névoa automática,
- *   dentro do alcance de visão atual de algum token do jogador).
+ * - tokens que o jogador não controla só chegam quando percebidos pelo jogador
+ *   (fora da névoa manual e, com névoa automática ativa, respeitando alcance da ficha,
+ *   luz efetiva, sentidos como Darkvision/Blindsight/Tremorsense/Truesight e oclusão).
  */
 
 export interface Viewer {
   playerId: string;
   role: Role;
+}
+
+const FALLBACK_VISION = createSessionVisionResolver({
+  characterSheet: () => undefined,
+  creature: () => undefined,
+});
+
+interface MapVisionContext {
+  readonly lightGrid: MapLightGrid;
+  readonly manualFogBits: Uint8Array;
+  readonly heightfield: TerrainHeightfield | null;
+  readonly profiles: Map<string, VisionProfile>;
 }
 
 /** Os campos de uma entrada do log que citam tokens, sejam quais forem os tipos. */
@@ -172,31 +189,77 @@ function redactMap(map: GameMap, viewer: Viewer): GameMap {
   return { ...map, fog: redactFog(map.fog, viewer.playerId) };
 }
 
-/** Pré-calcula a visão do jogador por mapa com névoa automática ativa, evitando recalcular por token. */
-function visionCacheFor(state: SessionState, playerId: string): Map<string, Uint8Array> {
-  const cache = new Map<string, Uint8Array>();
+/** Pré-calcula a grade de iluminação e contexto de visão por mapa com névoa automática ativa. */
+function visionCacheFor(state: SessionState, vision: SessionVisionResolver): Map<string, MapVisionContext> {
+  const cache = new Map<string, MapVisionContext>();
   const allTokens = Object.values(state.tokens);
   for (const map of Object.values(state.maps)) {
-    if (map.fog.autoEnabled) cache.set(map.id, computePlayerVision(map, allTokens, playerId));
+    if (!map.fog.autoEnabled) continue;
+    const scene = vision.sceneFor(map);
+    const lightGrid = computeMapLightGrid(map, allTokens, {
+      heightfield: scene.heightfield,
+      bakedPropLights: scene.bakedPropLights,
+    });
+    const manualFogBits = decodeFogBits(map.fog.manual, map.width, map.height);
+    cache.set(map.id, {
+      lightGrid,
+      manualFogBits,
+      heightfield: scene.heightfield,
+      profiles: new Map(),
+    });
   }
   return cache;
 }
 
-function tokenVisibleInState(state: SessionState, token: Token | undefined, viewer: Viewer, visionCache: Map<string, Uint8Array>): boolean {
+function tokenVisibleInState(
+  state: SessionState,
+  allTokens: readonly Token[],
+  token: Token | undefined,
+  viewer: Viewer,
+  visionCache: Map<string, MapVisionContext>,
+  vision: SessionVisionResolver,
+): boolean {
   if (!token) return false;
   if (viewer.role === 'gm') return true;
   if (token.hidden) return false;
   const map = state.maps[token.mapId];
-  return isTokenVisibleToPlayer(map, Object.values(state.tokens), token, viewer.playerId, visionCache.get(token.mapId));
+  const ctx = map ? visionCache.get(map.id) : undefined;
+  return isTokenPerceivedByPlayer(
+    map,
+    allTokens,
+    token,
+    (t) => {
+      if (!map) return DEFAULT_VISION_PROFILE;
+      const fullToken = state.tokens[t.id] ?? (t as Token);
+      if (ctx) {
+        let cached = ctx.profiles.get(fullToken.id);
+        if (!cached) {
+          cached = vision.profileFor(state, fullToken, map);
+          ctx.profiles.set(fullToken.id, cached);
+        }
+        return cached;
+      }
+      return vision.profileFor(state, fullToken, map);
+    },
+    (t) => isTokenControlledBy(t, state.characters, viewer.playerId),
+    ctx
+      ? {
+          lightGrid: ctx.lightGrid,
+          manualFogBits: ctx.manualFogBits,
+          heightfield: ctx.heightfield,
+        }
+      : undefined,
+  );
 }
 
 /** O estado que esse cliente pode ver. */
-export function viewOf(state: SessionState, viewer: Viewer): SessionState {
+export function viewOf(state: SessionState, viewer: Viewer, vision: SessionVisionResolver = FALLBACK_VISION): SessionState {
   if (viewer.role === 'gm') return state;
-  const visionCache = visionCacheFor(state, viewer.playerId);
+  const visionCache = visionCacheFor(state, vision);
+  const allTokens = Object.values(state.tokens);
   const visibleTokens: SessionState['tokens'] = {};
   for (const [id, token] of Object.entries(state.tokens)) {
-    if (tokenVisibleInState(state, token, viewer, visionCache)) {
+    if (tokenVisibleInState(state, allTokens, token, viewer, visionCache, vision)) {
       visibleTokens[id] = redactToken(token, viewer);
     }
   }
@@ -224,13 +287,25 @@ const MAP_EXPLORED_PLAYER_PATH = /^\/maps\/([^/]+)\/fog\/explored\/([^/]+)$/;
  * depois do patch e `prevState` (quando informado) é o estado imediatamente
  * anterior, usado para emitir `add`/`remove` quando tokens entram ou saem da névoa.
  */
-export function opsFor(ops: readonly PatchOp[], viewer: Viewer, state: SessionState, prevState?: SessionState): PatchOp[] {
+export function opsFor(
+  ops: readonly PatchOp[],
+  viewer: Viewer,
+  state: SessionState,
+  prevState?: SessionState,
+  vision: SessionVisionResolver = FALLBACK_VISION,
+): PatchOp[] {
   if (viewer.role === 'gm') return [...ops];
 
-  const nextVision = visionCacheFor(state, viewer.playerId);
-  const prevVision = prevState ? visionCacheFor(prevState, viewer.playerId) : nextVision;
-  const wasVisible = (id: string): boolean => (prevState ? tokenVisibleInState(prevState, prevState.tokens[id], viewer, prevVision) : tokenVisibleInState(state, state.tokens[id], viewer, nextVision));
-  const isVisible = (id: string): boolean => tokenVisibleInState(state, state.tokens[id], viewer, nextVision);
+  const nextTokens = Object.values(state.tokens);
+  const prevTokens = prevState ? Object.values(prevState.tokens) : nextTokens;
+  const nextVision = visionCacheFor(state, vision);
+  const prevVision = prevState ? visionCacheFor(prevState, vision) : nextVision;
+  const wasVisible = (id: string): boolean =>
+    prevState
+      ? tokenVisibleInState(prevState, prevTokens, prevState.tokens[id], viewer, prevVision, vision)
+      : tokenVisibleInState(state, nextTokens, state.tokens[id], viewer, nextVision, vision);
+  const isVisible = (id: string): boolean =>
+    tokenVisibleInState(state, nextTokens, state.tokens[id], viewer, nextVision, vision);
 
   const filtered = ops.flatMap((op): PatchOp[] => {
     // Com o estado anterior, o combate é comparado inteiro no fim: esconder um token também o muda.

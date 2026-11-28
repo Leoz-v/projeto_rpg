@@ -87,25 +87,34 @@ export class HostSession extends SessionContext {
 
   /** O snapshot para um jogador. */
   viewFor(playerId: string): SessionState {
-    return viewOf(this.current, { playerId, role: this.roleOf(playerId) ?? 'player' });
+    return viewOf(this.current, { playerId, role: this.roleOf(playerId) ?? 'player' }, this.vision);
   }
 
   /** O `StateSnapshot` desse jogador: o estado visível com a janela do chat (nota 0047). */
   snapshotFor(playerId: string): { state: SessionState; chatFrom: number } {
     const { state, chatFrom } = chatWindow(this.current);
-    return { state: viewOf(state, { playerId, role: this.roleOf(playerId) ?? 'player' }), chatFrom };
+    return { state: viewOf(state, { playerId, role: this.roleOf(playerId) ?? 'player' }, this.vision), chatFrom };
   }
 
   /** Entradas do chat antes de `before`, filtradas para esse jogador (`ChatHistoryRequest`). */
   chatHistory(playerId: string, before: number, limit: number): { from: number; entries: ChatEntry[] } {
     const { from, entries } = chatBefore(this.current.chat, before, limit);
-    const view = viewOf({ ...this.current, chat: entries }, { playerId, role: this.roleOf(playerId) ?? 'player' });
+    const view = viewOf({ ...this.current, chat: entries }, { playerId, role: this.roleOf(playerId) ?? 'player' }, this.vision);
     return { from, entries: view.chat };
   }
 
   /** O patch para um jogador: mesmo `rev`, operações filtradas (podem ficar vazias). */
   patchFor(change: StateChange, playerId: string): StateChange {
-    return { ...change, ops: opsFor(change.ops, { playerId, role: this.roleOf(playerId) ?? 'player' }, this.current, change.rev === this.revision ? this.previous : undefined) };
+    return {
+      ...change,
+      ops: opsFor(
+        change.ops,
+        { playerId, role: this.roleOf(playerId) ?? 'player' },
+        this.current,
+        change.rev === this.revision ? this.previous : undefined,
+        this.vision,
+      ),
+    };
   }
 
   /** Conexão aceita no handshake: registra o jogador ou o marca como conectado. */

@@ -1,7 +1,8 @@
 import { CONDITION_NAME, nextTurnRound, type TurnExpiry, withoutDependents } from 'rules-engine';
-import { type ChatEntry, type ConditionState, type TableCondition, type Intent, type IntentData, type PatchOp, type Role, type SessionCharacter, MAX_EXHAUSTION_LEVEL, toPointer } from '../../shared/protocol';
+import { applyPatch, type ChatEntry, type ConditionState, type TableCondition, type Intent, type IntentData, type PatchOp, type Role, type SessionCharacter, MAX_EXHAUSTION_LEVEL, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
 import { endTokenConcentration, tokenConcentrationBreaks } from './monster-concentration';
+import { recordExploredOps } from './fog';
 import { concentrationBreaks, deathStateEntry } from './vitality';
 
 /** Condições, Exaustão e durações por turno (notas 0040 e 0042). Funções do executor da sessão (`HostSession`), sobre o `SessionContext`. */
@@ -99,6 +100,27 @@ export function changeConditions(ctx: SessionContext, playerId: string, role: Ro
   // Incapacitado (ou o que o inclui) ou morto: a Concentração termina.
   if ('tokenId' in holder.logTarget) ops.push(...tokenConcentrationBreaks(ctx, playerId, ctx.token(holder.logTarget.tokenId), state));
   if (character && deathSaves) ops.push(...concentrationBreaks(ctx, playerId, character, state, deathSaves));
+
+  if (intent.kind === 'condition.remove' && (intent.data.condition === 'blinded' || intent.data.condition === 'unconscious')) {
+    const tokens = Object.values(ctx.current.tokens).filter((t) =>
+      'characterId' in holder.logTarget ? t.characterId === holder.logTarget.characterId : t.id === holder.logTarget.tokenId,
+    );
+    const mapIds = new Set<string>();
+    for (const token of tokens) {
+      const map = ctx.current.maps[token.mapId];
+      if (map?.fog.autoEnabled && map.fog.rememberExplored) mapIds.add(map.id);
+    }
+    if (mapIds.size > 0) {
+      const nextState = applyPatch(ctx.current, ops);
+      const nextTokens = Object.values(nextState.tokens);
+      const targetIds = character ? [character.ownerId] : ['tokenId' in holder.logTarget ? holder.logTarget.tokenId : ''];
+      for (const mapId of mapIds) {
+        const nextMap = nextState.maps[mapId];
+        if (nextMap) ops.push(...recordExploredOps(ctx, nextMap, nextTokens, targetIds, nextState));
+      }
+    }
+  }
+
   return ops;
 }
 
