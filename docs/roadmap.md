@@ -100,6 +100,7 @@ Feitas por outros contribuidores ao lado das fases.
    - ✅ Renderização 2D (mapa de luz ocluído e *Darkvision* em preto e branco).
    - ✅ Renderização 3D (`ShaderBit` de luz ocluída, *Darkvision* em P&B e controle de tochas).
    - ✅ UI da mesa e da ficha para ambiente, luzes, paredes/portas e alcance de visão.
+   - ✅ Ajustes da revisão de 28/11/2026: a grade de luz é calculada uma vez por mudança e compartilhada entre os jogadores (cerca de 3,5× mais rápido no Host), e as luzes de tokens ocultos não chegam aos jogadores.
 
 ## Revisões
 

@@ -185,13 +185,39 @@ function redactFog(fog: MapFog, playerId: string): MapFog {
   return { ...fog, explored: redactExplored(fog.explored, playerId) };
 }
 
-function redactMap(map: GameMap, viewer: Viewer): GameMap {
-  if (viewer.role === 'gm') return map;
-  return { ...map, fog: redactFog(map.fog, viewer.playerId) };
+/** As luzes do mapa sem as presas a tokens ocultos: o nome e o id do token não chegam aos jogadores. */
+function visibleLights(map: GameMap, tokens: SessionState['tokens']): GameMap['lights'] {
+  return map.lights.filter((l) => l.attach.kind !== 'token' || tokens[l.attach.tokenId]?.hidden !== true);
 }
+
+function redactMap(map: GameMap, viewer: Viewer, tokens: SessionState['tokens']): GameMap {
+  if (viewer.role === 'gm') return map;
+  return { ...map, fog: redactFog(map.fog, viewer.playerId), lights: visibleLights(map, tokens) };
+}
+
+/**
+ * Grades de iluminação já calculadas, por resolvedor e por estado: o estado
+ * é imutável (cada patch gera outro), então todos os jogadores de um patch
+ * usam a mesma (revisão de 28/11/2026). Os perfis de visão são por token, não
+ * por jogador, e também se compartilham.
+ */
+const visionCaches = new WeakMap<SessionVisionResolver, WeakMap<SessionState, Map<string, MapVisionContext>>>();
 
 /** Pré-calcula a grade de iluminação e contexto de visão por mapa com névoa automática ativa. */
 function visionCacheFor(state: SessionState, vision: SessionVisionResolver): Map<string, MapVisionContext> {
+  let byState = visionCaches.get(vision);
+  if (!byState) {
+    byState = new WeakMap();
+    visionCaches.set(vision, byState);
+  }
+  const known = byState.get(state);
+  if (known) return known;
+  const cache = computeVisionCache(state, vision);
+  byState.set(state, cache);
+  return cache;
+}
+
+function computeVisionCache(state: SessionState, vision: SessionVisionResolver): Map<string, MapVisionContext> {
   const cache = new Map<string, MapVisionContext>();
   const allTokens = Object.values(state.tokens);
   for (const map of Object.values(state.maps)) {
@@ -267,7 +293,7 @@ export function viewOf(state: SessionState, viewer: Viewer, vision: SessionVisio
   return {
     ...state,
     chat: state.chat.map((e) => redactEntry(e, viewer, state.tokens)),
-    maps: Object.fromEntries(Object.entries(state.maps).map(([id, m]) => [id, redactMap(m, viewer)])),
+    maps: Object.fromEntries(Object.entries(state.maps).map(([id, m]) => [id, redactMap(m, viewer, state.tokens)])),
     tokens: visibleTokens,
     proposals: {}, pendingSaves: {},
     // Ataques que esperam a inspiração: só os públicos contra tokens visíveis (nota 0079); um alvo escondido depois some da lista.
@@ -281,6 +307,7 @@ const TOKEN_HP_PATH = /^\/tokens\/([^/]+)\/(?:hp|uses)(?:\/|$)/;
 const TOKEN_PATH = /^\/tokens\/([^/]+)$/;
 const TOKEN_ANY_PATH = /^\/tokens\/([^/]+)(?:\/|$)/;
 const MAP_PATH = /^\/maps\/([^/]+)$/;
+const MAP_LIGHTS_PATH = /^\/maps\/([^/]+)\/lights(?:\/|$)/;
 const MAP_FOG_PATH = /^\/maps\/([^/]+)\/fog$/;
 const MAP_EXPLORED_PATH = /^\/maps\/([^/]+)\/fog\/explored$/;
 const MAP_EXPLORED_PLAYER_PATH = /^\/maps\/([^/]+)\/fog\/explored\/([^/]+)$/;
@@ -303,12 +330,24 @@ export function opsFor(
   const prevTokens = prevState ? Object.values(prevState.tokens) : nextTokens;
   const nextVision = visionCacheFor(state, vision);
   const prevVision = prevState ? visionCacheFor(prevState, vision) : nextVision;
-  const wasVisible = (id: string): boolean =>
+  // Cada token é conferido várias vezes (nas operações e nas transições): uma conta por patch.
+  const seenBefore = new Map<string, boolean>();
+  const seenAfter = new Map<string, boolean>();
+  const memo = (seen: Map<string, boolean>, id: string, compute: () => boolean): boolean => {
+    const known = seen.get(id);
+    if (known !== undefined) return known;
+    const value = compute();
+    seen.set(id, value);
+    return value;
+  };
+  const wasVisibleRaw = (id: string): boolean =>
     prevState
       ? tokenVisibleInState(prevState, prevTokens, prevState.tokens[id], viewer, prevVision, vision)
       : tokenVisibleInState(state, nextTokens, state.tokens[id], viewer, nextVision, vision);
-  const isVisible = (id: string): boolean =>
+  const wasVisible = (id: string): boolean => memo(seenBefore, id, () => wasVisibleRaw(id));
+  const isVisibleRaw = (id: string): boolean =>
     tokenVisibleInState(state, nextTokens, state.tokens[id], viewer, nextVision, vision);
+  const isVisible = (id: string): boolean => memo(seenAfter, id, () => isVisibleRaw(id));
 
   const filtered = ops.flatMap((op): PatchOp[] => {
     // Com o estado anterior, o combate é comparado inteiro no fim: esconder um token também o muda.
@@ -339,7 +378,14 @@ export function opsFor(
     }
     if (MAP_PATH.test(op.path) && op.op !== 'remove') {
       const parsed = MapSchema.safeParse(op.value);
-      return [parsed.success ? { ...op, value: redactMap(parsed.data, viewer) } : op];
+      return [parsed.success ? { ...op, value: redactMap(parsed.data, viewer, state.tokens) } : op];
+    }
+    // Luzes: sem as de tokens ocultos. Com o estado anterior, a lista vai inteira no fim (esconder um token também a muda).
+    const lights = MAP_LIGHTS_PATH.exec(op.path);
+    if (lights?.[1] !== undefined) {
+      if (prevState) return [];
+      const map = state.maps[lights[1]];
+      return map ? [{ op: 'replace', path: toPointer('maps', map.id, 'lights'), value: visibleLights(map, state.tokens) }] : [];
     }
 
     const tokenAny = TOKEN_ANY_PATH.exec(op.path);
@@ -367,6 +413,14 @@ export function opsFor(
   const combatBefore = redactCombat(prevState.combat, viewer, prevState.tokens);
   const combatAfter = redactCombat(state.combat, viewer, state.tokens);
   if (JSON.stringify(combatBefore) !== JSON.stringify(combatAfter)) filtered.push({ op: 'replace', path: '/combat', value: combatAfter });
+
+  // As luzes que o jogador vê mudaram (luz nova, ou o token que a leva foi escondido ou revelado).
+  for (const map of Object.values(state.maps)) {
+    const before = prevState.maps[map.id];
+    if (!before) continue;
+    const after = visibleLights(map, state.tokens);
+    if (JSON.stringify(visibleLights(before, prevState.tokens)) !== JSON.stringify(after)) filtered.push({ op: 'replace', path: toPointer('maps', map.id, 'lights'), value: after });
+  }
 
   // Emite `add`/`remove` para tokens que entraram ou saíram da visão deste jogador.
   const allTokenIds = new Set([...Object.keys(prevState.tokens), ...Object.keys(state.tokens)]);
