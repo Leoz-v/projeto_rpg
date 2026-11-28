@@ -24,6 +24,19 @@ async function createCharacter(player: Person, fixture: string, name: string): P
   return id;
 }
 
+/** A Bardo Lia (Bardo 6) do mestre, com token no mapa ativo. */
+async function createBard(gm: Person): Promise<string> {
+  await send(gm, { kind: 'character.create', data: { name: 'Lia' } });
+  const id = Object.values((await stateOf(gm)).characters).find((c) => c.name === 'Lia')?.id ?? '';
+  const { character } = JSON.parse(readFileSync('packages/rules-engine/tests/fixtures/halfling-bard-6.json', 'utf8')) as {
+    character: Pick<Extract<Intent, { kind: 'character.update' }>['data'], 'baseScores' | 'steps'>;
+  };
+  await send(gm, { kind: 'character.update', data: { characterId: id, baseScores: character.baseScores, steps: character.steps } });
+  const mapId = (await stateOf(gm)).activeMapId ?? '';
+  await send(gm, { kind: 'token.create', data: { mapId, name: 'Lia', position: { x: 0, y: 0 }, size: 'small', characterId: id } });
+  return id;
+}
+
 async function openInventory(player: Person, name: string) {
   await player.page.getByRole('region', { name: 'Personagens' }).getByRole('button', { name }).click();
   return player.page.getByRole('region', { name: 'Inventário' });
@@ -107,6 +120,58 @@ test('Rage: the player starts it, sees it on the sheet and ends it', async ({ ta
   await features.getByRole('button', { name: 'Encerrar Rage' }).click();
   await expect(features.getByText('ativa')).toHaveCount(0);
   await expect(chat(gm)).toContainText('fim de Rage');
+});
+
+test('Bardic Inspiration: the Bard gives the die, the player adds it after seeing a roll', async ({ table: { gm, player } }) => {
+  await createMap(gm, 'Caverna');
+  const fighter = await createCharacter(player, 'dwarf-fighter-5', 'Thorin');
+  await createBard(gm);
+  const mapId = (await stateOf(gm)).activeMapId ?? '';
+  await send(gm, { kind: 'token.create', data: { mapId, name: 'Thorin', position: { x: 100, y: 0 }, size: 'medium', characterId: fighter } });
+
+  await gm.page.getByRole('region', { name: 'Personagens' }).getByRole('button', { name: 'Lia' }).click();
+  const features = gm.page.getByRole('region', { name: 'Características', exact: true });
+  await features.getByRole('button', { name: 'Usar Bardic Inspiration', exact: true }).click();
+  await features.getByRole('form', { name: 'Usar Bardic Inspiration' }).getByRole('button', { name: 'Confirmar' }).click();
+  await expect(chat(player)).toContainText('Thorin recebe um dado de Bardic Inspiration (1d8)');
+
+  await player.page.getByRole('region', { name: 'Personagens' }).getByRole('button', { name: 'Thorin' }).click();
+  await expect(player.page.getByRole('region', { name: 'Dado de inspiração' })).toContainText('1d8');
+  await player.page.getByRole('button', { name: 'Rolar História' }).click();
+  await player.page.getByRole('button', { name: 'Fechar ficha' }).click();
+  await chat(player).getByRole('button', { name: 'Somar Bardic Inspiration (1d8)' }).click();
+  await expect(chat(gm)).toContainText('novo total');
+  await expect(chat(player).getByRole('button', { name: /Somar Bardic Inspiration/ })).toHaveCount(0);
+  expect((await stateOf(gm)).characters[fighter]?.inspiration).toBeNull();
+});
+
+test('Bardic Inspiration on a missed attack: the attack waits and the player adds the die', async ({ table: { gm, player } }) => {
+  await createMap(gm, 'Caverna');
+  await placeMonster(gm, 'Goblin Warrior', { name: 'Goblin' });
+  const fighter = await createCharacter(player, 'dwarf-fighter-5', 'Thorin');
+  await send(player, { kind: 'inventory.add', data: { characterId: fighter, itemId: 'longsword' } });
+  const bard = await createBard(gm);
+  const mapId = (await stateOf(gm)).activeMapId ?? '';
+  await send(gm, { kind: 'token.create', data: { mapId, name: 'Thorin', position: { x: 100, y: 0 }, size: 'medium', characterId: fighter } });
+  const thorin = Object.values((await stateOf(gm)).tokens).find((t) => t.name === 'Thorin')?.id ?? '';
+  await send(gm, { kind: 'feature.use', data: { characterId: bard, featureId: 'bardic_inspiration', targetTokenId: thorin } });
+
+  const inventory = await openInventory(player, 'Thorin');
+  await inventory.getByLabel('equipado').click();
+  await player.page.getByLabel('Alvo dos ataques').selectOption({ label: 'Goblin' });
+  const attack = player.page.getByRole('region', { name: 'Ataques' }).getByRole('button', { name: 'atacar' });
+  // Até errar: no acerto o dado continua guardado.
+  await expect(async () => {
+    await attack.click();
+    await expect.poll(async () => Object.keys((await stateOf(gm)).pendingAttacks).length, { timeout: 1500 }).toBe(1);
+  }).toPass({ timeout: 30_000 });
+  // O mestre também pode decidir: vê o ataque esperando com os botões.
+  await expect(chat(gm).getByRole('button', { name: 'Aceitar o erro' })).toBeVisible();
+  await player.page.getByRole('button', { name: 'Fechar ficha' }).click();
+  await chat(player).getByRole('button', { name: 'Somar Bardic Inspiration (1d8)' }).click();
+  await expect.poll(async () => Object.keys((await stateOf(gm)).pendingAttacks).length).toBe(0);
+  await expect(chat(gm)).toContainText('Bardic Inspiration (Lia)');
+  expect((await stateOf(gm)).characters[fighter]?.inspiration).toBeNull();
 });
 
 test('a spell scroll: the player picks the spell when adding it and reads it', async ({ table: { gm, player } }) => {

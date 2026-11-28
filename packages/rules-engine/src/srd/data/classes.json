@@ -2171,6 +2171,47 @@
                     "min": 1
                   },
                   "recharge": "long_rest"
+                },
+                {
+                  "type": "feature_use",
+                  "id": "bardic_inspiration",
+                  "name": "Bardic Inspiration",
+                  "action": "Ação Bônus",
+                  "targets": "one",
+                  "duration": "1 hora",
+                  "note": "Outra criatura a até 60 ft que veja ou ouça você; uma de cada vez",
+                  "cost": {
+                    "resource": "bardic_inspiration"
+                  },
+                  "parts": [
+                    {
+                      "kind": "inspire",
+                      "dice": {
+                        "byLevel": [
+                          "1d6",
+                          "1d6",
+                          "1d6",
+                          "1d6",
+                          "1d8",
+                          "1d8",
+                          "1d8",
+                          "1d8",
+                          "1d8",
+                          "1d10",
+                          "1d10",
+                          "1d10",
+                          "1d10",
+                          "1d10",
+                          "1d12",
+                          "1d12",
+                          "1d12",
+                          "1d12",
+                          "1d12",
+                          "1d12"
+                        ]
+                      }
+                    }
+                  ]
                 }
               ]
             }

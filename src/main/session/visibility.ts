@@ -134,7 +134,8 @@ export function redactEntry(original: ChatEntry, viewer: Viewer, tokens: Session
     entry.kind === 'damage_roll' ||
     entry.kind === 'attack_roll' ||
     entry.kind === 'save_roll' ||
-    entry.kind === 'mastery_damage'
+    entry.kind === 'mastery_damage' ||
+    entry.kind === 'inspiration_roll'
       ? entry.visibility === 'gm'
       : false;
   if (viewer.role === 'gm' || !secret || entry.authorId === viewer.playerId) return entry;
@@ -269,6 +270,8 @@ export function viewOf(state: SessionState, viewer: Viewer, vision: SessionVisio
     maps: Object.fromEntries(Object.entries(state.maps).map(([id, m]) => [id, redactMap(m, viewer)])),
     tokens: visibleTokens,
     proposals: {}, pendingSaves: {},
+    // Ataques que esperam a inspiração: só os públicos contra tokens visíveis (nota 0079); um alvo escondido depois some da lista.
+    pendingAttacks: Object.fromEntries(Object.entries(state.pendingAttacks).filter(([, p]) => state.tokens[p.targetTokenId]?.hidden !== true)),
     combat: redactCombat(state.combat, viewer, state.tokens),
   };
 }

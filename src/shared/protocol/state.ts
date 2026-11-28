@@ -316,6 +316,28 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
       .min(1)
       .max(MAX_SAVE_TARGETS),
   }),
+  /**
+   * Dado de inspiração somado a uma rolagem da ficha (`inspiration.use`, nota 0079):
+   * o dado guardado (Bardic Inspiration) ou o próprio (Peerless Skill).
+   */
+  z.strictObject({
+    kind: z.literal('inspiration_roll'),
+    ...entryBase,
+    /** A entrada `d20_roll`. */
+    entryOf: UuidSchema,
+    characterId: UuidSchema,
+    characterName: NameSchema,
+    /** "Bardic Inspiration" ou o uso próprio ("Peerless Skill"). */
+    featureName: LabelSchema,
+    /** Quem deu o dado guardado. */
+    giverName: NameSchema.optional(),
+    visibility: VisibilitySchema,
+    dice: DiceSchema,
+    value: z.int(),
+    /** O total da rolagem com o dado. */
+    total: z.int(),
+    notes: LogList,
+  }),
   /** O mestre decidiu a falha de um alvo com Resistência Lendária: usou, ou aceitou a falha (nota 0069). */
   z.strictObject({
     kind: z.literal('legendary_resistance'),
@@ -769,6 +791,10 @@ const RolledScoreSchema = z.int().min(3).max(18);
  * calcula a ficha). `baseScores` fica `null` até os atributos serem definidos;
  * `rolledScores` guarda os valores rolados pelo Host, os únicos aceitos no método `rolled`.
  */
+/** Dado de inspiração que o personagem guarda (nota 0079): o dado e quem deu. */
+export const InspirationDieSchema = z.strictObject({ dice: DiceSchema, name: LabelSchema, giverId: UuidSchema, giverName: NameSchema });
+export type InspirationDie = z.infer<typeof InspirationDieSchema>;
+
 export const SessionCharacterSchema = z.strictObject({
   id: UuidSchema,
   ownerId: UuidSchema,
@@ -794,6 +820,8 @@ export const SessionCharacterSchema = z.strictObject({
   spellSlotsSpent: SpellSlotsSpentSchema,
   /** Usos gastos dos recursos da ficha; os descansos devolvem (nota 0052). */
   resourcesSpent: ResourcesSpentSchema,
+  /** Dado de inspiração guardado (Bardic Inspiration, nota 0079): um de cada vez. */
+  inspiration: InspirationDieSchema.nullable().default(null),
 });
 export type SessionCharacter = z.infer<typeof SessionCharacterSchema>;
 
@@ -831,6 +859,38 @@ export const PendingSaveSchema = z.strictObject({
   concentration: IdSchema.optional(),
 });
 export type PendingSave = z.infer<typeof PendingSaveSchema>;
+
+/**
+ * Ataque de um personagem que errou com um dado de inspiração à mão: o
+ * resultado espera quem atacou usar o dado ou aceitar o erro (nota 0079).
+ * O d20 já foi rolado; o resto (dano, maestria, efeitos) só quando decidir.
+ */
+export const PendingAttackSchema = z.strictObject({
+  id: UuidSchema,
+  /** Quem pediu o ataque e com que papel: a resolução segue como se fosse ele. */
+  authorId: UuidSchema,
+  role: RoleSchema,
+  characterId: UuidSchema,
+  characterName: NameSchema,
+  instanceId: InstanceIdSchema,
+  label: LabelSchema,
+  targetTokenId: UuidSchema,
+  targetName: NameSchema,
+  advantage: z.boolean().optional(),
+  disadvantage: z.boolean().optional(),
+  riders: z.array(z.strictObject({ id: IdSchema, damageType: DamageTypeSchema.optional() })).max(10).optional(),
+  /** Segundo ataque do Cleave: o `attack_roll` de origem. */
+  cleaveOf: UuidSchema.optional(),
+  /** O d20 rolado e o que as regras do d20 fizeram. */
+  roll: z.strictObject({
+    dice: z.array(z.int().min(1).max(20)).min(1).max(4),
+    natural: z.int().min(1).max(20),
+    die: z.int(),
+    total: z.int(),
+    notes: LogList,
+  }),
+});
+export type PendingAttack = z.infer<typeof PendingAttackSchema>;
 
 export const InitiativeSchema = z.int().min(MIN_INITIATIVE).max(MAX_INITIATIVE);
 
@@ -882,6 +942,8 @@ export const SessionStateSchema = z.strictObject({
   proposals: z.record(UuidSchema, DamageProposalSchema),
   /** Falhas à espera da Resistência Lendária (nota 0069). Só o mestre vê; não são gravadas. */
   pendingSaves: z.record(UuidSchema, PendingSaveSchema).default({}),
+  /** Ataques que esperam o dado de inspiração (nota 0079); públicos, contra tokens visíveis. */
+  pendingAttacks: z.record(UuidSchema, PendingAttackSchema).default({}),
   /** Combate em andamento, ou `null`. */
   combat: CombatSchema.nullable(),
   /** Descanso em andamento, ou `null` (nota 0050). */

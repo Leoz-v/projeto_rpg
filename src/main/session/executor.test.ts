@@ -289,7 +289,7 @@ describe('HostSession: characters', () => {
   it('creates an empty draft owned by whoever asked', () => {
     const session = setup();
     const id = create(session, ANA.playerId);
-    expect(session.state.characters[id]).toEqual({ id, ownerId: ANA.playerId, name: 'Thorin', baseScores: null, rolledScores: null, steps: [], inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] }, hp: { damage: 0, temp: 0 }, adjustments: [], conditions: { active: [], exhaustion: 0 }, deathSaves: { successes: 0, failures: 0, stable: false, dead: false }, concentration: null, hitDiceSpent: {}, spellSlotsSpent: { byLevel: {}, pact: 0 }, resourcesSpent: {} });
+    expect(session.state.characters[id]).toEqual({ id, ownerId: ANA.playerId, name: 'Thorin', baseScores: null, rolledScores: null, steps: [], inventory: { currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [] }, hp: { damage: 0, temp: 0 }, adjustments: [], conditions: { active: [], exhaustion: 0 }, deathSaves: { successes: 0, failures: 0, stable: false, dead: false }, concentration: null, hitDiceSpent: {}, spellSlotsSpent: { byLevel: {}, pact: 0 }, resourcesSpent: {}, inspiration: null });
     expect(SessionStateSchema.safeParse(session.state).success).toBe(true);
   });
 

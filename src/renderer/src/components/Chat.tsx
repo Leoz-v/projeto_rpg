@@ -5,6 +5,7 @@ import { CHAT_HELP, parseChatInput } from './chat-command';
 import { type RollPart, rollParts } from './roll-parts';
 import { addToChatLog, type ChatLog, chatLogEntries, chatLogWithWindow, EMPTY_CHAT_LOG, firstChatIndex } from './chat-log';
 import { FeatureUsedBody } from './FeatureUses';
+import { D20InspirationActions, InspirationRollBody, PendingAttackEntry } from './Inspiration';
 import { DawnBody, ItemChargesBody, ScrollCheckBody } from './ItemCharges';
 import { ItemUsedBody } from './ItemUse';
 import { PendingSaveActions, AttackRollBody, D20RollBody, DamageAppliedBody, DamageRollBody, MasteryDamageBody, SaveRollBody } from './SheetRollEntries';
@@ -92,7 +93,14 @@ function Entry({ entry, author, context }: { entry: ChatEntry; author: string; c
         </li>
       );
     case 'd20_roll':
-      return <D20RollBody entry={entry} header={header} />;
+      return (
+        <>
+          <D20RollBody entry={entry} header={header} />
+          <D20InspirationActions entry={entry} state={context.state} viewer={context.viewer} />
+        </>
+      );
+    case 'inspiration_roll':
+      return <InspirationRollBody entry={entry} header={header} />;
     case 'damage_roll':
       return <DamageRollBody entry={entry} header={header} />;
     case 'attack_roll':
@@ -357,6 +365,9 @@ export function Chat({ state, chatFrom, viewer }: { state: SessionState; chatFro
         {entries.length === 0 && <li className="hint">{CHAT_HELP}</li>}
         {entries.map((entry) => (
           <Entry key={entry.id} entry={entry} author={state.players[entry.authorId]?.displayName ?? 'Desconhecido'} context={context} />
+        ))}
+        {Object.values(state.pendingAttacks).map((p) => (
+          <PendingAttackEntry key={p.id} pending={p} state={state} viewer={viewer} />
         ))}
         <li ref={end} aria-hidden />
       </ol>

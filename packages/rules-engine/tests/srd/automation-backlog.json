@@ -37,10 +37,6 @@
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
-    "feature:class:bard/bardic_inspiration#use": {
-      "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
-    },
     "feature:class:bard/countercharm": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
@@ -652,10 +648,6 @@
     "feature:subclass:college_of_lore/magical_discoveries": {
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
-    },
-    "feature:subclass:college_of_lore/peerless_skill": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
     "feature:subclass:draconic_sorcery/draconic_spells": {
       "category": "structural",

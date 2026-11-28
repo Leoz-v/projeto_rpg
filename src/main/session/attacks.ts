@@ -1,10 +1,11 @@
-import { type Ability, type AttackRider, type ChosenRider, chosenRiderProblems, ridersOnHit, sneakAttackAllowed, applyDamage, applyHitPointChange, attackedByEffects, attackedConditions, type AttacksAgainst, cleaveDamageBonus, creatureAttacksAgainst, creatureD20, type CreatureType, type Condition, CONDITION_NAME, creatureSaveBonus, currentHitPoints, d20Mode, d20StepNotes, damageNotes, type DamageType, type Defenses, grazeDamage, type ImposedConditions, MASTERY_NAME, masteryOutcome, nextTurnRound, resolveAttack, resolveSave, rollActionDamage, type RollAgainst, rollD20, rollWeaponDamage, saveDamage, sheetD20, type SheetD20, type TargetDamage, targetDamage, TIMED_MASTERY_UNTIL, timedMastery, timedMasteryNote, toppleDc } from 'rules-engine';
-import { type ChatEntry, type Combat, type TimedEffect, type IntentData, type PatchOp, type PendingSave, type Role, type SessionState, type Token, sameCaster, toPointer, type Visibility } from '../../shared/protocol';
+import { type Ability, type D20RollResult, type DerivedSheet, type AttackRider, type ChosenRider, chosenRiderProblems, ridersOnHit, sneakAttackAllowed, applyDamage, applyHitPointChange, attackedByEffects, attackedConditions, type AttacksAgainst, cleaveDamageBonus, creatureAttacksAgainst, creatureD20, type CreatureType, type Condition, CONDITION_NAME, creatureSaveBonus, currentHitPoints, d20Mode, d20StepNotes, damageNotes, type DamageType, type Defenses, grazeDamage, type ImposedConditions, MASTERY_NAME, masteryOutcome, nextTurnRound, resolveAttack, resolveSave, rollActionDamage, type RollAgainst, rollD20, rollWeaponDamage, saveDamage, sheetD20, type SheetD20, type TargetDamage, targetDamage, TIMED_MASTERY_UNTIL, timedMastery, timedMasteryNote, toppleDc } from 'rules-engine';
+import { type ChatEntry, type Combat, type TimedEffect, type IntentData, type PatchOp, type PendingSave, type Role, type SessionCharacter, type SessionState, type Token, sameCaster, toPointer, type Visibility } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
 import { timedEffectEntry } from './combat';
 import { tokenDamaged } from './monster-concentration';
 import { imposeFromAction } from './spell-effects';
 import { addPendingSave } from './legendary';
+import { canInspire, pendingAttack } from './inspiration';
 import { changeCharges } from './item-charges';
 import { changeResource } from './resources';
 import { changeSpellSlot } from './spell-slots';
@@ -229,7 +230,15 @@ function allyNear(ctx: SessionContext, attacker: Token | undefined, target: Toke
  * rola o dano e aplica as defesas do alvo com o motor. O dano vira uma
  * proposta: só muda os PV quando o mestre aplica (override manual).
  */
-export function makeAttack(ctx: SessionContext, playerId: string, role: Role, data: IntentData<'attack.make'>, cleaveOf?: string): PatchOp[] {
+export function makeAttack(
+  ctx: SessionContext,
+  playerId: string,
+  role: Role,
+  data: IntentData<'attack.make'>,
+  cleaveOf?: string,
+  /** O ataque que esperou a inspiração (nota 0079): o d20 já rolado, com as notas da rolagem. */
+  resume?: { roll: D20RollResult; notes: string[] },
+): PatchOp[] {
   const target = ctx.token(data.targetTokenId);
   const declared = { advantage: data.advantage, disadvantage: data.disadvantage };
   let attackerName: string;
@@ -244,6 +253,8 @@ export function makeAttack(ctx: SessionContext, playerId: string, role: Role, da
   let useOps: PatchOp[] = [];
   /** Dano extra condicional da arma (nota 0077). */
   let riders: RiderUse | undefined;
+  /** Personagem que pode somar um dado de inspiração se errar (nota 0079). */
+  let inspirable: { character: SessionCharacter; sheet: DerivedSheet; instanceId: string } | undefined;
   /** Arma da ficha: o que a maestria dela permite depois do resultado. */
   let weapon: { ref: { characterId: string; instanceId: string }; mastery: (hit: boolean, damaged: boolean) => ReturnType<typeof masteryOutcome> | undefined } | undefined;
 
@@ -257,6 +268,7 @@ export function makeAttack(ctx: SessionContext, playerId: string, role: Role, da
     attackerToken = Object.values(ctx.current.tokens).find((t) => t.characterId === character.id && t.mapId === target.mapId);
     attackerName = character.name;
     label = attack.name;
+    inspirable = { character, sheet, instanceId };
     riders = riderUse(ctx, playerId, role, { characterId: character.id, instanceId, riders: attack.riders, chosen: data.riders ?? [] });
     const abilityModifier = sheet.abilities[attack.ability].modifier;
     rollDamage = (critical) => {
@@ -314,8 +326,30 @@ export function makeAttack(ctx: SessionContext, playerId: string, role: Role, da
   };
   around.reminders.push(...extra.reminders);
   d20 = withCircumstances(d20, around);
+  const rolled = resume?.roll ?? rollD20(d20.input, ctx.deps.rng);
+  // Errou com um dado à mão: o resto espera quem atacou decidir (nota 0079). Só ataques públicos contra tokens visíveis.
+  const missed = !rolled.critical && (rolled.fumble || rolled.total < defender.ac);
+  if (!resume && inspirable && missed && !rolled.fumble && data.visibility === 'public' && !target.hidden && canInspire(inspirable.character, inspirable.sheet, 'attack')) {
+    return [
+      pendingAttack(ctx, {
+        authorId: playerId,
+        role,
+        characterId: inspirable.character.id,
+        characterName: inspirable.character.name,
+        instanceId: inspirable.instanceId,
+        label: label.slice(0, 100),
+        targetTokenId: target.id,
+        targetName: target.name,
+        ...(data.advantage !== undefined ? { advantage: data.advantage } : {}),
+        ...(data.disadvantage !== undefined ? { disadvantage: data.disadvantage } : {}),
+        ...(data.riders ? { riders: data.riders } : {}),
+        ...(cleaveOf !== undefined ? { cleaveOf } : {}),
+        roll: { dice: rolled.dice, natural: rolled.natural, die: rolled.die, total: rolled.total, notes: d20StepNotes(rolled.steps).slice(0, 50) },
+      }),
+    ];
+  }
   const result = resolveAttack(
-    { d20: d20.input, targetAc: defender.ac, rollDamage, defenses: defender.defenses, autoCritical: around.autoCritical.length > 0 },
+    { d20: d20.input, targetAc: defender.ac, rollDamage, defenses: defender.defenses, autoCritical: around.autoCritical.length > 0, rolled },
     ctx.deps.rng,
   );
   const autoCriticalNote = autoCriticalNotes(result, around.autoCritical);
@@ -385,7 +419,7 @@ export function makeAttack(ctx: SessionContext, playerId: string, role: Role, da
     fumble: result.roll.fumble,
     advantage: d20.advantage,
     disadvantage: d20.disadvantage,
-    notes: [...d20StepNotes(result.roll.steps), ...autoCriticalNote, ...imposed.notes.map((n) => `No acerto: ${n}`), ...sneakWarning].slice(0, 50),
+    notes: [...(resume?.notes ?? []), ...d20StepNotes(result.roll.steps), ...autoCriticalNote, ...imposed.notes.map((n) => `No acerto: ${n}`), ...sneakWarning].slice(0, 50),
     reminders: [...d20.reminders, ...defender.reminders, ...onHitRiders.reminders].slice(0, 50),
     hit: result.hit,
     ...(damage ? { damage } : {}),
@@ -416,7 +450,9 @@ export function useMastery(ctx: SessionContext, playerId: string, role: Role, da
   if (role !== 'gm' && entry.authorId !== playerId) throw notAllowed('Só quem fez o ataque (ou o mestre) usa a maestria');
   const action = entry.mastery?.action;
   if (!entry.weapon || !entry.mastery || !action) throw violation('Este ataque não tem maestria para usar');
-  if (ctx.current.chat.some((e) => 'masteryOf' in e && e.masteryOf === entry.id)) throw violation('A maestria deste ataque já foi usada');
+  if (ctx.current.chat.some((e) => 'masteryOf' in e && e.masteryOf === entry.id) || Object.values(ctx.current.pendingAttacks).some((p) => p.cleaveOf === entry.id)) {
+    throw violation('A maestria deste ataque já foi usada');
+  }
   if (action !== 'cleave' && (data.targetTokenId !== undefined || data.advantage !== undefined || data.disadvantage !== undefined)) {
     throw violation('Alvo e Vantagem/Desvantagem só valem no Cleave');
   }

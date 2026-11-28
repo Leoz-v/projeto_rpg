@@ -1,5 +1,6 @@
 import type { AttackRider } from './attack-riders';
 import type { SheetFeatureUse } from './feature-uses';
+import type { SheetSelfInspiration } from './inspiration';
 import type { Ability, CreatureType, DamageType, Condition, Sense, Size, Skill, WeaponMastery } from '../schemas/common';
 import type { Predicate } from '../schemas/predicate';
 import type { ChoiceOptions, Feature } from '../schemas/source';
@@ -325,6 +326,8 @@ export interface DerivedSheet {
   spellcasting: Spellcasting;
   /** Características que se usam na mesa (nota 0078). */
   featureUses: SheetFeatureUse[];
+  /** O próprio dado de inspiração somado a uma rolagem que falhou (Peerless Skill; nota 0079). */
+  selfInspirations: SheetSelfInspiration[];
   feats: { featId: string; source: SourceLabel }[];
   features: SheetFeature[];
   conditions: { condition: Condition; source: SourceLabel }[];

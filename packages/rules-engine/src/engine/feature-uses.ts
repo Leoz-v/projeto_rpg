@@ -20,6 +20,7 @@ export type ResolvedFeaturePart =
   | PartOf<'restore'>
   | PartOf<'condition'>
   | PartOf<'regain'>
+  | { kind: 'inspire'; dice: string }
   | PartOf<'buff'>;
 
 export interface SheetFeatureUse {
@@ -65,6 +66,7 @@ function resolvePart(part: FeatureUsePart, classId: string | undefined, numbers:
     const bonus = part.bonus.reduce<number>((sum, b) => sum + numbers.bonus(b, classId), 0);
     return { kind: 'heal', dice: addFlat(dice, bonus), minimum: part.minimum ?? 0, temporary: part.temporary === true };
   }
+  if (part.kind === 'inspire') return { kind: 'inspire', dice: atLevel(part.dice, numbers.scaleLevel(classId)) };
   if (part.kind === 'buff') return { ...part, effects: part.effects.map((e) => concreteEffect(e, classId, numbers)) };
   return part;
 }

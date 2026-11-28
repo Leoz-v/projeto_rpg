@@ -127,7 +127,7 @@ describe('CampaignDb', () => {
   const HERO_TOKEN = randomUUID();
 
   const state = (overrides: Partial<SessionState> = {}): SessionState => ({
-    proposals: {}, pendingSaves: {},
+    proposals: {}, pendingSaves: {}, pendingAttacks: {},
     combat: null,
     rest: null,
     campaign: { id: randomUUID(), name: 'A Mina Perdida' },
@@ -178,6 +178,7 @@ describe('CampaignDb', () => {
         hitDiceSpent: { '10': 2 },
         spellSlotsSpent: { byLevel: { '1': 1 }, pact: 0 },
         resourcesSpent: { rage: 1 },
+        inspiration: null,
       },
     },
     ...overrides,

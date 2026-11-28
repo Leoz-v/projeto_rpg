@@ -11,6 +11,7 @@ import { BuildPanel } from './BuildPanel';
 import { combatantOptions } from '../canvas/conditions';
 import { ConditionsControl } from './Conditions';
 import { FeatureUses } from './FeatureUses';
+import { HeldInspiration } from './Inspiration';
 import { HitPointsControl, HitPointsSummary } from './HitPoints';
 import { formatVisionSummary } from './lighting-hud-helpers';
 import { SaveEffectForm } from './SaveEffect';
@@ -711,6 +712,7 @@ export function CharacterSheet({ view, characterId, onClose }: { view: TableView
                 <ConditionsControl target={{ characterId: record.id }} state={record.conditions} canEdit={canEdit} combatants={combatantOptions(view.state)} />
                 {canEdit && <FeatureUses character={record} sheet={load.view.sheet} state={view.state} />}
                 <ResourcesControl character={record} resources={load.view.sheet.resources} canEdit={canEdit} />
+                <HeldInspiration character={record} canEdit={canEdit} />
                 <ConcentrationControl
                   characterId={record.id}
                   current={record.concentration}

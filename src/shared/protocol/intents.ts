@@ -185,6 +185,18 @@ export const IntentSchema = z.discriminatedUnion('kind', [
   }),
   z.strictObject({ kind: z.literal('monster.use'), data: z.strictObject({ tokenId: UuidSchema, featureId: IdSchema, change: z.enum(['spend', 'restore']) }) }),
   z.strictObject({ kind: z.literal('save.resolve'), data: z.strictObject({ pendingId: UuidSchema, useResistance: z.boolean() }) }),
+  /**
+   * Soma o dado de inspiração a uma rolagem da ficha (`d20_roll`, nota 0079):
+   * o guardado ou, com `selfId`, o uso próprio (Peerless Skill).
+   */
+  z.strictObject({ kind: z.literal('inspiration.use'), data: z.strictObject({ characterId: UuidSchema, entryId: UuidSchema, selfId: IdSchema.optional() }) }),
+  /** Descarta o dado guardado (o dono ou o mestre). */
+  z.strictObject({ kind: z.literal('inspiration.discard'), data: z.strictObject({ characterId: UuidSchema }) }),
+  /** Decide o ataque que errou e espera a inspiração: sem `inspiration`, aceita o erro. */
+  z.strictObject({
+    kind: z.literal('attack.resolve'),
+    data: z.strictObject({ pendingId: UuidSchema, inspiration: z.strictObject({ selfId: IdSchema.optional() }).optional() }),
+  }),
   z.strictObject({ kind: z.literal('monster.cast'), data: z.strictObject({ tokenId: UuidSchema, spellId: IdSchema }) }),
   z.strictObject({ kind: z.literal('monster.rest'), data: z.strictObject({ tokenId: UuidSchema }) }),
   z.strictObject({ kind: z.literal('monster.lair'), data: z.strictObject({ tokenId: UuidSchema, lair: z.boolean() }) }),

@@ -111,9 +111,25 @@ function usePart(ctx: SessionContext, using: Using, part: ResolvedFeaturePart, s
       const own = use.cost ? { [use.cost.resourceId]: (character.resourcesSpent[use.cost.resourceId] ?? 0) + use.cost.amount } : {};
       return { ops: [{ op: 'replace', path: toPointer('characters', character.id, 'resourcesSpent'), value: { ...rest, ...own } }], notes: [`Recuperou ${spent} uso(s)`] };
     }
+    case 'inspire':
+      return inspire(ctx, using, part.dice);
     case 'buff':
       return startState(ctx, using, part);
   }
+}
+
+/** Bardic Inspiration: o dado fica com outro personagem, um de cada vez (nota 0079). */
+function inspire(ctx: SessionContext, using: Using, dice: string): { ops: PatchOp[]; notes: string[] } {
+  const { character, use, target } = using;
+  const holder = target.characterId !== null ? ctx.current.characters[target.characterId] : undefined;
+  if (!holder) throw violation(`${use.name}: escolha o token de outro personagem`);
+  if (holder.id === character.id) throw violation(`${use.name}: inspira outra criatura, não quem usa`);
+  if (holder.deathSaves.dead) throw violation(`${holder.name} está morto`);
+  if (holder.inspiration) throw violation(`${holder.name} já tem um dado de ${holder.inspiration.name}`);
+  return {
+    ops: [{ op: 'replace', path: toPointer('characters', holder.id, 'inspiration'), value: { dice, name: use.name.slice(0, 100), giverId: character.id, giverName: character.name } }],
+    notes: [`${holder.name} recebe um dado de ${use.name} (${dice})`],
+  };
 }
 
 function lift(ctx: SessionContext, using: Using, conditions: Extract<ResolvedFeaturePart, { kind: 'restore' }>['conditions'], spellOf: SpellOf): PatchOp[] {

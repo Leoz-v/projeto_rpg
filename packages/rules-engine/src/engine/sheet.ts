@@ -21,6 +21,7 @@ import { scrollOf, scrollReading } from './scrolls';
 import type { AttackRider } from './attack-riders';
 import { addDice } from './spells';
 import { resolveFeatureUses } from './feature-uses';
+import { resolveSelfInspirations } from './inspiration';
 import { itemUse, itemUseOptions } from './item-use';
 import { type MagicPart, resolveInventory } from './items';
 import { isWeaponProficient } from './proficiency';
@@ -985,6 +986,10 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       effectsOf('feature_use').map((e) => ({ effect: e.effect, classId: e.classId, source: namedSource(e) })),
       effectsOf('feature_use_part').map((e) => ({ effect: e.effect, classId: e.classId, source: namedSource(e) })),
       { bonus: bonusValue, scaleLevel },
+    ),
+    selfInspirations: resolveSelfInspirations(
+      effectsOf('self_inspiration').map((e) => ({ effect: e.effect, classId: e.classId, source: namedSource(e) })),
+      scaleLevel,
     ),
     attunement: { used: attuned, limit: attunementLimit },
     level,
