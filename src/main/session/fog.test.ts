@@ -20,6 +20,7 @@ function setup(): HostSession {
     characterSheet: () => undefined,
     monsterHpMax: (id) => (id === 'goblin' ? 7 : undefined),
     creature: () => undefined,
+    item: () => undefined,
     spell: () => undefined,
     assetExists: () => false,
   });

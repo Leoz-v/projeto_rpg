@@ -146,7 +146,7 @@ export function CombatTracker({ view, onSelect }: { view: TableView; onSelect: (
     );
   }
 
-  const current = combat.combatants[combat.turn];
+  const current = combat.hiddenTurn ? undefined : combat.combatants[combat.turn];
   const currentToken = current ? state.tokens[current.tokenId] : undefined;
   const outside = mapTokens.filter((t) => !combat.combatants.some((c) => c.tokenId === t.id));
   return (
@@ -155,9 +155,9 @@ export function CombatTracker({ view, onSelect }: { view: TableView; onSelect: (
         Combate <span className="tag">rodada {combat.round}</span>
       </h2>
       <ol className="turn-order">
-        {combat.combatants.map((c, i) => {
+        {combat.combatants.map((c) => {
           const token = state.tokens[c.tokenId];
-          const isCurrent = i === combat.turn;
+          const isCurrent = c === current;
           return (
             <li key={c.tokenId} className={isCurrent ? 'current' : undefined} aria-current={isCurrent ? 'step' : undefined}>
               <button
@@ -167,7 +167,7 @@ export function CombatTracker({ view, onSelect }: { view: TableView; onSelect: (
                   onSelect(c.tokenId);
                 }}
               >
-                {token?.name ?? 'Token removido'}
+                {token?.name ?? 'Fora da visão'}
               </button>
               {gm && c.initiative !== null ? (
                 <InitiativeInput tokenId={c.tokenId} value={c.initiative} />
@@ -193,6 +193,7 @@ export function CombatTracker({ view, onSelect }: { view: TableView; onSelect: (
           );
         })}
       </ol>
+      {combat.hiddenTurn && <p className="hint">Vez do mestre</p>}
       <div className="combat-actions">
         {gm && (
           <button type="button" className="secondary small" disabled={busy} onClick={() => { send({ kind: 'combat.previous', data: {} }); }}>

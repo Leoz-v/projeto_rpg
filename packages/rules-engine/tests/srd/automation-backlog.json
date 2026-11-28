@@ -1,9 +1,9 @@
 {
   "mechanics": {},
   "entries": {
-    "feature:class:barbarian/brutal_strike": {
+    "feature:class:barbarian/brutal_strike#effects": {
       "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
+      "reason": "Forceful Blow e Hamstring Blow: empurrar e reduzir o deslocamento do alvo."
     },
     "feature:class:barbarian/extra_attack": {
       "category": "phase_4",
@@ -13,17 +13,9 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:class:barbarian/improved_brutal_strike_17": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
     "feature:class:barbarian/instinctive_pounce": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:class:barbarian/persistent_rage#rage_duration": {
-      "category": "phase_4",
-      "reason": "Rage dura 10 minutos sem precisar ser estendida: depende do estado de Rage (recurso e ação)."
     },
     "feature:class:barbarian/primal_champion": {
       "category": "structural",
@@ -33,13 +25,9 @@
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
-    "feature:class:barbarian/rage#use": {
+    "feature:class:barbarian/reckless_attack#advantage": {
       "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
-    },
-    "feature:class:barbarian/reckless_attack": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
+      "reason": "Vantagem nos ataques com Força: declarada por quem ataca."
     },
     "feature:class:barbarian/relentless_rage": {
       "category": "phase_4",
@@ -77,9 +65,9 @@
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
-    "feature:class:cleric/channel_divinity#use": {
+    "feature:class:cleric/channel_divinity#effects": {
       "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
+      "reason": "Divine Spark contra um alvo e Turn Undead: salvaguardas."
     },
     "feature:class:cleric/divine_intervention#use": {
       "category": "phase_4",
@@ -90,10 +78,6 @@
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
     "feature:class:cleric/greater_divine_intervention": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:class:cleric/improved_divine_strike": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
@@ -122,10 +106,6 @@
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
     "feature:class:druid/improved_potent_spellcasting": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:class:druid/improved_primal_strike": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
@@ -158,10 +138,6 @@
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
     "feature:class:fighter/indomitable#use": {
-      "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
-    },
-    "feature:class:fighter/second_wind#use": {
       "category": "phase_4",
       "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
     },
@@ -233,14 +209,6 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:class:monk/superior_defense": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:class:monk/uncanny_metabolism#use": {
-      "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
-    },
     "feature:class:paladin/abjure_foes": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
@@ -260,14 +228,6 @@
     "feature:class:paladin/fighting_style_feature": {
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
-    },
-    "feature:class:paladin/lay_on_hands#use": {
-      "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
-    },
-    "feature:class:paladin/restoring_touch": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
     "feature:class:paladin/spellcasting": {
       "category": "structural",
@@ -293,10 +253,6 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:class:ranger/natures_veil#use": {
-      "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
-    },
     "feature:class:ranger/precise_hunter": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
@@ -305,9 +261,9 @@
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
-    "feature:class:ranger/tireless#use": {
+    "feature:class:ranger/tireless#exhaustion": {
       "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
+      "reason": "A Exaustão cai 1 no descanso curto."
     },
     "feature:class:ranger/weapon_mastery_feature": {
       "category": "structural",
@@ -341,9 +297,9 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:class:rogue/sneak_attack": {
+    "feature:class:rogue/sneak_attack#cunning_strike": {
       "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
+      "reason": "Cunning Strike e Devious Strikes trocam dados do Sneak Attack por efeitos."
     },
     "feature:class:rogue/steady_aim": {
       "category": "phase_4",
@@ -388,10 +344,6 @@
     "feature:class:sorcerer/heightened_spell": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:class:sorcerer/innate_sorcery#use": {
-      "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
     },
     "feature:class:sorcerer/metamagic": {
       "category": "structural",
@@ -449,9 +401,9 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:class:warlock/eldritch_smite": {
+    "feature:class:warlock/eldritch_smite#prone": {
       "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
+      "reason": "Pode deixar o alvo Caído (Enorme ou menor)."
     },
     "feature:class:warlock/eldritch_spear": {
       "category": "phase_4",
@@ -473,9 +425,9 @@
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
-    "feature:class:warlock/lifedrinker": {
+    "feature:class:warlock/lifedrinker#heal": {
       "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
+      "reason": "Gasta um Dado de Vida para recuperar PV ao acertar."
     },
     "feature:class:warlock/magical_cunning#use": {
       "category": "phase_4",
@@ -593,14 +545,6 @@
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
-    "feature:species:dragonborn/draconic_flight#use": {
-      "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
-    },
-    "feature:species:dwarf/stonecunning#use": {
-      "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
-    },
     "feature:species:elf/elven_lineage_trait": {
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
@@ -625,14 +569,6 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:species:goliath/fires_burn": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:species:goliath/frosts_chill": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
     "feature:species:goliath/giant_ancestry_trait#use": {
       "category": "phase_4",
       "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
@@ -640,10 +576,6 @@
     "feature:species:goliath/hills_tumble": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:species:goliath/large_form#use": {
-      "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
     },
     "feature:species:goliath/stones_endurance": {
       "category": "phase_4",
@@ -673,10 +605,6 @@
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
-    "feature:species:orc/adrenaline_rush#use": {
-      "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
-    },
     "feature:species:orc/relentless_endurance#use": {
       "category": "phase_4",
       "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
@@ -685,17 +613,13 @@
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
-    "feature:subclass:berserker/frenzy": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
     "feature:subclass:berserker/intimidating_presence": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:subclass:berserker/mindless_rage": {
+    "feature:subclass:berserker/mindless_rage#immunity": {
       "category": "phase_4",
-      "reason": "Imunidade enquanto a Fúria está ativa: depende do estado de Rage, que é recurso e ação (como Rage)."
+      "reason": "Imunidade a Charmed e Frightened enquanto a Rage dura: as que já havia terminam ao entrar."
     },
     "feature:subclass:berserker/retaliation": {
       "category": "phase_4",
@@ -737,10 +661,6 @@
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
-    "feature:subclass:draconic_sorcery/dragon_wings": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
     "feature:subclass:draconic_sorcery/elemental_affinity": {
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
@@ -765,10 +685,6 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:subclass:fiend_patron/dark_ones_blessing": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
     "feature:subclass:fiend_patron/dark_ones_own_luck#use": {
       "category": "phase_4",
       "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
@@ -782,10 +698,6 @@
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
     "feature:subclass:fiend_patron/hurl_through_hell": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:subclass:hunter/colossus_slayer": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
@@ -849,10 +761,6 @@
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
-    "feature:subclass:oath_of_devotion/sacred_weapon": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
     "feature:subclass:oath_of_devotion/smite_of_protection": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
@@ -876,10 +784,6 @@
     "feature:subclass:warrior_of_the_open_hand/quivering_palm": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:subclass:warrior_of_the_open_hand/wholeness_of_body#use": {
-      "category": "phase_4",
-      "reason": "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052)."
     },
     "item:adamantine_armor": {
       "category": "phase_4",
@@ -929,9 +833,9 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:bead_of_force": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
+    "item:bead_of_force#sphere": {
+      "category": "gm",
+      "reason": "A esfera que prende ou empurra depende de quem está na área: o mestre conduz."
     },
     "item:bead_of_nourishment": {
       "category": "phase_4",
@@ -1013,10 +917,6 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:cubic_gate": {
-      "category": "gm",
-      "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
-    },
     "item:dancing_sword": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
@@ -1033,19 +933,11 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:dragon_orb": {
+    "item:dragon_orb#control": {
       "category": "gm",
-      "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
-    },
-    "item:dust_of_disappearance": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
+      "reason": "Controlar o orbe, o chamado dos dragões e o Suggestion dele: o mestre conduz."
     },
     "item:dust_of_dryness": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:dust_of_sneezing_and_choking": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
@@ -1058,10 +950,6 @@
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
     "item:elemental_gem": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:elixir_of_health": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
@@ -1078,10 +966,6 @@
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
     "item:figurine_of_wondrous_power": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:flame_tongue": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
@@ -1125,10 +1009,6 @@
       "category": "gm",
       "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
     },
-    "item:helm_of_teleportation": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
     "item:horn_of_blasting": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
@@ -1169,9 +1049,9 @@
       "category": "gm",
       "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
     },
-    "item:mace_of_disruption": {
+    "item:mace_of_disruption#destroy": {
       "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
+      "reason": "Salvaguarda de SAB ou é destruído, com 25 PV ou menos (resolução com salvaguarda)."
     },
     "item:mace_of_terror": {
       "category": "phase_4",
@@ -1197,10 +1077,6 @@
       "category": "gm",
       "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
     },
-    "item:medallion_of_thoughts": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
     "item:mirror_of_life_trapping": {
       "category": "gm",
       "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
@@ -1217,9 +1093,9 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:oathbow": {
+    "item:oathbow#sworn_enemy": {
       "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
+      "reason": "Inimigo jurado: Vantagem e sem cobertura contra ele (alvo marcado)."
     },
     "item:oil_of_etherealness": {
       "category": "phase_4",
@@ -1273,43 +1149,7 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:potion_of_climbing": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:potion_of_diminution": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:potion_of_flying": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
     "item:potion_of_gaseous_form": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:potion_of_giant_strength": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:potion_of_growth": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:potion_of_healing": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:potion_of_heroism": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:potion_of_invisibility": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:potion_of_invulnerability": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
@@ -1321,27 +1161,11 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:potion_of_poison": {
+    "item:potion_of_vitality#hit_dice": {
       "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:potion_of_resistance": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:potion_of_speed": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:potion_of_vitality": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
+      "reason": "Dados de Vida recuperam o máximo por 24 horas: muda a rolagem do descanso."
     },
     "item:potion_of_water_breathing": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:ring_of_animal_influence": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
@@ -1349,9 +1173,9 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:ring_of_elemental_command": {
+    "item:ring_of_elemental_command#focus": {
       "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
+      "reason": "Elemental Bane, Compulsion e as propriedades do plano ligado: dependem do plano e do alvo."
     },
     "item:ring_of_evasion": {
       "category": "phase_4",
@@ -1381,9 +1205,9 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:ring_of_shooting_stars": {
+    "item:ring_of_shooting_stars#spheres": {
       "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
+      "reason": "Lightning Spheres e Shooting Stars: salvaguardas com cargas variáveis."
     },
     "item:ring_of_spell_storing": {
       "category": "phase_4",
@@ -1453,53 +1277,33 @@
       "category": "gm",
       "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
     },
-    "item:spell_scroll": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
     "item:sphere_of_annihilation": {
       "category": "gm",
       "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
     },
-    "item:staff_of_charming": {
+    "item:staff_of_charming#enchantment": {
       "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
+      "reason": "Reflect Enchantment e Resist Enchantment: reações a uma salvaguarda."
     },
-    "item:staff_of_healing": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:staff_of_swarming_insects": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
+    "item:staff_of_swarming_insects#insect_cloud": {
+      "category": "gm",
+      "reason": "A nuvem de insetos muda a visibilidade da área: o mestre conduz."
     },
     "item:staff_of_the_python": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:staff_of_withering": {
+    "item:staff_of_withering#save": {
       "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
+      "reason": "Salvaguarda de CON ou Desvantagem em FOR e CON por 1 hora (resolução com salvaguarda)."
     },
     "item:stone_of_controlling_earth_elementals": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:sun_blade#undead_damage": {
+    "item:sword_of_wounding#save": {
       "category": "phase_4",
-      "reason": "+1d8 Radiant ao acertar um Undead: dano que depende do alvo (resolução do ataque)."
-    },
-    "item:sword_of_life_stealing": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:sword_of_sharpness": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:sword_of_wounding": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
+      "reason": "Salvaguarda de CON ou não recupera PV por 1 hora (resolução com salvaguarda)."
     },
     "item:talisman_of_pure_good": {
       "category": "gm",
@@ -1521,39 +1325,11 @@
       "category": "gm",
       "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
     },
-    "item:trident_of_fish_command": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
     "item:universal_solvent": {
       "category": "gm",
       "reason": "Utilidade, armazenamento, narrativa ou efeito permanente (Manuals/Tomes viram ajuste do mestre)."
     },
-    "item:wand_of_binding": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
     "item:wand_of_enemy_detection": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:wand_of_fear": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:wand_of_fireballs": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:wand_of_lightning_bolts": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:wand_of_magic_detection": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:wand_of_magic_missiles": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
@@ -1561,15 +1337,7 @@
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
-    "item:wand_of_polymorph": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
     "item:wand_of_secrets": {
-      "category": "phase_4",
-      "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
-    },
-    "item:wand_of_web": {
       "category": "phase_4",
       "reason": "Ativado (ação, carga, consumo, conjuração) ou condicional ao alvo/ataque: resolução assistida (Fase 4)."
     },
@@ -2441,33 +2209,21 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:bane": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
-    },
     "spell:banishment": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
-    },
-    "spell:barkskin": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:beacon_of_hope#max_healing": {
       "category": "gm",
       "reason": "A cura recupera o máximo possível: o mestre ajusta o valor da cura."
     },
-    "spell:bestow_curse": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
+    "spell:bestow_curse#spell_damage_and_slots": {
+      "category": "gm",
+      "reason": "Dano extra nas magias sem ataque, e a duração sem Concentração com espaço de 5º círculo ou mais: o mestre acompanha."
     },
     "spell:blink": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
-    },
-    "spell:blur": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:calm_emotions": {
       "category": "gm",
@@ -2504,10 +2260,6 @@
     "spell:confusion": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
-    },
-    "spell:conjure_minor_elementals": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:contact_other_plane": {
       "category": "gm",
@@ -2617,9 +2369,9 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:enlarge_reduce": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
+    "spell:enlarge_reduce#size_and_damage": {
+      "category": "gm",
+      "reason": "O tamanho do token e o -1d4 no dano do Reduzir: o mestre ajusta. O +1d4 só entra na ficha de personagens."
     },
     "spell:enthrall": {
       "category": "gm",
@@ -2641,9 +2393,9 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:faerie_fire": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
+    "spell:faerie_fire#invisible": {
+      "category": "gm",
+      "reason": "O alvo não se beneficia de Invisível: o mestre tira a condição ou ajusta a rolagem."
     },
     "spell:feather_fall": {
       "category": "gm",
@@ -2680,10 +2432,6 @@
     "spell:forcecage": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
-    },
-    "spell:foresight#attacks_against": {
-      "category": "phase_7",
-      "reason": "Outras criaturas têm Desvantagem nos ataques contra o alvo: ataques contra o alvo, PR 4b."
     },
     "spell:freedom_of_movement#restraints": {
       "category": "gm",
@@ -2749,17 +2497,17 @@
       "category": "gm",
       "reason": "PV máximos +2d10 (rolados uma vez, por 24 horas): o mestre rola e aplica como ajuste."
     },
-    "spell:hex": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
+    "spell:hex#duration": {
+      "category": "gm",
+      "reason": "A Concentração dura mais em círculos maiores: a mesa controla o tempo."
     },
-    "spell:holy_aura": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
+    "spell:holy_aura#blinded": {
+      "category": "gm",
+      "reason": "Um Corruptor ou Morto-vivo que acerta o alvo corpo a corpo salva contra Cego: o mestre conduz."
     },
-    "spell:hunters_mark": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
+    "spell:hunters_mark#perception": {
+      "category": "gm",
+      "reason": "Vantagem em Percepção e Sobrevivência para achar o alvo: declarada na rolagem."
     },
     "spell:identify": {
       "category": "gm",
@@ -2828,10 +2576,6 @@
     "spell:magic_mouth": {
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
-    },
-    "spell:magic_weapon": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:magnificent_mansion": {
       "category": "gm",
@@ -2945,9 +2689,9 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:protection_from_evil_and_good": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
+    "spell:protection_from_evil_and_good#conditions": {
+      "category": "gm",
+      "reason": "Não pode ser possuído nem Enfeitiçado ou Amedrontado por esses tipos: o mestre confere a origem."
     },
     "spell:purify_food_and_drink": {
       "category": "gm",
@@ -2957,9 +2701,9 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:ray_of_enfeeblement": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
+    "spell:ray_of_enfeeblement#damage_and_attacks": {
+      "category": "gm",
+      "reason": "Ataques com Força têm Desvantagem, -1d8 no dano, e Desvantagem no próximo ataque no sucesso: o mestre ajusta."
     },
     "spell:reincarnate": {
       "category": "gm",
@@ -3021,13 +2765,9 @@
       "category": "gm",
       "reason": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide."
     },
-    "spell:shield": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
-    },
-    "spell:shillelagh": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
+    "spell:shield#triggering_attack": {
+      "category": "gm",
+      "reason": "O +5 vale contra o ataque que disparou e anula Magic Missile: o mestre descarta a proposta de dano."
     },
     "spell:silence": {
       "category": "gm",
@@ -3048,10 +2788,6 @@
     "spell:sleet_storm": {
       "category": "gm",
       "reason": "Área com salvaguarda a cada turno, que derruba e quebra a Concentração: o mestre conduz."
-    },
-    "spell:slow": {
-      "category": "phase_7",
-      "reason": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060)."
     },
     "spell:spare_the_dying": {
       "category": "gm",

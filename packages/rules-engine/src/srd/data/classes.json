@@ -181,6 +181,26 @@
                     ]
                   },
                   "recharge": "short_rest_one"
+                },
+                {
+                  "type": "feature_use",
+                  "id": "second_wind",
+                  "name": "Second Wind",
+                  "parts": [
+                    {
+                      "kind": "heal",
+                      "dice": "1d10",
+                      "bonus": [
+                        {
+                          "perLevel": 1
+                        }
+                      ]
+                    }
+                  ],
+                  "action": "Ação Bônus",
+                  "cost": {
+                    "resource": "second_wind"
+                  }
                 }
               ]
             }
@@ -1364,6 +1384,85 @@
                     ]
                   },
                   "recharge": "short_rest_one"
+                },
+                {
+                  "type": "feature_use",
+                  "id": "rage",
+                  "name": "Rage",
+                  "parts": [
+                    {
+                      "kind": "buff",
+                      "effects": [
+                        {
+                          "type": "resistance",
+                          "damageType": "bludgeoning"
+                        },
+                        {
+                          "type": "resistance",
+                          "damageType": "piercing"
+                        },
+                        {
+                          "type": "resistance",
+                          "damageType": "slashing"
+                        },
+                        {
+                          "type": "attack_rider",
+                          "id": "rage_damage",
+                          "name": "Rage",
+                          "dice": {
+                            "byLevel": [
+                              "2",
+                              "2",
+                              "2",
+                              "2",
+                              "2",
+                              "2",
+                              "2",
+                              "2",
+                              "3",
+                              "3",
+                              "3",
+                              "3",
+                              "3",
+                              "3",
+                              "3",
+                              "4",
+                              "4",
+                              "4",
+                              "4",
+                              "4"
+                            ]
+                          },
+                          "mode": "auto",
+                          "ability": "str"
+                        },
+                        {
+                          "type": "advantage",
+                          "target": "check.str"
+                        },
+                        {
+                          "type": "advantage",
+                          "target": "save.str"
+                        },
+                        {
+                          "type": "reminder",
+                          "on": "turn_end",
+                          "note": "A Rage acaba agora, a menos que você tenha atacado um inimigo, forçado uma salvaguarda ou gasto uma Ação Bônus para estendê-la."
+                        }
+                      ],
+                      "endsOn": [
+                        "incapacitated",
+                        "heavy_armor"
+                      ],
+                      "noSpells": true
+                    }
+                  ],
+                  "action": "Ação Bônus",
+                  "cost": {
+                    "resource": "rage"
+                  },
+                  "duration": "até o fim do seu próximo turno, estendida a cada rodada (até 10 minutos)",
+                  "forbidHeavyArmor": true
                 }
               ]
             }
@@ -1435,7 +1534,28 @@
             "feature": {
               "id": "reckless_attack",
               "name": "Reckless Attack",
-              "description": "When you make your first attack roll on your turn, you can decide to attack recklessly. Doing so gives you Advantage on attack rolls using Strength until the start of your next turn, but attack rolls against you have Advantage during that time."
+              "description": "When you make your first attack roll on your turn, you can decide to attack recklessly. Doing so gives you Advantage on attack rolls using Strength until the start of your next turn, but attack rolls against you have Advantage during that time.",
+              "effects": [
+                {
+                  "type": "feature_use",
+                  "id": "reckless_attack",
+                  "name": "Reckless Attack",
+                  "parts": [
+                    {
+                      "kind": "buff",
+                      "effects": [
+                        {
+                          "type": "attacks_against",
+                          "mode": "advantage"
+                        }
+                      ],
+                      "until": "user_turn_start"
+                    }
+                  ],
+                  "duration": "até o início do seu próximo turno",
+                  "note": "Declare a Vantagem nos seus ataques com Força."
+                }
+              ]
             }
           }
         ]
@@ -1595,7 +1715,19 @@
             "feature": {
               "id": "brutal_strike",
               "name": "Brutal Strike",
-              "description": "If you use Reckless Attack, you can forgo any Advantage on one Strength-based attack roll of your choice on your turn. The chosen attack roll mustn't have Disadvantage. If it hits, the target takes an extra 1d10 damage of the same type, and you can cause one Brutal Strike effect: Forceful Blow (the target is pushed 15 feet straight away from you; you can then move up to half your Speed straight toward it without provoking Opportunity Attacks) or Hamstring Blow (the target's Speed is reduced by 15 feet until the start of your next turn)."
+              "description": "If you use Reckless Attack, you can forgo any Advantage on one Strength-based attack roll of your choice on your turn. The chosen attack roll mustn't have Disadvantage. If it hits, the target takes an extra 1d10 damage of the same type, and you can cause one Brutal Strike effect: Forceful Blow (the target is pushed 15 feet straight away from you; you can then move up to half your Speed straight toward it without provoking Opportunity Attacks) or Hamstring Blow (the target's Speed is reduced by 15 feet until the start of your next turn).",
+              "effects": [
+                {
+                  "type": "attack_rider",
+                  "id": "brutal_strike",
+                  "name": "Brutal Strike",
+                  "dice": "1d10",
+                  "mode": "choice",
+                  "oncePerTurn": true,
+                  "ability": "str",
+                  "note": "Só com Reckless Attack, abrindo mão da Vantagem. O efeito (Forceful Blow, Hamstring Blow) fica com a mesa."
+                }
+              ]
             }
           }
         ]
@@ -1673,6 +1805,80 @@
                   "type": "reminder",
                   "on": "initiative",
                   "note": "Pode recuperar todos os usos de Rage gastos (uma vez por Descanso Longo)."
+                },
+                {
+                  "type": "feature_use",
+                  "id": "rage",
+                  "name": "Rage",
+                  "parts": [
+                    {
+                      "kind": "buff",
+                      "effects": [
+                        {
+                          "type": "resistance",
+                          "damageType": "bludgeoning"
+                        },
+                        {
+                          "type": "resistance",
+                          "damageType": "piercing"
+                        },
+                        {
+                          "type": "resistance",
+                          "damageType": "slashing"
+                        },
+                        {
+                          "type": "attack_rider",
+                          "id": "rage_damage",
+                          "name": "Rage",
+                          "dice": {
+                            "byLevel": [
+                              "2",
+                              "2",
+                              "2",
+                              "2",
+                              "2",
+                              "2",
+                              "2",
+                              "2",
+                              "3",
+                              "3",
+                              "3",
+                              "3",
+                              "3",
+                              "3",
+                              "3",
+                              "4",
+                              "4",
+                              "4",
+                              "4",
+                              "4"
+                            ]
+                          },
+                          "mode": "auto",
+                          "ability": "str"
+                        },
+                        {
+                          "type": "advantage",
+                          "target": "check.str"
+                        },
+                        {
+                          "type": "advantage",
+                          "target": "save.str"
+                        }
+                      ],
+                      "endsOn": [
+                        "unconscious",
+                        "heavy_armor"
+                      ],
+                      "noSpells": true
+                    }
+                  ],
+                  "action": "Ação Bônus",
+                  "cost": {
+                    "resource": "rage"
+                  },
+                  "duration": "10 minutos",
+                  "forbidHeavyArmor": true
                 }
               ]
             }
@@ -1706,7 +1912,19 @@
             "feature": {
               "id": "improved_brutal_strike_17",
               "name": "Improved Brutal Strike",
-              "description": "The extra damage of your Brutal Strike increases to 2d10, and you can use two different Brutal Strike effects whenever you use it."
+              "description": "The extra damage of your Brutal Strike increases to 2d10, and you can use two different Brutal Strike effects whenever you use it.",
+              "effects": [
+                {
+                  "type": "attack_rider",
+                  "id": "brutal_strike",
+                  "name": "Brutal Strike",
+                  "dice": "2d10",
+                  "mode": "choice",
+                  "oncePerTurn": true,
+                  "ability": "str",
+                  "note": "Só com Reckless Attack, abrindo mão da Vantagem. Dois efeitos de Brutal Strike, com a mesa."
+                }
+              ]
             }
           }
         ]
@@ -2801,6 +3019,50 @@
                     ]
                   },
                   "recharge": "short_rest_one"
+                },
+                {
+                  "type": "feature_use",
+                  "id": "divine_spark",
+                  "name": "Divine Spark (cura)",
+                  "parts": [
+                    {
+                      "kind": "heal",
+                      "dice": {
+                        "byLevel": [
+                          "1d8",
+                          "1d8",
+                          "1d8",
+                          "1d8",
+                          "1d8",
+                          "1d8",
+                          "2d8",
+                          "2d8",
+                          "2d8",
+                          "2d8",
+                          "2d8",
+                          "2d8",
+                          "3d8",
+                          "3d8",
+                          "3d8",
+                          "3d8",
+                          "3d8",
+                          "4d8",
+                          "4d8",
+                          "4d8"
+                        ]
+                      },
+                      "bonus": [
+                        {
+                          "ability": "wis"
+                        }
+                      ]
+                    }
+                  ],
+                  "action": "Ação de Magia",
+                  "cost": {
+                    "resource": "channel_divinity"
+                  },
+                  "targets": "one"
                 }
               ]
             }
@@ -2885,6 +3147,30 @@
                 {
                   "id": "divine_strike",
                   "name": "Divine Strike",
+                  "grants": [
+                    {
+                      "kind": "feature",
+                      "feature": {
+                        "id": "divine_strike",
+                        "name": "Divine Strike",
+                        "description": "Once on each of your turns when you hit a creature with an attack roll using a weapon, you can cause the target to take an extra 1d8 Necrotic or Radiant damage (your choice).",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "divine_strike",
+                            "name": "Divine Strike",
+                            "dice": "1d8",
+                            "mode": "choice",
+                            "damageType": [
+                              "necrotic",
+                              "radiant"
+                            ],
+                            "oncePerTurn": true
+                          }
+                        ]
+                      }
+                    }
+                  ],
                   "levels": [
                     {
                       "level": 14,
@@ -2894,7 +3180,21 @@
                           "feature": {
                             "id": "improved_divine_strike",
                             "name": "Improved Blessed Strikes (Divine Strike)",
-                            "description": "The extra damage of your Divine Strike increases to 2d8."
+                            "description": "The extra damage of your Divine Strike increases to 2d8.",
+                            "effects": [
+                              {
+                                "type": "attack_rider",
+                                "id": "divine_strike",
+                                "name": "Divine Strike",
+                                "dice": "2d8",
+                                "mode": "choice",
+                                "damageType": [
+                                  "necrotic",
+                                  "radiant"
+                                ],
+                                "oncePerTurn": true
+                              }
+                            ]
                           }
                         }
                       ]
@@ -3449,6 +3749,32 @@
                 {
                   "id": "primal_strike",
                   "name": "Primal Strike",
+                  "grants": [
+                    {
+                      "kind": "feature",
+                      "feature": {
+                        "id": "primal_strike",
+                        "name": "Primal Strike",
+                        "description": "Once on each of your turns when you hit a creature with an attack roll using a weapon or a Beast form's attack in Wild Shape, you can cause the target to take an extra 1d8 Cold, Fire, Lightning, or Thunder damage (choose when you hit).",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "primal_strike",
+                            "name": "Primal Strike",
+                            "dice": "1d8",
+                            "mode": "choice",
+                            "damageType": [
+                              "cold",
+                              "fire",
+                              "lightning",
+                              "thunder"
+                            ],
+                            "oncePerTurn": true
+                          }
+                        ]
+                      }
+                    }
+                  ],
                   "levels": [
                     {
                       "level": 15,
@@ -3458,7 +3784,23 @@
                           "feature": {
                             "id": "improved_primal_strike",
                             "name": "Improved Elemental Fury (Primal Strike)",
-                            "description": "The extra damage of your Primal Strike increases to 2d8."
+                            "description": "The extra damage of your Primal Strike increases to 2d8.",
+                            "effects": [
+                              {
+                                "type": "attack_rider",
+                                "id": "primal_strike",
+                                "name": "Primal Strike",
+                                "dice": "2d8",
+                                "mode": "choice",
+                                "damageType": [
+                                  "cold",
+                                  "fire",
+                                  "lightning",
+                                  "thunder"
+                                ],
+                                "oncePerTurn": true
+                              }
+                            ]
                           }
                         }
                       ]
@@ -3838,6 +4180,53 @@
                   "name": "Uncanny Metabolism",
                   "max": 1,
                   "recharge": "long_rest"
+                },
+                {
+                  "type": "feature_use",
+                  "id": "uncanny_metabolism",
+                  "name": "Uncanny Metabolism",
+                  "parts": [
+                    {
+                      "kind": "heal",
+                      "dice": {
+                        "byLevel": [
+                          "1d6",
+                          "1d6",
+                          "1d6",
+                          "1d6",
+                          "1d8",
+                          "1d8",
+                          "1d8",
+                          "1d8",
+                          "1d8",
+                          "1d8",
+                          "1d10",
+                          "1d10",
+                          "1d10",
+                          "1d10",
+                          "1d10",
+                          "1d10",
+                          "1d12",
+                          "1d12",
+                          "1d12",
+                          "1d12"
+                        ]
+                      },
+                      "bonus": [
+                        {
+                          "perLevel": 1
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "regain",
+                      "resource": "focus_points"
+                    }
+                  ],
+                  "action": "ao rolar a iniciativa",
+                  "cost": {
+                    "resource": "uncanny_metabolism"
+                  }
                 }
               ]
             }
@@ -4211,7 +4600,78 @@
             "feature": {
               "id": "superior_defense",
               "name": "Superior Defense",
-              "description": "At the start of your turn, you can expend 3 Focus Points to bolster yourself against harm for 1 minute or until you have the Incapacitated condition. During that time, you have Resistance to all damage except Force damage."
+              "description": "At the start of your turn, you can expend 3 Focus Points to bolster yourself against harm for 1 minute or until you have the Incapacitated condition. During that time, you have Resistance to all damage except Force damage.",
+              "effects": [
+                {
+                  "type": "feature_use",
+                  "id": "superior_defense",
+                  "name": "Superior Defense",
+                  "parts": [
+                    {
+                      "kind": "buff",
+                      "effects": [
+                        {
+                          "type": "resistance",
+                          "damageType": "acid"
+                        },
+                        {
+                          "type": "resistance",
+                          "damageType": "bludgeoning"
+                        },
+                        {
+                          "type": "resistance",
+                          "damageType": "cold"
+                        },
+                        {
+                          "type": "resistance",
+                          "damageType": "fire"
+                        },
+                        {
+                          "type": "resistance",
+                          "damageType": "lightning"
+                        },
+                        {
+                          "type": "resistance",
+                          "damageType": "necrotic"
+                        },
+                        {
+                          "type": "resistance",
+                          "damageType": "piercing"
+                        },
+                        {
+                          "type": "resistance",
+                          "damageType": "poison"
+                        },
+                        {
+                          "type": "resistance",
+                          "damageType": "psychic"
+                        },
+                        {
+                          "type": "resistance",
+                          "damageType": "radiant"
+                        },
+                        {
+                          "type": "resistance",
+                          "damageType": "slashing"
+                        },
+                        {
+                          "type": "resistance",
+                          "damageType": "thunder"
+                        }
+                      ],
+                      "endsOn": [
+                        "incapacitated"
+                      ]
+                    }
+                  ],
+                  "action": "no início do seu turno",
+                  "cost": {
+                    "resource": "focus_points",
+                    "amount": 3
+                  },
+                  "duration": "1 minuto"
+                }
+              ]
             }
           },
           {
@@ -4459,6 +4919,28 @@
                     "perLevel": 5
                   },
                   "recharge": "long_rest"
+                },
+                {
+                  "type": "feature_use",
+                  "id": "lay_on_hands",
+                  "name": "Lay On Hands",
+                  "parts": [
+                    {
+                      "kind": "pool_heal"
+                    },
+                    {
+                      "kind": "pool_restore",
+                      "cost": 5,
+                      "conditions": [
+                        "poisoned"
+                      ]
+                    }
+                  ],
+                  "action": "Ação Bônus",
+                  "cost": {
+                    "resource": "lay_on_hands"
+                  },
+                  "targets": "one"
                 }
               ]
             }
@@ -4812,7 +5294,25 @@
             "feature": {
               "id": "restoring_touch",
               "name": "Restoring Touch",
-              "description": "When you use Lay On Hands on a creature, you can also remove one or more of the following conditions from the creature: Blinded, Charmed, Deafened, Frightened, Paralyzed, or Stunned. You must expend 5 Hit Points from the healing pool for each condition you remove; those points don't also restore Hit Points."
+              "description": "When you use Lay On Hands on a creature, you can also remove one or more of the following conditions from the creature: Blinded, Charmed, Deafened, Frightened, Paralyzed, or Stunned. You must expend 5 Hit Points from the healing pool for each condition you remove; those points don't also restore Hit Points.",
+              "effects": [
+                {
+                  "type": "feature_use_part",
+                  "use": "lay_on_hands",
+                  "part": {
+                    "kind": "pool_restore",
+                    "cost": 5,
+                    "conditions": [
+                      "blinded",
+                      "charmed",
+                      "deafened",
+                      "frightened",
+                      "paralyzed",
+                      "stunned"
+                    ]
+                  }
+                }
+              ]
             }
           }
         ]
@@ -5333,6 +5833,28 @@
                     "min": 1
                   },
                   "recharge": "long_rest"
+                },
+                {
+                  "type": "feature_use",
+                  "id": "tireless",
+                  "name": "Tireless",
+                  "parts": [
+                    {
+                      "kind": "heal",
+                      "dice": "1d8",
+                      "bonus": [
+                        {
+                          "ability": "wis"
+                        }
+                      ],
+                      "minimum": 1,
+                      "temporary": true
+                    }
+                  ],
+                  "action": "Ação de Magia",
+                  "cost": {
+                    "resource": "tireless"
+                  }
                 }
               ]
             }
@@ -5396,6 +5918,25 @@
                     "min": 1
                   },
                   "recharge": "long_rest"
+                },
+                {
+                  "type": "feature_use",
+                  "id": "natures_veil",
+                  "name": "Nature's Veil",
+                  "parts": [
+                    {
+                      "kind": "condition",
+                      "conditions": [
+                        "invisible"
+                      ],
+                      "until": "user_turn_end"
+                    }
+                  ],
+                  "action": "Ação Bônus",
+                  "cost": {
+                    "resource": "natures_veil"
+                  },
+                  "duration": "até o fim do seu próximo turno"
                 }
               ]
             }
@@ -5638,7 +6179,51 @@
             "feature": {
               "id": "sneak_attack",
               "name": "Sneak Attack",
-              "description": "Once per turn, you can deal extra damage to one creature you hit with an attack roll if you have Advantage on the roll and the attack uses a Finesse or a Ranged weapon. You don't need Advantage if at least one of your allies is within 5 feet of the target, the ally doesn't have the Incapacitated condition, and you don't have Disadvantage on the attack roll. The extra damage's type is the same as the weapon's type. Sneak Attack: 1d6 at level 1, increasing by 1d6 every odd Rogue level (2d6 at 3, 3d6 at 5 ... 10d6 at 19)."
+              "description": "Once per turn, you can deal extra damage to one creature you hit with an attack roll if you have Advantage on the roll and the attack uses a Finesse or a Ranged weapon. You don't need Advantage if at least one of your allies is within 5 feet of the target, the ally doesn't have the Incapacitated condition, and you don't have Disadvantage on the attack roll. The extra damage's type is the same as the weapon's type. Sneak Attack: 1d6 at level 1, increasing by 1d6 every odd Rogue level (2d6 at 3, 3d6 at 5 ... 10d6 at 19).",
+              "effects": [
+                {
+                  "type": "attack_rider",
+                  "id": "sneak_attack",
+                  "name": "Sneak Attack",
+                  "dice": {
+                    "byLevel": [
+                      "1d6",
+                      "1d6",
+                      "2d6",
+                      "2d6",
+                      "3d6",
+                      "3d6",
+                      "4d6",
+                      "4d6",
+                      "5d6",
+                      "5d6",
+                      "6d6",
+                      "6d6",
+                      "7d6",
+                      "7d6",
+                      "8d6",
+                      "8d6",
+                      "9d6",
+                      "9d6",
+                      "10d6",
+                      "10d6"
+                    ]
+                  },
+                  "mode": "choice",
+                  "oncePerTurn": true,
+                  "sneak": true,
+                  "when": {
+                    "any": [
+                      {
+                        "weaponProperty": "finesse"
+                      },
+                      {
+                        "attackKind": "ranged"
+                      }
+                    ]
+                  }
+                }
+              ]
             }
           },
           {
@@ -6100,6 +6685,33 @@
                   "name": "Innate Sorcery",
                   "max": 2,
                   "recharge": "long_rest"
+                },
+                {
+                  "type": "feature_use",
+                  "id": "innate_sorcery",
+                  "name": "Innate Sorcery",
+                  "parts": [
+                    {
+                      "kind": "buff",
+                      "effects": [
+                        {
+                          "type": "flat_bonus",
+                          "target": "spell_save_dc",
+                          "value": 1
+                        },
+                        {
+                          "type": "advantage",
+                          "target": "attack.spell"
+                        }
+                      ]
+                    }
+                  ],
+                  "action": "Ação Bônus",
+                  "cost": {
+                    "resource": "innate_sorcery"
+                  },
+                  "duration": "1 minuto",
+                  "note": "Só vale nas magias de Feiticeiro."
                 }
               ]
             }
@@ -7287,7 +7899,23 @@
                       "feature": {
                         "id": "eldritch_smite",
                         "name": "Eldritch Smite",
-                        "description": "Once per turn when you hit a creature with your pact weapon, you can expend a Pact Magic spell slot to deal an extra 1d8 Force damage to the target, plus another 1d8 per level of the spell slot, and you can give the target the Prone condition if it is Huge or smaller."
+                        "description": "Once per turn when you hit a creature with your pact weapon, you can expend a Pact Magic spell slot to deal an extra 1d8 Force damage to the target, plus another 1d8 per level of the spell slot, and you can give the target the Prone condition if it is Huge or smaller.",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "eldritch_smite",
+                            "name": "Eldritch Smite",
+                            "dice": "1d8",
+                            "mode": "choice",
+                            "damageType": "force",
+                            "oncePerTurn": true,
+                            "cost": {
+                              "pactSlot": true,
+                              "perSlotLevel": "1d8"
+                            },
+                            "note": "Só com a arma do pacto. Pode deixar Caído um alvo Enorme ou menor (o mestre aplica)."
+                          }
+                        ]
                       }
                     }
                   ],
@@ -7469,7 +8097,23 @@
                       "feature": {
                         "id": "lifedrinker",
                         "name": "Lifedrinker",
-                        "description": "Once per turn when you hit a creature with your pact weapon, you can deal an extra 1d6 Necrotic, Psychic, or Radiant damage (your choice), and you can expend one of your Hit Point Dice to roll it and regain a number of Hit Points equal to the roll plus your Constitution modifier (minimum of 1 Hit Point)."
+                        "description": "Once per turn when you hit a creature with your pact weapon, you can deal an extra 1d6 Necrotic, Psychic, or Radiant damage (your choice), and you can expend one of your Hit Point Dice to roll it and regain a number of Hit Points equal to the roll plus your Constitution modifier (minimum of 1 Hit Point).",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "lifedrinker",
+                            "name": "Lifedrinker",
+                            "dice": "1d6",
+                            "mode": "choice",
+                            "damageType": [
+                              "necrotic",
+                              "psychic",
+                              "radiant"
+                            ],
+                            "oncePerTurn": true,
+                            "note": "Só com a arma do pacto. O Dado de Vida para recuperar PV fica com a mesa."
+                          }
+                        ]
                       }
                     }
                   ],
@@ -8017,7 +8661,23 @@
                       "feature": {
                         "id": "eldritch_smite",
                         "name": "Eldritch Smite",
-                        "description": "Once per turn when you hit a creature with your pact weapon, you can expend a Pact Magic spell slot to deal an extra 1d8 Force damage to the target, plus another 1d8 per level of the spell slot, and you can give the target the Prone condition if it is Huge or smaller."
+                        "description": "Once per turn when you hit a creature with your pact weapon, you can expend a Pact Magic spell slot to deal an extra 1d8 Force damage to the target, plus another 1d8 per level of the spell slot, and you can give the target the Prone condition if it is Huge or smaller.",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "eldritch_smite",
+                            "name": "Eldritch Smite",
+                            "dice": "1d8",
+                            "mode": "choice",
+                            "damageType": "force",
+                            "oncePerTurn": true,
+                            "cost": {
+                              "pactSlot": true,
+                              "perSlotLevel": "1d8"
+                            },
+                            "note": "Só com a arma do pacto. Pode deixar Caído um alvo Enorme ou menor (o mestre aplica)."
+                          }
+                        ]
                       }
                     }
                   ],
@@ -8199,7 +8859,23 @@
                       "feature": {
                         "id": "lifedrinker",
                         "name": "Lifedrinker",
-                        "description": "Once per turn when you hit a creature with your pact weapon, you can deal an extra 1d6 Necrotic, Psychic, or Radiant damage (your choice), and you can expend one of your Hit Point Dice to roll it and regain a number of Hit Points equal to the roll plus your Constitution modifier (minimum of 1 Hit Point)."
+                        "description": "Once per turn when you hit a creature with your pact weapon, you can deal an extra 1d6 Necrotic, Psychic, or Radiant damage (your choice), and you can expend one of your Hit Point Dice to roll it and regain a number of Hit Points equal to the roll plus your Constitution modifier (minimum of 1 Hit Point).",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "lifedrinker",
+                            "name": "Lifedrinker",
+                            "dice": "1d6",
+                            "mode": "choice",
+                            "damageType": [
+                              "necrotic",
+                              "psychic",
+                              "radiant"
+                            ],
+                            "oncePerTurn": true,
+                            "note": "Só com a arma do pacto. O Dado de Vida para recuperar PV fica com a mesa."
+                          }
+                        ]
                       }
                     }
                   ],
@@ -8780,7 +9456,23 @@
                       "feature": {
                         "id": "eldritch_smite",
                         "name": "Eldritch Smite",
-                        "description": "Once per turn when you hit a creature with your pact weapon, you can expend a Pact Magic spell slot to deal an extra 1d8 Force damage to the target, plus another 1d8 per level of the spell slot, and you can give the target the Prone condition if it is Huge or smaller."
+                        "description": "Once per turn when you hit a creature with your pact weapon, you can expend a Pact Magic spell slot to deal an extra 1d8 Force damage to the target, plus another 1d8 per level of the spell slot, and you can give the target the Prone condition if it is Huge or smaller.",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "eldritch_smite",
+                            "name": "Eldritch Smite",
+                            "dice": "1d8",
+                            "mode": "choice",
+                            "damageType": "force",
+                            "oncePerTurn": true,
+                            "cost": {
+                              "pactSlot": true,
+                              "perSlotLevel": "1d8"
+                            },
+                            "note": "Só com a arma do pacto. Pode deixar Caído um alvo Enorme ou menor (o mestre aplica)."
+                          }
+                        ]
                       }
                     }
                   ],
@@ -8962,7 +9654,23 @@
                       "feature": {
                         "id": "lifedrinker",
                         "name": "Lifedrinker",
-                        "description": "Once per turn when you hit a creature with your pact weapon, you can deal an extra 1d6 Necrotic, Psychic, or Radiant damage (your choice), and you can expend one of your Hit Point Dice to roll it and regain a number of Hit Points equal to the roll plus your Constitution modifier (minimum of 1 Hit Point)."
+                        "description": "Once per turn when you hit a creature with your pact weapon, you can deal an extra 1d6 Necrotic, Psychic, or Radiant damage (your choice), and you can expend one of your Hit Point Dice to roll it and regain a number of Hit Points equal to the roll plus your Constitution modifier (minimum of 1 Hit Point).",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "lifedrinker",
+                            "name": "Lifedrinker",
+                            "dice": "1d6",
+                            "mode": "choice",
+                            "damageType": [
+                              "necrotic",
+                              "psychic",
+                              "radiant"
+                            ],
+                            "oncePerTurn": true,
+                            "note": "Só com a arma do pacto. O Dado de Vida para recuperar PV fica com a mesa."
+                          }
+                        ]
                       }
                     }
                   ],
@@ -9491,7 +10199,23 @@
                       "feature": {
                         "id": "eldritch_smite",
                         "name": "Eldritch Smite",
-                        "description": "Once per turn when you hit a creature with your pact weapon, you can expend a Pact Magic spell slot to deal an extra 1d8 Force damage to the target, plus another 1d8 per level of the spell slot, and you can give the target the Prone condition if it is Huge or smaller."
+                        "description": "Once per turn when you hit a creature with your pact weapon, you can expend a Pact Magic spell slot to deal an extra 1d8 Force damage to the target, plus another 1d8 per level of the spell slot, and you can give the target the Prone condition if it is Huge or smaller.",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "eldritch_smite",
+                            "name": "Eldritch Smite",
+                            "dice": "1d8",
+                            "mode": "choice",
+                            "damageType": "force",
+                            "oncePerTurn": true,
+                            "cost": {
+                              "pactSlot": true,
+                              "perSlotLevel": "1d8"
+                            },
+                            "note": "Só com a arma do pacto. Pode deixar Caído um alvo Enorme ou menor (o mestre aplica)."
+                          }
+                        ]
                       }
                     }
                   ],
@@ -9673,7 +10397,23 @@
                       "feature": {
                         "id": "lifedrinker",
                         "name": "Lifedrinker",
-                        "description": "Once per turn when you hit a creature with your pact weapon, you can deal an extra 1d6 Necrotic, Psychic, or Radiant damage (your choice), and you can expend one of your Hit Point Dice to roll it and regain a number of Hit Points equal to the roll plus your Constitution modifier (minimum of 1 Hit Point)."
+                        "description": "Once per turn when you hit a creature with your pact weapon, you can deal an extra 1d6 Necrotic, Psychic, or Radiant damage (your choice), and you can expend one of your Hit Point Dice to roll it and regain a number of Hit Points equal to the roll plus your Constitution modifier (minimum of 1 Hit Point).",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "lifedrinker",
+                            "name": "Lifedrinker",
+                            "dice": "1d6",
+                            "mode": "choice",
+                            "damageType": [
+                              "necrotic",
+                              "psychic",
+                              "radiant"
+                            ],
+                            "oncePerTurn": true,
+                            "note": "Só com a arma do pacto. O Dado de Vida para recuperar PV fica com a mesa."
+                          }
+                        ]
                       }
                     }
                   ],
@@ -10236,7 +10976,23 @@
                       "feature": {
                         "id": "eldritch_smite",
                         "name": "Eldritch Smite",
-                        "description": "Once per turn when you hit a creature with your pact weapon, you can expend a Pact Magic spell slot to deal an extra 1d8 Force damage to the target, plus another 1d8 per level of the spell slot, and you can give the target the Prone condition if it is Huge or smaller."
+                        "description": "Once per turn when you hit a creature with your pact weapon, you can expend a Pact Magic spell slot to deal an extra 1d8 Force damage to the target, plus another 1d8 per level of the spell slot, and you can give the target the Prone condition if it is Huge or smaller.",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "eldritch_smite",
+                            "name": "Eldritch Smite",
+                            "dice": "1d8",
+                            "mode": "choice",
+                            "damageType": "force",
+                            "oncePerTurn": true,
+                            "cost": {
+                              "pactSlot": true,
+                              "perSlotLevel": "1d8"
+                            },
+                            "note": "Só com a arma do pacto. Pode deixar Caído um alvo Enorme ou menor (o mestre aplica)."
+                          }
+                        ]
                       }
                     }
                   ],
@@ -10418,7 +11174,23 @@
                       "feature": {
                         "id": "lifedrinker",
                         "name": "Lifedrinker",
-                        "description": "Once per turn when you hit a creature with your pact weapon, you can deal an extra 1d6 Necrotic, Psychic, or Radiant damage (your choice), and you can expend one of your Hit Point Dice to roll it and regain a number of Hit Points equal to the roll plus your Constitution modifier (minimum of 1 Hit Point)."
+                        "description": "Once per turn when you hit a creature with your pact weapon, you can deal an extra 1d6 Necrotic, Psychic, or Radiant damage (your choice), and you can expend one of your Hit Point Dice to roll it and regain a number of Hit Points equal to the roll plus your Constitution modifier (minimum of 1 Hit Point).",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "lifedrinker",
+                            "name": "Lifedrinker",
+                            "dice": "1d6",
+                            "mode": "choice",
+                            "damageType": [
+                              "necrotic",
+                              "psychic",
+                              "radiant"
+                            ],
+                            "oncePerTurn": true,
+                            "note": "Só com a arma do pacto. O Dado de Vida para recuperar PV fica com a mesa."
+                          }
+                        ]
                       }
                     }
                   ],
@@ -11006,7 +11778,23 @@
                       "feature": {
                         "id": "eldritch_smite",
                         "name": "Eldritch Smite",
-                        "description": "Once per turn when you hit a creature with your pact weapon, you can expend a Pact Magic spell slot to deal an extra 1d8 Force damage to the target, plus another 1d8 per level of the spell slot, and you can give the target the Prone condition if it is Huge or smaller."
+                        "description": "Once per turn when you hit a creature with your pact weapon, you can expend a Pact Magic spell slot to deal an extra 1d8 Force damage to the target, plus another 1d8 per level of the spell slot, and you can give the target the Prone condition if it is Huge or smaller.",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "eldritch_smite",
+                            "name": "Eldritch Smite",
+                            "dice": "1d8",
+                            "mode": "choice",
+                            "damageType": "force",
+                            "oncePerTurn": true,
+                            "cost": {
+                              "pactSlot": true,
+                              "perSlotLevel": "1d8"
+                            },
+                            "note": "Só com a arma do pacto. Pode deixar Caído um alvo Enorme ou menor (o mestre aplica)."
+                          }
+                        ]
                       }
                     }
                   ],
@@ -11188,7 +11976,23 @@
                       "feature": {
                         "id": "lifedrinker",
                         "name": "Lifedrinker",
-                        "description": "Once per turn when you hit a creature with your pact weapon, you can deal an extra 1d6 Necrotic, Psychic, or Radiant damage (your choice), and you can expend one of your Hit Point Dice to roll it and regain a number of Hit Points equal to the roll plus your Constitution modifier (minimum of 1 Hit Point)."
+                        "description": "Once per turn when you hit a creature with your pact weapon, you can deal an extra 1d6 Necrotic, Psychic, or Radiant damage (your choice), and you can expend one of your Hit Point Dice to roll it and regain a number of Hit Points equal to the roll plus your Constitution modifier (minimum of 1 Hit Point).",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "lifedrinker",
+                            "name": "Lifedrinker",
+                            "dice": "1d6",
+                            "mode": "choice",
+                            "damageType": [
+                              "necrotic",
+                              "psychic",
+                              "radiant"
+                            ],
+                            "oncePerTurn": true,
+                            "note": "Só com a arma do pacto. O Dado de Vida para recuperar PV fica com a mesa."
+                          }
+                        ]
                       }
                     }
                   ],
@@ -11744,7 +12548,23 @@
                       "feature": {
                         "id": "eldritch_smite",
                         "name": "Eldritch Smite",
-                        "description": "Once per turn when you hit a creature with your pact weapon, you can expend a Pact Magic spell slot to deal an extra 1d8 Force damage to the target, plus another 1d8 per level of the spell slot, and you can give the target the Prone condition if it is Huge or smaller."
+                        "description": "Once per turn when you hit a creature with your pact weapon, you can expend a Pact Magic spell slot to deal an extra 1d8 Force damage to the target, plus another 1d8 per level of the spell slot, and you can give the target the Prone condition if it is Huge or smaller.",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "eldritch_smite",
+                            "name": "Eldritch Smite",
+                            "dice": "1d8",
+                            "mode": "choice",
+                            "damageType": "force",
+                            "oncePerTurn": true,
+                            "cost": {
+                              "pactSlot": true,
+                              "perSlotLevel": "1d8"
+                            },
+                            "note": "Só com a arma do pacto. Pode deixar Caído um alvo Enorme ou menor (o mestre aplica)."
+                          }
+                        ]
                       }
                     }
                   ],
@@ -11926,7 +12746,23 @@
                       "feature": {
                         "id": "lifedrinker",
                         "name": "Lifedrinker",
-                        "description": "Once per turn when you hit a creature with your pact weapon, you can deal an extra 1d6 Necrotic, Psychic, or Radiant damage (your choice), and you can expend one of your Hit Point Dice to roll it and regain a number of Hit Points equal to the roll plus your Constitution modifier (minimum of 1 Hit Point)."
+                        "description": "Once per turn when you hit a creature with your pact weapon, you can deal an extra 1d6 Necrotic, Psychic, or Radiant damage (your choice), and you can expend one of your Hit Point Dice to roll it and regain a number of Hit Points equal to the roll plus your Constitution modifier (minimum of 1 Hit Point).",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "lifedrinker",
+                            "name": "Lifedrinker",
+                            "dice": "1d6",
+                            "mode": "choice",
+                            "damageType": [
+                              "necrotic",
+                              "psychic",
+                              "radiant"
+                            ],
+                            "oncePerTurn": true,
+                            "note": "Só com a arma do pacto. O Dado de Vida para recuperar PV fica com a mesa."
+                          }
+                        ]
                       }
                     }
                   ],
@@ -12494,7 +13330,23 @@
                       "feature": {
                         "id": "eldritch_smite",
                         "name": "Eldritch Smite",
-                        "description": "Once per turn when you hit a creature with your pact weapon, you can expend a Pact Magic spell slot to deal an extra 1d8 Force damage to the target, plus another 1d8 per level of the spell slot, and you can give the target the Prone condition if it is Huge or smaller."
+                        "description": "Once per turn when you hit a creature with your pact weapon, you can expend a Pact Magic spell slot to deal an extra 1d8 Force damage to the target, plus another 1d8 per level of the spell slot, and you can give the target the Prone condition if it is Huge or smaller.",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "eldritch_smite",
+                            "name": "Eldritch Smite",
+                            "dice": "1d8",
+                            "mode": "choice",
+                            "damageType": "force",
+                            "oncePerTurn": true,
+                            "cost": {
+                              "pactSlot": true,
+                              "perSlotLevel": "1d8"
+                            },
+                            "note": "Só com a arma do pacto. Pode deixar Caído um alvo Enorme ou menor (o mestre aplica)."
+                          }
+                        ]
                       }
                     }
                   ],
@@ -12676,7 +13528,23 @@
                       "feature": {
                         "id": "lifedrinker",
                         "name": "Lifedrinker",
-                        "description": "Once per turn when you hit a creature with your pact weapon, you can deal an extra 1d6 Necrotic, Psychic, or Radiant damage (your choice), and you can expend one of your Hit Point Dice to roll it and regain a number of Hit Points equal to the roll plus your Constitution modifier (minimum of 1 Hit Point)."
+                        "description": "Once per turn when you hit a creature with your pact weapon, you can deal an extra 1d6 Necrotic, Psychic, or Radiant damage (your choice), and you can expend one of your Hit Point Dice to roll it and regain a number of Hit Points equal to the roll plus your Constitution modifier (minimum of 1 Hit Point).",
+                        "effects": [
+                          {
+                            "type": "attack_rider",
+                            "id": "lifedrinker",
+                            "name": "Lifedrinker",
+                            "dice": "1d6",
+                            "mode": "choice",
+                            "damageType": [
+                              "necrotic",
+                              "psychic",
+                              "radiant"
+                            ],
+                            "oncePerTurn": true,
+                            "note": "Só com a arma do pacto. O Dado de Vida para recuperar PV fica com a mesa."
+                          }
+                        ]
                       }
                     }
                   ],

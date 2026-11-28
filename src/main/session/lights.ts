@@ -10,6 +10,8 @@ import {
   MAX_PROP_LIGHT_OVERRIDES,
   type PatchOp,
   type PropLightOverrides,
+  sameSpellLink,
+  type SpellLink,
   type Role,
   toPointer,
   WORLD_UNITS_PER_CELL,
@@ -41,8 +43,13 @@ function canManageLight(ctx: SessionContext, light: MapLightSource, playerId: st
     if (token && ctx.controls(playerId, token)) return true;
   }
   if (light.spell) {
-    const ch = ctx.current.characters[light.spell.characterId];
-    if (ch && ch.ownerId === playerId) return true;
+    if ('characterId' in light.spell) {
+      const ch = ctx.current.characters[light.spell.characterId];
+      if (ch && ch.ownerId === playerId) return true;
+    } else {
+      const token = ctx.current.tokens[light.spell.tokenId];
+      if (token && ctx.controls(playerId, token)) return true;
+    }
   }
   return false;
 }
@@ -68,7 +75,8 @@ export function addLight(ctx: SessionContext, playerId: string, role: Role, data
   const input = data.light;
   validateAttachment(ctx, map, input.attach, playerId, role);
   if (input.spell) {
-    ctx.ownCharacter(playerId, role, input.spell.characterId);
+    if ('characterId' in input.spell) ctx.ownCharacter(playerId, role, input.spell.characterId);
+    else if (role !== 'gm' && !ctx.controls(playerId, ctx.token(input.spell.tokenId))) throw notAllowed('Você não controla este token');
   }
   const light: MapLightSource = {
     id: ctx.deps.newId(),
@@ -219,11 +227,11 @@ export function removeTokenLights(ctx: SessionContext, tokenId: string): PatchOp
 }
 
 /** Remove luzes ou zonas de escuridão mágica ligadas a uma magia cuja Concentração terminou. */
-export function removeSpellLights(ctx: SessionContext, link: { characterId: string; spellId: string }): PatchOp[] {
+export function removeSpellLights(ctx: SessionContext, link: SpellLink): PatchOp[] {
   const ops: PatchOp[] = [];
   for (const map of Object.values(ctx.current.maps)) {
     const nextLights = map.lights.filter(
-      (l) => !(l.spell?.characterId === link.characterId && l.spell.spellId === link.spellId),
+      (l) => !sameSpellLink(l.spell, link),
     );
     if (nextLights.length !== map.lights.length) {
       ops.push({ op: 'replace', path: toPointer('maps', map.id, 'lights'), value: nextLights });

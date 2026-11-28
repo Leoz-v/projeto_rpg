@@ -5,7 +5,6 @@ import {
   defaultMapLighting,
   emptyFogBits,
   encodeFogBits,
-  NO_CONDITIONS,
   setFogCell,
   type GameMap,
   type Token,
@@ -22,6 +21,7 @@ import {
   MASK_UNSEEN,
   worldToFogCell,
 } from './fog-render';
+import { makeToken } from '../../../shared/protocol/test-fixtures';
 
 const MAP_ID = '00000000-0000-4000-8000-000000000001';
 const PLAYER_ID = '00000000-0000-4000-8000-000000000010';
@@ -64,21 +64,7 @@ function makeCorridorMap(width: number, height: number, override?: Partial<GameM
 }
 
 function makeHero(override?: Partial<Token>): Token {
-  return {
-    id: TOKEN_ID,
-    mapId: MAP_ID,
-    name: 'Hero',
-    position: { x: 0, y: 0 },
-    size: 'medium',
-    monsterId: null,
-    image: null,
-    ownerIds: [PLAYER_ID],
-    characterId: null,
-    hp: null,
-    conditions: NO_CONDITIONS,
-    visionFeet: null,
-    ...override,
-  };
+  return makeToken({ id: TOKEN_ID, mapId: MAP_ID, name: 'Hero', ownerIds: [PLAYER_ID], ...override });
 }
 
 describe('fog-render', () => {

@@ -14,3 +14,7 @@ coverage/
 
 # Python (ferramentas de importação do SRD)
 __pycache__/
+
+# Testes de ponta a ponta (Playwright)
+test-results/
+playwright-report/

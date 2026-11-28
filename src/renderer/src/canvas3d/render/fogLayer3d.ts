@@ -184,7 +184,7 @@ export class FogLayer3d {
     this.fogTool = tool;
     const active = tool !== 'none';
     this.sceneMgr.app.canvas.style.cursor = active ? 'crosshair' : '';
-    this.sceneMgr.setLeftButtonAction(active ? 'none' : 'pan');
+    this.sceneMgr.setLeftButtonAction('none');
     if (!active && (this.brush || this.rect)) {
       this.brush = undefined;
       this.rect = undefined;

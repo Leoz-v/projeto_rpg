@@ -39,6 +39,7 @@ function makeDeps(sewerDoc?: unknown) {
     characterSheet: (c: Parameters<typeof characterSheet>[0]) => characterSheet(c, compendium).sheet ?? undefined,
     monsterHpMax: (id: string) => compendium.creatures.find((c) => c.id === id)?.hp.average,
     creature: (id: string) => compendium.creatures.find((c) => c.id === id),
+    item: (id: string) => compendium.items.find((i) => i.id === id),
     spell: (id: string) => compendium.spells.find((s) => s.id === id),
     assetExists: (sha: string) => sha === SEWER_SHA && sewerDoc !== undefined,
     readAsset: (sha: string) => (sha === SEWER_SHA && sewerDoc !== undefined ? Buffer.from(JSON.stringify(sewerDoc), 'utf8') : undefined),

@@ -1,5 +1,6 @@
 import type { Ability, Condition, DamageType } from '../schemas/common';
 import { DAMAGE_TYPES } from '../schemas/common';
+import { creatureRollEffects, type NamedEffects } from './creature-effects';
 import type { D20RollInput } from './d20';
 import { EXHAUSTION_D20_PENALTY } from './math';
 import { CONDITION_NAME } from './names';
@@ -33,6 +34,12 @@ export function effectiveConditions(conditions: Iterable<Condition>): Set<Condit
   return result;
 }
 
+/** Tira as condições que só duravam com outra que saiu (Impedido enquanto Agarrado). */
+export function withoutDependents<T extends { condition: Condition; with?: Condition | undefined }>(active: readonly T[]): T[] {
+  const kept = active.filter((c) => c.with === undefined || active.some((o) => o.condition === c.with));
+  return kept.length === active.length ? kept : withoutDependents(kept);
+}
+
 /** Deslocamento 0 (Agarrado, Paralisado, Petrificado, Impedido, Inconsciente). */
 export const SPEED_ZERO_CONDITIONS: readonly Condition[] = ['grappled', 'paralyzed', 'petrified', 'restrained', 'unconscious'];
 
@@ -48,7 +55,7 @@ const AUTO_CRITICAL_WITHIN_5: readonly Condition[] = ['paralyzed', 'unconscious'
 /** Distância em que o Caído e o crítico automático mudam ("within 5 feet"). */
 export const CLOSE_RANGE_FT = 5;
 
-export type ConditionRoll = { kind: 'attack' } | { kind: 'check' } | { kind: 'initiative' } | { kind: 'save'; ability?: Ability | undefined };
+export type ConditionRoll = { kind: 'attack'; attackKind?: 'melee' | 'ranged' | 'spell' | undefined } | { kind: 'check' } | { kind: 'initiative' } | { kind: 'save'; ability?: Ability | undefined };
 
 export interface ConditionRollEffects {
   advantage: SourceLabel[];
@@ -144,25 +151,28 @@ export interface CreatureD20 {
 
 /**
  * Teste d20 de um monstro (sem ficha): o bônus do bloco, a Exaustão (−2 por
- * nível) e as condições dele, mais a Vantagem/Desvantagem declarada.
+ * nível), as condições e os efeitos de magia dele (nota 0062), mais a Vantagem/Desvantagem declarada.
  */
 export function creatureD20(
   base: { label: string; modifier: number },
   state: { conditions: ReadonlySet<Condition>; exhaustion: number },
   roll: ConditionRoll,
   declared: { advantage?: boolean | undefined; disadvantage?: boolean | undefined } = {},
+  spellEffects: readonly NamedEffects[] = [],
 ): CreatureD20 {
   const effects = ownRollConditions(state.conditions, roll);
+  const spells = creatureRollEffects(spellEffects, roll);
   const parts: Contribution[] = [
     { label: base.label, value: base.modifier },
     ...(state.exhaustion > 0 ? [{ label: `Exaustão ${state.exhaustion}`, value: -EXHAUSTION_D20_PENALTY * state.exhaustion }] : []),
+    ...spells.parts,
   ];
   const modifier = parts.reduce((sum, p) => sum + p.value, 0);
-  const advantage = [...effects.advantage.map((s) => s.name), ...(declared.advantage ? ['Declarada na rolagem'] : [])];
-  const disadvantage = [...effects.disadvantage.map((s) => s.name), ...(declared.disadvantage ? ['Declarada na rolagem'] : [])];
+  const advantage = [...[...effects.advantage, ...spells.advantage].map((s) => s.name), ...(declared.advantage ? ['Declarada na rolagem'] : [])];
+  const disadvantage = [...[...effects.disadvantage, ...spells.disadvantage].map((s) => s.name), ...(declared.disadvantage ? ['Declarada na rolagem'] : [])];
   const mode = advantage.length > 0 && disadvantage.length === 0 ? 'advantage' : disadvantage.length > 0 && advantage.length === 0 ? 'disadvantage' : 'normal';
   return {
-    input: { modifier, mode, ...(effects.autoFail.length > 0 ? { autoFail: effects.autoFail } : {}) },
+    input: { modifier, mode, ...(effects.autoFail.length > 0 ? { autoFail: effects.autoFail } : {}), ...(spells.bonusDice.length > 0 ? { bonusDice: spells.bonusDice } : {}) },
     parts,
     advantage,
     disadvantage,

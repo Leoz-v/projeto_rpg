@@ -126,6 +126,11 @@ export function spellAttackD20(sheet: DerivedSheet, caster: SpellCaster, declare
   return statD20({ ...caster.attack, roll: sheet.spellcasting.attackRoll }, undefined, declared, undefined);
 }
 
+/** Teste de atributo, sem perícia (ler um pergaminho, nota 0076). */
+export function abilityCheckD20(sheet: DerivedSheet, ability: Ability, declared: DeclaredRoll = {}): SheetD20 {
+  return statD20(sheet.checks[ability], undefined, declared, undefined);
+}
+
 function statD20(stat: RollStat, critMin: number | undefined, declared: DeclaredRoll, against: RollAgainst | undefined): SheetD20 {
   // Circunstâncias que batem com o que a rolagem evita deixam de ser lembrete e valem (Dwarven Resilience contra Envenenado).
   const applies = (s: { when?: Predicate | undefined; note?: string | undefined }): boolean => s.note === undefined && matchesAgainst(s.when, against);

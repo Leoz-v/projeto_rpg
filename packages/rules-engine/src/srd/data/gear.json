@@ -9,6 +9,23 @@
       "coin": "gp"
     },
     "consumable": true,
+    "use": {
+      "parts": [
+        {
+          "kind": "save",
+          "ability": "dex",
+          "dc": {
+            "ability": "dex"
+          },
+          "damage": [
+            {
+              "dice": "2d6",
+              "type": "acid"
+            }
+          ]
+        }
+      ]
+    },
     "description": "When you take the Attack action, you can replace one of your attacks with throwing a vial of Acid. Target one creature or object you can see within 20 feet of yourself. The target must succeed on a Dexterity saving throw (DC 8 plus your Dexterity modifier and Proficiency Bonus) or take 2d6 Acid damage."
   },
   {
@@ -21,6 +38,23 @@
       "coin": "gp"
     },
     "consumable": true,
+    "use": {
+      "parts": [
+        {
+          "kind": "save",
+          "ability": "dex",
+          "dc": {
+            "ability": "dex"
+          },
+          "damage": [
+            {
+              "dice": "1d4",
+              "type": "fire"
+            }
+          ]
+        }
+      ]
+    },
     "description": "When you take the Attack action, you can replace one of your attacks with throwing a flask of Alchemist's Fire. Target one creature or object you can see within 20 feet of yourself. The target must succeed on a Dexterity saving throw (DC 8 plus your Dexterity modifier and Proficiency Bonus) or take 1d4 Fire damage and start burning (see \"Rules Glossary\")."
   },
   {
@@ -33,6 +67,25 @@
       "coin": "gp"
     },
     "consumable": true,
+    "use": {
+      "duration": "1 hora",
+      "parts": [
+        {
+          "kind": "buff",
+          "effects": [
+            {
+              "type": "advantage",
+              "target": "save.all",
+              "when": {
+                "against": {
+                  "condition": "poisoned"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
     "description": "As a Bonus Action, you can drink a vial of Antitoxin to gain Advantage on saving throws to avoid or end the Poisoned condition for 1 hour."
   },
   {
@@ -765,6 +818,27 @@
       "coin": "gp"
     },
     "consumable": true,
+    "use": {
+      "parts": [
+        {
+          "kind": "save",
+          "ability": "dex",
+          "dc": {
+            "ability": "dex"
+          },
+          "damage": [
+            {
+              "dice": "2d8",
+              "type": "radiant"
+            }
+          ],
+          "onlyTypes": [
+            "fiend",
+            "undead"
+          ]
+        }
+      ]
+    },
     "description": "When you take the Attack action, you can replace one of your attacks with throwing a flask of Holy Water. Target one creature you can see within 20 feet of yourself. The target must succeed on a Dexterity saving throw (DC 8 plus your Dexterity modifier and Proficiency Bonus) or take 2d8 Radiant damage if it is a Fiend or an Undead."
   },
   {

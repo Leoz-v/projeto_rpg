@@ -192,7 +192,60 @@ def parse_damage_chain(s):
 
 
 def conditions_in(sentence):
-    return [c for c in CONDITIONS if re.search(r"\b(?:has|have) the " + c.capitalize() + r" condition", sentence)]
+    # O que acontece quando o monstro solta quem engoliu ("exits with the Prone condition") não é da falha.
+    sentence = re.split(r" If the [\w ]+? takes \d+", sentence)[0]
+    return [c for c in CONDITIONS if re.search(r"\b(?:has|have) the (?:\w+ and )?" + c.capitalize() + r"(?: and \w+)? conditions?\b", sentence)]
+
+
+# Textos em que a condição depende de algo que a mesa não resolve (nota 0065): ficam com o mestre.
+IMPOSE_SKIP = re.compile(r"swallow|engulf|possess|demiplane|Hit Points or fewer|song ends|until the end of its turn\b")
+IMPOSE_SKIP_SENTENCE = re.compile(r" moved \d+\+ feet|reduce[sd]? the target to 0|is reduced to 0|attach")
+
+
+def imposes_in(text):
+    """Condições que o acerto ou a falha impõe na hora, com tamanho máximo, duração e as que duram junto (nota 0065)."""
+    text = re.split(r" (?:Second Failure|Failure by 5 or More|Failure or Success):", text)[0]
+    if IMPOSE_SKIP.search(text):
+        return []
+    out = []
+    for sentence in re.split(r"(?<=\.) ", text):
+        if "Saving Throw" in sentence or "First Failure" in sentence or "is subjected to" in sentence:
+            break
+        if IMPOSE_SKIP_SENTENCE.search(sentence):
+            continue
+        later = re.match(r"(?:Until the grapple ends|While (\w+)), the target (?:also )?has the (\w+)(?: and (\w+))? conditions?", sentence)
+        if later:
+            anchor = (later.group(1) or "Grappled").lower()
+            for entry in out:
+                if entry["conditions"][0] == anchor:
+                    entry["while"] = entry.get("while", []) + [c.lower() for c in later.groups()[1:] if c]
+            continue
+        size = re.match(r"If (?:the )?target is (?:an? )?(\w+) or smaller(?: creature)?, ", sentence)
+        if not (size or re.match(r"\d|The target (?:has|is pushed|takes)", sentence)):
+            continue
+        found = list(re.finditer(r"ha(?:s|ve) the (\w+)(?: and (\w+))? conditions?(?: \(escape DC (\d+)\))?([^.]*)", re.sub(r"(, and (?:it|the target) has the )", r".\1", sentence)))
+        if not found:
+            continue
+        first = found[0]
+        conditions = [c.lower() for c in first.groups()[:2] if c]
+        if not all(c in CONDITIONS and c != "exhaustion" for c in conditions):
+            continue
+        entry = {"conditions": conditions}
+        if size:
+            entry["maxSize"] = size.group(1).lower()
+        if first.group(3):
+            entry["escapeDc"] = int(first.group(3))
+        end = re.match(r" until the (start|end) of (its|the [^,.]+?'s) next turn", first.group(4))
+        if end:
+            entry["end"] = f"{'target' if end.group(2) == 'its' else 'actor'}_turn_{end.group(1)}"
+        for m in found[1:]:
+            if "until the grapple ends" in m.group(4):
+                entry["while"] = entry.get("while", []) + [c.lower() for c in m.groups()[:2] if c]
+        out.append(entry)
+    if "repeats the save at the end of each of its turns" in text:
+        for entry in out:
+            entry["repeatSave"] = True
+    return out
 
 
 def check_damage(who, parsed):
@@ -246,6 +299,79 @@ def parse_spellcasting(who, entry, body):
     return action
 
 
+def has_spell(actions, name):
+    sid = SPELLS.get(re.sub(r" \(.*", "", name).lower())
+    level = re.search(r"level (\d)", name)
+    return any(s["spellId"] == sid and (not level or s.get("level") == int(level.group(1))) for a in actions if a["kind"] == "spellcasting" for s in a["spells"])
+
+
+NUMBERS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6}
+NUM = "(" + "|".join(NUMBERS) + ")"
+
+
+def parse_multiattack(text, actions):
+    """Multiattack como opções de passos (nota 0066). Partes só de texto ficam na descrição; None se nada é resolvido."""
+    usable = {a["name"].split(" (")[0]: a["id"] for a in actions if a["kind"] in ("attack", "save")}
+
+    known = {s["spellId"]: s for a in actions if a["kind"] == "spellcasting" for s in a["spells"]}
+
+    def ids(names):
+        names = re.sub(r"\([A-Z]\) ", "", names)
+        out = []
+        for n in re.split(r", or |, and |, | or | and ", names):
+            n = re.sub(r" on itself$", "", n.strip())
+            spell = re.match(r"Spellcasting to cast ([^(]+?)(?: \(level (\d) version\))?$", n)
+            if n in usable:
+                out.append(usable[n])
+            elif n == "Spellcasting":
+                # Qualquer magia do bloco.
+                out += [f"spell_{sid}" for sid in known]
+            elif spell:
+                sid = SPELLS.get(spell.group(1).lower())
+                if sid not in known or (spell.group(2) and known[sid].get("level") != int(spell.group(2))):
+                    problems.append(f"Multiattack: magia fora do Spellcasting do bloco: {n}")
+                else:
+                    out.append(f"spell_{sid}")
+        return out
+
+    sentences = re.split(r"(?<=\.) ", text)
+    main = sentences[0]
+    if "as many" in main:
+        return None
+    options = []
+    for alternative in re.split(r", or it makes | or (?=uses [A-Z][\w ]+ twice)", main):
+        steps = []
+        alternative = re.sub(r" (?:if available|if it used [^.,]*)", "", alternative)
+        pattern = (rf"{NUM} (?:other )?attacks, using (?P<combo>[A-Z][^.]*?) in any combination"
+                   rf"|{NUM} (?P<attack>[A-Z][\w' ]*?) attacks?\b"
+                   r"|\buses? (?:either )?(?P<use>[A-Z][\w' ]*?(?: \(level \d version\))?(?:, [A-Z][\w' ]*?)*(?:,? or [A-Z][\w' ]*?)?)(?P<twice> twice)?(?=[.,]|$| and (?:makes|uses|one|two|three))")
+        for m in re.finditer(pattern, alternative):
+            count = NUMBERS[m.group(1) or m.group(3)] if (m.group(1) or m.group(3)) else (2 if m.group("twice") else 1)
+            chosen = ids(m.group("combo") or m.group("attack") or m.group("use"))
+            if chosen:
+                steps.append({"count": count, "actions": chosen})
+        if steps:
+            options.append({"steps": steps})
+    if not options:
+        return None
+    result = {"options": options}
+    for s in sentences[1:]:
+        m = re.match(r"It can replace (one attack|two attacks|any attack|the (?P<from>[A-Z]\w+) attack) with an? (?:use of )?(?P<by>.*?)(?: attack)?(?: if available)?\.$", s)
+        if not m:
+            continue
+        by = ids(m.group("by"))
+        if by:
+            replace = {"cost": 2 if m.group(1) == "two attacks" else 1, "actions": by}
+            if m.group(1) == "any attack":
+                replace["max"] = sum(x["count"] for x in options[0]["steps"])
+            else:
+                replace["max"] = 1
+            if m.group("from"):
+                replace["from"] = usable[m.group("from")]
+            result["replace"] = replace
+    return result
+
+
 def parse_action(who, entry, body):
     first = body.split("\n")[0]
     m = re.match(r"(Melee|Ranged|Melee or Ranged) Attack Roll: ([+-]\d+)(?: to hit)?(?: \([^)]*\))?, (.*?)\. Hit: (.*)$", first)
@@ -265,6 +391,9 @@ def parse_action(who, entry, body):
         hit = m.group(4)
         action["damage"] = check_damage(who, parse_damage_chain(hit))
         action["onHitConditions"] = conditions_in(re.split(r"(?<=\.) ", hit)[0])
+        imposes = imposes_in(hit)
+        if imposes:
+            action["imposes"] = imposes
         return action
     # A salvaguarda pode vir depois de um texto de movimento ("The bulette spends 5 feet..."), que
     # fica só na descrição. "Strength or Dexterity Saving Throw" e "First Failure" ficam como texto.
@@ -276,6 +405,9 @@ def parse_action(who, entry, body):
         success = m.group(4) or ""
         action["onSuccess"] = "half" if success.startswith("Half damage") else "none"
         action["onFailConditions"] = conditions_in(fail.split(" Failure or Success:")[0])
+        imposes = imposes_in(fail)
+        if imposes:
+            action["imposes"] = imposes
         return action
     if body.startswith("The ") and "casts one of the following spells" in first:
         sc = parse_spellcasting(who, entry, body)
@@ -608,6 +740,19 @@ for n, h in enumerate(starts):
         actions.append(parse_action(f"{who} / {e['name']}", entry, description))
     if traits:
         c["traits"] = traits
+    for a in actions:
+        legendary = a.get("activation") == "legendary"
+        if legendary and "can't take this action again until the start of its next turn" in a["description"].replace("\n", " "):
+            a["limit"] = {"per": "turn", "count": 1}
+        if a["kind"] == "text" and (a["name"].startswith("Multiattack") or legendary):
+            text = a["description"].replace("\n", " ")
+            if legendary:
+                # "casts Command (level 2 version), using the same spellcasting ability as Spellcasting".
+                text = re.sub(r"casts ([A-Z][\w' ]*?(?: \(level \d version\))?), using the same spellcasting ability as Spellcasting",
+                              lambda m: "uses Spellcasting to cast " + m.group(1) if has_spell(actions, m.group(1)) else m.group(0), text)
+            multi = parse_multiattack(text, actions)
+            if multi:
+                a["multiattack"] = multi
     c["actions"] = actions
     if not actions:
         problems.append(f"{who}: sem ações")
