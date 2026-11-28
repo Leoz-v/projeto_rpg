@@ -155,10 +155,10 @@ O histórico completo (PRs, versões de protocolo e banco, notas) fica em `docs/
 
 - ✅ **Fases 1 a 8:** fundação e ficha derivada (1), automação de efeitos (1.5), mesa e rede (2), fichas e progressão (3), ações e efeitos (4), combate (5), recursos e descansos (6), magias estruturadas (7), ações de monstro (8).
 - ✅ **Trilhas paralelas:** ferramentas de mapa ([issue #59](https://github.com/Leoz-v/projeto_rpg/issues/59)), mapas 3D (nota 0056) e iluminação, visão e colisão (nota 0081). Falta a navegação específica de jogador em 3D.
-- **Atual: Fase 9 — Ações dos personagens e itens** (nota 0074). Feitos: usar itens, cargas e magias de itens, pergaminhos, dano extra nos ataques, características que curam ou reforçam, Bardic Inspiration, características com salvaguarda que são ações (notas 0074 a 0080 e 0082). Próximos: as características com salvaguarda no acerto (Stunning Strike, Cunning Strike, Open Hand Technique); reações e mudanças na rolagem (Uncanny Dodge, Evasion, Indomitable), a redesenhar depois.
+- **Atual: Fase 9 — Ações dos personagens e itens** (nota 0074). Feitos: usar itens, cargas e magias de itens, pergaminhos, dano extra nos ataques, características que curam ou reforçam, Bardic Inspiration, características com salvaguarda (as ações e as do acerto, com o Ataque Desarmado; notas 0074 a 0080, 0082 e 0083). Próximos: Cunning Strike e Quivering Palm; reações e mudanças na rolagem (Uncanny Dodge, Evasion, Indomitable), a redesenhar depois.
 - ⏸️ **Adiado:** cópia offline do personagem com aprovação do mestre (nota 0034).
 - **Revisões:** `docs/revisao-2026-11.md` (a geral de novembro e a focada de 28/11/2026).
-- **Depois:** os extras de conforto do mestre nos intervalos e os extras futuros listados em `docs/roadmap.md` (tela de compêndio, venenos e armadilhas, encontros, abrir campanha de arquivo, tokens a partir de imagem, vários inimigos de uma vez, colar ficha de monstro).
+- **Depois:** áreas de efeito no mapa (gabarito e alvos propostos pelo Host), os extras de conforto do mestre nos intervalos e os extras futuros listados em `docs/roadmap.md` (tela de compêndio, venenos e armadilhas, encontros, abrir campanha de arquivo, tokens a partir de imagem, vários inimigos de uma vez, colar ficha de monstro).
 
 ## Comandos
 

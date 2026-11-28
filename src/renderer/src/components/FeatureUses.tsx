@@ -1,7 +1,7 @@
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import type { DamageType, DerivedSheet, SheetFeatureUse } from 'rules-engine';
 import { availableUses } from 'rules-engine/resources';
-import type { ChatEntry, IntentData, SessionCharacter, SessionState } from '../../../shared/protocol';
+import type { ChatEntry, IntentData, Role, SessionCharacter, SessionState } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
 import { CONDITION_LABEL, DAMAGE_LABEL } from './sheet-labels';
 
@@ -23,7 +23,7 @@ export function FeatureUses({ character, sheet, state }: { character: SessionCha
     <section className="feature-uses" aria-label="Características">
       <h3>Usar características</h3>
       <ul className="items">
-        {sheet.featureUses.map((use) => {
+        {sheet.featureUses.filter((use) => use.onHit === undefined).map((use) => {
           const active = character.adjustments.find((a) => a.feature?.id === use.id);
           const resource = use.cost ? sheet.resources.find((r) => r.id === use.cost?.resourceId) : undefined;
           const left = resource ? availableUses(resource.max, character.resourcesSpent, resource.id) : undefined;
@@ -225,6 +225,74 @@ export function FeatureUsedBody({ entry, header }: { entry: Extract<ChatEntry, {
           {n}
         </p>
       ))}
+    </li>
+  );
+}
+
+/** Quantas entradas do fim do chat ainda oferecem as características do acerto (o turno de agora, não o de horas atrás). */
+const RECENT_ENTRIES = 15;
+
+/**
+ * Embaixo de um ataque que acertou (nota 0083): as características que se
+ * usam no acerto (Stunning Strike, Open Hand Technique), para quem atacou e o
+ * mestre. O Host confere o resto (arma, uma vez por turno, Flurry of Blows).
+ */
+export function StrikeFeatureActions({ entry, state, viewer }: { entry: Extract<ChatEntry, { kind: 'attack_roll' }>; state: SessionState; viewer: { playerId: string; role: Role } }) {
+  const [uses, setUses] = useState<SheetFeatureUse[]>([]);
+  /** O nome de cada dano extra do ataque, pelo id (o `rider` da característica). */
+  const [riders, setRiders] = useState<Record<string, string>>({});
+  const [error, setError] = useState<string | null>(null);
+  const characterId = entry.weapon?.characterId;
+  const character = characterId !== undefined ? state.characters[characterId] : undefined;
+  const recent = state.chat.slice(-RECENT_ENTRIES).some((e) => e.id === entry.id);
+  const open = entry.hit && recent && character !== undefined && (viewer.role === 'gm' || character.ownerId === viewer.playerId);
+  const spent = JSON.stringify(character?.resourcesSpent ?? {});
+  useEffect(() => {
+    let alive = true;
+    if (!open || characterId === undefined) return;
+    void window.vtt.characterSheet(characterId).then((result) => {
+      if (!alive || !result.ok) return;
+      const sheet = result.value.sheet;
+      setUses((sheet?.featureUses ?? []).filter((u) => u.onHit !== undefined));
+      const attack = sheet?.attacks.find((a) => a.instanceId === entry.weapon?.instanceId);
+      setRiders(Object.fromEntries((attack?.riders ?? []).map((r) => [r.id, r.name])));
+    });
+    return () => {
+      alive = false;
+    };
+  }, [open, characterId, spent, entry.weapon?.instanceId]);
+  if (!open) return null;
+  const used = new Set(state.chat.flatMap((e) => (e.kind === 'feature_used' && e.attackOf === entry.id && e.featureId !== undefined ? [e.featureId] : [])));
+  const groupOf = (u: SheetFeatureUse): string => u.onHit?.group ?? u.id;
+  const usedGroups = new Set(uses.filter((u) => used.has(u.id)).map(groupOf));
+  const unarmed = entry.weapon?.instanceId === 'unarmed';
+  const sources = new Set(entry.damage?.groups.map((g) => g.source) ?? []);
+  const shown = uses.filter((u) => {
+    const onHit = u.onHit;
+    if (!onHit || usedGroups.has(groupOf(u))) return false;
+    if (onHit.attacks === 'unarmed' && !unarmed) return false;
+    const rider = onHit.rider !== undefined ? riders[onHit.rider] : undefined;
+    return onHit.rider === undefined || (rider !== undefined && sources.has(rider));
+  });
+  if (shown.length === 0) return null;
+  return (
+    <li className="entry">
+      <div className="proposal">
+        {shown.map((u) => (
+          <button
+            key={u.id}
+            type="button"
+            className="small"
+            title={u.note}
+            onClick={() => {
+              void sendIntent({ kind: 'feature.use', data: { characterId: character.id, featureId: u.id, entryId: entry.id } }).then(setError);
+            }}
+          >
+            {u.name}
+          </button>
+        ))}
+      </div>
+      {error !== null && <p className="error">{error}</p>}
     </li>
   );
 }

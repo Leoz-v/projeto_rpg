@@ -467,8 +467,10 @@ Característica que o jogador usa na mesa (nota 0078). A ficha a lista em `featu
 ```
 
 - `cost`: usos do recurso (`amount`, padrão 1). `targets`: `self`, `one` ou `many` (vários alvos escolhidos no mapa, até `maxTargets`, um `BonusValue`, no mínimo 1; nota 0082). `forbidHeavyArmor`: não com armadura pesada. `action`, `duration` e `note` são texto para a mesa.
-- Partes, na ordem: `heal` (dados, `bonus` somados, `minimum`, `temporary`), `pool_heal` e `pool_restore` (a reserva gasta o que quem usa escolher), `restore` (condições que terminam), `condition` (com `until`), `regain` (todos os usos de outro recurso) e `buff` (estado em quem usou), `inspire` (o dado de inspiração que o alvo guarda; nota 0079), `save` e `fail_damage` (nota 0082).
+- Partes, na ordem: `heal` (dados, `bonus` somados, `minimum`, `temporary`), `pool_heal` e `pool_restore` (a reserva gasta o que quem usa escolher), `restore` (condições que terminam), `condition` (com `until`), `regain` (todos os usos de outro recurso) e `buff` (estado em quem usou), `inspire` (o dado de inspiração que o alvo guarda; nota 0079), `save` e `fail_damage` (nota 0082) e `note` (um texto para a mesa no registro do uso; nota 0083). A `condition` aceita `maxSize` (só em alvos desse tamanho ou menores).
 - `save`: salvaguarda de `ability` dos alvos. `dc`: `"spell"` (a CD de magia da classe da fonte) ou `{ "ability": "con" }` (8 + proficiência + o modificador). `damage` (`dice` ou `byLevel`, `bonus` somados, `type`: um tipo ou a lista à escolha de quem usa) é rolado uma vez para todos; `onSuccess`: `half` ou `none`. `conditions` entram na falha; com `endsOnDamage`, acabam quando o alvo sofre dano, menos o desta mesma característica. `onlyTypes`: só criaturas desses tipos rolam (as outras ficam de fora, com nota). Ex.: `{ "kind": "save", "ability": "wis", "dc": "spell", "conditions": ["frightened", "incapacitated"], "endsOnDamage": true, "onlyTypes": ["undead"] }` (Turn Undead).
+- Na `save` (nota 0083): `until` (`user_turn_start` ou `user_turn_end`) dá a duração por turno das condições; `failNote` é o que a falha faz além delas, para a mesa (empurrado); `successEffect: "stunning"` põe no sucesso a Vantagem no próximo ataque contra o alvo, até o início do próximo turno de quem usou (efeito do combate); `damage.exceptTypes` são os tipos de criatura que não sofrem o dano (Infernais no Hurl Through Hell).
+- `onHit` (nota 0083): a característica é usada a partir de um ataque do personagem que acertou, e o alvo é o do ataque. `attacks`: `any`, `unarmed` (Ataque Desarmado) ou `monk` (ele ou uma arma de Monge: corpo a corpo simples, ou marcial com Light). `oncePerTurn` (no combate). `rider`: só se esse dano extra entrou no ataque (Eldritch Smite). `afterUse`: só depois dessa característica no mesmo turno, no combate (Flurry of Blows). `group`: uma só do grupo por ataque (as técnicas da Open Hand).
 - `fail_damage`: dano nos que falharam na `save` anterior, rolado uma vez: `count` dados (`BonusValue`, como `{ "ability": "wis", "min": 1 }`) de `sides` faces, do `type` (Sear Undead).
 - `inspire`: `dice` é uma expressão ou `byLevel` (20 valores) pelo nível na escala da fonte. O alvo é outro personagem, que guarda um dado de cada vez e o soma depois de ver uma rolagem dele (Teste d20) que falhou. O dado acaba ao ser usado, descartado ou no fim de um descanso (a mesa não tem relógio para a hora do texto).
 - `buff`: os efeitos do catálogo ficam na ficha como ajuste ligado à característica, com os números do momento, até o dono encerrar, o `until` ou um `endsOn` (`incapacitated`, `unconscious`, `heavy_armor`; a morte, sempre). `noSpells`: não conjura nem se concentra. `weapon`: os efeitos são de uma arma corpo a corpo.
@@ -504,6 +506,16 @@ O próprio personagem soma o dado de inspiração a uma rolagem sua que falhou, 
 - `rolls`: as rolagens em que vale: `check` (perícias e iniciativa), `attack` e `save` (salvaguardas, inclusive contra a Morte).
 - `dice`: como no `inspire` (3.30). `keepOnFailure`: se a rolagem continuar falhando, o uso não é gasto (o Host só sabe com a CD ou a CA; na rolagem solta, gasta e avisa).
 - Usado como o dado guardado: depois de ver a rolagem, por quem a fez. Um de mesmo `id` que vem depois substitui.
+
+### 3.34 `unarmed_damage`
+
+O dado de dano do Ataque Desarmado no lugar do 1 (Martial Arts, nota 0083). Vários: vale o maior.
+
+```json
+{ "type": "unarmed_damage", "dice": { "byLevel": ["1d6", "…", "1d12"] }, "when": { "wearingArmor": false } }
+```
+
+- Toda ficha tem o **Ataque Desarmado** entre os ataques (`instanceId: "unarmed"`, `itemId: "unarmed_strike"`): corpo a corpo, sempre proficiente, dano de 1 + FOR, contundente, sem maestria. É arma simples para os predicados (o `attack_ability` do Martial Arts deixa usar DES).
 
 ### Efeitos numa arma
 

@@ -77,7 +77,8 @@ Histórico completo do projeto: cada fase, os PRs em que foi dividida, as versõ
      - ✅ 4b2 (`inspiration.save`, `pendingInspirations`, `PROTOCOL_VERSION = 46`): a falha de salvaguarda (forçada, de Concentração e contra a Morte) de quem tem o dado espera o jogador, como a Resistência Lendária. Ver `docs/decisions/0080-salvaguardas-com-inspiracao.md`.
    - Características com salvaguarda (PR 5, em duas partes; ver `docs/decisions/0082-caracteristicas-com-salvaguarda.md`):
      - ✅ 5a (partes `save` e `fail_damage`, alvos `many`, `endsOnDamage`, `PROTOCOL_VERSION = 47`): Breath Weapon das 10 ancestralidades, Divine Spark com dano, Turn Undead com Sear Undead, Abjure Foes e Intimidating Presence, com os alvos escolhidos no mapa e as condições que acabam com dano.
-     - 5b: as do acerto (Stunning Strike, Cunning Strike e Devious Strikes, Open Hand Technique, Quivering Palm, Hurl Through Hell, o Caído do Eldritch Smite).
+     - ✅ 5b1 (`onHit`, parte `note`, efeito `unarmed_damage`, efeito de combate `stunning`, `PROTOCOL_VERSION = 48`; ver `docs/decisions/0083-ataque-desarmado-e-caracteristicas-no-acerto.md`): Ataque Desarmado em toda ficha (Martial Arts com DES e o dado), Flurry of Blows, Stunning Strike, Open Hand Technique, Hurl Through Hell e o Caído do Eldritch Smite, usados pelo ataque no chat.
+     - 5b2: Cunning Strike e Devious Strikes (trocam dados do Sneak Attack, escolhidos antes de rolar) e Quivering Palm.
    - Reações e mudanças na rolagem (Uncanny Dodge, Evasion, Indomitable): a redesenhar depois dos outros.
 
 ## Trilhas paralelas
@@ -114,6 +115,8 @@ Feitas por outros contribuidores ao lado das fases.
 - **Revisão focada (28/11/2026):** iluminação e visão (#94–#100), documentos e desempenho do Host; achados e situação em `docs/revisao-2026-11.md`.
 
 ## Depois
+
+- **Áreas de efeito no mapa** (pedido de 28/11/2026, depois da Fase 9): a forma e o tamanho das áreas das magias e características do SRD nos dados, um gabarito que quem conjura posiciona no mapa e o Host propondo os alvos dentro, com override. O gabarito visual combina com o contribuidor das ferramentas de mapa (issue #59).
 
 **Nos intervalos:** os extras de conforto do mestre.
 

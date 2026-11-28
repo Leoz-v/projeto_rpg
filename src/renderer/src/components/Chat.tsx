@@ -4,7 +4,7 @@ import { sendIntent } from '../store/table';
 import { CHAT_HELP, parseChatInput } from './chat-command';
 import { type RollPart, rollParts } from './roll-parts';
 import { addToChatLog, type ChatLog, chatLogEntries, chatLogWithWindow, EMPTY_CHAT_LOG, firstChatIndex } from './chat-log';
-import { FeatureUsedBody } from './FeatureUses';
+import { FeatureUsedBody, StrikeFeatureActions } from './FeatureUses';
 import { D20InspirationActions, InspirationRollBody, PendingAttackEntry, PendingInspirationEntry } from './Inspiration';
 import { DawnBody, ItemChargesBody, ScrollCheckBody } from './ItemCharges';
 import { ItemUsedBody } from './ItemUse';
@@ -106,6 +106,7 @@ function Entry({ entry, author, context }: { entry: ChatEntry; author: string; c
     case 'attack_roll':
       // Só o mestre recebe as propostas: para os outros, `pending` é sempre falso.
       return (
+        <>
         <AttackRollBody
           entry={entry}
           header={header}
@@ -117,6 +118,8 @@ function Entry({ entry, author, context }: { entry: ChatEntry; author: string; c
             activeMapId: context.state.activeMapId,
           }}
         />
+        <StrikeFeatureActions entry={entry} state={context.state} viewer={context.viewer} />
+        </>
       );
     case 'mastery_damage':
       return <MasteryDamageBody entry={entry} header={header} pending={entry.proposalId !== undefined && entry.proposalId in proposals} />;
@@ -177,7 +180,7 @@ function Entry({ entry, author, context }: { entry: ChatEntry; author: string; c
         </li>
       );
     case 'timed_effect': {
-      const label = { sap: 'Sap', vex: 'Vex', slow: 'Slow' }[entry.effect];
+      const label = { sap: 'Sap', vex: 'Vex', slow: 'Slow', stunning: 'Stunning Strike' }[entry.effect];
       return (
         <li className="entry condition-event">
           <p>

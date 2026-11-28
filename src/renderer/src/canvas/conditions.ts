@@ -1,7 +1,7 @@
 import { type ConditionState, NO_CONDITIONS, type SessionState, type Token } from '../../../shared/protocol';
 
 /** Efeitos temporários das maestrias, como aparecem acima do token. */
-const TIMED_LABEL = { sap: 'Sap', vex: 'Vex', slow: 'Slow −10 ft' } as const;
+const TIMED_LABEL = { sap: 'Sap', vex: 'Vex', slow: 'Slow −10 ft', stunning: 'Stunning Strike' } as const;
 import { CONDITION_LABEL } from '../components/sheet-labels';
 
 /** As condições que valem para o token: as do personagem que ele representa, ou as dele. */

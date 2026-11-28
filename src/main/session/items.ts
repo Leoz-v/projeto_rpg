@@ -1,4 +1,4 @@
-import { applyDamage, damageNotes, isConsumed, type Item, itemSaveApplies, itemSaveDc, type ItemUse, itemUse, itemUseDamages, type ItemUsePart, rollActionDamage, usedItemName } from 'rules-engine';
+import { applyDamage, damageNotes, isConsumed, type Item, itemSaveApplies, itemSaveDc, type ItemUse, itemUse, itemUseDamages, type ItemUsePart, rollActionDamage, type TurnExpiry, usedItemName } from 'rules-engine';
 import { type ChatEntry, type IntentData, type PatchOp, type Role, type SessionCharacter, type Token, toPointer } from '../../shared/protocol';
 import { rollSaves, targetOf } from './attacks';
 import { inventoryEntry } from './characters';
@@ -224,10 +224,10 @@ function forcedSave(ctx: SessionContext, using: Using, part: Extract<ItemUsePart
 export function applyItemFailure(
   ctx: SessionContext,
   playerId: string,
-  item: { label: string; conditions: Extract<ItemUsePart, { kind: 'save' }>['onFailConditions']; endsOnDamage?: string | undefined },
+  item: { label: string; conditions: Extract<ItemUsePart, { kind: 'save' }>['onFailConditions']; endsOnDamage?: string | undefined; until?: TurnExpiry | undefined },
   failed: Token[],
 ): PatchOp[] {
   const ledger = new ConditionLedger(ctx);
-  const timing = item.endsOnDamage !== undefined ? { endsOnDamage: { entryId: item.endsOnDamage } } : {};
+  const timing = { ...(item.endsOnDamage !== undefined ? { endsOnDamage: { entryId: item.endsOnDamage } } : {}), ...(item.until ? { until: item.until } : {}) };
   return failed.flatMap((target) => imposeConditions(ctx, playerId, ledger, target, item.conditions, timing, item.label).ops);
 }

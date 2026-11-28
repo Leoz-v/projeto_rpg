@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { UNARMED_INSTANCE_ID } from '../../src/engine/sheet';
 import { ABILITIES, SKILLS } from '../../src/schemas/common';
 import { CharacterSchema, GmAdjustmentSchema } from '../../src/schemas/character';
 import { InventorySchema } from '../../src/schemas/inventory';
@@ -55,7 +56,7 @@ function project(sheet: DerivedSheet): unknown {
     },
     weaponMasteries: sorted(sheet.weaponMasteries),
     feats: sorted(sheet.feats.map((f) => f.featId)),
-    attacks: sheet.attacks.map((a) => ({
+    attacks: sheet.attacks.filter((a) => a.instanceId !== UNARMED_INSTANCE_ID).map((a) => ({
       itemId: a.itemId,
       attack: a.attack.total,
       damage: a.damage.dice,
@@ -65,9 +66,10 @@ function project(sheet: DerivedSheet): unknown {
       // Só quando diferem do padrão (crítico só no 20, sem dano extra).
       ...(a.critRange !== 20 ? { critRange: a.critRange } : {}),
       ...(a.extraDamage.length ? { extraDamage: a.extraDamage.map((x) => `${x.dice} ${x.type}`) } : {}),
-      mastery: a.mastery.property,
-      masteryAvailable: a.mastery.available,
+      mastery: a.mastery?.property,
+      masteryAvailable: a.mastery?.available,
     })),
+    unarmed: ((u) => u && { ability: u.ability, attack: u.attack.total, damage: u.damage.dice, damageBonus: u.damage.bonus.total })(sheet.attacks.find((a) => a.instanceId === UNARMED_INSTANCE_ID)),
     spellcasting: {
       classes: sheet.spellcasting.classes.map((c) => ({
         classId: c.classId,

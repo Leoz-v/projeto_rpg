@@ -147,6 +147,8 @@ export const IntentSchema = z.discriminatedUnion('kind', [
       targetTokenIds: z.array(UuidSchema).min(1).max(MAX_SAVE_TARGETS).optional(),
       /** Tipo de dano escolhido, quando a característica deixa a escolha (Divine Spark). */
       damageType: DamageTypeSchema.optional(),
+      /** O `attack_roll` que acertou, nas características usadas no acerto (Stunning Strike; nota 0083). */
+      entryId: UuidSchema.optional(),
       /** Reserva (Lay On Hands): PV a curar e condições a terminar. */
       amount: z.int().min(0).max(1000).optional(),
       conditions: z.array(TableConditionSchema).max(15).optional(),

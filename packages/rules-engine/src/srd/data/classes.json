@@ -4218,6 +4218,56 @@
                       }
                     ]
                   }
+                },
+                {
+                  "type": "unarmed_damage",
+                  "dice": {
+                    "byLevel": [
+                      "1d6",
+                      "1d6",
+                      "1d6",
+                      "1d6",
+                      "1d8",
+                      "1d8",
+                      "1d8",
+                      "1d8",
+                      "1d8",
+                      "1d8",
+                      "1d10",
+                      "1d10",
+                      "1d10",
+                      "1d10",
+                      "1d10",
+                      "1d10",
+                      "1d12",
+                      "1d12",
+                      "1d12",
+                      "1d12"
+                    ]
+                  },
+                  "when": {
+                    "all": [
+                      {
+                        "attackKind": "melee"
+                      },
+                      {
+                        "any": [
+                          {
+                            "weaponCategory": "simple"
+                          },
+                          {
+                            "weaponProperty": "light"
+                          }
+                        ]
+                      },
+                      {
+                        "wearingArmor": false
+                      },
+                      {
+                        "wieldingShield": false
+                      }
+                    ]
+                  }
                 }
               ]
             }
@@ -4270,6 +4320,21 @@
                     "perLevel": 1
                   },
                   "recharge": "short_rest"
+                },
+                {
+                  "type": "feature_use",
+                  "id": "flurry_of_blows",
+                  "name": "Flurry of Blows",
+                  "action": "Ação Bônus",
+                  "cost": {
+                    "resource": "focus_points"
+                  },
+                  "parts": [
+                    {
+                      "kind": "note",
+                      "text": "Dois Ataques Desarmados"
+                    }
+                  ]
                 }
               ]
             }
@@ -4434,7 +4499,36 @@
             "feature": {
               "id": "stunning_strike",
               "name": "Stunning Strike",
-              "description": "Once per turn when you hit a creature with a Monk weapon or an Unarmed Strike, you can expend 1 Focus Point to attempt a stunning strike. The target must make a Constitution saving throw. On a failed save, the target has the Stunned condition until the start of your next turn. On a successful save, the target's Speed is halved until the start of your next turn, and the next attack roll made against the target before then has Advantage."
+              "description": "Once per turn when you hit a creature with a Monk weapon or an Unarmed Strike, you can expend 1 Focus Point to attempt a stunning strike. The target must make a Constitution saving throw. On a failed save, the target has the Stunned condition until the start of your next turn. On a successful save, the target's Speed is halved until the start of your next turn, and the next attack roll made against the target before then has Advantage.",
+              "effects": [
+                {
+                  "type": "feature_use",
+                  "id": "stunning_strike",
+                  "name": "Stunning Strike",
+                  "cost": {
+                    "resource": "focus_points"
+                  },
+                  "onHit": {
+                    "attacks": "monk",
+                    "oncePerTurn": true
+                  },
+                  "note": "No sucesso: Deslocamento pela metade até o início do seu próximo turno",
+                  "parts": [
+                    {
+                      "kind": "save",
+                      "ability": "con",
+                      "dc": {
+                        "ability": "wis"
+                      },
+                      "conditions": [
+                        "stunned"
+                      ],
+                      "until": "user_turn_start",
+                      "successEffect": "stunning"
+                    }
+                  ]
+                }
+              ]
             }
           }
         ]
@@ -8079,7 +8173,25 @@
                               "pactSlot": true,
                               "perSlotLevel": "1d8"
                             },
-                            "note": "Só com a arma do pacto. Pode deixar Caído um alvo Enorme ou menor (o mestre aplica)."
+                            "note": "Só com a arma do pacto."
+                          },
+                          {
+                            "type": "feature_use",
+                            "id": "eldritch_smite_prone",
+                            "name": "Eldritch Smite (Caído)",
+                            "onHit": {
+                              "attacks": "any",
+                              "rider": "eldritch_smite"
+                            },
+                            "parts": [
+                              {
+                                "kind": "condition",
+                                "conditions": [
+                                  "prone"
+                                ],
+                                "maxSize": "huge"
+                              }
+                            ]
                           }
                         ]
                       }
@@ -8841,7 +8953,25 @@
                               "pactSlot": true,
                               "perSlotLevel": "1d8"
                             },
-                            "note": "Só com a arma do pacto. Pode deixar Caído um alvo Enorme ou menor (o mestre aplica)."
+                            "note": "Só com a arma do pacto."
+                          },
+                          {
+                            "type": "feature_use",
+                            "id": "eldritch_smite_prone",
+                            "name": "Eldritch Smite (Caído)",
+                            "onHit": {
+                              "attacks": "any",
+                              "rider": "eldritch_smite"
+                            },
+                            "parts": [
+                              {
+                                "kind": "condition",
+                                "conditions": [
+                                  "prone"
+                                ],
+                                "maxSize": "huge"
+                              }
+                            ]
                           }
                         ]
                       }
@@ -9636,7 +9766,25 @@
                               "pactSlot": true,
                               "perSlotLevel": "1d8"
                             },
-                            "note": "Só com a arma do pacto. Pode deixar Caído um alvo Enorme ou menor (o mestre aplica)."
+                            "note": "Só com a arma do pacto."
+                          },
+                          {
+                            "type": "feature_use",
+                            "id": "eldritch_smite_prone",
+                            "name": "Eldritch Smite (Caído)",
+                            "onHit": {
+                              "attacks": "any",
+                              "rider": "eldritch_smite"
+                            },
+                            "parts": [
+                              {
+                                "kind": "condition",
+                                "conditions": [
+                                  "prone"
+                                ],
+                                "maxSize": "huge"
+                              }
+                            ]
                           }
                         ]
                       }
@@ -10379,7 +10527,25 @@
                               "pactSlot": true,
                               "perSlotLevel": "1d8"
                             },
-                            "note": "Só com a arma do pacto. Pode deixar Caído um alvo Enorme ou menor (o mestre aplica)."
+                            "note": "Só com a arma do pacto."
+                          },
+                          {
+                            "type": "feature_use",
+                            "id": "eldritch_smite_prone",
+                            "name": "Eldritch Smite (Caído)",
+                            "onHit": {
+                              "attacks": "any",
+                              "rider": "eldritch_smite"
+                            },
+                            "parts": [
+                              {
+                                "kind": "condition",
+                                "conditions": [
+                                  "prone"
+                                ],
+                                "maxSize": "huge"
+                              }
+                            ]
                           }
                         ]
                       }
@@ -11156,7 +11322,25 @@
                               "pactSlot": true,
                               "perSlotLevel": "1d8"
                             },
-                            "note": "Só com a arma do pacto. Pode deixar Caído um alvo Enorme ou menor (o mestre aplica)."
+                            "note": "Só com a arma do pacto."
+                          },
+                          {
+                            "type": "feature_use",
+                            "id": "eldritch_smite_prone",
+                            "name": "Eldritch Smite (Caído)",
+                            "onHit": {
+                              "attacks": "any",
+                              "rider": "eldritch_smite"
+                            },
+                            "parts": [
+                              {
+                                "kind": "condition",
+                                "conditions": [
+                                  "prone"
+                                ],
+                                "maxSize": "huge"
+                              }
+                            ]
                           }
                         ]
                       }
@@ -11958,7 +12142,25 @@
                               "pactSlot": true,
                               "perSlotLevel": "1d8"
                             },
-                            "note": "Só com a arma do pacto. Pode deixar Caído um alvo Enorme ou menor (o mestre aplica)."
+                            "note": "Só com a arma do pacto."
+                          },
+                          {
+                            "type": "feature_use",
+                            "id": "eldritch_smite_prone",
+                            "name": "Eldritch Smite (Caído)",
+                            "onHit": {
+                              "attacks": "any",
+                              "rider": "eldritch_smite"
+                            },
+                            "parts": [
+                              {
+                                "kind": "condition",
+                                "conditions": [
+                                  "prone"
+                                ],
+                                "maxSize": "huge"
+                              }
+                            ]
                           }
                         ]
                       }
@@ -12728,7 +12930,25 @@
                               "pactSlot": true,
                               "perSlotLevel": "1d8"
                             },
-                            "note": "Só com a arma do pacto. Pode deixar Caído um alvo Enorme ou menor (o mestre aplica)."
+                            "note": "Só com a arma do pacto."
+                          },
+                          {
+                            "type": "feature_use",
+                            "id": "eldritch_smite_prone",
+                            "name": "Eldritch Smite (Caído)",
+                            "onHit": {
+                              "attacks": "any",
+                              "rider": "eldritch_smite"
+                            },
+                            "parts": [
+                              {
+                                "kind": "condition",
+                                "conditions": [
+                                  "prone"
+                                ],
+                                "maxSize": "huge"
+                              }
+                            ]
                           }
                         ]
                       }
@@ -13510,7 +13730,25 @@
                               "pactSlot": true,
                               "perSlotLevel": "1d8"
                             },
-                            "note": "Só com a arma do pacto. Pode deixar Caído um alvo Enorme ou menor (o mestre aplica)."
+                            "note": "Só com a arma do pacto."
+                          },
+                          {
+                            "type": "feature_use",
+                            "id": "eldritch_smite_prone",
+                            "name": "Eldritch Smite (Caído)",
+                            "onHit": {
+                              "attacks": "any",
+                              "rider": "eldritch_smite"
+                            },
+                            "parts": [
+                              {
+                                "kind": "condition",
+                                "conditions": [
+                                  "prone"
+                                ],
+                                "maxSize": "huge"
+                              }
+                            ]
                           }
                         ]
                       }

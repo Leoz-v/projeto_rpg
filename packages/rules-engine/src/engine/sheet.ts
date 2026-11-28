@@ -167,6 +167,34 @@ const namedSource = (e: SourcedEffect): SourceLabel => ({ ...e.source, name: lab
 const total = (parts: readonly Contribution[]): number => parts.reduce((sum, p) => sum + p.value, 0);
 const stat = (parts: Contribution[]): Stat => ({ total: total(parts), parts });
 
+/** Id do Ataque Desarmado entre os ataques da ficha (não é uma entrada do inventário; nota 0083). */
+export const UNARMED_INSTANCE_ID = 'unarmed';
+
+/**
+ * Ataque Desarmado (SRD 5.2.1): ataque corpo a corpo com FOR e proficiência,
+ * dano de 1 + FOR, contundente. Como arma simples, o Martial Arts deixa usar DES.
+ */
+const UNARMED_STRIKE: Weapon = {
+  id: 'unarmed_strike',
+  name: 'Unarmed Strike',
+  kind: 'weapon',
+  category: 'simple',
+  attackKind: 'melee',
+  damage: { dice: '1', type: 'bludgeoning' },
+  properties: [],
+  mastery: 'push',
+  activation: 'equipped',
+  effects: [],
+};
+
+/** Média de uma expressão de dados (para escolher o maior dado). */
+function averageDice(expression: string): number {
+  return expression.split('+').reduce((sum, term) => {
+    const [count, sides] = term.split('d');
+    return sum + (sides === undefined ? Number(count) : Number(count) * ((Number(sides) + 1) / 2));
+  }, 0);
+}
+
 export function deriveSheet(input: SheetInput): DerivedSheet {
   const { character, inventory, adjustments, compendium } = input;
   const build = resolveBuild(character, compendium);
@@ -713,8 +741,8 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     return [...found.values()];
   };
 
-  const attackFor = (base: Weapon, instanceId: string, name: string): WeaponAttack => {
-    const weapon = overriddenWeapon(base, instanceId);
+  const attackFor = (base: Weapon, instanceId: string, name: string, unarmed = false): WeaponAttack => {
+    const weapon = unarmed ? base : overriddenWeapon(base, instanceId);
     const finesse = weapon.properties.includes('finesse');
     const allowed: Ability[] = weapon.attackKind === 'ranged' ? ['dex'] : finesse ? ['str', 'dex'] : ['str'];
     const ctxForAbility: RollContext = { attack: { kind: weapon.attackKind, properties: weapon.properties, category: weapon.category, weaponId: weapon.id } };
@@ -723,7 +751,8 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     }
     // O maior modificador entre os permitidos; empate fica com o primeiro (o atributo normal da arma).
     const ability = allowed.reduce((best, a) => (mod(a) > mod(best) ? a : best));
-    const proficient = weaponProficient(weapon, instanceId);
+    // Toda criatura é proficiente com o Ataque Desarmado (SRD 5.2.1, "Unarmed Strike").
+    const proficient = unarmed || weaponProficient(weapon, instanceId);
     const attackCtx: RollContext = {
       attack: { kind: weapon.attackKind, properties: weapon.properties, category: weapon.category, weaponId: weapon.id, twoHanded: weapon.properties.includes('two_handed') },
     };
@@ -760,7 +789,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       ability,
       proficient,
       attack: { ...stat(attackParts), roll: rollState([`attack.${weapon.attackKind}`, 'attack.all'], attackCtx, extra, [], { kind: 'attack' }) },
-      damage: { dice: weapon.damage.dice, bonus: stat(damageParts), type: weapon.damage.type, dieMinimum: dieMinimum(attackCtx) },
+      damage: { dice: unarmed ? unarmedDice(attackCtx) : weapon.damage.dice, bonus: stat(damageParts), type: weapon.damage.type, dieMinimum: dieMinimum(attackCtx) },
       extraDamage: effectsOf('extra_damage', attackCtx)
         .filter(({ effect, refKey }) => effect.scope !== 'weapon' || refKey === `item:${instanceId}`)
         .map((e) => ({ dice: e.effect.dice, type: e.effect.damageType ?? weapon.damage.type, source: namedSource(e) })),
@@ -770,12 +799,21 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       versatileDieMinimum: versatileCtx ? dieMinimum(versatileCtx) : undefined,
       range: weapon.range,
       reach: weapon.attackKind === 'melee' ? DEFAULT_REACH + (weapon.properties.includes('reach') ? REACH_BONUS : 0) : 0,
-      mastery: { property: weapon.mastery, available: weaponMasteries.includes(weapon.id) },
+      ...(unarmed ? {} : { mastery: { property: weapon.mastery, available: weaponMasteries.includes(weapon.id) } }),
     };
   };
-  const attacks = entries.flatMap(({ entry, item, magic }) =>
-    entry.equipped && item.kind === 'weapon' ? [attackFor(item, entry.instanceId, magic ? `${magic.name} (${item.name})` : item.name)] : [],
-  );
+  /** O dado do Ataque Desarmado: 1, ou o maior `unarmed_damage` que vale (Martial Arts sem armadura nem escudo). */
+  const unarmedDice = (roll: RollContext): string => {
+    const dice = effectsOf('unarmed_damage', roll).map((e) => (typeof e.effect.dice === 'string' ? e.effect.dice : (e.effect.dice.byLevel[Math.max(1, scaleLevel(e.classId)) - 1] ?? '1')));
+    return dice.reduce((best, d) => (averageDice(d) > averageDice(best) ? d : best), '1');
+  };
+  const attacks = [
+    ...entries.flatMap(({ entry, item, magic }) =>
+      entry.equipped && item.kind === 'weapon' ? [attackFor(item, entry.instanceId, magic ? `${magic.name} (${item.name})` : item.name)] : [],
+    ),
+    // O Ataque Desarmado de todos (nota 0083): soco, chute, cabeçada.
+    attackFor(UNARMED_STRIKE, UNARMED_INSTANCE_ID, UNARMED_STRIKE.name, true),
+  ];
 
   // --- Magias -------------------------------------------------------------------
 

@@ -88,6 +88,7 @@
     "attacks": [
       { "itemId": "quarterstaff", "attack": 1, "damage": "1d6", "damageBonus": -1, "damageType": "bludgeoning", "versatileDice": "1d8", "mastery": "topple", "masteryAvailable": false }
     ],
+    "unarmed": { "ability": "str", "attack": 1, "damage": "1", "damageBonus": -1 },
     "spellcasting": {
       "classes": [
         {

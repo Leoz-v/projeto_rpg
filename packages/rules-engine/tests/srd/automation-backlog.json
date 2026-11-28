@@ -193,10 +193,6 @@
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
-    "feature:class:monk/stunning_strike": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
     "feature:class:paladin/aura_expansion": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
@@ -384,10 +380,6 @@
     "feature:class:warlock/eldritch_master": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:class:warlock/eldritch_smite#prone": {
-      "category": "phase_4",
-      "reason": "Pode deixar o alvo Caído (Enorme ou menor)."
     },
     "feature:class:warlock/eldritch_spear": {
       "category": "phase_4",
@@ -669,10 +661,6 @@
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
     },
-    "feature:subclass:fiend_patron/hurl_through_hell": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
     "feature:subclass:hunter/defensive_tactics": {
       "category": "structural",
       "reason": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte."
@@ -746,10 +734,6 @@
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },
     "feature:subclass:warrior_of_the_open_hand/fleet_step": {
-      "category": "phase_4",
-      "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
-    },
-    "feature:subclass:warrior_of_the_open_hand/open_hand_technique": {
       "category": "phase_4",
       "reason": "Ação, reação, recurso ou efeito no momento da rolagem/dano: resolução assistida (Fase 4)."
     },

@@ -113,7 +113,8 @@ export interface WeaponAttack {
   versatileDieMinimum?: { value: number; source: SourceLabel } | undefined;
   range?: { normal: number; long: number } | undefined;
   reach: number;
-  mastery: { property: WeaponMastery; available: boolean };
+  /** Ausente no Ataque Desarmado, que não tem maestria. */
+  mastery?: { property: WeaponMastery; available: boolean } | undefined;
 }
 
 export interface GrantedSpell {

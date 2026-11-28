@@ -1232,7 +1232,67 @@
             "feature": {
               "id": "open_hand_technique",
               "name": "Open Hand Technique",
-              "description": "Whenever you hit a creature with an attack granted by your Flurry of Blows, you can impose one of the following effects on that target: Addle (it can't make Opportunity Attacks until the start of its next turn), Push (it must succeed on a Strength saving throw or be pushed up to 15 feet away from you), or Topple (it must succeed on a Dexterity saving throw or have the Prone condition)."
+              "description": "Whenever you hit a creature with an attack granted by your Flurry of Blows, you can impose one of the following effects on that target: Addle (it can't make Opportunity Attacks until the start of its next turn), Push (it must succeed on a Strength saving throw or be pushed up to 15 feet away from you), or Topple (it must succeed on a Dexterity saving throw or have the Prone condition).",
+              "effects": [
+                {
+                  "type": "feature_use",
+                  "id": "open_hand_addle",
+                  "name": "Open Hand Technique: Addle",
+                  "onHit": {
+                    "attacks": "unarmed",
+                    "afterUse": "flurry_of_blows",
+                    "group": "open_hand_technique"
+                  },
+                  "parts": [
+                    {
+                      "kind": "note",
+                      "text": "Não faz Ataques de Oportunidade até o início do próximo turno dele"
+                    }
+                  ]
+                },
+                {
+                  "type": "feature_use",
+                  "id": "open_hand_push",
+                  "name": "Open Hand Technique: Push",
+                  "onHit": {
+                    "attacks": "unarmed",
+                    "afterUse": "flurry_of_blows",
+                    "group": "open_hand_technique"
+                  },
+                  "parts": [
+                    {
+                      "kind": "save",
+                      "ability": "str",
+                      "dc": {
+                        "ability": "wis"
+                      },
+                      "failNote": "Empurrado até 15 ft para longe de você"
+                    }
+                  ]
+                },
+                {
+                  "type": "feature_use",
+                  "id": "open_hand_topple",
+                  "name": "Open Hand Technique: Topple",
+                  "onHit": {
+                    "attacks": "unarmed",
+                    "afterUse": "flurry_of_blows",
+                    "group": "open_hand_technique"
+                  },
+                  "parts": [
+                    {
+                      "kind": "save",
+                      "ability": "dex",
+                      "dc": {
+                        "ability": "wis"
+                      },
+                      "conditions": [
+                        "prone"
+                      ]
+                    }
+                  ]
+                }
+              ]
             }
           }
         ]
@@ -2470,7 +2530,48 @@
             "feature": {
               "id": "hurl_through_hell",
               "name": "Hurl Through Hell",
-              "description": "Once per turn when you hit a creature with an attack roll, the target must succeed on a Charisma saving throw against your spell save DC or disappear through the Lower Planes, taking 8d10 Psychic damage if it isn't a Fiend and having the Incapacitated condition until the end of your next turn, when it returns. Once per Long Rest, or restore the use by expending a Pact Magic spell slot."
+              "description": "Once per turn when you hit a creature with an attack roll, the target must succeed on a Charisma saving throw against your spell save DC or disappear through the Lower Planes, taking 8d10 Psychic damage if it isn't a Fiend and having the Incapacitated condition until the end of your next turn, when it returns. Once per Long Rest, or restore the use by expending a Pact Magic spell slot.",
+              "effects": [
+                {
+                  "type": "resource",
+                  "id": "hurl_through_hell",
+                  "name": "Hurl Through Hell",
+                  "max": 1,
+                  "recharge": "long_rest"
+                },
+                {
+                  "type": "feature_use",
+                  "id": "hurl_through_hell",
+                  "name": "Hurl Through Hell",
+                  "cost": {
+                    "resource": "hurl_through_hell"
+                  },
+                  "onHit": {
+                    "attacks": "any",
+                    "oncePerTurn": true
+                  },
+                  "note": "Some pelos Planos Inferiores e volta no fim do seu próximo turno. Sem uso, gaste um espaço de Magia de Pacto para recuperar (pela ficha)",
+                  "parts": [
+                    {
+                      "kind": "save",
+                      "ability": "cha",
+                      "dc": "spell",
+                      "damage": {
+                        "dice": "8d10",
+                        "type": "psychic",
+                        "exceptTypes": [
+                          "fiend"
+                        ]
+                      },
+                      "onSuccess": "none",
+                      "conditions": [
+                        "incapacitated"
+                      ],
+                      "until": "user_turn_end"
+                    }
+                  ]
+                }
+              ]
             }
           }
         ]

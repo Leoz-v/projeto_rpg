@@ -139,6 +139,10 @@ export function attackCircumstances(ctx: SessionContext, attackerToken: Token | 
       } else if (effect.kind === 'vex' && effect.sourceTokenId === attackerToken.id && effect.targetTokenId === target.id) {
         result.advantage.push('Vex');
         result.used.add(effect.id);
+      } else if (effect.kind === 'stunning' && effect.targetTokenId === target.id) {
+        // O sucesso do Stunning Strike: o próximo ataque de qualquer um contra o alvo (nota 0083).
+        result.advantage.push(`Stunning Strike (${source})`);
+        result.used.add(effect.id);
       }
     }
   }
@@ -280,7 +284,7 @@ export function makeAttack(
     weapon = {
       ref: { characterId: character.id, instanceId },
       mastery: (hit, damaged) =>
-        attack.mastery.available
+        attack.mastery?.available === true
           ? masteryOutcome({
               property: attack.mastery.property,
               hit,
@@ -460,7 +464,7 @@ export function useMastery(ctx: SessionContext, playerId: string, role: Role, da
   const { character, sheet } = ctx.sheetOf(playerId, role, entry.weapon.characterId);
   const instanceId = entry.weapon.instanceId;
   const attack = sheet.attacks.find((a) => a.instanceId === instanceId);
-  if (!attack?.mastery.available || attack.mastery.property !== entry.mastery.property) throw violation('A arma não está mais equipada com esta maestria');
+  if (attack?.mastery?.available !== true || attack.mastery.property !== entry.mastery.property) throw violation('A arma não está mais equipada com esta maestria');
   const abilityModifier = sheet.abilities[attack.ability].modifier;
   const name = MASTERY_NAME[entry.mastery.property];
 
@@ -676,10 +680,13 @@ export function rollSaves(
     impose?: (target: Token) => { ops: PatchOp[]; notes: string[] };
     /** O que entra na falha, para esperar a Resistência Lendária (nota 0069). */
     pending?: Pick<PendingSave, 'impose' | 'spell' | 'item'>;
+    /** Alvos que não sofrem o dano (Hurl Through Hell: Infernais; nota 0083). */
+    skipDamage?: (target: Token) => boolean;
   },
-): { ops: PatchOp[]; failed: Token[] } {
+): { ops: PatchOp[]; failed: Token[]; succeeded: Token[] } {
   const { actorName, effect, targets, against } = options;
   const failed: Token[] = [];
+  const succeeded: Token[] = [];
   // Dano rolado uma vez para todos os alvos (SRD 5.2.1, "Damage against Multiple Targets").
   const groups = rollActionDamage(effect.damage, false, ctx.deps.rng);
   const rolled = groups.map((g) => ({ amount: g.total, type: g.type }));
@@ -688,7 +695,9 @@ export function rollSaves(
 
   const results = targets.map((target) => {
     const save = saveOf(ctx, target, effect.ability, against, options.declared);
-    const result = resolveSave({ d20: save.input, dc: effect.dc, damage: rolled, onSuccess: effect.onSuccess, defenses: save.defenses }, ctx.deps.rng);
+    const skipped = options.skipDamage?.(target) === true;
+    const result = resolveSave({ d20: save.input, dc: effect.dc, damage: skipped ? [] : rolled, onSuccess: effect.onSuccess, defenses: save.defenses }, ctx.deps.rng);
+    if (result.success) succeeded.push(target);
     // Com Resistência Lendária, as consequências da falha esperam o mestre (nota 0069);
     // com um dado de inspiração à mão, o dono do personagem (nota 0080).
     const legendary = !result.success && hasLegendaryResistance(ctx, target);
@@ -749,7 +758,7 @@ export function rollSaves(
       success: result.success,
       advantage: save.advantage,
       disadvantage: save.disadvantage,
-      notes: [...d20StepNotes(result.roll.steps), ...conditionNotes].slice(0, 50),
+      notes: [...d20StepNotes(result.roll.steps), ...conditionNotes, ...(skipped && rolled.length > 0 ? ['Sem o dano (tipo de criatura)'] : [])].slice(0, 50),
       reminders: save.reminders.slice(0, 50),
       ...(damage ? { damage } : {}),
     };
@@ -771,7 +780,7 @@ export function rollSaves(
     ...(options.spellOf ? { spellOf: options.spellOf } : {}),
     results,
   };
-  return { ops: [ctx.appendChat(entry), ...ops], failed };
+  return { ops: [ctx.appendChat(entry), ...ops], failed, succeeded };
 }
 
 /** A salvaguarda de um token: a da ficha do personagem ligado ou a do bloco do monstro, com as defesas dele. */

@@ -10,6 +10,7 @@ import {
   IdSchema,
   RestSchema,
   SenseSchema,
+  SizeSchema,
   SkillSchema,
   WeaponPropertySchema,
 } from './common';
@@ -172,6 +173,13 @@ const GrantSenseSchema = z
   });
 
 // --- vision_range (3.32) ----------------------------------------------------
+
+/** Dado de dano do Ataque Desarmado no lugar do 1 (Martial Arts; nota 0083). O maior vale. */
+const UnarmedDamageSchema = z.strictObject({
+  type: z.literal('unarmed_damage'),
+  dice: z.union([DiceSchema, z.strictObject({ byLevel: z.array(DiceSchema).length(20) })]),
+  ...common,
+});
 
 const VisionRangeSchema = z.strictObject({
   type: z.literal('vision_range'),
@@ -501,6 +509,7 @@ export const BaseEffectSchema = z.discriminatedUnion('type', [
   KeepConcentrationSchema,
   ResourceSchema,
   VisionRangeSchema,
+  UnarmedDamageSchema,
 ]);
 export type BaseEffect = z.infer<typeof BaseEffectSchema>;
 
@@ -518,7 +527,15 @@ export const FeatureUsePartSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('pool_restore'), cost: z.int().positive(), conditions: z.array(ConditionSchema.exclude(['exhaustion'])).min(1) }),
   /** Condições que terminam. */
   z.strictObject({ kind: z.literal('restore'), conditions: z.array(ConditionSchema.exclude(['exhaustion'])).min(1) }),
-  z.strictObject({ kind: z.literal('condition'), conditions: z.array(ConditionSchema.exclude(['exhaustion'])).min(1), until: UntilTurnSchema }),
+  z.strictObject({
+    kind: z.literal('condition'),
+    conditions: z.array(ConditionSchema.exclude(['exhaustion'])).min(1),
+    until: UntilTurnSchema,
+    /** Só em alvos deste tamanho ou menores (o Caído do Eldritch Smite: Enorme ou menor; nota 0083). */
+    maxSize: SizeSchema.optional(),
+  }),
+  /** Só um texto para a mesa, no registro do uso (Addle: sem Ataques de Oportunidade; nota 0083). */
+  z.strictObject({ kind: z.literal('note'), text: z.string().min(1).max(200) }),
   /** Recupera todos os usos de outro recurso (Uncanny Metabolism). */
   z.strictObject({ kind: z.literal('regain'), resource: IdSchema }),
   /**
@@ -536,6 +553,8 @@ export const FeatureUsePartSchema = z.discriminatedUnion('kind', [
         bonus: z.array(BonusValueSchema).default([]),
         /** Um tipo, ou os tipos à escolha de quem usa (Divine Spark). */
         type: z.union([DamageTypeSchema, z.array(DamageTypeSchema).min(2)]),
+        /** Criaturas destes tipos não sofrem o dano (Hurl Through Hell: Infernais; nota 0083). */
+        exceptTypes: z.array(CreatureTypeSchema).min(1).optional(),
       })
       .optional(),
     onSuccess: z.enum(['half', 'none']).default('none'),
@@ -544,6 +563,12 @@ export const FeatureUsePartSchema = z.discriminatedUnion('kind', [
     endsOnDamage: z.literal(true).optional(),
     /** Só criaturas destes tipos (Turn Undead); as outras ficam de fora, com nota. */
     onlyTypes: z.array(CreatureTypeSchema).min(1).optional(),
+    /** As condições duram até o início ou o fim do próximo turno de quem usou (Stunning Strike; nota 0083). */
+    until: UntilTurnSchema,
+    /** O que a falha faz além das condições, para a mesa (Push: empurrado até 15 ft). */
+    failNote: z.string().min(1).max(200).optional(),
+    /** No sucesso, um efeito temporário no combate (Stunning Strike: Vantagem no próximo ataque contra o alvo). */
+    successEffect: z.literal('stunning').optional(),
   }),
   /** Dano nos alvos que falharam na salvaguarda anterior, rolado uma vez (Sear Undead: um d8 por modificador de SAB). */
   z.strictObject({ kind: z.literal('fail_damage'), count: BonusValueSchema, sides: z.int().positive(), type: DamageTypeSchema }),
@@ -576,6 +601,22 @@ const FeatureUseSchema = z.strictObject({
   maxTargets: BonusValueSchema.optional(),
   duration: z.string().min(1).max(100).optional(),
   forbidHeavyArmor: z.literal(true).optional(),
+  /**
+   * Usada a partir de um ataque que acertou (nota 0083): o alvo é o do ataque.
+   * `attacks`: os ataques que valem (`unarmed`: Ataque Desarmado; `monk`: ele
+   * ou uma arma de Monge). `rider`: só se esse dano extra entrou no ataque.
+   * `afterUse`: só depois desta característica no mesmo turno (Flurry of
+   * Blows). `group`: uma só do grupo por ataque.
+   */
+  onHit: z
+    .strictObject({
+      attacks: z.enum(['any', 'unarmed', 'monk']).default('any'),
+      oncePerTurn: z.literal(true).optional(),
+      rider: IdSchema.optional(),
+      afterUse: IdSchema.optional(),
+      group: IdSchema.optional(),
+    })
+    .optional(),
   parts: z.array(FeatureUsePartSchema).min(1).max(6),
   ...common,
 });
