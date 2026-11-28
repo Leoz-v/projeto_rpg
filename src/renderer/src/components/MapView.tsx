@@ -108,6 +108,7 @@ function useBaked3dPropLights(scene3dHash: string | null): readonly ExtractedPro
 interface Map2DProps {
   view: TableView;
   maxima: Record<string, number>;
+  visionProfiles: Record<string, VisionProfile>;
   selectedIds: readonly string[];
   targetedIds: readonly string[];
   fogTool: FogTool;
@@ -120,7 +121,7 @@ interface Map2DProps {
   onEdit3dMap?: ((map: GameMap) => void) | undefined;
 }
 
-function Map2DView({ view, maxima, selectedIds, targetedIds, fogTool, onFogTool, onSelect, onToggleTarget, onOpenSheet, onStage, onViewerModeChange, onEdit3dMap }: Map2DProps) {
+function Map2DView({ view, maxima, visionProfiles, selectedIds, targetedIds, fogTool, onFogTool, onSelect, onToggleTarget, onOpenSheet, onStage, onViewerModeChange, onEdit3dMap }: Map2DProps) {
   const host = useRef<HTMLDivElement>(null);
   const [stage, setStage] = useState<MapStage | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -214,7 +215,6 @@ function Map2DView({ view, maxima, selectedIds, targetedIds, fogTool, onFogTool,
   const showFogHud = isGm && (fogHudOpen || fogTool !== 'none');
   const scene3dHash = map?.scene3d ?? null;
   const mapName = map?.name ?? '';
-  const visionProfiles = useTokenVisionProfiles(state.tokens, state.characters);
   const bakedPropLights = useBaked3dPropLights(scene3dHash);
 
   // Mapa 3D aberto no visualizador 2D: renderiza a câmera de topo em uma imagem 2D.
@@ -406,12 +406,14 @@ export function MapView({ view, viewerMode, onViewerModeChange, selectedIds, tar
   const { state, info } = view;
   const map = state.activeMapId !== null ? (state.maps[state.activeMapId] ?? null) : null;
   const maxima = useHpMaxima(state.characters);
+  const visionProfiles = useTokenVisionProfiles(state.tokens, state.characters);
   if (map !== null && viewerMode === '3d') {
     return (
       <Map3DView
         view={view}
         map={map}
         maxima={maxima}
+        visionProfiles={visionProfiles}
         selectedIds={selectedIds}
         targetedIds={targetedIds}
         fogTool={info.role === 'gm' ? fogTool : 'none'}
@@ -430,6 +432,7 @@ export function MapView({ view, viewerMode, onViewerModeChange, selectedIds, tar
     <Map2DView
       view={view}
       maxima={maxima}
+      visionProfiles={visionProfiles}
       selectedIds={selectedIds}
       targetedIds={targetedIds}
       fogTool={fogTool}

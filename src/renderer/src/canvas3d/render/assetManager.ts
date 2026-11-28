@@ -19,7 +19,10 @@ import {
   type Scene3DSource,
 } from '@pixi/3d';
 import { Assets, Texture, type Ticker } from 'pixi.js';
+import { propLightId, type PropLightOverrides } from '../../../../shared/protocol';
 import type { MapLayerId, SerializedProp } from '../map/mapDocument';
+import { classifyPropLightSource } from './lightingSystem';
+import { applyVisionMaskToMaterial, visionLighting3dBit } from './visionShader3d';
 import {
   METERS_PER_FOOT,
   METERS_PER_HEIGHT_UNIT,
@@ -65,6 +68,7 @@ export type { AssetCategory, AssetScalePolicy, RoofCutawayMode, WorldLabAssetEnt
 
 export interface AssetTransformOptions {
   layer?: MapLayerId;
+  docPropIndex?: number;
   rotationDegrees: number;
   scalePolicy: AssetScalePolicy;
   scaleX: number;
@@ -85,6 +89,9 @@ interface SavedMaterialAlpha {
 export interface PlacedAsset {
   readonly id: string;
   readonly layer: MapLayerId;
+  docPropIndex?: number;
+  propLightId?: string;
+  propLightState?: 'on' | 'off' | 'removed';
   entry: WorldLabAssetEntry;
   model: Model3D;
   flatMaterials: BaseMaterial3D[];
@@ -166,6 +173,18 @@ export class AssetManager {
   private readonly shadowDiscGeo: CylinderGeometry;
   private readonly shadowDiscMat: FlatMaterial;
   private readonly caveVoidMat: FlatMaterial;
+  private visionMaskByLayer: Partial<
+    Record<
+      MapLayerId,
+      {
+        texture: Texture;
+        worldWidthMeters: number;
+        worldLengthMeters: number;
+        enabled: boolean;
+        isGmOverview: boolean;
+      }
+    >
+  > = {};
 
   constructor(
     surfaceGrid: TerrainGrid,
@@ -391,6 +410,12 @@ export class AssetManager {
         p.model.player.update(ticker);
       }
       if (p.flameMaterials.length > 0) {
+        if (p.propLightState === 'off' || p.propLightState === 'removed') {
+          for (const fm of p.flameMaterials) {
+            if (fm.emissive) fm.emissive.strength = 0;
+          }
+          continue;
+        }
         const strength = evaluateFlameEmissiveStrength(this.elapsedSeconds, p.animPhase);
         for (const fm of p.flameMaterials) {
           if (fm.emissive) {
@@ -420,6 +445,11 @@ export class AssetManager {
     const label = mat.label ?? '';
     const isFlameMat = /\b(flame|fire|ember|embers)\b/i.test(label);
 
+    const extraBits =
+      !ghost && !mat.extraBits.includes(visionLighting3dBit)
+        ? [...mat.extraBits, visionLighting3dBit]
+        : mat.extraBits;
+
     if (mat instanceof Material3D) {
       const hasBlackBase = !hasBaseTex && mat.baseColor === 0x000000;
       const hasEmissive = mat.emissive !== undefined && mat.emissive.color !== 0x000000 && mat.emissive.strength > 0;
@@ -430,6 +460,7 @@ export class AssetManager {
         roughness: 0.98,
         metallic: 0.0,
         doubleSided: isAlphaFoliage ? true : false,
+        extraBits,
         ...(isAlphaFoliage && !ghost
           ? { alphaMode: 'mask', alphaCutoff: Math.max(0.45, mat.alphaCutoff || 0.45) }
           : {}),
@@ -449,6 +480,7 @@ export class AssetManager {
     return mat.clone({
       flatShading: true,
       doubleSided: isAlphaFoliage ? true : false,
+      extraBits,
       ...(isAlphaFoliage && !ghost
         ? { alphaMode: 'mask', alphaCutoff: Math.max(0.45, mat.alphaCutoff || 0.45) }
         : {}),
@@ -887,9 +919,16 @@ export class AssetManager {
       this.startEmbeddedAnimations(model, source, animPhase);
     }
 
+    const computedPropLightId =
+      transform.docPropIndex !== undefined && classifyPropLightSource(entry) !== null
+        ? propLightId(transform.docPropIndex, entry.key)
+        : undefined;
+
     const placed: PlacedAsset = {
       id,
       layer,
+      ...(transform.docPropIndex !== undefined ? { docPropIndex: transform.docPropIndex } : {}),
+      ...(computedPropLightId !== undefined ? { propLightId: computedPropLightId, propLightState: 'on' as const } : {}),
       entry,
       model,
       flatMaterials,
@@ -924,9 +963,63 @@ export class AssetManager {
 
     this.applyPlacedTransform(placed);
     this.applySurfaceGhostToProp(placed);
+    const layerMask = this.visionMaskByLayer[layer];
+    if (layerMask) {
+      for (const m of placed.flatMaterials) {
+        applyVisionMaskToMaterial(
+          m,
+          layerMask.texture,
+          layerMask.worldWidthMeters,
+          layerMask.worldLengthMeters,
+          layerMask.enabled,
+          layerMask.isGmOverview,
+        );
+      }
+    }
     this.rootForLayer(layer).addChild(model);
     this.placed.push(placed);
     return placed;
+  }
+
+  setVisionMask(
+    layer: MapLayerId,
+    texture: Texture,
+    worldWidthMeters: number,
+    worldLengthMeters: number,
+    enabled: boolean,
+    isGmOverview: boolean,
+  ): void {
+    this.visionMaskByLayer[layer] = { texture, worldWidthMeters, worldLengthMeters, enabled, isGmOverview };
+    for (const p of this.placed) {
+      if (p.layer !== layer) continue;
+      for (const m of p.flatMaterials) {
+        applyVisionMaskToMaterial(m, texture, worldWidthMeters, worldLengthMeters, enabled, isGmOverview);
+      }
+    }
+  }
+
+  applyPropLightOverrides(overrides: PropLightOverrides): void {
+    for (const p of this.placed) {
+      if (!p.propLightId) continue;
+      const nextState = overrides[p.propLightId] ?? 'on';
+      p.propLightState = nextState;
+      const removed = nextState === 'removed';
+      if (removed) {
+        p.model.visible = false;
+        if (p.shadowDisc) p.shadowDisc.visible = false;
+        if (p.caveVoidMesh) p.caveVoidMesh.visible = false;
+      } else {
+        p.model.visible = true;
+        if (p.shadowDisc) p.shadowDisc.visible = true;
+        if (p.caveVoidMesh) p.caveVoidMesh.visible = true;
+      }
+      const flameStrength = nextState === 'on' ? 1.75 : 0;
+      for (const fm of p.flameMaterials) {
+        if (fm.emissive) {
+          fm.emissive.strength = flameStrength;
+        }
+      }
+    }
   }
 
   private applyPlacedTransform(p: PlacedAsset): void {
@@ -1279,7 +1372,9 @@ export class AssetManager {
 
     let loaded = 0;
     const missing: string[] = [];
-    for (const item of props) {
+    for (let docPropIndex = 0; docPropIndex < props.length; docPropIndex++) {
+      const item = props[docPropIndex];
+      if (!item) continue;
       const entry = byKey.get(item.key);
       if (!entry) {
         if (!missing.includes(item.key)) missing.push(item.key);
@@ -1288,6 +1383,7 @@ export class AssetManager {
       try {
         await this.placeAsset(entry, item.tileX, item.tileZ, {
           layer: item.layer ?? 'surface',
+          docPropIndex,
           rotationDegrees: item.rotationDegrees,
           scalePolicy: item.scalePolicy,
           scaleX: item.scaleX,

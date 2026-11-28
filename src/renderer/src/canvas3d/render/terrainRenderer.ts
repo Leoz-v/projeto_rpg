@@ -11,6 +11,7 @@ import {
   Material3D,
   Mesh3D,
 } from '@pixi/3d';
+import type { Texture } from 'pixi.js';
 import { CHUNK_SIZE, METERS_PER_HEIGHT_UNIT, TILE_SIZE_METERS } from '../terrain/constants';
 import { VOID_OVERLAY_ID } from '../terrain/materials';
 import { buildChunkMesh, buildDioramaSkirt, type BuiltChunkMesh } from '../terrain/meshBuilder';
@@ -18,6 +19,7 @@ import type { TerrainGrid } from '../terrain/terrainGrid';
 import { getTileShape } from '../terrain/tileSurface';
 import { shapeContainsOverlayPoint } from '../tools/shapeFitter';
 import { worldlabTerrainBit, worldlabTerrainEmissiveBit } from './terrainShader';
+import { applyVisionMaskToMaterial, visionLighting3dBit } from './visionShader3d';
 
 export type TerrainShadingMode = 'worldlab_flat' | 'rs2_gouraud' | 'pbr_shadows';
 
@@ -65,7 +67,7 @@ export class TerrainRenderer {
     this.rs2Material = new FlatMaterial({
       baseColor: 0xffffff,
       vertexColors: true,
-      extraBits: [worldlabTerrainBit],
+      extraBits: [worldlabTerrainBit, visionLighting3dBit],
     });
 
     this.pbrMaterial = new Material3D({
@@ -74,13 +76,14 @@ export class TerrainRenderer {
       flatShading: true,
       roughness: 0.97,
       metallic: 0.0,
-      extraBits: [worldlabTerrainBit, worldlabTerrainEmissiveBit],
+      extraBits: [worldlabTerrainBit, worldlabTerrainEmissiveBit, visionLighting3dBit],
     });
 
     this.skirtMaterial = new FlatMaterial({
       baseColor: 0xffffff,
       vertexColors: true,
       doubleSided: true,
+      extraBits: [visionLighting3dBit],
     });
 
     this.gridMaterial = new FlatMaterial({
@@ -135,6 +138,18 @@ export class TerrainRenderer {
     if (this.gridMesh) {
       this.gridMesh.visible = visible && !this.gridSuppressed && this.ghostAlpha === null;
     }
+  }
+
+  setVisionMask(
+    texture: Texture,
+    worldWidthMeters: number,
+    worldLengthMeters: number,
+    enabled: boolean,
+    isGmOverview: boolean,
+  ): void {
+    applyVisionMaskToMaterial(this.rs2Material, texture, worldWidthMeters, worldLengthMeters, enabled, isGmOverview);
+    applyVisionMaskToMaterial(this.pbrMaterial, texture, worldWidthMeters, worldLengthMeters, enabled, isGmOverview);
+    applyVisionMaskToMaterial(this.skirtMaterial, texture, worldWidthMeters, worldLengthMeters, enabled, isGmOverview);
   }
 
   /** Suppresses grid lines on an inactive layer (e.g. Interior peeked through a Surface cutout). */

@@ -1,10 +1,19 @@
 import { FlatMaterial, Mesh3D, PlaneGeometry } from '@pixi/3d';
 import { ImageSource, Texture } from 'pixi.js';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { VisionProfile } from 'rules-engine/vision';
 import type { TableView } from '../../../shared/ipc';
-import type { GameMap, Point } from '../../../shared/protocol';
+import {
+  extractHeightfieldFromMapDoc,
+  extractPropLightsFrom3dMapDocument,
+  type GameMap,
+  type Point,
+  resolveActiveLightSources,
+  type SessionCharacter,
+  type Token,
+} from '../../../shared/protocol';
 import { conditionLabels, spellEffectLabels, timedEffectLabels, tokenConditions } from '../canvas/conditions';
-import type { FogTool } from '../canvas/fog-render';
+import type { FogTool, FogViewer } from '../canvas/fog-render';
 import { isTokenDead, tokenHealth } from '../canvas/health';
 import type { MapStageHandle } from '../canvas/MapStage';
 import { DEFAULT_RULER_OPTIONS, type RulerOptions } from '../canvas/ruler';
@@ -24,7 +33,12 @@ import { type CameraViewMode, SceneManager } from '../canvas3d/render/sceneManag
 import { TerrainRenderer } from '../canvas3d/render/terrainRenderer';
 import { cameraTargetToWorld2d } from '../canvas3d/render/tokenGeometry3d';
 import { TokenRenderer3d } from '../canvas3d/render/tokenRenderer3d';
-import { METERS_PER_FOOT } from '../canvas3d/terrain/constants';
+import {
+  applyVisionMaskToMaterial,
+  mapLightingConfigToPreset,
+  visionLighting3dBit,
+} from '../canvas3d/render/visionShader3d';
+import { METERS_PER_FOOT, TILE_SIZE_METERS } from '../canvas3d/terrain/constants';
 import { TerrainGrid } from '../canvas3d/terrain/terrainGrid';
 import { sendIntent } from '../store/table';
 import { FogHudControls } from './FogHudControls';
@@ -46,6 +60,7 @@ interface Props {
   view: TableView;
   map: GameMap;
   maxima: Record<string, number>;
+  visionProfiles?: Readonly<Record<string, VisionProfile>>;
   selectedIds: readonly string[];
   targetedIds: readonly string[];
   fogTool: FogTool;
@@ -65,9 +80,37 @@ interface ActiveViewer {
   tokens3d: TokenRenderer3d;
   ruler3d: RulerTool3d | null;
   fog3d: FogLayer3d;
+  syncLightingAndVision: (
+    nextMap: GameMap,
+    tokens: readonly Token[],
+    viewerInfo: FogViewer,
+    profiles: Readonly<Record<string, VisionProfile>> | undefined,
+    characters: Readonly<Record<string, SessionCharacter>>,
+  ) => void;
   width: number;
   length: number;
   destroy: () => void;
+}
+
+function runtimeLightsSignature(map: GameMap, tokens: readonly Token[]): string {
+  const tokenMap = new Map(tokens.map((t) => [t.id, t]));
+  const lightsPart = map.lights
+    .map((l) => {
+      const att =
+        l.attach.kind === 'point'
+          ? `p:${l.attach.x},${l.attach.y}`
+          : (() => {
+              const t = tokenMap.get(l.attach.tokenId);
+              return t ? `t:${t.id}:${t.position.x},${t.position.y}` : `t:${l.attach.tokenId}`;
+            })();
+      return `${l.id}:${l.kind}:${l.enabled ? '1' : '0'}:${l.brightFeet}/${l.dimFeet}/${l.darknessFeet}:${l.color}:${l.layer}:${l.elevationFeet}:${att}`;
+    })
+    .join(';');
+  const ovPart = Object.entries(map.propLightOverrides)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}=${v}`)
+    .join(',');
+  return `${lightsPart}|${ovPart}`;
 }
 
 function load2dBackgroundImage(sha256: string): Promise<HTMLImageElement> {
@@ -84,7 +127,7 @@ function load2dBackgroundImage(sha256: string): Promise<HTMLImageElement> {
   });
 }
 
-export function Map3DView({ view, map, maxima, selectedIds, targetedIds, fogTool, onFogTool, onSelect, onToggleTarget, onOpenSheet, onStage, isGm, onViewerModeChange, onEditMap }: Props) {
+export function Map3DView({ view, map, maxima, visionProfiles, selectedIds, targetedIds, fogTool, onFogTool, onSelect, onToggleTarget, onOpenSheet, onStage, isGm, onViewerModeChange, onEditMap }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<ActiveViewer | null>(null);
   const [viewer, setViewer] = useState<ActiveViewer | null>(null);
@@ -165,7 +208,7 @@ export function Map3DView({ view, map, maxima, selectedIds, targetedIds, fogTool
 
       // Piso plano cobrindo todo o grid lógico (visível sem imagem ou em bordas parciais de `cellPx`).
       const floorGeo = new PlaneGeometry({ width: metrics.mapWidthMeters, height: metrics.mapLengthMeters });
-      const floorMat = new FlatMaterial({ baseColor: 0x22212a, doubleSided: true });
+      const floorMat = new FlatMaterial({ baseColor: 0x22212a, doubleSided: true, extraBits: [visionLighting3dBit] });
       const floorMesh = new Mesh3D({
         geometry: floorGeo,
         material: floorMat,
@@ -187,7 +230,7 @@ export function Map3DView({ view, map, maxima, selectedIds, targetedIds, fogTool
           height: metrics.imagePlane.lengthMeters,
           flipV: true,
         });
-        imageMat = new FlatMaterial({ baseColorTexture: imageTex, doubleSided: true });
+        imageMat = new FlatMaterial({ baseColorTexture: imageTex, doubleSided: true, extraBits: [visionLighting3dBit] });
         const imageMesh = new Mesh3D({
           geometry: imageGeo,
           material: imageMat,
@@ -199,6 +242,9 @@ export function Map3DView({ view, map, maxima, selectedIds, targetedIds, fogTool
         imageMesh.rotation.set(-Math.PI / 2, 0, 0);
         scene.terrainRoot.addChild(imageMesh);
       }
+
+      const lighting = new LightingManager(scene, scene.lightsRoot);
+      lighting.setMapBounds(mapWidth, mapHeight);
 
       const gridOverlay = createFlat2dGridOverlay(mapWidth, mapHeight);
       scene.overlayRoot.addChild(gridOverlay.mesh);
@@ -251,9 +297,14 @@ export function Map3DView({ view, map, maxima, selectedIds, targetedIds, fogTool
         },
       });
 
-      scene.app.ticker.add(() => {
+      scene.app.ticker.add((ticker) => {
+        lighting.tick(ticker.deltaMS / 1000, true);
         tokens3d.tick();
       });
+
+      let lastFlatLightsSig = '';
+      const worldW = mapWidth * TILE_SIZE_METERS;
+      const worldL = mapHeight * TILE_SIZE_METERS;
 
       active = {
         scene,
@@ -263,11 +314,32 @@ export function Map3DView({ view, map, maxima, selectedIds, targetedIds, fogTool
         tokens3d,
         ruler3d: null,
         fog3d,
+        syncLightingAndVision: (nextMap, tokens, viewerInfo, profiles, characters) => {
+          fog3d.setScene(nextMap, tokens, viewerInfo, {
+            ...(profiles ? { visionProfiles: profiles } : {}),
+            characters,
+          });
+          const isGmOverview = viewerInfo.role === 'gm' && !viewerInfo.previewTokenId;
+          applyVisionMaskToMaterial(floorMat, fog3d.surfaceVisionTexture, worldW, worldL, true, isGmOverview);
+          if (imageMat) {
+            applyVisionMaskToMaterial(imageMat, fog3d.surfaceVisionTexture, worldW, worldL, true, isGmOverview);
+          }
+          const lightsSig = runtimeLightsSignature(nextMap, tokens);
+          if (lightsSig !== lastFlatLightsSig) {
+            lastFlatLightsSig = lightsSig;
+            lighting.syncLightSources(surfaceGrid, [], 0, {
+              layer: 'surface',
+              runtimeLights: resolveActiveLightSources(nextMap, tokens, []),
+              showDarknessSpheres: true,
+            });
+          }
+        },
         width: mapWidth,
         length: mapHeight,
         destroy: () => {
           fog3d.destroy();
           tokens3d.destroy();
+          lighting.destroy();
           gridOverlay.geometry.destroy(true);
           gridOverlay.material.destroy();
           floorGeo.destroy(true);
@@ -297,6 +369,8 @@ export function Map3DView({ view, map, maxima, selectedIds, targetedIds, fogTool
 
       const surfaceGrid = gridFromMapDocument(doc);
       const interiorGrid = interiorGridFromMapDocument(doc);
+      const heightfield = extractHeightfieldFromMapDoc(raw);
+      const bakedPropLights = extractPropLightsFrom3dMapDocument(raw);
 
       const scene = await SceneManager.create(element, surfaceGrid.width, surfaceGrid.length);
       if (isCancelled()) {
@@ -418,6 +492,61 @@ export function Map3DView({ view, map, maxima, selectedIds, targetedIds, fogTool
         ruler3d.tick();
       });
 
+      let lastLightingConfigSig = '';
+      let lastLightsSig = '';
+      let propsReady = false;
+      let latestSync:
+        | {
+            nextMap: GameMap;
+            tokens: readonly Token[];
+            viewerInfo: FogViewer;
+            profiles: Readonly<Record<string, VisionProfile>> | undefined;
+            characters: Readonly<Record<string, SessionCharacter>>;
+          }
+        | undefined;
+      const worldW = surfaceGrid.width * TILE_SIZE_METERS;
+      const worldL = surfaceGrid.length * TILE_SIZE_METERS;
+
+      const syncLightingAndVision = (
+        nextMap: GameMap,
+        tokens: readonly Token[],
+        viewerInfo: FogViewer,
+        profiles: Readonly<Record<string, VisionProfile>> | undefined,
+        characters: Readonly<Record<string, SessionCharacter>>,
+      ): void => {
+        latestSync = { nextMap, tokens, viewerInfo, profiles, characters };
+        const cfgSig = `${nextMap.lighting.environment}:${nextMap.lighting.timeOfDay}:${nextMap.lighting.ambientOverride ?? ''}`;
+        if (cfgSig !== lastLightingConfigSig) {
+          lastLightingConfigSig = cfgSig;
+          lighting.applyPreset(mapLightingConfigToPreset(nextMap.lighting));
+        }
+
+        assets.applyPropLightOverrides(nextMap.propLightOverrides);
+        fog3d.setScene(nextMap, tokens, viewerInfo, {
+          ...(profiles ? { visionProfiles: profiles } : {}),
+          characters,
+          bakedPropLights,
+          heightfield,
+        });
+
+        const isGmOverview = viewerInfo.role === 'gm' && !viewerInfo.previewTokenId;
+        surfaceRenderer.setVisionMask(fog3d.surfaceVisionTexture, worldW, worldL, true, isGmOverview);
+        interiorRenderer.setVisionMask(fog3d.interiorVisionTexture, worldW, worldL, true, isGmOverview);
+        assets.setVisionMask('surface', fog3d.surfaceVisionTexture, worldW, worldL, true, isGmOverview);
+        assets.setVisionMask('interior', fog3d.interiorVisionTexture, worldW, worldL, true, isGmOverview);
+
+        const lightsSig = runtimeLightsSignature(nextMap, tokens);
+        if (propsReady && lightsSig !== lastLightsSig) {
+          lastLightsSig = lightsSig;
+          lighting.syncLightSources(surfaceGrid, assets.getPlacedForLayer('surface'), 0, {
+            layer: 'surface',
+            runtimeLights: resolveActiveLightSources(nextMap, tokens, []),
+            showDarknessSpheres: true,
+          });
+        }
+        fog3d.syncPropVisibility();
+      };
+
       active = {
         scene,
         setGridVisible: (visible) => {
@@ -427,6 +556,7 @@ export function Map3DView({ view, map, maxima, selectedIds, targetedIds, fogTool
         tokens3d,
         ruler3d,
         fog3d,
+        syncLightingAndVision,
         width: surfaceGrid.width,
         length: surfaceGrid.length,
         destroy: () => {
@@ -454,8 +584,23 @@ export function Map3DView({ view, map, maxima, selectedIds, targetedIds, fogTool
       }
       if (isCancelled()) return;
 
-      fog3d.syncPropVisibility();
-      lighting.syncLightSources(surfaceGrid, assets.getPlacedForLayer('surface'), 0);
+      propsReady = true;
+      if (latestSync) {
+        lastLightsSig = '';
+        syncLightingAndVision(
+          latestSync.nextMap,
+          latestSync.tokens,
+          latestSync.viewerInfo,
+          latestSync.profiles,
+          latestSync.characters,
+        );
+      } else {
+        fog3d.syncPropVisibility();
+        lighting.syncLightSources(surfaceGrid, assets.getPlacedForLayer('surface'), 0, {
+          layer: 'surface',
+          showDarknessSpheres: true,
+        });
+      }
       scene.fitSunShadows();
       setLoading(false);
     };
@@ -502,8 +647,8 @@ export function Map3DView({ view, map, maxima, selectedIds, targetedIds, fogTool
       viewer: viewerInfo,
       fogTool: isGm ? fogTool : 'none',
     });
-    viewer?.fog3d.setScene(map, tokens, viewerInfo);
-  }, [viewer, map, state.tokens, state.characters, state.combat, maxima, info.role, info.playerId, selectedIds, targetedIds, primarySelectedId, isGm, previewTokenVision, fogTool]);
+    viewer?.syncLightingAndVision(map, tokens, viewerInfo, visionProfiles, state.characters);
+  }, [viewer, map, state.tokens, state.characters, state.combat, maxima, visionProfiles, info.role, info.playerId, selectedIds, targetedIds, primarySelectedId, isGm, previewTokenVision, fogTool]);
 
   useEffect(() => {
     if (!viewer) return;

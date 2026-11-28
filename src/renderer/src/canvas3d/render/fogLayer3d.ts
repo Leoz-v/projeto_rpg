@@ -1,13 +1,14 @@
 import { FlatMaterial, Geometry3D, Mesh3D } from '@pixi/3d';
 import { CanvasSource, Texture } from 'pixi.js';
 import type { FogCell, FogMode, GameMap, Token } from '../../../../shared/protocol';
-import { fillFogImageData, fogSignature, type FogTool, type FogViewer } from '../../canvas/fog-render';
+import { fillFogImageData, type FogRenderOptions, fogSignature, type FogTool, type FogViewer } from '../../canvas/fog-render';
 import { METERS_PER_FOOT, METERS_PER_HEIGHT_UNIT, TILE_SIZE_METERS } from '../terrain/constants';
 import type { LiquidSurface } from '../terrain/liquidSurface';
 import { pickTerrain } from '../terrain/raycast';
 import type { TerrainGrid } from '../terrain/terrainGrid';
 import type { AssetManager } from './assetManager';
 import type { SceneManager } from './sceneManager';
+import { fillVision3dMaskImageData } from './visionShader3d';
 
 /**
  * Camada de névoa de guerra e ferramenta de pintura manual para mapas 3D (`Map3DView`).
@@ -108,11 +109,16 @@ export class FogLayer3d {
   private readonly eventAbort = new AbortController();
   private readonly fogCanvas: HTMLCanvasElement;
   private readonly fogTexture: Texture;
+  private readonly surfaceVisionCanvas: HTMLCanvasElement;
+  readonly surfaceVisionTexture: Texture;
+  private readonly interiorVisionCanvas: HTMLCanvasElement;
+  readonly interiorVisionTexture: Texture;
   private readonly material: FlatMaterial;
   private readonly mesh: Mesh3D;
   private map: GameMap | null = null;
   private tokens: readonly Token[] = [];
   private viewer: FogViewer = { role: 'player', playerId: '' };
+  private renderOptions: FogRenderOptions | undefined;
   private fogTool: FogTool = 'none';
   private shownKey = '';
   private brush: { mapId: string; mode: FogMode; cells: Map<string, FogCell> } | undefined;
@@ -131,6 +137,20 @@ export class FogLayer3d {
     this.fogCanvas.width = grid.width;
     this.fogCanvas.height = grid.length;
     this.fogTexture = new Texture({ source: new CanvasSource({ resource: this.fogCanvas, scaleMode: 'nearest' }) });
+
+    this.surfaceVisionCanvas = document.createElement('canvas');
+    this.surfaceVisionCanvas.width = grid.width;
+    this.surfaceVisionCanvas.height = grid.length;
+    this.surfaceVisionTexture = new Texture({
+      source: new CanvasSource({ resource: this.surfaceVisionCanvas, scaleMode: 'linear' }),
+    });
+
+    this.interiorVisionCanvas = document.createElement('canvas');
+    this.interiorVisionCanvas.width = grid.width;
+    this.interiorVisionCanvas.height = grid.length;
+    this.interiorVisionTexture = new Texture({
+      source: new CanvasSource({ resource: this.interiorVisionCanvas, scaleMode: 'linear' }),
+    });
     this.material = new FlatMaterial({
       baseColorTexture: this.fogTexture,
       alphaMode: 'blend',
@@ -147,12 +167,13 @@ export class FogLayer3d {
     this.attachListeners();
   }
 
-  setScene(map: GameMap | null, tokens: readonly Token[], viewer: FogViewer): void {
+  setScene(map: GameMap | null, tokens: readonly Token[], viewer: FogViewer, options?: FogRenderOptions): void {
     if (this.destroyed) return;
     this.map = map;
     this.tokens = tokens;
     this.viewer = viewer;
-    const key = fogSignature(map, tokens, viewer);
+    this.renderOptions = options;
+    const key = fogSignature(map, tokens, viewer, options);
     if (key === this.shownKey) return;
     this.shownKey = key;
     this.redrawTexture();
@@ -179,6 +200,8 @@ export class FogLayer3d {
     this.mesh.geometry.destroy(true);
     this.mesh.destroy();
     this.fogTexture.destroy(true);
+    this.surfaceVisionTexture.destroy(true);
+    this.interiorVisionTexture.destroy(true);
   }
 
   private redrawTexture(): void {
@@ -188,7 +211,29 @@ export class FogLayer3d {
     const height = this.grid.length;
     const imageData = ctx2d.createImageData(width, height);
     if (this.map && this.map.width === width && this.map.height === height) {
-      fillFogImageData(imageData.data, this.map, this.tokens, this.viewer);
+      fillFogImageData(imageData.data, this.map, this.tokens, this.viewer, this.renderOptions);
+
+      const sCtx = this.surfaceVisionCanvas.getContext('2d');
+      if (sCtx) {
+        const sImg = sCtx.createImageData(width, height);
+        fillVision3dMaskImageData(sImg.data, this.map, this.tokens, this.viewer, {
+          ...this.renderOptions,
+          layer: 'surface',
+        });
+        sCtx.putImageData(sImg, 0, 0);
+        this.surfaceVisionTexture.source.update();
+      }
+
+      const iCtx = this.interiorVisionCanvas.getContext('2d');
+      if (iCtx) {
+        const iImg = iCtx.createImageData(width, height);
+        fillVision3dMaskImageData(iImg.data, this.map, this.tokens, this.viewer, {
+          ...this.renderOptions,
+          layer: 'interior',
+        });
+        iCtx.putImageData(iImg, 0, 0);
+        this.interiorVisionTexture.source.update();
+      }
     }
     this.lastFogRgba = new Uint8ClampedArray(imageData.data);
     this.syncPropVisibility();
@@ -224,6 +269,12 @@ export class FogLayer3d {
     const height = this.grid.length;
     for (const layer of ['surface', 'interior'] as const) {
       for (const prop of this.assets.getPlacedForLayer(layer)) {
+        if (prop.propLightState === 'removed') {
+          prop.model.visible = false;
+          if (prop.shadowDisc) prop.shadowDisc.visible = false;
+          if (prop.caveVoidMesh) prop.caveVoidMesh.visible = false;
+          continue;
+        }
         let hidden = false;
         if (rgba) {
           const col = Math.min(width - 1, Math.max(0, Math.floor(prop.tileX)));
