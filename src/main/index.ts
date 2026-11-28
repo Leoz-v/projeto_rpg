@@ -10,7 +10,7 @@ import { IntentSchema, MAX_ASSET_BYTES, MAX_CHAT_HISTORY, UuidSchema } from '../
 import { PROTOCOL_VERSION } from '../shared/versions';
 import { ASSET_SCHEME, AssetError, assetResponse, AssetStore, create3dAssetHandler, type StoredAsset, VTT_3D_SCHEME } from './assets';
 import { characterSheet, creationOptions } from './character-sheet';
-import { monsterActions, searchItems, searchMonsters } from './compendium';
+import { monsterActions, monsterBlock, searchItems, searchMonsters } from './compendium';
 import { AppDb, CampaignLibrary, CampaignNotFoundError } from './db';
 import { cryptoRng } from './session';
 import { localAddresses, TableController, TableError } from './table';
@@ -167,6 +167,10 @@ function registerIpc(appDb: AppDb, table: TableController, library: CampaignLibr
     return table.chatHistory(before, limit);
   });
   handle(IpcChannel.creationOptions, () => creationOptions(getCompendium()));
+  handle(IpcChannel.monsterBlock, (payload) => {
+    const id = parse(z.string().max(100), payload);
+    return monsterBlock(getCompendium(), id);
+  });
   handle(IpcChannel.monsterActions, (payload) => monsterActions(getCompendium().creatures, parse(z.string().max(100), payload)));
   handle(IpcChannel.characterHpMaxima, () => {
     const characters = Object.values(table.view()?.state.characters ?? {});
@@ -220,6 +224,7 @@ void app.whenReady().then(() => {
     characterSheet: (character) => characterSheet(character, getCompendium()).sheet ?? undefined,
     monsterHpMax: (id) => getCompendium().creatures.find((c) => c.id === id)?.hp.average,
     creature: (id) => getCompendium().creatures.find((c) => c.id === id),
+    item: (id) => getCompendium().items.find((i) => i.id === id),
     spell: (id) => getCompendium().spells.find((s) => s.id === id),
     itemProblems: (entry) => inventoryEntryProblems(entry, getCompendium()),
     addresses: localAddresses,

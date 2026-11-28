@@ -35,6 +35,7 @@ async function host(options: Partial<HostServerOptions> = {}): Promise<{ server:
     characterSheet: () => undefined,
     monsterHpMax: () => 7,
     creature: () => undefined,
+    item: () => undefined,
     spell: () => undefined,
     assetExists: () => true,
   });

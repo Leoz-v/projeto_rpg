@@ -10,6 +10,7 @@ import {
   type SessionState,
   SessionStateSchema,
 } from './index';
+import { makeToken } from './test-fixtures';
 
 /** Os exemplos de docs/network-protocol.md, com ids reais no lugar de "…". */
 
@@ -27,7 +28,7 @@ const TABLE_PASSWORD = ['senha', 'da', 'mesa'].join('-');
 const SHA ='9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08';
 
 const state: SessionState = {
-  proposals: {},
+  proposals: {}, pendingSaves: {},
   combat: null,
   rest: null,
   campaign: { id: CAMPAIGN, name: 'A Mina Perdida' },
@@ -72,7 +73,7 @@ const state: SessionState = {
   maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: SHA, cellPx: 70, scene3d: null, fog: defaultMapFog(30, 20) } },
   activeMapId: MAP,
   tokens: {
-    [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [], characterId: null, hp: { max: 7, damage: 2, temp: 0 }, conditions: { active: [], exhaustion: 0 }, visionFeet: null },
+    [TOKEN]: makeToken({ id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', hp: { max: 7, damage: 2, temp: 0 } }),
   },
   characters: {
     [HERO]: {
@@ -288,7 +289,7 @@ describe('intents', () => {
 describe('SessionState', () => {
   it('accepts the documented example and an empty table', () => {
     expect(ok(SessionStateSchema, state)).toBe(true);
-    expect(ok(SessionStateSchema, { campaign: state.campaign, players: {}, chat: [], maps: {}, activeMapId: null, tokens: {}, characters: {}, proposals: {}, combat: null, rest: null })).toBe(true);
+    expect(ok(SessionStateSchema, { campaign: state.campaign, players: {}, chat: [], maps: {}, activeMapId: null, tokens: {}, characters: {}, proposals: {}, pendingSaves: {}, combat: null, rest: null })).toBe(true);
   });
 
   it('keeps conditions unique and exhaustion within 0..6', () => {

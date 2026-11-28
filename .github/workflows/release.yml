@@ -17,7 +17,28 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # O rascunho nasce antes dos builds: criado por eles, uploads simultâneos
+  # fizeram dois rascunhos e dividiram os arquivos (nota 0072).
+  draft:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Create the draft release
+        run: |
+          # A lista inclui os rascunhos (o token tem escrita). Rodar de novo reaproveita o que existe.
+          count=$(gh api "repos/$GH_REPO/releases?per_page=100" --jq "[.[] | select(.tag_name == \"$GITHUB_REF_NAME\")] | length")
+          if [ "$count" -gt 1 ]; then
+            echo "Há $count releases da $GITHUB_REF_NAME: deixe só uma e rode de novo." >&2
+            exit 1
+          fi
+          if [ "$count" -eq 0 ]; then
+            gh release create "$GITHUB_REF_NAME" --draft --verify-tag --title "${GITHUB_REF_NAME#v}" --notes ""
+          fi
+
   build:
+    needs: draft
     name: build (${{ matrix.os }})
     strategy:
       fail-fast: false
@@ -67,3 +88,35 @@ jobs:
           # Sem certificado de assinatura (CLAUDE.md): o electron-builder não procura um.
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: pnpm exec electron-vite build && pnpm exec electron-builder --publish always
+
+  # O electron-builder termina verde mesmo quando um arquivo não sobe.
+  check:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Check the draft has every file
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          gh api "repos/$GH_REPO/releases?per_page=100" --jq "[.[] | select(.tag_name == \"$GITHUB_REF_NAME\")]" > releases.json
+          if [ "$(jq length releases.json)" -ne 1 ]; then
+            echo "Esperava uma release da $GITHUB_REF_NAME, há $(jq length releases.json)." >&2
+            exit 1
+          fi
+          jq -r '.[0].assets[] | select(.state == "uploaded") | .name' releases.json | sort > found.txt
+          for file in "VTT-Setup-$version.exe" "VTT-$version.dmg" "VTT-$version-arm64.dmg"; do
+            echo "$file"
+            echo "$file.blockmap"
+          done > expected.txt
+          for file in "VTT-$version.AppImage" latest.yml latest-linux.yml latest-mac.yml; do
+            echo "$file"
+          done >> expected.txt
+          sort -o expected.txt expected.txt
+          missing=$(comm -23 expected.txt found.txt)
+          if [ -n "$missing" ]; then
+            echo "Faltam arquivos no rascunho:" >&2
+            echo "$missing" >&2
+            exit 1
+          fi

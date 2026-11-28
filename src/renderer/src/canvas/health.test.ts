@@ -1,26 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { SessionState, Token } from '../../../shared/protocol';
-import { healthColor, tokenHealth } from './health';
+import { makeToken } from '../../../shared/protocol/test-fixtures';
+import { healthColor, isTokenDead, tokenHealth } from './health';
 
-const token = (overrides: Partial<Token>): Token => ({
-  id: 't',
-  mapId: 'm',
-  name: 'Goblin',
-  position: { x: 0, y: 0 },
-  size: 'small',
-  monsterId: 'goblin',
-  image: null,
-  ownerIds: [],
-  characterId: null,
-  hp: null,
-  conditions: { active: [], exhaustion: 0 },
-  visionFeet: null,
-  ...overrides,
-});
+const token = (overrides: Partial<Token>): Token => makeToken({ id: 't', mapId: 'm', name: 'Goblin', size: 'small', monsterId: 'goblin', ...overrides });
 
 describe('token health', () => {
   const characters = {
-    hero: { hp: { damage: 4, temp: 3 } },
+    hero: { hp: { damage: 4, temp: 3 }, deathSaves: { successes: 0, failures: 0, stable: false, dead: false } },
+    fallen: { hp: { damage: 12, temp: 0 }, deathSaves: { successes: 0, failures: 3, stable: false, dead: true } },
   } as unknown as SessionState['characters'];
 
   it('uses the token hit points or the linked character with the sheet maximum', () => {
@@ -35,5 +23,12 @@ describe('token health', () => {
     expect(healthColor({ current: 3, max: 7, temp: 0 })).toBe(0xffd166);
     expect(healthColor({ current: 1, max: 7, temp: 0 })).toBe(0xff7a7a);
     expect(healthColor({ current: 0, max: 7, temp: 0 })).toBe(0x6b6878);
+  });
+
+  it('detects dead state from character deathSaves or token.dead', () => {
+    expect(isTokenDead(token({ dead: false }), characters)).toBe(false);
+    expect(isTokenDead(token({ dead: true }), characters)).toBe(true);
+    expect(isTokenDead(token({ characterId: 'hero', dead: true }), characters)).toBe(false);
+    expect(isTokenDead(token({ characterId: 'fallen', dead: false }), characters)).toBe(true);
   });
 });

@@ -1,4 +1,6 @@
-import type { Ability, DamageType, Condition, Sense, Size, Skill, WeaponMastery } from '../schemas/common';
+import type { AttackRider } from './attack-riders';
+import type { SheetFeatureUse } from './feature-uses';
+import type { Ability, CreatureType, DamageType, Condition, Sense, Size, Skill, WeaponMastery } from '../schemas/common';
 import type { Predicate } from '../schemas/predicate';
 import type { ChoiceOptions, Feature } from '../schemas/source';
 import type { SourceKindSchema } from '../schemas/character';
@@ -100,6 +102,8 @@ export interface WeaponAttack {
   damage: { dice: string; bonus: Stat; type: DamageType; dieMinimum?: { value: number; source: SourceLabel } | undefined };
   /** Dano extra ao acertar (Radiant Strikes, Vicious Weapon), com a fonte. */
   extraDamage: { dice: string; type: DamageType; source: SourceLabel }[];
+  /** Dano extra que depende do alvo, do d20 ou de escolha (nota 0077). */
+  riders: AttackRider[];
   /** Menor resultado do d20 que faz Acerto Crítico (20 sem efeitos `crit_range`). */
   critRange: number;
   /** Dano com duas mãos (propriedade Versatile). */
@@ -197,6 +201,20 @@ export interface InventoryLine {
   requiresAttunement: boolean;
   /** Os efeitos do item valem agora (vestido, sintonizado ou só carregado, conforme o item). */
   active: boolean;
+  /** O item pode ser usado (nota 0074): quantos alvos e as opções à escolha. */
+  use?: { targets: 'one' | 'many'; options: string[] } | undefined;
+  /** A magia do pergaminho (nota 0076); `null` se a entrada não tem magia. `problem`: por que não dá para ler. `checkDc`: o teste exigido. */
+  scroll?: { spell: string | null; problem?: string | undefined; checkDc?: number | undefined } | undefined;
+  /** Cargas desta cópia e as magias que elas conjuram (nota 0075). */
+  charges?:
+    | {
+        max: number;
+        available: number;
+        /** Dados recuperados ao amanhecer. */
+        regain?: string | undefined;
+        spells: { spellId: string; name: string; level: number; note?: string | undefined; costs: { charges: number; level: number }[] }[];
+      }
+    | undefined;
 }
 
 export interface PendingChoice {
@@ -254,6 +272,14 @@ export interface Defenses {
   conditionImmunities: { condition: Condition; sources: SourceLabel[] }[];
 }
 
+/** Vantagem ou Desvantagem de quem ataca a criatura (`attacks_against`; nota 0062). */
+export interface AttacksAgainst {
+  mode: 'advantage' | 'disadvantage';
+  from?: readonly CreatureType[] | undefined;
+  note?: string | undefined;
+  source: SourceLabel;
+}
+
 export interface DerivedSheet {
   /** Sem escolhas pendentes nem erros. */
   complete: boolean;
@@ -282,9 +308,12 @@ export interface DerivedSheet {
   speed: { walk: Stat; fly: Stat; swim: Stat; climb: Stat; burrow: Stat };
   saves: Record<Ability, SaveStat>;
   skills: Record<Skill, SkillStat>;
+  /** Testes de atributo sem perícia. */
+  checks: Record<Ability, RollStat>;
   senses: { sense: Sense; range: number; source: SourceLabel }[];
   vision: VisionProfile;
   defenses: Defenses;
+  attacksAgainst: AttacksAgainst[];
   proficiencies: {
     armor: string[];
     weapons: string[];
@@ -294,6 +323,8 @@ export interface DerivedSheet {
   weaponMasteries: string[];
   attacks: WeaponAttack[];
   spellcasting: Spellcasting;
+  /** Características que se usam na mesa (nota 0078). */
+  featureUses: SheetFeatureUse[];
   feats: { featId: string; source: SourceLabel }[];
   features: SheetFeature[];
   conditions: { condition: Condition; source: SourceLabel }[];

@@ -1,4 +1,4 @@
-import { NO_DEATH_SAVES, NO_SPELL_SLOTS_SPENT, rollAbilityScores, usesRolledValues } from 'rules-engine';
+import { chargedItem, NO_DEATH_SAVES, NO_SPELL_SLOTS_SPENT, rollAbilityScores, usesRolledValues } from 'rules-engine';
 import { NO_CONDITIONS, type IntentData, type PatchOp, type Role, type SessionCharacter, MAX_ADJUSTMENTS, MAX_INVENTORY_ITEMS, MAX_ITEM_QUANTITY, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed, EMPTY_INVENTORY, type InventoryEntry } from './context';
 
@@ -83,8 +83,9 @@ export function addItem(ctx: SessionContext, playerId: string, role: Role, data:
   if (problems.length > 0) throw violation(problems[0] ?? 'Item inválido');
   const quantity = data.quantity ?? 1;
   const items = character.inventory.items;
-  const same = items.findIndex(
-    (e) => e.itemId === data.itemId && e.baseItemId === data.baseItemId && e.variantId === data.variantId && !e.equipped && !e.attuned,
+  // Cada item com cargas é uma entrada: duas varinhas não dividem as cargas.
+  const same = chargedItem(ctx.deps.item(data.itemId)) ? -1 : items.findIndex(
+    (e) => e.itemId === data.itemId && e.baseItemId === data.baseItemId && e.variantId === data.variantId && e.spellId === data.spellId && !e.equipped && !e.attuned,
   );
   const existing = items[same];
   if (existing) {
@@ -98,6 +99,7 @@ export function addItem(ctx: SessionContext, playerId: string, role: Role, data:
     itemId: data.itemId,
     ...(data.baseItemId !== undefined ? { baseItemId: data.baseItemId } : {}),
     ...(data.variantId !== undefined ? { variantId: data.variantId } : {}),
+    ...(data.spellId !== undefined ? { spellId: data.spellId } : {}),
     quantity,
     equipped: false,
     attuned: false,

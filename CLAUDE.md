@@ -43,7 +43,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
   - **Processo main (`src/main/`, Node):** infraestrutura e orquestração — servidor/cliente WebSocket, acesso ao SQLite, cache de assets por SHA-256, protocolo customizado `vtt-asset://`, auto-updater e o **executor da sessão do Host** (recebe `Intent`, chama o motor de regras, persiste e transmite o resultado). **Não implementa regras de D&D**, só chama o motor.
   - **Preload (`src/preload/`):** ponte mínima e tipada entre main e renderer via `contextBridge`. Nada além de expor a API de IPC.
   - **Renderer (`src/renderer/`):** interface reativa (`pt-BR`), renderização do mapa PixiJS e despacho de intenções. Sem acesso a Node.
-  - **Motor de regras (`packages/rules-engine/`, nome do pacote: `rules-engine`):** TypeScript puro, sem dependência de UI, Electron ou APIs do Node. Contém schemas Zod, cálculo de ficha derivada, resolução de ações/efeitos e gerador de RNG auditável/injetável. Exporta `rules-engine` (tudo, incluindo o compêndio), `rules-engine/schemas` (só os schemas), `rules-engine/space` (espaço por tamanho de criatura), `rules-engine/hit-points` (PV atuais), `rules-engine/rest` (Dados de Vida), `rules-engine/spell-slots` (espaços de magia), `rules-engine/resources` (usos de recursos) e `rules-engine/vision` (visão e iluminação): o que roda no renderer ou em `src/shared/` importa dos subcaminhos, para o compêndio não entrar no pacote da tela.
+  - **Motor de regras (`packages/rules-engine/`, nome do pacote: `rules-engine`):** TypeScript puro, sem dependência de UI, Electron ou APIs do Node. Contém schemas Zod, cálculo de ficha derivada, resolução de ações/efeitos e gerador de RNG auditável/injetável. Exporta `rules-engine` (tudo, incluindo o compêndio), `rules-engine/schemas` (só os schemas), `rules-engine/space` (espaço por tamanho de criatura), `rules-engine/hit-points` (PV atuais), `rules-engine/rest` (Dados de Vida), `rules-engine/spell-slots` (espaços de magia), `rules-engine/resources` (usos de recursos), `rules-engine/monster-uses` (usos limitados de monstros), `rules-engine/multiattack` (Multiattack) e `rules-engine/vision` (visão e iluminação): o que roda no renderer ou em `src/shared/` importa dos subcaminhos, para o compêndio não entrar no pacote da tela.
   - **Compartilhado (`src/shared/`):** tipos e schemas Zod do protocolo de rede e da API de IPC, usados por main, preload e renderer.
 - **Segurança do Electron (obrigatório):** `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`, Content Security Policy restritiva no renderer, e todo payload de IPC e de rede validado com Zod no processo main.
 - **Topologia multiplayer (sem nuvem):**
@@ -101,6 +101,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 │   │       ├── components/  # UI (fichas, compêndio, chat/rolagens, tracker de combate, mapas 2D/3D)
 │   │       └── store/       # Estado reativo da UI
 │   └── shared/              # Tipos da API de IPC (ipc.ts), schemas Zod (ipc-schemas.ts), protocolo de rede e versões
+├── e2e/                     # Testes de ponta a ponta (Playwright) com o app de verdade
 └── docs/
     ├── decisions/           # Registro de decisões (NNNN-titulo.md)
     ├── network-protocol.md  # Contrato fechado das mensagens WebSocket
@@ -144,6 +145,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 - O motor de regras deve ter testes unitários abrangentes em `packages/rules-engine`.
 - **Personagens de referência** em `packages/rules-engine/tests/fixtures/` (ex.: `dwarf-fighter-5.json`, `elf-wizard-7.json`) com fichas conferidas manualmente ponto a ponto (CA, PV, ataques, CD de magia, perícias, resistências); testes verificam que o cálculo chega exatamente nelas.
 - Toda regra, condição, maestria ou efeito novo vem com teste unitário.
+- **Ponta a ponta (Playwright, `e2e/`, nota 0073):** `pnpm test:e2e` abre o app de verdade, com o mestre e um jogador em perfis temporários. Na CI, só no Linux. O mapa é conferido pela interface, sem comparar imagens.
 - Testes de integração do processo main para migrações SQLite, hash SHA-256 de assets e handshake de protocolo.
 
 ## Roadmap
@@ -201,17 +203,26 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - ✅ Recursos de uso limitado (efeito `resource`, `resource.spend`/`restore`, `PROTOCOL_VERSION = 20`, `<campanha>.db` v13, `engine/resources.ts`): 31 características de classe, subclasse e espécie (Rage, Bardic Inspiration, Channel Divinity, Lay On Hands, Focus Points…) com máximo e recarga; o personagem guarda os usos gastos e os descansos devolvem. O uso em si continua como parcial da Fase 4 no backlog. Ver `docs/decisions/0052-recursos-de-uso-limitado.md`.
    - ✅ Conjurar (`spell.cast`, `PROTOCOL_VERSION = 21`, `spellcasting.castable`): gasta o espaço (ou o uso gratuito: truque, à vontade, ou as magias concedidas com usos por descanso, que viram recursos), vira a Concentração, interrompe o descanso e publica a magia com o texto no chat. O efeito estruturado de cada magia fica para uma fase própria (as 339 magias são só texto). Ver `docs/decisions/0053-conjurar-magias.md`.
 
-7. **Fase 7 — Magias estruturadas:** o efeito das magias resolvido pela mesa a partir de dados curados do SRD. Dividida em 4 PRs (ver `docs/decisions/0054-magias-estruturadas.md`); as magias sem resolução ficam classificadas no backlog (`spell:<id>`):
+7. **✅ Fase 7 — Magias estruturadas:** o efeito das magias resolvido pela mesa a partir de dados curados do SRD. Dividida em 4 PRs, o último em partes (ver `docs/decisions/0054-magias-estruturadas.md`); as magias sem resolução ficam classificadas no backlog (`spell:<id>`):
    - ✅ Schema (`resolution`: ataque, salvaguarda ou dano direto, com escala por círculo e melhoria de truque), motor (`engine/spells.ts`, `resolveSpellParts`) e curadoria de 95 magias de dano conferida contra o texto (`srd-source/tools/spell_resolution.py`).
    - ✅ Conjurar com alvos (`spell.effect`, `PROTOCOL_VERSION = 22`): o `spell_cast` grava a CD, o bônus de ataque e as partes no círculo usado; quem conjurou escolhe os alvos de cada parte e o Host rola os ataques (um por raio), as salvaguardas ou o dano direto, com o dano como proposta para o mestre. Ver `docs/decisions/0055-conjurar-com-alvos.md`.
    - ✅ Cura e condições (`PROTOCOL_VERSION = 24`): partes `heal` (direto nos PV, PV temporários, todos os PV, condições que terminam) e `condition` (sem salvaguarda), salvaguardas que só aplicam condição e as condições da falha e do acerto aplicadas pelo Host, com a duração curada (até a magia acabar, ligada à Concentração; até o próximo turno de quem conjurou). 125 magias estruturadas. Ver `docs/decisions/0058-cura-e-condicoes-das-magias.md`.
    - ✅ Bônus e penalidades nos personagens (PR 4a, `PROTOCOL_VERSION = 26`): parte `buff` com efeitos do catálogo que entram na ficha do alvo como ajuste ligado à magia (sai com a Concentração ou pelo dono), efeito novo `d20_bonus` (Bless, Guidance), opções à escolha e escala por círculo. 146 magias estruturadas. Ver `docs/decisions/0060-bonus-de-magia-nos-personagens.md`.
-   - PR 4b: efeitos de magia em monstros (Bane, Slow, Faerie Fire), ataques contra o alvo (Blur, Foresight, Protection from Evil and Good), numa arma (Magic Weapon, Shillelagh) e por um turno (Shield).
-8. **Ferramentas de mapa (reservada para outro contribuidor, [issue #59](https://github.com/Leoz-v/projeto_rpg/issues/59)):**
+   - ✅ Efeitos em monstros e ataques contra o alvo (PR 4b1, `PROTOCOL_VERSION = 28`, `<campanha>.db` v17): efeitos no token (`spellEffects`, `token.effect_remove`) sobre CA, defesas e d20 do bloco, efeitos na falha da salvaguarda (Bane, Slow, Faerie Fire), efeitos novos `attacks_against` (Blur, Foresight) e `minimum_ac` (Barkskin). 154 magias estruturadas. Ver `docs/decisions/0062-efeitos-em-monstros.md`.
+   - ✅ Alvo marcado, armas e um turno (PR 4b2, `PROTOCOL_VERSION = 29`): efeito `target_damage` (Hex, Hunter's Mark, Conjure Minor Elementals), ajuste ligado a uma arma (Magic Weapon, Shillelagh), duração por turno (Shield) e opções na salvaguarda (Bestow Curse, Enlarge/Reduce). 162 magias estruturadas; a fila `phase_7` ficou vazia. Ver `docs/decisions/0063-alvo-marcado-armas-e-turno.md`.
+8. **✅ Fase 8 — Ações de monstro:** o turno dos monstros resolvido pela mesa. Dividida em 5 PRs, o quarto em 4a e 4b (ver `docs/decisions/0064-bloco-e-usos-dos-monstros.md`); usos só para o mestre (e donos do token), condições aplicadas direto, Multiattack rolado de uma vez, Resistência Lendária oferecida ao mestre:
+   - ✅ Bloco completo e usos limitados (`monster.*`, `PROTOCOL_VERSION = 30`, `<campanha>.db` v18, `engine/monster-uses.ts`): o bloco inteiro pelo token, usos por dia (com os do covil) e recarga rolada pelo Host no início do turno.
+   - ✅ Condições das ações (`PROTOCOL_VERSION = 31`): 122 ações do SRD impõem as condições direto no acerto ou na falha, com tamanho máximo, duração por turno e as que saem junto (Impedido enquanto Agarrado). Ver `docs/decisions/0065-condicoes-das-acoes-de-monstro.md`.
+   - ✅ Multiattack (`attack.multi`, `PROTOCOL_VERSION = 32`, `engine/multiattack.ts`): 177 dos 178 do SRD estruturados (opções, combinações e trocas), com um alvo por ataque e todos rolados de uma vez. Ver `docs/decisions/0066-multiattack.md`.
+   - ✅ Magias de monstro, conjurar (PR 4a, `monster.cast`, `PROTOCOL_VERSION = 33`, `engine/monster-spells.ts`): pelo bloco, com usos por dia, CD e bônus do bloco e as partes estruturadas contra os alvos. Ver `docs/decisions/0067-magias-de-monstro.md`.
+   - ✅ Concentração dos monstros e trocas por magia no Multiattack (PR 4b, `PROTOCOL_VERSION = 34`, `<campanha>.db` v19): salvaguarda de CON ao sofrer dano, fim com 0 PV ou Incapacitado, e o que a magia mantinha sai junto. Ver `docs/decisions/0068-concentracao-dos-monstros.md`.
+   - ✅ Ações lendárias e Resistência Lendária (`save.resolve`, `PROTOCOL_VERSION = 35`): usos por rodada, 51 ações lendárias que encadeiam ataques, salvaguardas e magias, e a falha que espera o mestre usar a resistência ou aceitar. Ver `docs/decisions/0069-acoes-lendarias-e-resistencia.md`.
+9. **Ferramentas de mapa (reservada para outro contribuidor, [issue #59](https://github.com/Leoz-v/projeto_rpg/issues/59)):**
    - ✅ Régua de distância local (linha com curvas via `Shift`, raio de área de impacto e alternância `ft`/`m`) no mapa 2D (`MapStage`) e no mapa 3D (`Map3DView` / `RulerTool3d`), com medições unificadas por `rules-engine/space` (`cellDistanceFeet`/`distanceFeet` e `FEET_PER_SQUARE`). Ver `docs/decisions/0057-regua-de-distancia.md`.
    - ✅ Névoa de guerra (`fog.*`, `token.vision`, `PROTOCOL_VERSION = 25`, `<campanha>.db` v15; névoa manual por células e névoa automática por alcance de visão com memória explorada e limpeza pelo mestre, nos mapas 2D e 3D). Ver `docs/decisions/0059-nevoa-de-guerra.md`.
-   - Tokens ocultos e indicação de morto.
-9. **Mapas 3D (`@pixi/3d`, nota 0056):**
+   - ✅ Controles do mouse em 2D e 3D, HUD do token, seleção múltipla, alvo local, orientação e elevação (`token.update`, `PROTOCOL_VERSION = 27`, `<campanha>.db` v16). Ver `docs/decisions/0061-controles-do-mouse-e-orientacao-dos-tokens.md`.
+   - ✅ Tokens ocultos e indicação de morto (`token.hidden`, `token.dead`, `PROTOCOL_VERSION = 36`, `<campanha>.db` v20; filtragem no Host para não-mestres, marca automática de morto a 0 PV / Exaustão 6, override manual no HUD do token e no painel do mestre, visual em 2D e 3D). Ver `docs/decisions/0070-tokens-ocultos-e-indicacao-de-morto.md`. Escondidos também da ordem do combate e do chat (`PROTOCOL_VERSION = 37`, `docs/decisions/0071-tokens-ocultos-no-combate-e-no-chat.md`).
+10. **Mapas 3D (`@pixi/3d`, nota 0056):**
    - ✅ Integração do motor e editor 3D (`PROTOCOL_VERSION = 23`, `<campanha>.db` v14, `vtt-3d://`, `map.create`/`map.update` com `scene3d` via `AssetStore`), visualização de mesa (`Map3DView`) integrada ao fluxo natural de mapas com tokens 3D (planos no modo Topo, billboard em 3D/Ortho, arrasto e movimento por teclado) e editor completo (`Map3DEditorModal`) exclusivo do mestre.
    - ✅ Visualização bidirecional 2D/3D (`mapConversion.ts`): qualquer mapa pode ser aberto no visualizador 2D ou 3D (pela barra do mapa ou pelo painel do mestre). Mapas 2D abertos em 3D são montados em um plano horizontal na escala exata do grid com a imagem do mapa; mapas 3D abertos em 2D têm a câmera ortográfica de topo renderizada em imagem 2D com dimensão e resolução por tile adequadas (cacheada por SHA-256).
    - Visão de jogador (linha de visão/névoa) e navegação específica de jogador em 3D.
@@ -224,7 +235,19 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - Renderização 3D (`ShaderBit` de luz ocluída, *Darkvision* em P&B e controle de tochas).
    - UI da mesa e da ficha para ambiente, luzes, paredes/portas e alcance de visão.
 
-*Extras futuros:* ações de monstro com Multiattack e magias, exportar e abrir campanha de arquivo, criação de token a partir de imagem com recorte/moldura automáticos, spawn de vários inimigos de uma vez (a numeração Goblin 1, Goblin 2… já existe, um por vez), colar texto de ficha de monstro e converter para o schema.
+11. **Fase 9 — Ações dos personagens e itens:** o que aparece em quase toda sessão da fila `phase_4` do backlog. Dividida em 6 PRs (ver `docs/decisions/0074-usar-itens.md`); cura e efeitos entram direto, dano vira proposta, dano extra é automático quando a regra é objetiva:
+   - ✅ Usar itens (`item.use`, `PROTOCOL_VERSION = 38`, `engine/item-use.ts`): 21 itens consumíveis do SRD (poções, frascos, pós) com alvos, curados em `srd-source/tools/item_use.py`. Ver `docs/decisions/0074-usar-itens.md`.
+   - ✅ Cargas e magias de itens (PR 2a, `item.cast`, `item.charges`, `items.dawn`, `PROTOCOL_VERSION = 39`, `engine/item-charges.ts`): cargas por cópia do item, recarga no amanhecer do mestre, última carga com d20 e 24 itens que conjuram, curados em `srd-source/tools/item_casting.py`. Ver `docs/decisions/0075-cargas-e-magias-de-itens.md`.
+   - ✅ Pergaminhos (PR 2b, `item.read`, `PROTOCOL_VERSION = 40`, `engine/scrolls.ts`): a magia fica na entrada do inventário, com a lista da classe, o teste de círculo alto e a CD do pergaminho. Ver `docs/decisions/0076-pergaminhos.md`.
+   - ✅ Dano extra nos ataques (PR 3, efeito `attack_rider`, `PROTOCOL_VERSION = 41`, `engine/attack-riders.ts`): 10 características e 13 armas mágicas, automático quando a regra é objetiva, caixas na ficha para o resto, e uma vez por turno no combate. Ver `docs/decisions/0077-dano-extra-nos-ataques.md`.
+   - ✅ Características que curam ou reforçam (PR 4a, `feature.use`, efeitos `feature_use` e `feature_use_part`, `PROTOCOL_VERSION = 42`, `engine/feature-uses.ts`): 18 características, com os estados (Rage) na ficha até serem encerrados. Ver `docs/decisions/0078-usar-caracteristicas.md`.
+   - Bardic Inspiration (PR 4b): o dado guardado por quem recebe, usado depois de ver a rolagem.
+   - Características com salvaguarda (Stunning Strike, Breath Weapon, Channel Divinity).
+   - Reações e mudanças na rolagem (Uncanny Dodge, Evasion, Indomitable): a redesenhar depois dos outros.
+
+**Nos intervalos:** os extras de conforto do mestre.
+
+*Extras futuros:* tela de compêndio (navegar e buscar monstros, magias, itens e o glossário de regras do SRD num lugar só), venenos, armadilhas e cálculo de encontros do SRD (pp. 197–202), exportar e abrir campanha de arquivo, criação de token a partir de imagem com recorte/moldura automáticos, spawn de vários inimigos de uma vez (a numeração Goblin 1, Goblin 2… já existe, um por vez), colar texto de ficha de monstro e converter para o schema.
 
 ## Comandos
 
@@ -242,6 +265,9 @@ pnpm --filter rules-engine test
 
 # Todos os testes do workspace
 pnpm test
+
+# Testes de ponta a ponta (gera o build e abre o app)
+pnpm test:e2e
 
 # Checagem de tipos e lint em todo o workspace
 pnpm typecheck && pnpm lint

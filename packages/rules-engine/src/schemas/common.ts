@@ -156,7 +156,7 @@ export const FeetSchema = z.int().nonnegative().multipleOf(5);
  * Expressão de dados: termos `NdM` ou inteiros unidos por `+`/`-`, sem espaços.
  * Ex.: `1d8`, `2d6+3`, `1d10+1d6-1`.
  */
-const DIE = '(?:\\d+d(?:4|6|8|10|12|20|100)|\\d+)';
+const DIE = '(?:\\d+d(?:3|4|6|8|10|12|20|100)|\\d+)';
 export const DiceSchema = z.string().regex(new RegExp(`^${DIE}(?:[+-]${DIE})*$`), 'expressão de dados inválida');
 export type Dice = z.infer<typeof DiceSchema>;
 

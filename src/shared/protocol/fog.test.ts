@@ -17,7 +17,7 @@ import {
 } from './fog';
 import { WORLD_UNITS_PER_CELL } from './constants';
 import { type GameMap, type Token } from './state';
-import { NO_CONDITIONS } from './common';
+import { makeToken } from './test-fixtures';
 
 const MAP_ID = '00000000-0000-4000-8000-000000000001';
 const PLAYER_A = '00000000-0000-4000-8000-000000000010';
@@ -36,22 +36,8 @@ function makeMap(width = 10, height = 10, overrides?: Partial<GameMap['fog']>): 
   };
 }
 
-function makeToken(id: string, col: number, row: number, opts?: Partial<Token>): Token {
-  return {
-    id,
-    mapId: MAP_ID,
-    name: id,
-    position: { x: col * WORLD_UNITS_PER_CELL, y: row * WORLD_UNITS_PER_CELL },
-    size: 'medium',
-    monsterId: null,
-    image: null,
-    ownerIds: [],
-    characterId: null,
-    hp: null,
-    conditions: NO_CONDITIONS,
-    visionFeet: null,
-    ...opts,
-  };
+function tokenAt(id: string, col: number, row: number, opts?: Partial<Token>): Token {
+  return makeToken({ id, mapId: MAP_ID, name: id, position: { x: col * WORLD_UNITS_PER_CELL, y: row * WORLD_UNITS_PER_CELL }, ...opts });
 }
 
 describe('fog bitset helpers', () => {
@@ -93,7 +79,7 @@ describe('fog bitset helpers', () => {
 describe('vision and token visibility', () => {
   it('computes token vision radius in cells (1 cell = 5 ft)', () => {
     const map = makeMap(10, 10);
-    const hero = makeToken('hero', 5, 5, { ownerIds: [PLAYER_A], visionFeet: 10 });
+    const hero = tokenAt('hero', 5, 5, { ownerIds: [PLAYER_A], visionFeet: 10 });
     const vision = computeTokenVision(map, hero, 60);
     // Token's own cell and cells within 2 cells (10 ft) of its footprint
     expect(getFogCell(vision, 10, 5, 5)).toBe(true);
@@ -106,7 +92,7 @@ describe('vision and token visibility', () => {
     const manual = emptyFogBits(10, 10);
     setFogCell(manual, 10, 6, 5, true);
     const map = makeMap(10, 10, { manual: encodeFogBits(manual), autoEnabled: true, visionFeet: 30 });
-    const hero = makeToken('hero', 5, 5, { ownerIds: [PLAYER_A] });
+    const hero = tokenAt('hero', 5, 5, { ownerIds: [PLAYER_A] });
     const vision = computePlayerVision(map, [hero], PLAYER_A);
     expect(getFogCell(vision, 10, 5, 5)).toBe(true);
     expect(getFogCell(vision, 10, 6, 5)).toBe(false);
@@ -116,10 +102,10 @@ describe('vision and token visibility', () => {
     const manual = emptyFogBits(10, 10);
     setFogCell(manual, 10, 2, 2, true);
     const map = makeMap(10, 10, { manual: encodeFogBits(manual), autoEnabled: true, visionFeet: 10 });
-    const hero = makeToken('hero', 2, 2, { ownerIds: [PLAYER_A] });
-    const nearGoblin = makeToken('goblin-near', 3, 2);
-    const manualGoblin = makeToken('goblin-manual', 2, 2);
-    const farGoblin = makeToken('goblin-far', 8, 8);
+    const hero = tokenAt('hero', 2, 2, { ownerIds: [PLAYER_A] });
+    const nearGoblin = tokenAt('goblin-near', 3, 2);
+    const manualGoblin = tokenAt('goblin-manual', 2, 2);
+    const farGoblin = tokenAt('goblin-far', 8, 8);
     const tokens = [hero, nearGoblin, manualGoblin, farGoblin];
 
     expect(isTokenVisibleToPlayer(map, tokens, hero, PLAYER_A)).toBe(true);

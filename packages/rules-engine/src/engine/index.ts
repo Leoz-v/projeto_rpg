@@ -5,7 +5,12 @@ export { deriveSheet, evaluatePredicate, type PredicateContext, type RollContext
 export { applyDamage, damageNotes, type AppliedDamage, type DamageInstance, type DamageResult, type DamageStep } from './damage';
 export { type DiceRoll, type Rng, type RollDiceOptions, rollDice, seededRng } from './dice';
 export { type D20RollInput, type D20RollResult, type D20Step, rollD20 } from './d20';
-export { cellDistanceFeet, distanceFeet, FEET_PER_SQUARE, type Footprint, type GridCell, SPACE_FEET, spaceSquares } from './space';
+export { cellDistanceFeet, distanceFeet, FEET_PER_SQUARE, type Footprint, type GridCell, sizeAtMost, SPACE_FEET, spaceSquares } from './space';
+export { isConsumed, itemSaveApplies, itemSaveDc, itemUse, itemUseDamages, itemUseOptions, usedItemName } from './item-use';
+export { availableCharges, type ChargedItem, chargedItem, type ItemCaster, itemCaster, itemMagicProblems, itemSpellCosts, itemSpellLevel, lastChargeOutcome } from './item-charges';
+export { type Scroll, scrollOf, type ScrollReading, scrollReading, scrollSpells } from './scrolls';
+export { type AppliedRider, type AttackRider, type ChosenRider, chosenRiderProblems, ridersOnHit, type RiderTarget, sneakAttackAllowed } from './attack-riders';
+export { featureEnded, isPoolUse, poolConditions, type ResolvedFeaturePart, type SheetFeatureUse, wearsHeavyArmor } from './feature-uses';
 export { baseItemOptions, inventoryEntryProblems } from './items';
 export { ABILITY_ROLL_DICE, ABILITY_ROLL_SIDES, type AbilityRollSet, rollAbilityScores, usesRolledValues } from './ability-scores';
 export { applyHitPointChange, clampHitPoints, currentHitPoints, type HitPointChange, isBloodied, type HitPointResult, type HitPointState } from './hit-points';
@@ -16,6 +21,7 @@ export { availableHitDice, exhaustionAfterLongRest, type HitDiceSpent, hitDieHea
 export { availableSpellSlots, NO_SPELL_SLOTS_SPENT, type SlotPool, type SpellSlotsSpent, spellSlotsAfterRest } from './spell-slots';
 export { availableUses, type ResourceRechargeRule, type ResourcesSpent, resourcesAfterRest } from './resources';
 export {
+  abilityCheckD20,
   d20StepNotes,
   type DamageGroup,
   type DamageOptions,
@@ -39,6 +45,7 @@ export {
   criticalDice,
   resolveAttack,
   resolveSave,
+  saveDamage,
   rollActionDamage,
   type SaveInput,
   type SaveResult,
@@ -75,7 +82,13 @@ export {
   effectiveConditions,
   ownRollConditions,
   SPEED_ZERO_CONDITIONS,
+  withoutDependents,
 } from './conditions';
+export { attackedByEffects, creatureAc, creatureAttacksAgainst, creatureReminders, creatureRollEffects, hasUnsupportedCreatureEffect, type NamedEffects, withEffectDefenses } from './creature-effects';
+export { type TargetDamage, targetDamage } from './target-damage';
+export { availableMonsterUses, LEGENDARY_ACTIONS_ID, LEGENDARY_RESISTANCE_ID, type LimitedFeature, monsterUsesAtTurnStart, monsterSpellUseId, monsterUseMax, type MonsterUseLimit, pendingRecharges, RECHARGE_DIE, withMonsterUse } from './monster-uses';
+export { multiattackFits, type MultiattackSlot, multiattackSlots } from './multiattack';
+export { type MonsterSpell, monsterSpells } from './monster-spells';
 export { CONDITION_NAME, DAMAGE_NAME } from './names';
 export {
   ambientLightLevel,
