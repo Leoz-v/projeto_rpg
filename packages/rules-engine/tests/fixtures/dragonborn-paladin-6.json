@@ -96,6 +96,7 @@
       { "itemId": "longsword", "attack": 7, "damage": "1d8", "damageBonus": 4, "damageType": "slashing", "versatileDice": "1d10", "mastery": "sap", "masteryAvailable": true },
       { "itemId": "javelin", "attack": 7, "damage": "1d6", "damageBonus": 4, "damageType": "piercing", "mastery": "slow", "masteryAvailable": true }
     ],
+    "unarmed": { "ability": "str", "attack": 7, "damage": "1", "damageBonus": 4 },
     "spellcasting": {
       "classes": [
         { "classId": "paladin", "ability": "cha", "saveDc": 13, "attack": 5, "preparedSpells": 6, "cantrips": [], "spellCount": 0 }

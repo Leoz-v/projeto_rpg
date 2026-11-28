@@ -91,6 +91,7 @@
       { "itemId": "rapier", "attack": 7, "damage": "1d8", "damageBonus": 4, "damageType": "piercing", "mastery": "vex", "masteryAvailable": true },
       { "itemId": "shortbow", "attack": 7, "damage": "1d6", "damageBonus": 4, "damageType": "piercing", "mastery": "vex", "masteryAvailable": true }
     ],
+    "unarmed": { "ability": "str", "attack": 2, "damage": "1", "damageBonus": -1 },
     "spellcasting": {
       "classes": [],
       "slots": [0, 0, 0, 0, 0, 0, 0, 0, 0],

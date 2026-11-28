@@ -414,7 +414,7 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     kind: z.literal('timed_effect'),
     ...entryBase,
     event: z.enum(['started', 'ended']),
-    effect: z.enum(['sap', 'vex', 'slow']),
+    effect: z.enum(['sap', 'vex', 'slow', 'stunning']),
     sourceName: NameSchema,
     targetTokenId: UuidSchema,
     targetName: NameSchema,
@@ -473,6 +473,10 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     characterId: UuidSchema,
     characterName: NameSchema,
     featureName: LabelSchema,
+    /** A característica da ficha (`featureUses`), para "uma por ataque" (nota 0083). */
+    featureId: IdSchema.optional(),
+    /** O `attack_roll` que a permitiu (características usadas no acerto). */
+    attackOf: UuidSchema.optional(),
     action: LabelSchema.optional(),
     duration: LabelSchema.optional(),
     notes: LogList,
@@ -856,7 +860,7 @@ export const PendingSaveSchema = z.strictObject({
   /** Efeitos e condições da magia. */
   spell: z.strictObject({ entryId: UuidSchema, part: z.int().min(0).max(MAX_SPELL_PARTS - 1), option: z.int().min(0).optional(), condition: TableConditionSchema.optional() }).optional(),
   /** Condições de um item usado (nota 0074) ou de uma característica (nota 0082), com o uso cujo dano não as encerra. */
-  item: z.strictObject({ label: LabelSchema, conditions: z.array(TableConditionSchema).min(1).max(15), endsOnDamage: UuidSchema.optional() }).optional(),
+  item: z.strictObject({ label: LabelSchema, conditions: z.array(TableConditionSchema).min(1).max(15), endsOnDamage: UuidSchema.optional(), until: TurnExpirySchema.optional() }).optional(),
   /** Concentração que acaba na falha. */
   concentration: IdSchema.optional(),
 });
@@ -938,7 +942,8 @@ export type Combatant = z.infer<typeof CombatantSchema>;
 /** Efeito temporário de uma maestria, preso ao próximo turno do atacante (nota 0042). */
 export const TimedEffectSchema = z.strictObject({
   id: UuidSchema,
-  kind: z.enum(['sap', 'vex', 'slow']),
+  /** `stunning`: o sucesso do Stunning Strike, Vantagem no próximo ataque de qualquer um contra o alvo (nota 0083). */
+  kind: z.enum(['sap', 'vex', 'slow', 'stunning']),
   sourceTokenId: UuidSchema,
   targetTokenId: UuidSchema,
   until: TurnExpirySchema,
@@ -955,7 +960,7 @@ export const CombatSchema = z
     combatants: z.array(CombatantSchema).min(1).max(MAX_COMBATANTS),
     /** Combates gravados antes da versão 13 não têm o campo: começam sem efeitos. */
     effects: z.array(TimedEffectSchema).max(MAX_COMBATANTS * 4).default([]),
-    /** Dano extra de uma vez por turno já usado, no turno da rodada e do combatente anotados (nota 0077). */
+    /** Dano extra e características de uma vez por turno já usados, no turno da rodada e do combatente anotados (notas 0077 e 0083). */
     usedRiders: z.array(z.strictObject({ characterId: UuidSchema, riderId: IdSchema, round: z.int().min(1), turnTokenId: UuidSchema })).max(200).optional(),
   })
   .refine((c) => c.turn < c.combatants.length, { message: 'turno fora da ordem' })

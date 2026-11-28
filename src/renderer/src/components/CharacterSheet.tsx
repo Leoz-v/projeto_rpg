@@ -464,7 +464,7 @@ function Attacks({ sheet, roller, onSelect }: { sheet: DerivedSheet; roller: Rol
                   {a.versatileDice && <small className="hint"> (duas mãos {a.versatileDice})</small>}
                 </td>
                 <td className="hint">{reach}</td>
-                <td className="hint">{a.mastery.available ? humanizeId(a.mastery.property) : ''}</td>
+                <td className="hint">{a.mastery?.available === true ? humanizeId(a.mastery.property) : ''}</td>
                 {roller && (
                   <td className="attack-rolls">
                     <button type="button" className="secondary small" onClick={() => { roller.attack(a); }}>

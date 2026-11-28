@@ -102,7 +102,7 @@ test('Sneak Attack: the player marks it on the sheet, and the GM gets the damage
   // Até acertar: a caixa se desmarca a cada ataque.
   await expect(async () => {
     await sneak.check();
-    await player.page.getByRole('region', { name: 'Ataques' }).getByRole('button', { name: 'atacar' }).click();
+    await player.page.getByRole('region', { name: 'Ataques' }).getByRole('row').filter({ hasText: 'Rapier' }).getByRole('button', { name: 'atacar' }).click();
     await expect(sneak).not.toBeChecked();
     await expect(chat(gm)).toContainText('Sneak Attack', { timeout: 1500 });
   }).toPass({ timeout: 30_000 });
@@ -159,7 +159,7 @@ test('Bardic Inspiration on a missed attack: the attack waits and the player add
   const inventory = await openInventory(player, 'Thorin');
   await inventory.getByLabel('equipado').click();
   await player.page.getByLabel('Alvo dos ataques').selectOption({ label: 'Goblin' });
-  const attack = player.page.getByRole('region', { name: 'Ataques' }).getByRole('button', { name: 'atacar' });
+  const attack = player.page.getByRole('region', { name: 'Ataques' }).getByRole('row').filter({ hasText: 'Longsword' }).getByRole('button', { name: 'atacar' });
   // Até errar: no acerto o dado continua guardado.
   await expect(async () => {
     await attack.click();
@@ -209,6 +209,25 @@ test('Breath Weapon: the player picks the targets on the sheet and the GM gets t
   await expect(chat(gm)).toContainText('usou Breath Weapon');
   await expect.poll(async () => Object.keys((await stateOf(gm)).proposals).length).toBe(1);
   expect((await stateOf(gm)).characters[id]?.resourcesSpent['breath_weapon']).toBe(1);
+});
+
+test('Stunning Strike: the Monk punches from the sheet and uses it on the hit, from the chat', async ({ table: { gm, player } }) => {
+  await createMap(gm, 'Mosteiro');
+  await placeMonster(gm, 'Goblin Warrior', { name: 'Goblin' });
+  const id = await createCharacter(player, 'dwarf-monk-6', 'Kai');
+  await player.page.getByRole('region', { name: 'Personagens' }).getByRole('button', { name: 'Kai' }).click();
+  await player.page.getByLabel('Alvo dos ataques').selectOption({ label: 'Goblin' });
+  const unarmed = player.page.getByRole('region', { name: 'Ataques' }).getByRole('row').filter({ hasText: 'Unarmed Strike' });
+  await expect(unarmed).toContainText('1d8');
+  // Até acertar.
+  await expect(async () => {
+    await unarmed.getByRole('button', { name: 'atacar' }).click();
+    await expect.poll(async () => (await stateOf(gm)).chat.findLast((e) => e.kind === 'attack_roll')?.hit, { timeout: 1500 }).toBe(true);
+  }).toPass({ timeout: 30_000 });
+  await player.page.getByRole('button', { name: 'Fechar ficha' }).click();
+  await chat(player).getByRole('button', { name: 'Stunning Strike' }).last().click();
+  await expect(chat(gm)).toContainText('usou Stunning Strike');
+  await expect.poll(async () => (await stateOf(gm)).characters[id]?.resourcesSpent['focus_points']).toBe(1);
 });
 
 test('a spell scroll: the player picks the spell when adding it and reads it', async ({ table: { gm, player } }) => {

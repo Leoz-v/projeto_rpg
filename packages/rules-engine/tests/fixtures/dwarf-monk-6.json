@@ -79,6 +79,7 @@
       { "itemId": "quarterstaff", "attack": 7, "damage": "1d6", "damageBonus": 4, "damageType": "bludgeoning", "versatileDice": "1d8", "mastery": "topple", "masteryAvailable": false },
       { "itemId": "shortsword", "attack": 7, "damage": "1d6", "damageBonus": 4, "damageType": "piercing", "mastery": "vex", "masteryAvailable": false }
     ],
+    "unarmed": { "ability": "dex", "attack": 7, "damage": "1d8", "damageBonus": 4 },
     "spellcasting": { "classes": [], "slots": [0, 0, 0, 0, 0, 0, 0, 0, 0], "granted": [] }
   }
 }

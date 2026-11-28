@@ -1,7 +1,7 @@
 export * from './math';
 export * from './types';
 export { pruneSelections, resolveBuild, type ResolvedBuild, type SourcedEffect } from './build';
-export { deriveSheet, evaluatePredicate, type PredicateContext, type RollContext, type SheetInput, TABLE_CONDITION_SOURCE, type TableConditions } from './sheet';
+export { deriveSheet, evaluatePredicate, type PredicateContext, type RollContext, type SheetInput, TABLE_CONDITION_SOURCE, type TableConditions, UNARMED_INSTANCE_ID } from './sheet';
 export { applyDamage, damageNotes, type AppliedDamage, type DamageInstance, type DamageResult, type DamageStep } from './damage';
 export { type DiceRoll, type Rng, type RollDiceOptions, rollDice, seededRng } from './dice';
 export { type D20RollInput, type D20RollResult, type D20Step, rollD20 } from './d20';
@@ -11,7 +11,7 @@ export { availableCharges, type ChargedItem, chargedItem, type ItemCaster, itemC
 export { type Scroll, scrollOf, type ScrollReading, scrollReading, scrollSpells } from './scrolls';
 export { type AppliedRider, type AttackRider, type ChosenRider, chosenRiderProblems, ridersOnHit, type RiderTarget, sneakAttackAllowed } from './attack-riders';
 export { addInspirationDie, type InspirationRoll, inspirationRollOf, inspirationUseless, type SheetSelfInspiration } from './inspiration';
-export { featureEnded, isPoolUse, poolConditions, type ResolvedFeaturePart, type SheetFeatureUse, wearsHeavyArmor } from './feature-uses';
+export { featureEnded, isMonkWeapon, isPoolUse, poolConditions, type ResolvedFeaturePart, type SheetFeatureUse, wearsHeavyArmor } from './feature-uses';
 export { baseItemOptions, inventoryEntryProblems } from './items';
 export { ABILITY_ROLL_DICE, ABILITY_ROLL_SIDES, type AbilityRollSet, rollAbilityScores, usesRolledValues } from './ability-scores';
 export { applyHitPointChange, clampHitPoints, currentHitPoints, type HitPointChange, isBloodied, type HitPointResult, type HitPointState } from './hit-points';

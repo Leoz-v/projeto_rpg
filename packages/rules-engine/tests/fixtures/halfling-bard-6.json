@@ -113,6 +113,7 @@
     "attacks": [
       { "itemId": "dagger", "attack": 5, "damage": "1d4", "damageBonus": 2, "damageType": "piercing", "mastery": "nick", "masteryAvailable": false }
     ],
+    "unarmed": { "ability": "str", "attack": 2, "damage": "1", "damageBonus": -1 },
     "spellcasting": {
       "classes": [
         {

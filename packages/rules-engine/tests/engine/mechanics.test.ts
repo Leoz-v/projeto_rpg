@@ -190,7 +190,7 @@ describe('weapon proficiency by property', () => {
     ];
     const rogueish = { id: 'r', name: 'Treino', effects: [{ type: 'grant_proficiency', category: 'weapon', id: 'martial', properties: ['finesse', 'light'] }] };
     const sheet = derive({ steps, adjustments: [rogueish], inventory: { items: [{ instanceId: 's', itemId: 'scimitar', equipped: true }, { instanceId: 'l', itemId: 'longsword', equipped: true }] } });
-    expect(sheet.attacks.map((a) => [a.itemId, a.proficient])).toEqual([
+    expect(sheet.attacks.filter((a) => a.instanceId !== 'unarmed').map((a) => [a.itemId, a.proficient])).toEqual([
       ['scimitar', true],
       ['longsword', false],
     ]);

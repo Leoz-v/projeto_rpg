@@ -25,12 +25,16 @@ export type ResolvedFeaturePart =
       kind: 'save';
       ability: Ability;
       dc: number;
-      damage?: { dice: string; type: DamageType | DamageType[] } | undefined;
+      damage?: { dice: string; type: DamageType | DamageType[]; exceptTypes?: CreatureType[] | undefined } | undefined;
       onSuccess: 'half' | 'none';
       conditions: Exclude<Condition, 'exhaustion'>[];
       endsOnDamage: boolean;
       onlyTypes?: CreatureType[] | undefined;
+      until?: 'user_turn_start' | 'user_turn_end' | undefined;
+      failNote?: string | undefined;
+      successEffect?: 'stunning' | undefined;
     }
+  | PartOf<'note'>
   | { kind: 'fail_damage'; dice: string; type: DamageType }
   | PartOf<'buff'>;
 
@@ -46,6 +50,8 @@ export interface SheetFeatureUse {
   duration?: string | undefined;
   forbidHeavyArmor: boolean;
   note?: string | undefined;
+  /** Usada a partir de um ataque que acertou (nota 0083). */
+  onHit?: { attacks: 'any' | 'unarmed' | 'monk'; oncePerTurn: boolean; rider?: string | undefined; afterUse?: string | undefined; group?: string | undefined } | undefined;
   parts: ResolvedFeaturePart[];
   source: SourceLabel;
 }
@@ -86,7 +92,11 @@ function resolvePart(part: FeatureUsePart, classId: string | undefined, numbers:
     const base = 8 + numbers.bonus({ proficiency: 1 }, classId);
     const dc = part.dc === 'spell' ? (numbers.spellDc(classId) ?? base) : base + numbers.bonus({ ability: part.dc.ability }, classId);
     const damage = part.damage
-      ? { dice: addFlat(atLevel(part.damage.dice, numbers.scaleLevel(classId)), part.damage.bonus.reduce<number>((sum, b) => sum + numbers.bonus(b, classId), 0)), type: part.damage.type }
+      ? {
+          dice: addFlat(atLevel(part.damage.dice, numbers.scaleLevel(classId)), part.damage.bonus.reduce<number>((sum, b) => sum + numbers.bonus(b, classId), 0)),
+          type: part.damage.type,
+          ...(part.damage.exceptTypes ? { exceptTypes: part.damage.exceptTypes } : {}),
+        }
       : undefined;
     return {
       kind: 'save',
@@ -97,6 +107,9 @@ function resolvePart(part: FeatureUsePart, classId: string | undefined, numbers:
       conditions: part.conditions,
       endsOnDamage: part.endsOnDamage === true,
       ...(part.onlyTypes ? { onlyTypes: part.onlyTypes } : {}),
+      ...(part.until !== undefined ? { until: part.until } : {}),
+      ...(part.failNote !== undefined ? { failNote: part.failNote } : {}),
+      ...(part.successEffect !== undefined ? { successEffect: part.successEffect } : {}),
     };
   }
   if (part.kind === 'fail_damage') {
@@ -122,6 +135,17 @@ export function resolveFeatureUses(uses: readonly Sourced<FeatureUse>[], extensi
       ...(effect.duration !== undefined ? { duration: effect.duration } : {}),
       forbidHeavyArmor: effect.forbidHeavyArmor === true,
       ...(effect.note !== undefined ? { note: effect.note } : {}),
+      ...(effect.onHit
+        ? {
+            onHit: {
+              attacks: effect.onHit.attacks,
+              oncePerTurn: effect.onHit.oncePerTurn === true,
+              ...(effect.onHit.rider !== undefined ? { rider: effect.onHit.rider } : {}),
+              ...(effect.onHit.afterUse !== undefined ? { afterUse: effect.onHit.afterUse } : {}),
+              ...(effect.onHit.group !== undefined ? { group: effect.onHit.group } : {}),
+            },
+          }
+        : {}),
       parts: effect.parts.map((p) => resolvePart(p, classId, numbers)),
       source,
     });
@@ -131,6 +155,11 @@ export function resolveFeatureUses(uses: readonly Sourced<FeatureUse>[], extensi
     if (use) found.set(effect.use, { ...use, parts: [...use.parts, resolvePart(effect.part, classId, numbers)] });
   }
   return [...found.values()];
+}
+
+/** Arma de Monge (Martial Arts; nota 0083): corpo a corpo simples, ou marcial com a propriedade Light. */
+export function isMonkWeapon(weapon: Pick<Item & { kind: 'weapon' }, 'category' | 'attackKind' | 'properties'>): boolean {
+  return weapon.attackKind === 'melee' && (weapon.category === 'simple' || weapon.properties.includes('light'));
 }
 
 /** Usos que a característica tira de uma reserva à escolha (Lay On Hands). */

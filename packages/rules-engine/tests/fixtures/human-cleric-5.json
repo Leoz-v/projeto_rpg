@@ -95,6 +95,7 @@
     "attacks": [
       { "itemId": "mace", "attack": 4, "damage": "1d6", "damageBonus": 1, "damageType": "bludgeoning", "mastery": "sap", "masteryAvailable": false }
     ],
+    "unarmed": { "ability": "str", "attack": 4, "damage": "1", "damageBonus": 1 },
     "spellcasting": {
       "classes": [
         {

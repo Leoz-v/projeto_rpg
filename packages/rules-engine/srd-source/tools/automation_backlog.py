@@ -230,7 +230,6 @@ PARTIAL = {
     "item:mace_of_disruption#destroy": ("phase_4", "Salvaguarda de SAB ou é destruído, com 25 PV ou menos (resolução com salvaguarda).", None),
     "item:oathbow#sworn_enemy": ("phase_4", "Inimigo jurado: Vantagem e sem cobertura contra ele (alvo marcado).", None),
     "feature:class:barbarian/brutal_strike#effects": ("phase_4", "Forceful Blow e Hamstring Blow: empurrar e reduzir o deslocamento do alvo.", None),
-    "feature:class:warlock/eldritch_smite#prone": ("phase_4", "Pode deixar o alvo Caído (Enorme ou menor).", None),
     "feature:class:warlock/lifedrinker#heal": ("phase_4", "Gasta um Dado de Vida para recuperar PV ao acertar.", None),
     "feature:class:rogue/sneak_attack#cunning_strike": ("phase_4", "Cunning Strike e Devious Strikes trocam dados do Sneak Attack por efeitos.", None),
     "item:dragon_orb#control": ("gm", "Controlar o orbe, o chamado dos dragões e o Suggestion dele: o mestre conduz.", None),

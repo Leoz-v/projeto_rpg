@@ -2,7 +2,7 @@
 
 > **Contrato fechado.** Só existem as mensagens e os tipos de `Intent` listados aqui. Para criar um novo, primeiro atualize este documento (e `PROTOCOL_VERSION`, se a mudança for incompatível) e só depois o código. Os schemas Zod em `src/shared/protocol/` devem seguir este arquivo exatamente.
 
-- **Versão do protocolo:** `PROTOCOL_VERSION = 47`
+- **Versão do protocolo:** `PROTOCOL_VERSION = 48`
 - **Transporte:** WebSocket puro (`ws://`) sobre rede virtual (Tailscale/ZeroTier). Porta padrão do Host: `47820`.
 - **Formato:** um objeto JSON (UTF-8) por frame de texto. Frames binários não são usados.
 - **Validação:** toda mensagem recebida, nos dois lados, passa pelo schema Zod antes de qualquer processamento. Mensagem inválida gera `Error` com `code: "invalid_message"` e é descartada. A conexão **não** cai por causa disso.
@@ -262,7 +262,7 @@ Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do
 | `inventory.remove` | 4   | `{ characterId: string, instanceId: string, quantity?: int (1..9999) }` | dono e mestre |
 | `inventory.update` | 4   | `{ characterId: string, instanceId: string, equipped?: boolean, attuned?: boolean, quantity?: int (1..9999) }` (ao menos um campo além dos ids) | dono e mestre |
 | `item.use`        | 38   | `{ characterId: string, instanceId: string, self: boolean, targetTokenIds: string[] (0..20), option?: int (0..19) }` | dono e mestre |
-| `feature.use`     | 42   | `{ characterId: string, featureId: string, targetTokenId?: string, targetTokenIds?: string[] (1..20), damageType?: DamageType, amount?: int (0..1000), conditions?: Condition[] (menos "exhaustion"), weaponId?: string }` (`targetTokenIds` e `damageType` desde a 47) | dono e mestre |
+| `feature.use`     | 42   | `{ characterId: string, featureId: string, targetTokenId?: string, targetTokenIds?: string[] (1..20), damageType?: DamageType, entryId?: string, amount?: int (0..1000), conditions?: Condition[] (menos "exhaustion"), weaponId?: string }` (`targetTokenIds` e `damageType` desde a 47, `entryId` desde a 48) | dono e mestre |
 | `item.read`       | 40   | `{ characterId: string, instanceId: string }` | dono e mestre |
 | `item.cast`       | 39   | `{ characterId: string, instanceId: string, spellId: string, charges?: int (0..50) }` | dono e mestre |
 | `item.charges`    | 39   | `{ characterId: string, instanceId: string, change: "spend" \| "restore", amount: int (1..50) }` | dono e mestre |
@@ -372,6 +372,9 @@ Cada `kind` tem schema próprio para `data`. A lista cresce conforme as fases do
     - Publica `feature_used`; o que ela faz vem em `spell_applied` e `condition_changed`, com `spellOf` apontando para ela.
     - Com `targets: "many"` (nota 0082, versão 47), os alvos vêm em `targetTokenIds` (distintos, até `maxTargets`); `targetTokenId` é `rule_violation`, e o contrário também. `damageType` é obrigatório quando uma parte deixa escolher o tipo, e só um deles.
     - Uma parte `save` rola as salvaguardas como `save.force` (`save_roll` com `spellOf` apontando para o `feature_used`): o dano vira proposta, as condições da falha entram direto (com Resistência Lendária, esperam em `pendingSaves` com `item`), e os alvos fora de `onlyTypes` ficam de fora, com nota. `fail_damage` publica `spell_damage` com uma proposta para cada um que falhou.
+    - **No acerto** (nota 0083, versão 48): uma característica com `onHit` exige `entryId`, um `attack_roll` do personagem que acertou, e o alvo é o do ataque (`targetTokenId` e `targetTokenIds` são `rule_violation`). O Host confere o ataque (`attacks`), o dano extra (`rider`), uma por ataque e grupo (pelos `feature_used` com `attackOf`), e no combate `oncePerTurn` e `afterUse` pelos usos do turno em `combat.usedRiders`, onde todo uso de característica no combate é anotado. Fora do combate, `afterUse` vira nota. Sem `onHit`, `entryId` é `rule_violation`. O `feature_used` guarda `featureId` e `attackOf`.
+    - O sucesso com `successEffect: "stunning"` cria o efeito temporário `stunning` no combate (`timed_effect`), que dá Vantagem ao próximo ataque de qualquer um contra o alvo e se gasta nele; sem combate, vira nota.
+    - O **Ataque Desarmado** é um ataque da ficha com `instanceId: "unarmed"`: `attack.make` e `roll.damage` o aceitam como qualquer arma equipada, sem maestria.
     - Condições com `endsOnDamage` saem quando o alvo sofre dano (`hp.change` ou `damage.apply`), com `condition_changed` e a nota "Sofreu dano"; o dano de uma entrada ligada ao mesmo `feature_used` não conta.
     - Uma parte `inspire` (Bardic Inspiration, nota 0079, versão 45) põe o dado em `inspiration` do personagem do token alvo: outro personagem, vivo, sem dado guardado; senão, `rule_violation` sem gastar.
     - Um estado (Rage) vira ajuste com `feature` (`id`, `endsOn`, `noSpells`). O dono o encerra com `adjustment.remove`; o Host, ao mudar o estado, encerra os que acabaram (`spell_effect_ended` com `reason: "broken"`). Com `noSpells`, conjurar e se concentrar são `rule_violation`.

@@ -87,6 +87,7 @@
       { "itemId": "greataxe", "attack": 7, "damage": "1d12", "damageBonus": 4, "damageType": "slashing", "mastery": "cleave", "masteryAvailable": true },
       { "itemId": "handaxe", "attack": 7, "damage": "1d6", "damageBonus": 4, "damageType": "slashing", "mastery": "vex", "masteryAvailable": true }
     ],
+    "unarmed": { "ability": "str", "attack": 7, "damage": "1", "damageBonus": 4 },
     "spellcasting": { "classes": [], "slots": [0, 0, 0, 0, 0, 0, 0, 0, 0], "granted": [] }
   }
 }
