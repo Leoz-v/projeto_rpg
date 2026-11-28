@@ -26,6 +26,7 @@ O que já funciona:
 
 ```bash
 pnpm install   # instala dependências (baixa também o binário do Electron)
+pnpm exec install-electron
 pnpm dev       # abre o app com hot reload
 ```
 

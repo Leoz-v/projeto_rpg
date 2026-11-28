@@ -18,3 +18,7 @@ __pycache__/
 # Testes de ponta a ponta (Playwright)
 test-results/
 playwright-report/
+
+# Local dirs
+.local/
+*.local
