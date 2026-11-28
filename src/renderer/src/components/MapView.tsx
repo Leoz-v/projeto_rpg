@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { VisionProfile } from 'rules-engine/vision';
 import type { TableView } from '../../../shared/ipc';
-import type { GameMap, Point } from '../../../shared/protocol';
+import { extractPropLightsFrom3dMapDocument, type ExtractedPropLight, type GameMap, type Point } from '../../../shared/protocol';
 import { conditionLabels, spellEffectLabels, timedEffectLabels, tokenConditions } from '../canvas/conditions';
 import type { FogTool } from '../canvas/fog-render';
 import { isTokenDead, tokenHealth } from '../canvas/health';
@@ -52,6 +53,56 @@ function useHpMaxima(characters: TableView['state']['characters']): Record<strin
     };
   }, [characters]);
   return maxima;
+}
+
+/** Perfis de visão derivados pelo processo main (ficha, monstro e condições), atualizados com tokens/personagens. */
+function useTokenVisionProfiles(
+  tokens: TableView['state']['tokens'],
+  characters: TableView['state']['characters'],
+): Record<string, VisionProfile> {
+  const [profiles, setProfiles] = useState<Record<string, VisionProfile>>({});
+  useEffect(() => {
+    let current = true;
+    void window.vtt.tokenVisionProfiles().then((r) => {
+      if (current && r.ok) setProfiles(r.value);
+    });
+    return () => {
+      current = false;
+    };
+  }, [tokens, characters]);
+  return profiles;
+}
+
+const bakedPropLightsCache = new Map<string, ExtractedPropLight[]>();
+
+/** Extrai e guarda em cache as tochas/braseiros embutidos em um mapa 3D pelo SHA-256 imutável. */
+function useBaked3dPropLights(scene3dHash: string | null): readonly ExtractedPropLight[] {
+  const [result, setResult] = useState<{ key: string; lights: ExtractedPropLight[] } | null>(null);
+  useEffect(() => {
+    if (scene3dHash === null) return;
+    const cached = bakedPropLightsCache.get(scene3dHash);
+    if (cached) return;
+    let cancelled = false;
+    void fetch(`vtt-asset://${scene3dHash}`)
+      .then((res) => (res.ok ? (res.json() as Promise<unknown>) : undefined))
+      .then((doc) => {
+        if (cancelled || doc === undefined) return;
+        const extracted = extractPropLightsFrom3dMapDocument(doc);
+        bakedPropLightsCache.set(scene3dHash, extracted);
+        setResult({ key: scene3dHash, lights: extracted });
+      })
+      .catch(() => {
+        if (!cancelled) bakedPropLightsCache.set(scene3dHash, []);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [scene3dHash]);
+
+  if (scene3dHash === null) return [];
+  const cached = bakedPropLightsCache.get(scene3dHash);
+  if (cached) return cached;
+  return result?.key === scene3dHash ? result.lights : [];
 }
 
 interface Map2DProps {
@@ -130,6 +181,15 @@ function Map2DView({ view, maxima, selectedIds, targetedIds, fogTool, onFogTool,
       onFogRect: (mapId, mode, from, to) => {
         void sendIntent({ kind: 'fog.manual.rect', data: { mapId, mode, from, to } }).then(setError);
       },
+      onDoorToggle: (mapId, wallId) => {
+        void sendIntent({ kind: 'door.toggle', data: { mapId, wallId } }).then(setError);
+      },
+      onLightToggle: (mapId, lightId) => {
+        void sendIntent({ kind: 'light.toggle', data: { mapId, lightId } }).then(setError);
+      },
+      onPropLightToggle: (mapId, propLightId, nextState) => {
+        void sendIntent({ kind: 'map_prop_light.set', data: { mapId, propLightId, state: nextState } }).then(setError);
+      },
     }).then((s) => {
       // Desmontou antes de o PixiJS terminar de iniciar (StrictMode faz isso no desenvolvimento).
       if (cancelled) {
@@ -154,6 +214,8 @@ function Map2DView({ view, maxima, selectedIds, targetedIds, fogTool, onFogTool,
   const showFogHud = isGm && (fogHudOpen || fogTool !== 'none');
   const scene3dHash = map?.scene3d ?? null;
   const mapName = map?.name ?? '';
+  const visionProfiles = useTokenVisionProfiles(state.tokens, state.characters);
+  const bakedPropLights = useBaked3dPropLights(scene3dHash);
 
   // Mapa 3D aberto no visualizador 2D: renderiza a câmera de topo em uma imagem 2D.
   useEffect(() => {
@@ -197,8 +259,11 @@ function Map2DView({ view, maxima, selectedIds, targetedIds, fogTool, onFogTool,
       isDead: (token) => isTokenDead(token, state.characters),
       viewer: { role: info.role, playerId: info.playerId, previewTokenId: isGm && previewTokenVision ? primarySelectedId : null },
       fogTool: isGm ? fogTool : 'none',
+      visionProfiles,
+      characters: state.characters,
+      bakedPropLights,
     });
-  }, [stage, map, activeRenderedBg, state.tokens, state.characters, state.combat, maxima, info.role, info.playerId, isGm, selectedIds, targetedIds, primarySelectedId, previewTokenVision, fogTool]);
+  }, [stage, map, activeRenderedBg, state.tokens, state.characters, state.combat, maxima, visionProfiles, bakedPropLights, info.role, info.playerId, isGm, selectedIds, targetedIds, primarySelectedId, previewTokenVision, fogTool]);
 
   useEffect(() => {
     stage?.setRulerMode(rulerActive && fogTool === 'none' && map !== null);

@@ -2,10 +2,29 @@
 import 'pixi.js/unsafe-eval';
 import { Application, CanvasSource, Container, type FederatedPointerEvent, Graphics, ImageSource, Sprite, Text, Texture } from 'pixi.js';
 import type { GridCell } from 'rules-engine/space';
-import { type FogCell, type FogMode, type GameMap, type Point, type Token, WORLD_UNITS_PER_CELL } from '../../../shared/protocol';
-import { clampFogCell, fillFogImageData, fogSignature, type FogTool, type FogViewer, worldToFogCell } from './fog-render';
+import type { VisionProfile } from 'rules-engine/vision';
+import {
+  type ExtractedPropLight,
+  type FogCell,
+  type FogMode,
+  type GameMap,
+  type Point,
+  type SessionState,
+  type Token,
+  type WallSegment,
+  WORLD_UNITS_PER_CELL,
+} from '../../../shared/protocol';
+import {
+  clampFogCell,
+  fogSignature,
+  type FogTool,
+  type FogViewer,
+  isViewerObserverToken,
+  worldToFogCell,
+} from './fog-render';
 import { type Camera, fitMap, placeToken, screenToWorld, stepRotation, toggleSelection, tokenSide, worldToScreen, zoomAt } from './geometry';
 import { type Health, healthColor } from './health';
+import { composeSmooth2dVisionAndLight } from './lighting-2d';
 import { backgroundWorldSize } from './map-grid';
 import {
   DEFAULT_RULER_OPTIONS,
@@ -16,6 +35,7 @@ import {
   type RulerOptions,
   worldToGridCell,
 } from './ruler';
+import { VisionLightingFilter } from './vision-filter';
 
 /**
  * O mapa em PixiJS v8, desacoplado do React (CLAUDE.md): a tela entrega a
@@ -54,6 +74,12 @@ export interface Scene {
   viewer: FogViewer;
   /** Ferramenta de edição de névoa ativa (só para o mestre). */
   fogTool: FogTool;
+  /** Perfis de visão por token vindos da ficha/monstro (IPC). */
+  visionProfiles?: Readonly<Record<string, VisionProfile>>;
+  /** Personagens da sessão, para associar dono e condições à visão. */
+  characters?: SessionState['characters'];
+  /** Fontes de luz embutidas no documento 3D do mapa ativo, se houver. */
+  bakedPropLights?: readonly ExtractedPropLight[];
 }
 
 export interface MapStageHandle {
@@ -71,6 +97,9 @@ export interface MapStageEvents {
   onToggleTarget: (tokenId: string) => void;
   onFogPaint: (mapId: string, mode: FogMode, cells: FogCell[]) => void;
   onFogRect: (mapId: string, mode: FogMode, from: FogCell, to: FogCell) => void;
+  onDoorToggle?: (mapId: string, wallId: string) => void;
+  onLightToggle?: (mapId: string, lightId: string) => void;
+  onPropLightToggle?: (mapId: string, propLightId: string, nextState: 'on' | 'off') => void;
 }
 
 const COLORS = {
@@ -175,10 +204,14 @@ async function loadTexture(sha256: string): Promise<Texture | null> {
 
 export interface WorldLayers {
   world: Container;
+  sceneLayer: Container;
   backgroundLayer: Container;
   gridLayer: Graphics;
+  lightTintLayer: Container;
   tokenLayer: Container;
   fogLayer: Container;
+  wallOverlayLayer: Container;
+  lightOverlayLayer: Container;
   fogPreviewLayer: Graphics;
   rulerLayer: Graphics;
 }
@@ -191,27 +224,49 @@ export interface WorldLayers {
  */
 export function createWorldLayers(): WorldLayers {
   const world = new Container();
+  const sceneLayer = new Container();
   const backgroundLayer = new Container();
   const gridLayer = new Graphics();
+  const lightTintLayer = new Container();
   const tokenLayer = new Container();
   const fogLayer = new Container();
+  const wallOverlayLayer = new Container();
+  const lightOverlayLayer = new Container();
   const fogPreviewLayer = new Graphics();
   const rulerLayer = new Graphics();
   backgroundLayer.eventMode = 'none';
   gridLayer.eventMode = 'none';
+  lightTintLayer.eventMode = 'none';
   fogLayer.eventMode = 'none';
   fogPreviewLayer.eventMode = 'none';
   rulerLayer.eventMode = 'none';
-  world.addChild(backgroundLayer, gridLayer, tokenLayer, fogLayer, fogPreviewLayer, rulerLayer);
-  return { world, backgroundLayer, gridLayer, tokenLayer, fogLayer, fogPreviewLayer, rulerLayer };
+  sceneLayer.addChild(backgroundLayer, gridLayer, lightTintLayer, tokenLayer);
+  world.addChild(sceneLayer, fogLayer, wallOverlayLayer, lightOverlayLayer, fogPreviewLayer, rulerLayer);
+  return {
+    world,
+    sceneLayer,
+    backgroundLayer,
+    gridLayer,
+    lightTintLayer,
+    tokenLayer,
+    fogLayer,
+    wallOverlayLayer,
+    lightOverlayLayer,
+    fogPreviewLayer,
+    rulerLayer,
+  };
 }
 
 export class MapStage {
   private readonly world: Container;
+  private readonly sceneLayer: Container;
   private readonly backgroundLayer: Container;
   private readonly gridLayer: Graphics;
+  private readonly lightTintLayer: Container;
   private readonly tokenLayer: Container;
   private readonly fogLayer: Container;
+  private readonly wallOverlayLayer: Container;
+  private readonly lightOverlayLayer: Container;
   private readonly fogPreviewLayer: Graphics;
   private readonly rulerLayer: Graphics;
   private readonly rulerHud = new Container();
@@ -219,9 +274,13 @@ export class MapStage {
   private readonly rulerBadgeText: Text;
   private readonly views = new Map<string, TokenView>();
   private readonly textures = new Map<string, Promise<Texture | null>>();
-  private fogCanvas: HTMLCanvasElement | undefined;
-  private fogSprite: Sprite | undefined;
-  private fogTexture: Texture | undefined;
+  private visionMaskCanvas: HTMLCanvasElement | undefined;
+  private visionMaskSprite: Sprite | undefined;
+  private visionMaskTexture: Texture | undefined;
+  private lightTintCanvas: HTMLCanvasElement | undefined;
+  private lightTintSprite: Sprite | undefined;
+  private lightTintTexture: Texture | undefined;
+  private visionFilter: VisionLightingFilter | undefined;
   private shownFogKey = '';
   private renderedBgTexture: Texture | null = null;
   private camera: Camera = { x: 0, y: 0, zoom: 1 };
@@ -258,10 +317,14 @@ export class MapStage {
   ) {
     const layers = createWorldLayers();
     this.world = layers.world;
+    this.sceneLayer = layers.sceneLayer;
     this.backgroundLayer = layers.backgroundLayer;
     this.gridLayer = layers.gridLayer;
+    this.lightTintLayer = layers.lightTintLayer;
     this.tokenLayer = layers.tokenLayer;
     this.fogLayer = layers.fogLayer;
+    this.wallOverlayLayer = layers.wallOverlayLayer;
+    this.lightOverlayLayer = layers.lightOverlayLayer;
     this.fogPreviewLayer = layers.fogPreviewLayer;
     this.rulerLayer = layers.rulerLayer;
     this.rulerBadgeText = new Text({
@@ -316,6 +379,13 @@ export class MapStage {
     this.destroyed = true;
     this.renderedBgTexture?.destroy(true);
     this.renderedBgTexture = null;
+    this.sceneLayer.filters = [];
+    this.visionFilter?.destroy();
+    this.visionFilter = undefined;
+    this.visionMaskSprite?.destroy();
+    this.visionMaskTexture?.destroy(true);
+    this.lightTintSprite?.destroy();
+    this.lightTintTexture?.destroy(true);
     this.app.canvas.removeEventListener('wheel', this.onWheel);
     this.app.canvas.removeEventListener('contextmenu', this.onContextMenu);
     this.app.destroy({ removeView: true }, { children: true, texture: true });
@@ -1050,32 +1120,294 @@ export class MapStage {
 
   private syncFog(): void {
     const map = this.scene.map;
-    const key = fogSignature(map, this.scene.tokens, this.scene.viewer);
+    const fogOptions = {
+      ...(this.scene.visionProfiles ? { visionProfiles: this.scene.visionProfiles } : {}),
+      ...(this.scene.characters ? { characters: this.scene.characters } : {}),
+      ...(this.scene.bakedPropLights ? { bakedPropLights: this.scene.bakedPropLights } : {}),
+    };
+    const key = fogSignature(map, this.scene.tokens, this.scene.viewer, fogOptions);
     if (key === this.shownFogKey) return;
     this.shownFogKey = key;
     if (!map) {
-      if (this.fogSprite) this.fogSprite.visible = false;
+      if (this.visionFilter) this.visionFilter.enabled = false;
+      if (this.visionMaskSprite) this.visionMaskSprite.visible = false;
+      if (this.lightTintSprite) this.lightTintSprite.visible = false;
+      this.wallOverlayLayer.removeChildren().forEach((c) => { c.destroy({ children: true }); });
+      this.lightOverlayLayer.removeChildren().forEach((c) => { c.destroy({ children: true }); });
       return;
     }
-    if (!this.fogCanvas || this.fogCanvas.width !== map.width || this.fogCanvas.height !== map.height) {
-      this.fogSprite?.destroy();
-      this.fogTexture?.destroy(true);
-      this.fogCanvas = document.createElement('canvas');
-      this.fogCanvas.width = map.width;
-      this.fogCanvas.height = map.height;
-      this.fogTexture = new Texture({ source: new CanvasSource({ resource: this.fogCanvas, scaleMode: 'nearest' }) });
-      this.fogSprite = new Sprite(this.fogTexture);
-      this.fogLayer.addChild(this.fogSprite);
+
+    if (!this.visionMaskCanvas || !this.lightTintCanvas || !this.visionMaskSprite || !this.lightTintSprite || !this.visionMaskTexture || !this.lightTintTexture) {
+      this.visionMaskCanvas = document.createElement('canvas');
+      this.lightTintCanvas = document.createElement('canvas');
+      this.visionMaskCanvas.width = map.width;
+      this.visionMaskCanvas.height = map.height;
+      this.lightTintCanvas.width = map.width;
+      this.lightTintCanvas.height = map.height;
+
+      this.visionMaskTexture = new Texture({
+        source: new CanvasSource({ resource: this.visionMaskCanvas, scaleMode: 'linear' }),
+      });
+      this.visionMaskSprite = new Sprite(this.visionMaskTexture);
+      this.visionMaskSprite.renderable = false;
+      this.visionMaskSprite.eventMode = 'none';
+      this.fogLayer.addChild(this.visionMaskSprite);
+
+      this.lightTintTexture = new Texture({
+        source: new CanvasSource({ resource: this.lightTintCanvas, scaleMode: 'linear' }),
+      });
+      this.lightTintSprite = new Sprite(this.lightTintTexture);
+      this.lightTintSprite.eventMode = 'none';
+      this.lightTintLayer.addChild(this.lightTintSprite);
+
+      this.visionFilter = new VisionLightingFilter(this.visionMaskSprite);
+      this.sceneLayer.filters = [this.visionFilter];
     }
-    const ctx2d = this.fogCanvas.getContext('2d');
-    if (!ctx2d || !this.fogTexture || !this.fogSprite) return;
-    const imageData = ctx2d.createImageData(map.width, map.height);
-    fillFogImageData(imageData.data, map, this.scene.tokens, this.scene.viewer);
-    ctx2d.putImageData(imageData, 0, 0);
-    this.fogTexture.source.update();
-    this.fogSprite.visible = true;
-    this.fogSprite.width = map.width * WORLD_UNITS_PER_CELL;
-    this.fogSprite.height = map.height * WORLD_UNITS_PER_CELL;
+
+    const { selfUnseenTokenIds } = composeSmooth2dVisionAndLight(
+      this.visionMaskCanvas,
+      this.lightTintCanvas,
+      map,
+      this.scene.tokens,
+      this.scene.viewer,
+      fogOptions,
+    );
+
+    const worldW = map.width * WORLD_UNITS_PER_CELL;
+    const worldH = map.height * WORLD_UNITS_PER_CELL;
+    this.visionMaskTexture.source.update();
+    this.lightTintTexture.source.update();
+    this.visionMaskSprite.visible = true;
+    this.visionMaskSprite.width = worldW;
+    this.visionMaskSprite.height = worldH;
+    this.lightTintSprite.visible = true;
+    this.lightTintSprite.width = worldW;
+    this.lightTintSprite.height = worldH;
+    if (this.visionFilter) this.visionFilter.enabled = true;
+
+    this.syncWallAndDoorOverlays(map);
+    this.syncLightOverlays(map, selfUnseenTokenIds);
+  }
+
+  private isCellRevealedForPlayer(map: GameMap, cellX: number, cellY: number): boolean {
+    const mask = this.visionMaskCanvas;
+    if (!mask) return true;
+    const ctx2d = mask.getContext('2d');
+    if (!ctx2d || map.width <= 0 || map.height <= 0) return true;
+    const px = Math.min(mask.width - 1, Math.max(0, Math.floor((cellX / map.width) * mask.width)));
+    const py = Math.min(mask.height - 1, Math.max(0, Math.floor((cellY / map.height) * mask.height)));
+    const pixel = ctx2d.getImageData(px, py, 1, 1).data;
+    const bright = pixel[1] ?? 0;
+    const fogFill = pixel[3] ?? 255;
+    return bright > 0 || fogFill < 250;
+  }
+
+  private drawDashedLine(g: Graphics, x1: number, y1: number, x2: number, y2: number, color: number): void {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const len = Math.hypot(dx, dy);
+    if (len < 1) return;
+    const dash = 14;
+    const gap = 10;
+    let t = 0;
+    while (t < len) {
+      const next = Math.min(len, t + dash);
+      g.moveTo(x1 + (dx * t) / len, y1 + (dy * t) / len).lineTo(x1 + (dx * next) / len, y1 + (dy * next) / len);
+      t += dash + gap;
+    }
+    g.stroke({ width: 6, color, alpha: 0.9 });
+  }
+
+  private isOverlayInteractive(): boolean {
+    if (this.rulerMode) return false;
+    return !(this.scene.viewer.role === 'gm' && this.scene.fogTool !== 'none');
+  }
+
+  private syncWallAndDoorOverlays(map: GameMap): void {
+    this.wallOverlayLayer.removeChildren().forEach((c) => { c.destroy({ children: true }); });
+    const isGm = this.scene.viewer.role === 'gm';
+    const surfaceWalls = map.walls.filter((w) => w.layer === 'surface');
+    if (surfaceWalls.length === 0) return;
+
+    if (isGm) {
+      const g = new Graphics();
+      g.eventMode = 'none';
+      for (const w of surfaceWalls) {
+        const wx1 = w.x1 * WORLD_UNITS_PER_CELL;
+        const wy1 = w.y1 * WORLD_UNITS_PER_CELL;
+        const wx2 = w.x2 * WORLD_UNITS_PER_CELL;
+        const wy2 = w.y2 * WORLD_UNITS_PER_CELL;
+        if (w.kind === 'door' && w.open) {
+          this.drawDashedLine(g, wx1, wy1, wx2, wy2, 0x34d399);
+          continue;
+        }
+        const color =
+          w.kind === 'door'
+            ? 0xfb923c
+            : w.kind === 'window'
+              ? 0x38bdf8
+              : w.kind === 'terrain_wall'
+                ? 0xa3e635
+                : 0xf59e0b;
+        g.moveTo(wx1, wy1).lineTo(wx2, wy2).stroke({ width: w.kind === 'terrain_wall' ? 4 : 6, color, alpha: 0.85 });
+      }
+      this.wallOverlayLayer.addChild(g);
+    }
+
+    for (const door of surfaceWalls) {
+      if (door.kind !== 'door') continue;
+      if (!isGm && !this.isDoorVisibleToPlayer(map, door)) continue;
+      const mx = ((door.x1 + door.x2) * 0.5) * WORLD_UNITS_PER_CELL;
+      const my = ((door.y1 + door.y2) * 0.5) * WORLD_UNITS_PER_CELL;
+      const badge = new Container();
+      badge.position.set(mx, my);
+      const bg = new Graphics()
+        .roundRect(-13, -13, 26, 26, 6)
+        .fill({ color: door.open ? 0x123828 : door.locked ? 0x451a1a : 0x3f230d, alpha: 0.92 })
+        .stroke({ width: 2.5, color: door.open ? 0x34d399 : door.locked ? 0xf87171 : 0xfb923c });
+      const symbol = new Text({
+        text: door.open ? '□' : door.locked ? '🔒' : '■',
+        style: { fill: 0xf8fafc, fontSize: 13, fontFamily: 'system-ui, sans-serif' },
+        resolution: 2,
+      });
+      symbol.anchor.set(0.5, 0.5);
+      badge.addChild(bg, symbol);
+      badge.eventMode = 'static';
+      badge.cursor = 'pointer';
+      badge.on('pointerdown', (e) => {
+        if (e.button !== 0 || !this.isOverlayInteractive()) return;
+        e.stopPropagation();
+        this.events.onDoorToggle?.(map.id, door.id);
+      });
+      this.wallOverlayLayer.addChild(badge);
+    }
+  }
+
+  private isDoorVisibleToPlayer(map: GameMap, door: WallSegment): boolean {
+    const mx = (door.x1 + door.x2) * 0.5;
+    const my = (door.y1 + door.y2) * 0.5;
+    return (
+      this.isCellRevealedForPlayer(map, mx, my) ||
+      this.isCellRevealedForPlayer(map, door.x1, door.y1) ||
+      this.isCellRevealedForPlayer(map, door.x2, door.y2)
+    );
+  }
+
+  private syncLightOverlays(map: GameMap, selfUnseenTokenIds: ReadonlySet<string>): void {
+    this.lightOverlayLayer.removeChildren().forEach((c) => { c.destroy({ children: true }); });
+    const isGm = this.scene.viewer.role === 'gm';
+    const tokenById = new Map(this.scene.tokens.map((t) => [t.id, t]));
+
+    for (const light of map.lights) {
+      if (light.layer !== 'surface') continue;
+      if (!isGm && light.ownerId !== this.scene.viewer.playerId) continue;
+      let cx: number;
+      let cy: number;
+      if (light.attach.kind === 'point') {
+        cx = light.attach.x * WORLD_UNITS_PER_CELL;
+        cy = light.attach.y * WORLD_UNITS_PER_CELL;
+      } else {
+        const holder = tokenById.get(light.attach.tokenId);
+        if (!holder || holder.mapId !== map.id) continue;
+        const side = tokenSide(holder.size);
+        cx = holder.position.x + side * 0.85;
+        cy = holder.position.y + side * 0.15;
+      }
+      const badge = this.createLightBadge(
+        cx,
+        cy,
+        light.kind === 'darkness' ? '🌑' : '🔥',
+        light.enabled,
+        light.kind === 'darkness' ? 0xa855f7 : 0xffa94d,
+        () => {
+          this.events.onLightToggle?.(map.id, light.id);
+        },
+      );
+      this.lightOverlayLayer.addChild(badge);
+    }
+
+    const bakedProps = this.scene.bakedPropLights ?? [];
+    for (const prop of bakedProps) {
+      if (prop.layer !== 'surface') continue;
+      const override = map.propLightOverrides[prop.id];
+      if (override === 'removed' && !isGm) continue;
+      if (!isGm) {
+        const nearControlled = this.scene.tokens.some((t) => {
+          if (t.mapId !== map.id || !isViewerObserverToken(t, this.scene.viewer.playerId, this.scene.characters)) return false;
+          const side = tokenSide(t.size);
+          const tx = (t.position.x + side * 0.5) / WORLD_UNITS_PER_CELL;
+          const ty = (t.position.y + side * 0.5) / WORLD_UNITS_PER_CELL;
+          return Math.hypot(tx - prop.x, ty - prop.y) <= 2.5 + side / (WORLD_UNITS_PER_CELL * 2);
+        });
+        if (!nearControlled) continue;
+      }
+      const active = override === undefined;
+      const badge = this.createLightBadge(
+        prop.x * WORLD_UNITS_PER_CELL,
+        prop.y * WORLD_UNITS_PER_CELL,
+        override === 'removed' ? '✕' : '🔥',
+        active,
+        override === 'removed' ? 0x64748b : 0xff9442,
+        () => {
+          this.events.onPropLightToggle?.(map.id, prop.id, active ? 'off' : 'on');
+        },
+      );
+      this.lightOverlayLayer.addChild(badge);
+    }
+
+    for (const tokenId of selfUnseenTokenIds) {
+      const token = tokenById.get(tokenId);
+      if (!token || token.mapId !== map.id) continue;
+      const side = tokenSide(token.size);
+      const radius = side / 2;
+      const marker = new Container();
+      marker.eventMode = 'none';
+      marker.position.set(token.position.x, token.position.y);
+      const ring = new Graphics()
+        .circle(radius, radius, radius * 0.94)
+        .stroke({ width: Math.max(4, side * 0.06), color: 0xa78bfa, alpha: 0.95 });
+      const name = new Text({
+        text: token.name,
+        style: { fill: 0xe2e8f0, fontSize: 22, fontFamily: 'system-ui, sans-serif', stroke: { color: 0x0f172a, width: 5 } },
+        resolution: 2,
+      });
+      name.anchor.set(0.5, 0);
+      name.position.set(radius, side + 8);
+      marker.addChild(ring, name);
+      this.lightOverlayLayer.addChild(marker);
+    }
+  }
+
+  private createLightBadge(
+    x: number,
+    y: number,
+    glyph: string,
+    active: boolean,
+    accent: number,
+    onToggle: () => void,
+  ): Container {
+    const c = new Container();
+    c.position.set(x, y);
+    const bg = new Graphics()
+      .circle(0, 0, 14)
+      .fill({ color: active ? 0x1e1b2e : 0x0f172a, alpha: active ? 0.92 : 0.72 })
+      .stroke({ width: 2, color: active ? accent : 0x475569 });
+    const icon = new Text({
+      text: glyph,
+      style: { fill: active ? 0xf8fafc : 0x94a3b8, fontSize: 13, fontFamily: 'system-ui, sans-serif' },
+      resolution: 2,
+    });
+    icon.anchor.set(0.5, 0.5);
+    icon.alpha = active ? 1 : 0.55;
+    c.addChild(bg, icon);
+    c.eventMode = 'static';
+    c.cursor = 'pointer';
+    c.on('pointerdown', (e) => {
+      if (e.button !== 0 || !this.isOverlayInteractive()) return;
+      e.stopPropagation();
+      onToggle();
+    });
+    return c;
   }
 
   private drawFogPreview(): void {
