@@ -1,8 +1,10 @@
-import { addInspirationDie, availableUses, type D20RollResult, type DerivedSheet, type InspirationRoll, inspirationRollOf, rollDice, type SheetSelfInspiration, type SourceLabel } from 'rules-engine';
-import { type IntentData, type PatchOp, type PendingAttack, type Role, type SessionCharacter, toPointer } from '../../shared/protocol';
+import { addInspirationDie, availableUses, inspirationUseless, type D20RollResult, type DerivedSheet, type InspirationRoll, inspirationRollOf, rollDice, type SheetSelfInspiration, type SourceLabel } from 'rules-engine';
+import { type IntentData, type PatchOp, type PendingAttack, type PendingInspiration, type Role, type SessionCharacter, type Token, toPointer } from '../../shared/protocol';
 import { makeAttack, targetOf } from './attacks';
 import { notAllowed, type SessionContext, violation } from './context';
+import { settleSave } from './legendary';
 import { changeResource } from './resources';
+import { applyDeathSave, endConcentration } from './vitality';
 
 /**
  * Dados de inspiração (nota 0079): Bardic Inspiration guardado por quem
@@ -161,9 +163,99 @@ export function resolvePendingAttack(ctx: SessionContext, playerId: string, role
   return [...attack, ...ops];
 }
 
-/** O token ou o personagem saiu: os ataques dele (ou contra ele) não têm mais o que decidir. */
-export function dropPendingAttacks(ctx: SessionContext, gone: { tokenId?: string; characterId?: string }): PatchOp[] {
-  return Object.values(ctx.current.pendingAttacks)
+/** O token ou o personagem saiu: os ataques e as salvaguardas dele (ou contra ele) não têm mais o que decidir. */
+export function dropInspirationWaits(ctx: SessionContext, gone: { tokenId?: string; characterId?: string }): PatchOp[] {
+  const attacks = Object.values(ctx.current.pendingAttacks)
     .filter((p) => p.targetTokenId === gone.tokenId || p.characterId === gone.characterId)
-    .map((p) => ({ op: 'remove', path: toPointer('pendingAttacks', p.id) }));
+    .map((p): PatchOp => ({ op: 'remove', path: toPointer('pendingAttacks', p.id) }));
+  const saves = Object.values(ctx.current.pendingInspirations)
+    .filter((p) => p.characterId === gone.characterId || (p.wait.kind === 'save' && p.wait.save.targetTokenId === gone.tokenId))
+    .map((p): PatchOp => ({ op: 'remove', path: toPointer('pendingInspirations', p.id) }));
+  return [...attacks, ...saves];
+}
+
+/** O personagem do token que pode somar um dado nesta salvaguarda que falhou (nota 0080). */
+export function inspirableHolder(ctx: SessionContext, token: Token, roll: D20RollResult): SessionCharacter | undefined {
+  const character = token.characterId !== null ? ctx.current.characters[token.characterId] : undefined;
+  const sheet = character ? ctx.deps.characterSheet(character) : undefined;
+  if (!character || !sheet || !canInspire(character, sheet, 'save') || inspirationUseless(roll, 'save') !== undefined) return undefined;
+  return character;
+}
+
+/** A salvaguarda falhou e o personagem tem um dado à mão: as consequências esperam. */
+export function pendingInspiration(ctx: SessionContext, pending: Omit<PendingInspiration, 'id'>): PatchOp {
+  const id = ctx.deps.newId();
+  return { op: 'add', path: toPointer('pendingInspirations', id), value: { id, ...pending } };
+}
+
+/**
+ * Decide a salvaguarda que esperava (nota 0080): com o dado, o Host o rola e
+ * soma; contra a CD, vale o sucesso ou a falha. A salvaguarda forçada aplica as
+ * consequências como a Resistência Lendária; a de Concentração mantém ou
+ * encerra; a contra a Morte entra só agora, no `death_save`.
+ */
+export function resolveInspirationSave(ctx: SessionContext, playerId: string, role: Role, data: IntentData<'inspiration.save'>): PatchOp[] {
+  const pending = ctx.current.pendingInspirations[data.pendingId];
+  if (!pending) throw violation('Salvaguarda não encontrada (já decidida)');
+  const character = ctx.ownCharacter(playerId, role, pending.characterId);
+  const sheet = ctx.deps.characterSheet(character);
+  if (!sheet) throw violation('O personagem ainda não tem ficha');
+  const ops: PatchOp[] = [{ op: 'remove', path: toPointer('pendingInspirations', pending.id) }];
+  const notes = [...pending.roll.notes];
+  let total = pending.roll.total;
+  let success = false;
+  if (data.inspiration) {
+    let dice: string;
+    let name: string;
+    let giverName: string | undefined;
+    const { selfId } = data.inspiration;
+    if (selfId !== undefined) {
+      const self = selfUse(sheet, character, selfId, 'save');
+      dice = self.dice;
+      name = self.name;
+      ops.push(...withoutChat(changeResource(ctx, playerId, role, { kind: 'resource.spend', data: { characterId: character.id, resourceId: self.resourceId } })));
+    } else {
+      const held = character.inspiration;
+      if (!held) throw violation(`${character.name} não tem dado de inspiração`);
+      dice = held.dice;
+      name = held.name;
+      giverName = held.giverName;
+      ops.push(clearInspiration(character));
+    }
+    const rolled = rollDice(dice, ctx.deps.rng);
+    total += rolled.total;
+    success = total >= pending.dc;
+    notes.push(`${name}${giverName !== undefined ? ` (${giverName})` : ''}: +${rolled.total} (${dice})`);
+    if (pending.wait.kind !== 'death') {
+      ops.push(
+        ctx.appendChat({
+          kind: 'inspiration_roll',
+          ...ctx.entryBase(playerId),
+          entryOf: pending.wait.kind === 'save' ? pending.wait.save.entryId : pending.wait.entryId,
+          characterId: character.id,
+          characterName: character.name,
+          featureName: name.slice(0, 100),
+          ...(giverName !== undefined ? { giverName } : {}),
+          visibility: 'public',
+          dice,
+          value: rolled.total,
+          total,
+          success,
+          notes: [`${pending.label}: CD ${pending.dc}, ${success ? 'passou' : 'ainda falhou'}`.slice(0, 200)],
+        }),
+      );
+    }
+  }
+  const { wait } = pending;
+  switch (wait.kind) {
+    case 'save':
+      return [...ops, ...settleSave(ctx, playerId, wait.save, success)];
+    case 'concentration':
+      // A magia pode ter trocado enquanto a falha esperava.
+      return [...ops, ...(!success && character.concentration?.spellId === wait.spellId ? endConcentration(ctx, playerId, character, 'failed_save') : [])];
+    case 'death': {
+      const { mode, dice, natural, modifier } = pending.roll;
+      return [...ops, ...applyDeathSave(ctx, playerId, character, sheet, { mode, dice, natural, modifier, total, natural1: false, natural20: false }, notes)];
+    }
+  }
 }

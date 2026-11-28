@@ -2,7 +2,7 @@ import { type ReactNode, useEffect, useState } from 'react';
 import type { SheetSelfInspiration } from 'rules-engine';
 import { type InspirationRoll, inspirationRollOf } from 'rules-engine/inspiration';
 import { availableUses } from 'rules-engine/resources';
-import type { ChatEntry, IntentData, PendingAttack, Role, SessionCharacter, SessionState } from '../../../shared/protocol';
+import type { ChatEntry, IntentData, PendingAttack, PendingInspiration, Role, SessionCharacter, SessionState } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
 
 /**
@@ -123,6 +123,44 @@ export function PendingAttackEntry({ pending, state, viewer }: { pending: Pendin
   );
 }
 
+/** A salvaguarda que falhou e espera (nota 0080): o dono soma o dado ou aceita a falha; os outros veem que espera. */
+export function PendingInspirationEntry({ pending, state, viewer }: { pending: PendingInspiration; state: SessionState; viewer: Viewer }) {
+  const [error, setError] = useState<string | null>(null);
+  const character = state.characters[pending.characterId];
+  const mine = controls(character, viewer);
+  const selves = useSelfInspirations(character, 'save', mine);
+  const decide = (inspiration?: { selfId?: string }): void => {
+    void sendIntent({ kind: 'inspiration.save', data: { pendingId: pending.id, ...(inspiration ? { inspiration } : {}) } }).then(setError);
+  };
+  return (
+    <li className="entry roll">
+      <p>
+        <span className="roll-label">{pending.label}</span> · {pending.characterName} · CD {pending.dc}
+      </p>
+      <p className="roll-result">
+        {pending.roll.dice.map((value, i) => (
+          <span key={i} className={`die${value !== pending.roll.natural ? ' dropped' : ''}`}>
+            {value}
+          </span>
+        ))}
+        <span className="total">= {pending.roll.total}</span>
+        <span className="tag">falhou</span>
+      </p>
+      {mine && character ? (
+        <div className="proposal">
+          <InspirationButtons character={character} selves={selves} onUse={(selfId) => { decide(selfId !== undefined ? { selfId } : {}); }} />
+          <button type="button" className="secondary small" onClick={() => { decide(); }}>
+            Aceitar a falha
+          </button>
+        </div>
+      ) : (
+        <p className="hint">Aguardando {pending.characterName} decidir se usa a inspiração</p>
+      )}
+      {error !== null && <p className="error">{error}</p>}
+    </li>
+  );
+}
+
 export function InspirationRollBody({ entry, header }: { entry: Extract<ChatEntry, { kind: 'inspiration_roll' }>; header: ReactNode }) {
   return (
     <li className={`entry roll${entry.visibility === 'gm' ? ' secret' : ''}`}>
@@ -135,6 +173,7 @@ export function InspirationRollBody({ entry, header }: { entry: Extract<ChatEntr
         <code>{entry.dice}</code>
         <span className="die">{entry.value}</span>
         <span className="total">novo total = {entry.total}</span>
+        {entry.success !== undefined && <span className="tag">{entry.success ? 'passou' : 'falhou'}</span>}
       </p>
       {entry.notes.map((n, i) => (
         <p key={i} className="hint">

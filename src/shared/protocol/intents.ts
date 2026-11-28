@@ -192,6 +192,11 @@ export const IntentSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('inspiration.use'), data: z.strictObject({ characterId: UuidSchema, entryId: UuidSchema, selfId: IdSchema.optional() }) }),
   /** Descarta o dado guardado (o dono ou o mestre). */
   z.strictObject({ kind: z.literal('inspiration.discard'), data: z.strictObject({ characterId: UuidSchema }) }),
+  /** Decide a salvaguarda que falhou e espera a inspiração (nota 0080): sem `inspiration`, aceita a falha. */
+  z.strictObject({
+    kind: z.literal('inspiration.save'),
+    data: z.strictObject({ pendingId: UuidSchema, inspiration: z.strictObject({ selfId: IdSchema.optional() }).optional() }),
+  }),
   /** Decide o ataque que errou e espera a inspiração: sem `inspiration`, aceita o erro. */
   z.strictObject({
     kind: z.literal('attack.resolve'),

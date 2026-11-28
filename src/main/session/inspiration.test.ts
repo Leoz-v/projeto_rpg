@@ -65,7 +65,7 @@ function table() {
   const pending = () => Object.values(session.state.pendingAttacks);
   const last = <K extends ChatEntry['kind']>(kind: K) => session.state.chat.findLast((e): e is Extract<ChatEntry, { kind: K }> => e.kind === kind);
   const valid = () => SessionStateSchema.safeParse(session.state).success;
-  return { session, queue, bard, fighter, sword, token, character, inspire, attack, pending, last, valid };
+  return { session, queue, bard, fighter, sword, token, character, inspire, attack, pending, last, valid, create };
 }
 
 describe('HostSession: Bardic Inspiration (note 0079)', () => {
@@ -226,5 +226,130 @@ describe('HostSession: Peerless Skill (note 0079)', () => {
     t.session.handle(ANA.playerId, { kind: 'attack.make', data: { attacker: { characterId: t.bard, instanceId: t.dagger }, targetTokenId: t.token('Goblin'), visibility: 'gm' } });
     expect(t.pending()).toEqual([]);
     expect(t.last('attack_roll')?.hit).toBe(false);
+  });
+});
+
+describe('HostSession: saves waiting for the inspiration (note 0080)', () => {
+  const waits = (t: ReturnType<typeof table>) => Object.values(t.session.state.pendingInspirations);
+  /** Salvaguarda de DES CD 12 contra o Tordek (DES +1): 2d6 de fogo, metade no sucesso. A fila: o dano e depois o d20. */
+  const fireball = (t: ReturnType<typeof table>, ...rolls: number[]) => {
+    t.queue.push(...rolls);
+    return t.session.handle(GM.playerId, {
+      kind: 'save.force',
+      data: { source: { custom: { name: 'Explosão', ability: 'dex', dc: 12, damage: [{ dice: '2d6', type: 'fire' }], onSuccess: 'half' } }, targetTokenIds: [t.token('Tordek')], visibility: 'public' },
+    });
+  };
+
+  it('a failed forced save waits; with the die it passes and the GM gets half the damage', () => {
+    const t = table();
+    t.inspire();
+    // Dano 3 + 3 = 6; d20 5 + 1 = 6 contra CD 12.
+    expect(applied(fireball(t, 3, 3, 5))).toBe(true);
+    const [waiting] = waits(t);
+    expect(waiting).toMatchObject({ characterName: 'Tordek', dc: 12, roll: { total: 6 }, wait: { kind: 'save' } });
+    expect(t.last('save_roll')?.results[0]?.notes).toContain('Aguardando Tordek decidir se usa a inspiração');
+    expect(Object.values(t.session.state.proposals)).toEqual([]);
+    expect(Object.keys(viewOf(t.session.state, { playerId: ANA.playerId, role: 'player' }).pendingInspirations)).toEqual([waiting?.id]);
+    const resolve = { kind: 'inspiration.save' as const, data: { pendingId: waiting?.id ?? '', inspiration: {} } };
+    expect(reason(t.session.handle(ANA.playerId, resolve))).toBe('Este personagem não é seu');
+    t.queue.push(6);
+    expect(applied(t.session.handle(BRUNO.playerId, resolve))).toBe(true);
+    expect(t.last('inspiration_roll')).toMatchObject({ entryOf: t.last('save_roll')?.id, value: 6, total: 12, success: true });
+    expect(Object.values(t.session.state.proposals).map((p) => p.amount)).toEqual([3]);
+    expect(waits(t)).toEqual([]);
+    expect(t.character(t.fighter).inspiration).toBeNull();
+    expect(t.valid()).toBe(true);
+  });
+
+  it('accepting the failure gives the whole damage and keeps the die; without a die nothing waits', () => {
+    const t = table();
+    fireball(t, 3, 3, 5);
+    expect(waits(t)).toEqual([]);
+    expect(Object.values(t.session.state.proposals).map((p) => p.amount)).toEqual([6]);
+    t.inspire();
+    fireball(t, 2, 2, 5);
+    const [waiting] = waits(t);
+    expect(applied(t.session.handle(BRUNO.playerId, { kind: 'inspiration.save', data: { pendingId: waiting?.id ?? '' } }))).toBe(true);
+    expect(Object.values(t.session.state.proposals).map((p) => p.amount)).toEqual([6, 4]);
+    expect(t.character(t.fighter).inspiration).not.toBeNull();
+  });
+
+  it('a secret save does not wait', () => {
+    const t = table();
+    t.inspire();
+    t.queue.push(3, 3, 5);
+    t.session.handle(GM.playerId, {
+      kind: 'save.force',
+      data: { source: { custom: { name: 'Explosão', ability: 'dex', dc: 12, damage: [{ dice: '2d6', type: 'fire' }], onSuccess: 'half' } }, targetTokenIds: [t.token('Tordek')], visibility: 'gm' },
+    });
+    expect(waits(t)).toEqual([]);
+  });
+
+  it('Concentration: the failure waits and the die keeps the spell', () => {
+    const t = table();
+    // Eli (Bardo 6 do Bruno, CON +1) concentrada em Bless, com o dado da Lia.
+    const eli = t.create(BRUNO, 'Eli', halflingBard, 300);
+    t.inspire(t.token('Eli'));
+    expect(applied(t.session.handle(BRUNO.playerId, { kind: 'concentration.set', data: { characterId: eli, spellId: 'bless' } }))).toBe(true);
+    // 10 de dano: CD 10; d20 3 + 1 = 4.
+    t.queue.push(3);
+    t.session.handle(GM.playerId, { kind: 'hp.change', data: { target: { characterId: eli }, change: { kind: 'damage', amount: 10 } } });
+    expect(t.last('concentration_save')?.success).toBe(false);
+    expect(t.character(eli).concentration?.spellId).toBe('bless');
+    const [waiting] = waits(t);
+    expect(waiting?.wait).toMatchObject({ kind: 'concentration', spellId: 'bless' });
+    t.queue.push(6);
+    expect(applied(t.session.handle(BRUNO.playerId, { kind: 'inspiration.save', data: { pendingId: waiting?.id ?? '', inspiration: {} } }))).toBe(true);
+    expect(t.last('inspiration_roll')).toMatchObject({ total: 10, success: true });
+    expect(t.character(eli).concentration?.spellId).toBe('bless');
+  });
+
+  it('Concentration: accepting ends the spell', () => {
+    const t = table();
+    const eli = t.create(BRUNO, 'Eli', halflingBard, 300);
+    t.inspire(t.token('Eli'));
+    t.session.handle(BRUNO.playerId, { kind: 'concentration.set', data: { characterId: eli, spellId: 'bless' } });
+    t.queue.push(3);
+    t.session.handle(GM.playerId, { kind: 'hp.change', data: { target: { characterId: eli }, change: { kind: 'damage', amount: 10 } } });
+    const [waiting] = waits(t);
+    t.session.handle(BRUNO.playerId, { kind: 'inspiration.save', data: { pendingId: waiting?.id ?? '' } });
+    expect(t.character(eli).concentration).toBeNull();
+  });
+
+  it('Death Saving Throw: a simple failure waits, and the die turns it into a success', () => {
+    const t = table();
+    t.inspire();
+    t.session.handle(GM.playerId, { kind: 'hp.change', data: { target: { characterId: t.fighter }, change: { kind: 'damage', amount: 54 } } });
+    const roll = () => t.session.handle(BRUNO.playerId, { kind: 'roll.d20', data: { characterId: t.fighter, target: { kind: 'death_save' }, visibility: 'public' } });
+    t.queue.push(6);
+    expect(applied(roll())).toBe(true);
+    expect(t.last('death_save')).toBeUndefined();
+    const [waiting] = waits(t);
+    expect(waiting).toMatchObject({ dc: 10, roll: { natural: 6, total: 6 }, wait: { kind: 'death' } });
+    t.queue.push(5);
+    expect(applied(t.session.handle(BRUNO.playerId, { kind: 'inspiration.save', data: { pendingId: waiting?.id ?? '', inspiration: {} } }))).toBe(true);
+    expect(t.last('death_save')).toMatchObject({ total: 11, outcome: 'success', deathSaves: { successes: 1, failures: 0 } });
+    expect(t.last('death_save')?.notes).toContain('Bardic Inspiration (Lia): +5 (1d8)');
+    expect(t.valid()).toBe(true);
+  });
+
+  it('Death Saving Throw: a natural 1 never waits', () => {
+    const t = table();
+    t.inspire();
+    t.session.handle(GM.playerId, { kind: 'hp.change', data: { target: { characterId: t.fighter }, change: { kind: 'damage', amount: 54 } } });
+    t.queue.push(1);
+    t.session.handle(BRUNO.playerId, { kind: 'roll.d20', data: { characterId: t.fighter, target: { kind: 'death_save' }, visibility: 'public' } });
+    expect(waits(t)).toEqual([]);
+    expect(t.last('death_save')?.outcome).toBe('two_failures');
+  });
+
+  it('removing the character drops its waiting saves', () => {
+    const t = table();
+    t.inspire();
+    fireball(t, 3, 3, 5);
+    expect(waits(t)).toHaveLength(1);
+    t.session.handle(BRUNO.playerId, { kind: 'character.remove', data: { characterId: t.fighter } });
+    expect(waits(t)).toEqual([]);
+    expect(t.valid()).toBe(true);
   });
 });
