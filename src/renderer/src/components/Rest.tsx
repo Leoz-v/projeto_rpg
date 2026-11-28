@@ -2,6 +2,7 @@ import { type ReactNode, useState } from 'react';
 import { availableHitDice } from 'rules-engine/rest';
 import type { ChatEntry, SessionCharacter, SessionState } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
+import { SidebarSection } from './SidebarSection';
 import { signed } from './sheet-labels';
 
 /**
@@ -23,8 +24,15 @@ export function RestPanel({ state }: { state: SessionState }) {
   if (characters.length === 0) return null;
   const { rest } = state;
   return (
-    <section className="panel rest-panel" aria-label="Descanso">
-      <h2>Descanso</h2>
+    <SidebarSection
+      id="rest"
+      title="Descanso"
+      ariaLabel="Descanso"
+      className="panel rest-panel"
+      badge={rest ? <span className="tag">ativo</span> : undefined}
+      defaultOpen={false}
+      autoExpandWhen={rest !== null}
+    >
       {rest ? (
         <>
           <p>
@@ -82,7 +90,7 @@ export function RestPanel({ state }: { state: SessionState }) {
           {error}
         </p>
       )}
-    </section>
+    </SidebarSection>
   );
 }
 

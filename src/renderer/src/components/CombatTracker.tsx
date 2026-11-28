@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { TableView } from '../../../shared/ipc';
 import { type Intent, MAX_INITIATIVE, MIN_INITIATIVE, type Token } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
+import { SidebarSection } from './SidebarSection';
 
 /**
  * Combate: ordem de turnos, rodada e o combatente da vez. O mestre inicia
@@ -139,10 +140,9 @@ export function CombatTracker({ view, onSelect }: { view: TableView; onSelect: (
   if (!combat) {
     if (!gm) return null;
     return (
-      <section className="combat" aria-label="Combate">
-        <h2>Combate</h2>
+      <SidebarSection id="combat" title="Combate" ariaLabel="Combate" className="combat" defaultOpen>
         <JoinForm tokens={mapTokens} label="Iniciar combate" kind="combat.start" />
-      </section>
+      </SidebarSection>
     );
   }
 
@@ -150,10 +150,15 @@ export function CombatTracker({ view, onSelect }: { view: TableView; onSelect: (
   const currentToken = current ? state.tokens[current.tokenId] : undefined;
   const outside = mapTokens.filter((t) => !combat.combatants.some((c) => c.tokenId === t.id));
   return (
-    <section className="combat active" aria-label="Combate">
-      <h2>
-        Combate <span className="tag">rodada {combat.round}</span>
-      </h2>
+    <SidebarSection
+      id="combat"
+      title="Combate"
+      ariaLabel="Combate"
+      className="combat active"
+      badge={<span className="tag">rodada {combat.round}</span>}
+      defaultOpen
+      autoExpandWhen
+    >
       <ol className="turn-order">
         {combat.combatants.map((c) => {
           const token = state.tokens[c.tokenId];
@@ -225,6 +230,6 @@ export function CombatTracker({ view, onSelect }: { view: TableView; onSelect: (
           <JoinForm tokens={outside} label="Adicionar" kind="combat.add" />
         </details>
       )}
-    </section>
+    </SidebarSection>
   );
 }

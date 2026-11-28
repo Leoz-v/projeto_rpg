@@ -3,6 +3,7 @@ import type { TableView } from '../../../shared/ipc';
 import { MAX_VISION_FEET, MIN_VISION_FEET } from '../../../shared/protocol';
 import type { FogTool } from '../canvas/fog-render';
 import { sendIntent } from '../store/table';
+import { SidebarSection } from './SidebarSection';
 
 /**
  * Painel de névoa de guerra do mestre (nota 0056):
@@ -67,8 +68,14 @@ export function FogPanel({ view, fogTool, onFogTool, onError }: Props) {
   };
 
   return (
-    <section className="panel" aria-label="Névoa de guerra">
-      <h2>Névoa de guerra</h2>
+    <SidebarSection
+      id="fog"
+      title="Névoa de guerra"
+      ariaLabel="Névoa de guerra"
+      className="panel"
+      badge={fog.autoEnabled ? <span className="tag">auto</span> : undefined}
+      defaultOpen={false}
+    >
       <div className="stack">
         <h3>Névoa manual</h3>
         <div className="fog-tools">
@@ -194,6 +201,6 @@ export function FogPanel({ view, fogTool, onFogTool, onError }: Props) {
           </>
         )}
       </div>
-    </section>
+    </SidebarSection>
   );
 }
