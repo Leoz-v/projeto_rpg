@@ -14,6 +14,8 @@ export interface SessionDeps {
   monsterExists(id: string): boolean;
   /** O Host tem o asset (imagem de fundo ou de token). */
   assetExists(sha256: string): boolean;
+  /** Lê os bytes de um asset armazenado no Host (ex.: JSON de mapa 3D para extrair paredes). */
+  readAsset?(sha256: string): Buffer | undefined;
   /** Tira dos passos as seleções que nenhuma escolha usa mais (`pruneSelections` do motor, com o compêndio). */
   pruneSteps(steps: SessionCharacter['steps']): SessionCharacter['steps'];
   /** Problemas de uma entrada nova do inventário (`inventoryEntryProblems` do motor); vazio = pode entrar. */

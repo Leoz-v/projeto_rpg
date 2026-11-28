@@ -1,7 +1,8 @@
 import { AbilitySchema, BaseScoresSchema, CharacterSchema, ConditionSchema, DamageTypeSchema, DiceSchema, EffectSchema, IdSchema, SizeSchema } from 'rules-engine/schemas';
 import { z } from 'zod';
 import { ChatTextSchema, CreatureTargetSchema, DeathSavesSchema, HitDieSchema, SpellSlotRefSchema, InstanceIdSchema, TurnEdgeSchema, LabelSchema, MAX_EXHAUSTION_LEVEL, RollAgainstSchema, TableConditionSchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, TokenElevationSchema, TokenRotationSchema, UuidSchema } from './common';
-import { MAX_ADJUSTMENT_EFFECTS, MAX_COINS, MAX_COMBATANTS, MAX_FOG_PAINT_CELLS, MAX_FORMULA_DICE, MAX_FORMULA_LENGTH, MAX_HIT_POINTS, MAX_ITEM_QUANTITY, MAX_MULTIATTACK_STEPS, MAX_SAVE_TARGETS, MAX_SPELL_OPTIONS, MAX_SPELL_PARTS } from './constants';
+import { MAX_ADJUSTMENT_EFFECTS, MAX_COINS, MAX_COMBATANTS, MAX_FOG_PAINT_CELLS, MAX_FORMULA_DICE, MAX_FORMULA_LENGTH, MAX_HIT_POINTS, MAX_ITEM_QUANTITY, MAX_MAP_WALLS, MAX_MULTIATTACK_STEPS, MAX_SAVE_TARGETS, MAX_SPELL_OPTIONS, MAX_SPELL_PARTS } from './constants';
+import { MapLayerSchema, NewWallSegmentSchema, WallCoordSchema, WallKindSchema } from '../collision';
 import { FogCellSchema, FogModeSchema, VisionFeetSchema } from './fog';
 import { InitiativeSchema, VisibilitySchema } from './state';
 
@@ -424,6 +425,65 @@ export const IntentSchema = z.discriminatedUnion('kind', [
     data: z.strictObject({
       tokenId: UuidSchema,
       dead: z.boolean(),
+    }),
+  }),
+  z.strictObject({
+    kind: z.literal('wall.add'),
+    data: z.strictObject({
+      mapId: UuidSchema,
+      walls: z.array(NewWallSegmentSchema).min(1).max(200),
+    }),
+  }),
+  z.strictObject({
+    kind: z.literal('wall.update'),
+    data: z
+      .strictObject({
+        mapId: UuidSchema,
+        wallId: UuidSchema,
+        x1: WallCoordSchema.optional(),
+        y1: WallCoordSchema.optional(),
+        x2: WallCoordSchema.optional(),
+        y2: WallCoordSchema.optional(),
+        kind: WallKindSchema.optional(),
+        open: z.boolean().optional(),
+        locked: z.boolean().optional(),
+        layer: MapLayerSchema.optional(),
+        heightFeet: z.number().min(0).max(200).nullable().optional(),
+      })
+      .refine(
+        (d) =>
+          d.x1 !== undefined ||
+          d.y1 !== undefined ||
+          d.x2 !== undefined ||
+          d.y2 !== undefined ||
+          d.kind !== undefined ||
+          d.open !== undefined ||
+          d.locked !== undefined ||
+          d.layer !== undefined ||
+          d.heightFeet !== undefined,
+        { message: 'nada para alterar' },
+      ),
+  }),
+  z.strictObject({
+    kind: z.literal('wall.remove'),
+    data: z.strictObject({
+      mapId: UuidSchema,
+      wallIds: z.array(UuidSchema).min(1).max(200),
+    }),
+  }),
+  z.strictObject({
+    kind: z.literal('wall.replace'),
+    data: z.strictObject({
+      mapId: UuidSchema,
+      scope: z.enum(['all', 'baked_3d', 'manual']),
+      walls: z.array(NewWallSegmentSchema).max(MAX_MAP_WALLS),
+    }),
+  }),
+  z.strictObject({
+    kind: z.literal('door.toggle'),
+    data: z.strictObject({
+      mapId: UuidSchema,
+      wallId: UuidSchema,
     }),
   }),
 ]);

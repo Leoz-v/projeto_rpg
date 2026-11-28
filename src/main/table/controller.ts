@@ -92,7 +92,7 @@ export class TableController {
     const session = new HostSession(
       store.campaign,
       { playerId: deps.playerId, displayName: request.displayName },
-      { rng: deps.rng, now: Date.now, newId: randomUUID, monsterExists: (id) => deps.monsterExists(id), assetExists: (sha) => deps.assets.has(sha), pruneSteps: deps.pruneSteps, itemProblems: deps.itemProblems, characterSheet: deps.characterSheet, monsterHpMax: deps.monsterHpMax, creature: deps.creature, item: deps.item, spell: deps.spell },
+      { rng: deps.rng, now: Date.now, newId: randomUUID, monsterExists: (id) => deps.monsterExists(id), assetExists: (sha) => deps.assets.has(sha), readAsset: (sha) => deps.assets.read(sha)?.bytes, pruneSteps: deps.pruneSteps, itemProblems: deps.itemProblems, characterSheet: deps.characterSheet, monsterHpMax: deps.monsterHpMax, creature: deps.creature, item: deps.item, spell: deps.spell },
       store.restored,
     );
     const server = new HostServer({

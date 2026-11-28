@@ -220,7 +220,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 9. **Ferramentas de mapa (reservada para outro contribuidor, [issue #59](https://github.com/Leoz-v/projeto_rpg/issues/59)):**
    - ✅ Régua de distância local (linha com curvas via `Shift`, raio de área de impacto e alternância `ft`/`m`) no mapa 2D (`MapStage`) e no mapa 3D (`Map3DView` / `RulerTool3d`), com medições unificadas por `rules-engine/space` (`cellDistanceFeet`/`distanceFeet` e `FEET_PER_SQUARE`). Ver `docs/decisions/0057-regua-de-distancia.md`.
    - ✅ Névoa de guerra (`fog.*`, `token.vision`, `PROTOCOL_VERSION = 25`, `<campanha>.db` v15; névoa manual por células e névoa automática por alcance de visão com memória explorada e limpeza pelo mestre, nos mapas 2D e 3D). Ver `docs/decisions/0059-nevoa-de-guerra.md`.
-   - ✅ Controles do mouse em 2D e 3D, HUD do token, seleção múltipla, alvo local, orientação e elevação (`token.update`, `PROTOCOL_VERSION = 27`, `<campanha>.db` v16). Ver `docs/decisions/0061-controles-do-mouse-e-orientacao-dos-tokens.md`.
+   - ✅ Controles do mouse em 2D e 3D, HUD do token, seleção múltipla, alvo local, orientação e elevação (`token.update`, `PROTOCOL_VERSION = 43`, `<campanha>.db` v21). Ver `docs/decisions/0061-controles-do-mouse-e-orientacao-dos-tokens.md`.
    - ✅ Tokens ocultos e indicação de morto (`token.hidden`, `token.dead`, `PROTOCOL_VERSION = 36`, `<campanha>.db` v20; filtragem no Host para não-mestres, marca automática de morto a 0 PV / Exaustão 6, override manual no HUD do token e no painel do mestre, visual em 2D e 3D). Ver `docs/decisions/0070-tokens-ocultos-e-indicacao-de-morto.md`. Escondidos também da ordem do combate e do chat (`PROTOCOL_VERSION = 37`, `docs/decisions/0071-tokens-ocultos-no-combate-e-no-chat.md`).
 10. **Mapas 3D (`@pixi/3d`, nota 0056):**
    - ✅ Integração do motor e editor 3D (`PROTOCOL_VERSION = 23`, `<campanha>.db` v14, `vtt-3d://`, `map.create`/`map.update` com `scene3d` via `AssetStore`), visualização de mesa (`Map3DView`) integrada ao fluxo natural de mapas com tokens 3D (planos no modo Topo, billboard em 3D/Ortho, arrasto e movimento por teclado) e editor completo (`Map3DEditorModal`) exclusivo do mestre.
@@ -228,7 +228,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - Visão de jogador (linha de visão/névoa) e navegação específica de jogador em 3D.
 10. **Iluminação dinâmica, visão de D&D e colisão (nota 0061):**
    - ✅ Regras de visão e iluminação no motor (`rules-engine/vision`, efeito `vision_range`, `grant_sense` com `magicalDarkness`, `VisionProfile` em `DerivedSheet` e predefinições SRD de luz/magias).
-   - Colisão e oclusão compartilhada 2D/3D (paredes, portas, janelas, altura do terreno e extração de mapas 3D).
+   - ✅ Colisão e oclusão compartilhada 2D/3D (`src/shared/collision/`, `wall.*` / `door.toggle`, colisão de movimento para jogadores, oclusão por terreno/altura 3D e extração automática de mapas 3D; `PROTOCOL_VERSION = 43`, `<campanha>.db` v21).
    - Fontes de luz dinâmicas, horário/interior, zonas de *Darkness* e controle em tempo de execução de tochas do mapa.
    - Visão guiada pela ficha na autoridade do Host (`visibility.ts` / `fog.ts`).
    - Renderização 2D (mapa de luz ocluído e *Darkvision* em preto e branco).

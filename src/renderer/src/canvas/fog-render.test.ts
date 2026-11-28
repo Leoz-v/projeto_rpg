@@ -38,6 +38,7 @@ describe('fog-render', () => {
         rememberExplored: true,
         explored: { [PLAYER_ID]: encodeFogBits(explored) },
       },
+      walls: [],
     };
     const hero = makeToken({ id: '00000000-0000-4000-8000-000000000099', mapId: MAP_ID, name: 'Hero', ownerIds: [PLAYER_ID] });
 

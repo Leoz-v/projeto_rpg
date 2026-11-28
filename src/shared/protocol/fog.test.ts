@@ -33,6 +33,7 @@ function makeMap(width = 10, height = 10, overrides?: Partial<GameMap['fog']>): 
     cellPx: null,
     scene3d: null,
     fog: { ...defaultMapFog(width, height), ...overrides },
+    walls: [],
   };
 }
 

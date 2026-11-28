@@ -70,7 +70,7 @@ const state: SessionState = {
       ],
     },
   ],
-  maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: SHA, cellPx: 70, scene3d: null, fog: defaultMapFog(30, 20) } },
+  maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: SHA, cellPx: 70, scene3d: null, fog: defaultMapFog(30, 20), walls: [] } },
   activeMapId: MAP,
   tokens: {
     [TOKEN]: makeToken({ id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', hp: { max: 7, damage: 2, temp: 0 } }),
