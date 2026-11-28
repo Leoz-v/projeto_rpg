@@ -15,6 +15,7 @@ import {
   type Token,
   TokenSchema,
   toPointer,
+  NO_MONSTER_USES,
 } from '../../shared/protocol';
 
 /**
@@ -22,11 +23,13 @@ import {
  * tudo. Para os outros jogadores:
  * - a rolagem secreta vira `hidden_roll` na mesma posição (quem rolou sempre vê a própria);
  * - os PV de tokens que não são personagens (monstros) chegam como `null`,
- *   a menos que o jogador seja dono do token;
+ *   a menos que o jogador seja dono do token; os usos limitados (`uses`), vazios;
  * - as propostas de dano (fila do mestre) não chegam;
  * - a iniciativa de tokens que não são personagens só chega ao mestre e aos
  *   donos do token: a ordem do combate é de todos, o valor não;
  * - em `maps[id].fog.explored`, cada jogador só recebe a própria entrada;
+ * - tokens ocultos pelo mestre (`hidden: true`) nunca chegam a jogadores, nem
+ *   na ordem do combate, nem nas entradas do log (nota 0071);
  * - tokens que o jogador não controla só chegam quando ao menos uma célula do
  *   token está atualmente visível (fora da névoa manual e, com névoa automática,
  *   dentro do alcance de visão atual de algum token do jogador).
@@ -37,10 +40,76 @@ export interface Viewer {
   role: Role;
 }
 
-export function redactEntry(entry: ChatEntry, viewer: Viewer, tokens: SessionState['tokens']): ChatEntry {
+/** Os campos de uma entrada do log que citam tokens, sejam quais forem os tipos. */
+interface EntryRefs {
+  id: string;
+  tokenId?: string | undefined;
+  targetTokenId?: string | undefined;
+  target?: unknown;
+  attackerName?: string | undefined;
+  casterName?: string | undefined;
+  actorName?: string | undefined;
+  sourceName?: string | undefined;
+  results?: readonly { tokenId?: string | undefined; targetTokenId?: string }[] | undefined;
+}
+
+const ACTOR_FIELDS = ['attackerName', 'casterName', 'actorName', 'sourceName'] as const;
+const UNKNOWN_ACTOR = 'Desconhecido';
+
+function targetIds(refs: Omit<EntryRefs, 'id'>): string[] {
+  const target = refs.target;
+  const nested = typeof target === 'object' && target !== null && 'tokenId' in target && typeof target.tokenId === 'string' ? [target.tokenId] : [];
+  return [refs.tokenId, refs.targetTokenId, ...nested].filter((id) => id !== undefined);
+}
+
+/**
+ * Marca as entradas novas do log que citam um token oculto (nota 0071). Vale o
+ * momento em que aconteceram: revelar depois não expõe o que já passou, e
+ * esconder depois não apaga o que já foi visto. Tokens de personagem ficam de
+ * fora: os personagens são vistos por todos.
+ */
+export function concealEntries(ops: readonly PatchOp[], tokens: SessionState['tokens']): PatchOp[] {
+  const hidden = Object.values(tokens).filter((t) => t.hidden && t.characterId === null);
+  if (hidden.length === 0) return [...ops];
+  return ops.map((op): PatchOp => {
+    if (op.op !== 'add' || !op.path.startsWith('/chat/')) return op;
+    const parsed = ChatEntrySchema.safeParse(op.value);
+    if (!parsed.success) return op;
+    const refs: EntryRefs = parsed.data;
+    const ids = new Set([...targetIds(refs), ...(refs.results ?? []).flatMap(targetIds)]);
+    // Quem age só vem pelo nome: na dúvida (um token visível de mesmo nome), esconde.
+    const actors = new Set(ACTOR_FIELDS.map((f) => refs[f]));
+    const concealed = hidden.filter((t) => ids.has(t.id) || actors.has(t.name)).map((t) => ({ tokenId: t.id, name: t.name }));
+    return concealed.length > 0 ? { ...op, value: { ...parsed.data, concealed } } : op;
+  });
+}
+
+/** A entrada sem os tokens ocultos: some se o alvo é um deles; quem age fica "Desconhecido". */
+function withoutConcealed(entry: ChatEntry): ChatEntry {
+  const { concealed, ...rest } = entry;
+  if (!concealed) return entry;
+  const ids = new Set(concealed.map((c) => c.tokenId));
+  const names = new Set(concealed.map((c) => c.name));
+  const silent: ChatEntry = { kind: 'hidden_roll', id: entry.id, at: entry.at, authorId: entry.authorId, silent: true };
+  const refs: EntryRefs = rest;
+  if (targetIds(refs).some((id) => ids.has(id))) return silent;
+  const results = refs.results?.filter((r) => !targetIds(r).some((id) => ids.has(id)));
+  if (results?.length === 0) return silent;
+  const masked = Object.fromEntries(ACTOR_FIELDS.flatMap((f) => (names.has(refs[f] ?? '') ? [[f, UNKNOWN_ACTOR]] : [])));
+  const visible = ChatEntrySchema.safeParse({ ...rest, ...masked, ...(results ? { results } : {}) });
+  return visible.success ? visible.data : silent;
+}
+
+export function redactEntry(original: ChatEntry, viewer: Viewer, tokens: SessionState['tokens']): ChatEntry {
+  const entry = viewer.role === 'gm' ? original : withoutConcealed(original);
   if (entry.kind === 'initiative_roll') {
     if (viewer.role === 'gm') return entry;
     return { ...entry, results: entry.results.filter((r) => seesInitiative(tokens[r.tokenId], viewer)) };
+  }
+  if (entry.kind === 'recharge_roll') {
+    const token = tokens[entry.tokenId];
+    if (viewer.role === 'gm' || (token && seesTokenHp(token, viewer))) return entry;
+    return { kind: 'hidden_roll', id: entry.id, at: entry.at, authorId: entry.authorId };
   }
   const secret =
     entry.kind === 'roll' ||
@@ -68,14 +137,25 @@ export function seesInitiative(token: Pick<Token, 'ownerIds' | 'characterId'> | 
 
 function redactCombat(combat: Combat | null, viewer: Viewer, tokens: SessionState['tokens']): Combat | null {
   if (!combat || viewer.role === 'gm') return combat;
+  const isHidden = (id: string): boolean => tokens[id]?.hidden === true;
+  const visible = combat.combatants.filter((c) => !isHidden(c.tokenId));
+  if (visible.length === 0) return null;
+  const current = combat.combatants[combat.turn]?.tokenId;
+  const turn = visible.findIndex((c) => c.tokenId === current);
+  // O que cada um já usou no turno é conta do Host (e cita o token da vez, que pode ser oculto).
+  const shown = { ...combat };
+  delete shown.usedRiders;
   return {
-    ...combat,
-    combatants: combat.combatants.map((c) => (seesInitiative(tokens[c.tokenId], viewer) ? c : { ...c, initiative: null, modifier: null })),
+    ...shown,
+    turn: Math.max(0, turn),
+    ...(turn < 0 ? { hiddenTurn: true } : {}),
+    effects: combat.effects.filter((e) => !isHidden(e.sourceTokenId) && !isHidden(e.targetTokenId)),
+    combatants: visible.map((c) => (seesInitiative(tokens[c.tokenId], viewer) ? c : { ...c, initiative: null, modifier: null })),
   };
 }
 
 function redactToken(token: Token, viewer: Viewer): Token {
-  return token.hp === null || seesTokenHp(token, viewer) ? token : { ...token, hp: null };
+  return seesTokenHp(token, viewer) ? token : { ...token, hp: null, uses: NO_MONSTER_USES };
 }
 
 function redactExplored(explored: MapFog['explored'], playerId: string): MapFog['explored'] {
@@ -105,6 +185,7 @@ function visionCacheFor(state: SessionState, playerId: string): Map<string, Uint
 function tokenVisibleInState(state: SessionState, token: Token | undefined, viewer: Viewer, visionCache: Map<string, Uint8Array>): boolean {
   if (!token) return false;
   if (viewer.role === 'gm') return true;
+  if (token.hidden) return false;
   const map = state.maps[token.mapId];
   return isTokenVisibleToPlayer(map, Object.values(state.tokens), token, viewer.playerId, visionCache.get(token.mapId));
 }
@@ -124,13 +205,13 @@ export function viewOf(state: SessionState, viewer: Viewer): SessionState {
     chat: state.chat.map((e) => redactEntry(e, viewer, state.tokens)),
     maps: Object.fromEntries(Object.entries(state.maps).map(([id, m]) => [id, redactMap(m, viewer)])),
     tokens: visibleTokens,
-    proposals: {},
+    proposals: {}, pendingSaves: {},
     combat: redactCombat(state.combat, viewer, state.tokens),
   };
 }
 
-/** `/tokens/<id>/hp` ou abaixo: o id do token. */
-const TOKEN_HP_PATH = /^\/tokens\/([^/]+)\/hp(?:\/|$)/;
+/** `/tokens/<id>/hp` ou `/uses`, ou abaixo: o id do token. */
+const TOKEN_HP_PATH = /^\/tokens\/([^/]+)\/(?:hp|uses)(?:\/|$)/;
 const TOKEN_PATH = /^\/tokens\/([^/]+)$/;
 const TOKEN_ANY_PATH = /^\/tokens\/([^/]+)(?:\/|$)/;
 const MAP_PATH = /^\/maps\/([^/]+)$/;
@@ -152,6 +233,8 @@ export function opsFor(ops: readonly PatchOp[], viewer: Viewer, state: SessionSt
   const isVisible = (id: string): boolean => tokenVisibleInState(state, state.tokens[id], viewer, nextVision);
 
   const filtered = ops.flatMap((op): PatchOp[] => {
+    // Com o estado anterior, o combate é comparado inteiro no fim: esconder um token também o muda.
+    if (prevState && op.path === '/combat') return [];
     if (op.op === 'add' && op.path.startsWith('/chat/')) {
       const entry = ChatEntrySchema.safeParse(op.value);
       return [entry.success ? { ...op, value: redactEntry(entry.data, viewer, state.tokens) } : op];
@@ -161,7 +244,7 @@ export function opsFor(ops: readonly PatchOp[], viewer: Viewer, state: SessionSt
       return [combat.success ? { ...op, value: redactCombat(combat.data, viewer, state.tokens) } : op];
     }
     // Propostas de dano são a fila de trabalho do mestre.
-    if (op.path.startsWith('/proposals/')) return [];
+    if (op.path.startsWith('/proposals/') || op.path.startsWith('/pendingSaves/')) return [];
 
     // Memória de exploração por jogador: só a do próprio viewer passa.
     const exploredPlayer = MAP_EXPLORED_PLAYER_PATH.exec(op.path);
@@ -202,6 +285,10 @@ export function opsFor(ops: readonly PatchOp[], viewer: Viewer, state: SessionSt
   });
 
   if (!prevState) return filtered;
+
+  const combatBefore = redactCombat(prevState.combat, viewer, prevState.tokens);
+  const combatAfter = redactCombat(state.combat, viewer, state.tokens);
+  if (JSON.stringify(combatBefore) !== JSON.stringify(combatAfter)) filtered.push({ op: 'replace', path: '/combat', value: combatAfter });
 
   // Emite `add`/`remove` para tokens que entraram ou saíram da visão deste jogador.
   const allTokenIds = new Set([...Object.keys(prevState.tokens), ...Object.keys(state.tokens)]);

@@ -66,7 +66,6 @@ FEATURE = {
 }
 # Motivos específicos, no lugar do motivo da categoria.
 FEATURE_REASON_OVERRIDE = {
-    "subclass:berserker/mindless_rage": "Imunidade enquanto a Fúria está ativa: depende do estado de Rage, que é recurso e ação (como Rage).",
 }
 FEATURE_REASONS = {
     "structural": "Implementado por escolha, concessão ou conjuração no mesmo nível da fonte.",
@@ -86,7 +85,7 @@ ITEM = {
         "cloak_of_displacement", "lantern_of_revealing", "sending_stones", "sovereign_glue", "universal_solvent", "decanter_of_endless_water",
         "immovable_rod", "folding_boat", "instant_fortress", "apparatus_of_the_crab", "sphere_of_annihilation", "talisman_of_pure_good",
         "talisman_of_ultimate_evil", "mirror_of_life_trapping", "mysterious_deck", "deck_of_illusions", "robe_of_useful_items",
-        "bag_of_beans", "bag_of_devouring", "marvelous_pigments", "cubic_gate", "dragon_orb", "ring_of_three_wishes",
+        "bag_of_beans", "bag_of_devouring", "marvelous_pigments", "ring_of_three_wishes",
     ],
 }
 ITEM_REASONS = {
@@ -114,15 +113,9 @@ MONSTER_REASONS = {
 # As magias de dano, cura e condição têm resolução estruturada (`srd-source/tools/spell_resolution.py`, notas 0054
 # e 0056). As demais ficam aqui:
 SPELL = {
-    # PR 4b (nota 0060): efeitos em monstros, "ataques contra o alvo", efeitos numa arma e durações de um turno.
-    "temporary_effects": [
-        "bane", "barkskin", "blur", "enlarge_reduce", "faerie_fire", "hex", "hunters_mark", "magic_weapon",
-        "protection_from_evil_and_good", "ray_of_enfeeblement", "shield", "slow", "shillelagh", "conjure_minor_elementals",
-        "bestow_curse", "holy_aura",
-    ],
+    # Vazio desde a nota 0063: magia nova com mecânica entra aqui, por grupo.
 }
 SPELL_REASONS = {
-    "temporary_effects": "Bônus ou penalidade que depende de monstros, de ataques contra o alvo, de uma arma ou de um turno: Fase 7, PR 4b (nota 0060).",
     "gm": "Utilidade, exploração, deslocamento ou narrativa: o texto basta e o mestre decide.",
 }
 # Magias com dano, cura ou condição no texto que ficam sem resolução estruturada, com o motivo.
@@ -153,7 +146,15 @@ SPELL_REASON_OVERRIDE = {
 }
 # Partes pendentes de magias que já têm resolução estruturada.
 SPELL_PARTIAL = {
-    "spell:foresight#attacks_against": ("phase_7", "Outras criaturas têm Desvantagem nos ataques contra o alvo: ataques contra o alvo, PR 4b."),
+    "spell:enlarge_reduce#size_and_damage": ("gm", "O tamanho do token e o -1d4 no dano do Reduzir: o mestre ajusta. O +1d4 só entra na ficha de personagens."),
+    "spell:bestow_curse#spell_damage_and_slots": ("gm", "Dano extra nas magias sem ataque, e a duração sem Concentração com espaço de 5º círculo ou mais: o mestre acompanha."),
+    "spell:hex#duration": ("gm", "A Concentração dura mais em círculos maiores: a mesa controla o tempo."),
+    "spell:hunters_mark#perception": ("gm", "Vantagem em Percepção e Sobrevivência para achar o alvo: declarada na rolagem."),
+    "spell:shield#triggering_attack": ("gm", "O +5 vale contra o ataque que disparou e anula Magic Missile: o mestre descarta a proposta de dano."),
+    "spell:faerie_fire#invisible": ("gm", "O alvo não se beneficia de Invisível: o mestre tira a condição ou ajusta a rolagem."),
+    "spell:holy_aura#blinded": ("gm", "Um Corruptor ou Morto-vivo que acerta o alvo corpo a corpo salva contra Cego: o mestre conduz."),
+    "spell:protection_from_evil_and_good#conditions": ("gm", "Não pode ser possuído nem Enfeitiçado ou Amedrontado por esses tipos: o mestre confere a origem."),
+    "spell:ray_of_enfeeblement#damage_and_attacks": ("gm", "Ataques com Força têm Desvantagem, -1d8 no dano, e Desvantagem no próximo ataque no sucesso: o mestre ajusta."),
     "spell:beacon_of_hope#max_healing": ("gm", "A cura recupera o máximo possível: o mestre ajusta o valor da cura."),
     "spell:heroes_feast#hp_max": ("gm", "PV máximos +2d10 (rolados uma vez, por 24 horas): o mestre rola e aplica como ajuste."),
     "spell:freedom_of_movement#restraints": ("gm", "Magias e efeitos mágicos não reduzem o Deslocamento nem impõem Paralisado ou Impedido: o mestre confere a origem."),
@@ -209,7 +210,7 @@ for fid in dict.fromkeys(features):
 
 # Itens mágicos sem efeito.
 for it in load("magic-items.json"):
-    if it.get("effects") or any(v["effects"] for v in it.get("variants", [])):
+    if it.get("effects") or it.get("use") or it.get("casting") or any(v["effects"] or v.get("use") or v.get("scroll") for v in it.get("variants", [])):
         continue
     key = f"item:{it['id']}"
     if it["id"] in ITEM["automate"]:
@@ -221,29 +222,44 @@ for it in load("magic-items.json"):
 # Entradas parciais (`<chave>#<aspecto>`): a fonte já tem efeitos, mas parte da mecânica segue pendente.
 # Valor: (categoria, motivo, mecânica só para `automate`).
 PARTIAL = {
-    "item:sun_blade#undead_damage": ("phase_4", "+1d8 Radiant ao acertar um Undead: dano que depende do alvo (resolução do ataque).", None),
+    "feature:subclass:berserker/mindless_rage#immunity": ("phase_4", "Imunidade a Charmed e Frightened enquanto a Rage dura: as que já havia terminam ao entrar.", None),
+    "feature:class:barbarian/reckless_attack#advantage": ("phase_4", "Vantagem nos ataques com Força: declarada por quem ataca.", None),
+    "feature:class:cleric/channel_divinity#effects": ("phase_4", "Divine Spark contra um alvo e Turn Undead: salvaguardas.", None),
+    "feature:class:ranger/tireless#exhaustion": ("phase_4", "A Exaustão cai 1 no descanso curto.", None),
+    "item:sword_of_wounding#save": ("phase_4", "Salvaguarda de CON ou não recupera PV por 1 hora (resolução com salvaguarda).", None),
+    "item:staff_of_withering#save": ("phase_4", "Salvaguarda de CON ou Desvantagem em FOR e CON por 1 hora (resolução com salvaguarda).", None),
+    "item:mace_of_disruption#destroy": ("phase_4", "Salvaguarda de SAB ou é destruído, com 25 PV ou menos (resolução com salvaguarda).", None),
+    "item:oathbow#sworn_enemy": ("phase_4", "Inimigo jurado: Vantagem e sem cobertura contra ele (alvo marcado).", None),
+    "feature:class:barbarian/brutal_strike#effects": ("phase_4", "Forceful Blow e Hamstring Blow: empurrar e reduzir o deslocamento do alvo.", None),
+    "feature:class:warlock/eldritch_smite#prone": ("phase_4", "Pode deixar o alvo Caído (Enorme ou menor).", None),
+    "feature:class:warlock/lifedrinker#heal": ("phase_4", "Gasta um Dado de Vida para recuperar PV ao acertar.", None),
+    "feature:class:rogue/sneak_attack#cunning_strike": ("phase_4", "Cunning Strike e Devious Strikes trocam dados do Sneak Attack por efeitos.", None),
+    "item:dragon_orb#control": ("gm", "Controlar o orbe, o chamado dos dragões e o Suggestion dele: o mestre conduz.", None),
+    "item:ring_of_elemental_command#focus": ("phase_4", "Elemental Bane, Compulsion e as propriedades do plano ligado: dependem do plano e do alvo.", None),
+    "item:ring_of_shooting_stars#spheres": ("phase_4", "Lightning Spheres e Shooting Stars: salvaguardas com cargas variáveis.", None),
+    "item:staff_of_charming#enchantment": ("phase_4", "Reflect Enchantment e Resist Enchantment: reações a uma salvaguarda.", None),
+    "item:staff_of_swarming_insects#insect_cloud": ("gm", "A nuvem de insetos muda a visibilidade da área: o mestre conduz.", None),
+    "item:potion_of_vitality#hit_dice": ("phase_4", "Dados de Vida recuperam o máximo por 24 horas: muda a rolagem do descanso.", None),
+    "item:bead_of_force#sphere": ("gm", "A esfera que prende ou empurra depende de quem está na área: o mestre conduz.", None),
     "item:boots_of_striding_and_springing#jump": ("gm", "Salto de 30 ft gastando 10 ft de movimento, uma vez por turno: o movimento não é controlado pelo Host.",
                                                   None),
     "feature:class:druid/archdruid#nature_magician": ("phase_4", "Nature Magician: converte usos de Wild Shape num espaço de magia (recurso). Longevity é narrativa.",
                                                       None),
-    "feature:class:barbarian/persistent_rage#rage_duration": ("phase_4", "Rage dura 10 minutos sem precisar ser estendida: depende do estado de Rage (recurso e ação).",
-                                                              None),
     "monster_trait:greater_magic_resistance#spell_attacks_miss": ("phase_4", "Ataques de magia erram a criatura automaticamente (resolução do ataque).",
                                                                   None),
 }
 # Recursos contados pelo efeito `resource` (nota 0052): o uso em si (ação, rolagem, escolha) segue pendente.
 RESOURCE_USES = [
-    "feature:class:barbarian/rage", "feature:class:bard/bardic_inspiration", "feature:class:bard/font_of_inspiration",
-    "feature:class:cleric/channel_divinity", "feature:class:cleric/divine_intervention", "feature:class:druid/wild_shape",
-    "feature:class:fighter/action_surge", "feature:class:fighter/indomitable", "feature:class:fighter/second_wind",
-    "feature:class:monk/monks_focus", "feature:class:monk/uncanny_metabolism", "feature:class:paladin/channel_divinity",
-    "feature:class:paladin/lay_on_hands", "feature:class:ranger/natures_veil", "feature:class:ranger/tireless",
-    "feature:class:rogue/stroke_of_luck", "feature:class:sorcerer/font_of_magic", "feature:class:sorcerer/innate_sorcery",
+    "feature:class:bard/bardic_inspiration", "feature:class:bard/font_of_inspiration",
+    "feature:class:cleric/divine_intervention", "feature:class:druid/wild_shape",
+    "feature:class:fighter/action_surge", "feature:class:fighter/indomitable",
+    "feature:class:monk/monks_focus", "feature:class:paladin/channel_divinity",
+    "feature:class:rogue/stroke_of_luck", "feature:class:sorcerer/font_of_magic",
     "feature:class:sorcerer/sorcerous_restoration", "feature:class:warlock/magical_cunning", "feature:class:wizard/arcane_recovery",
-    "feature:species:dragonborn/breath_weapon", "feature:species:dragonborn/draconic_flight", "feature:species:dwarf/stonecunning",
-    "feature:species:goliath/giant_ancestry_trait", "feature:species:goliath/large_form", "feature:species:orc/adrenaline_rush",
+    "feature:species:dragonborn/breath_weapon",
+    "feature:species:goliath/giant_ancestry_trait",
     "feature:species:orc/relentless_endurance", "feature:subclass:circle_of_the_land/natural_recovery",
-    "feature:subclass:fiend_patron/dark_ones_own_luck", "feature:subclass:warrior_of_the_open_hand/wholeness_of_body",
+    "feature:subclass:fiend_patron/dark_ones_own_luck",
 ]
 for key in RESOURCE_USES:
     PARTIAL[f"{key}#use"] = ("phase_4", "Usar o recurso (o efeito: ação, rolagem ou escolha) é da resolução de ações; os usos já são contados (efeito `resource`, nota 0052).", None)

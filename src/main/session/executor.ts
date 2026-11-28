@@ -1,6 +1,6 @@
 import { currentHitPoints, isDying, previousTurn } from 'rules-engine';
-import { applyPatch, chatBefore, type ChatEntry, chatWindow, type Intent, type PatchOp, type Role, type SessionState, toPointer } from '../../shared/protocol';
-import { opsFor, viewOf } from './visibility';
+import { applyPatch, chatBefore, type ChatEntry, chatWindow, type Intent, type IntentData, type PatchOp, type Role, type SessionState, toPointer } from '../../shared/protocol';
+import { opsFor, viewOf, concealEntries } from './visibility';
 import { type Identity, type IntentOutcome, Rejection, SessionContext, type SessionDeps, type StateChange, notAllowed, violation } from './context';
 import { applyProposal, forceSave, makeAttack, proposalOf, rollDamage, rollFromSheet, useMastery } from './attacks';
 import { addAdjustment, addItem, createCharacter, removeCharacter, removeItem, rollScores, updateCharacter, updateItem } from './characters';
@@ -9,9 +9,18 @@ import { changeConditions } from './conditions';
 import { cancelRest, finishRest, spendHitDie, startRest } from './rest';
 import { changeSpellSlot } from './spell-slots';
 import { changeResource } from './resources';
-import { castSpell, useSpellEffect } from './casting';
+import { castMonsterSpell, castSpell, useSpellEffect } from './casting';
 import { clearFogMemory, configureFog, fillManualFog, paintManualFog, rectManualFog, setTokenVision } from './fog';
-import { createMap, createToken, moveToken, roll, updateMap } from './map-tokens';
+import { removeTokenEffect } from './spell-effects';
+import { endTokenConcentration } from './monster-concentration';
+import { dropPendingSaves, resolvePendingSave } from './legendary';
+import { multiattackStep, requireMultiattack } from './multiattack';
+import { changeMonsterUse, restMonster, setMonsterLair } from './monsters';
+import { createMap, createToken, moveToken, roll, setTokenDead, setTokenHidden, updateMap, updateToken } from './map-tokens';
+import { castFromItem, changeCharges, dawn } from './item-charges';
+import { endedFeatures, useFeature } from './features';
+import { useItem } from './items';
+import { readScroll } from './scrolls';
 import { changeHp, concentrate, concentrationBreaks, deathStateEntry, endConcentration, inCombat, rollDeathSave } from './vitality';
 import { addWalls, removeWalls, replaceWalls, toggleDoor, updateWall } from './walls';
 
@@ -52,6 +61,7 @@ export class HostSession extends SessionContext {
       tokens: restored?.tokens ?? {},
       characters: restored?.characters ?? {},
       proposals: {},
+      pendingSaves: {},
       combat: restored?.combat ?? null,
       rest: restored?.rest ?? null,
     };
@@ -123,9 +133,33 @@ export class HostSession extends SessionContext {
     }
   }
 
-  private commit(ops: PatchOp[]): StateChange {
+  /**
+   * Multiattack (nota 0066): cada uso parte do estado que o anterior deixou (o
+   * alvo derrubado pelo primeiro ataque está Caído no segundo). Tudo vai numa
+   * mudança só; se um uso é recusado, nada acontece.
+   */
+  private multiattack(playerId: string, role: Role, data: IntentData<'attack.multi'>): PatchOp[] {
+    const before = this.current;
+    const all: PatchOp[] = requireMultiattack(this, playerId, role, data);
+    try {
+      this.current = applyPatch(this.current, all);
+      for (const step of data.steps) {
+        const ops = multiattackStep(this, playerId, role, data, step);
+        this.current = applyPatch(this.current, ops);
+        all.push(...ops);
+      }
+    } finally {
+      this.current = before;
+    }
+    return all;
+  }
+
+  private commit(raw: PatchOp[]): StateChange {
     // Aplica antes de mudar a revisão: se o patch falhar, nada muda.
     const before = this.current;
+    const next = applyPatch(this.current, raw);
+    // Estados que a mudança encerrou (Rage ao ficar Incapacitado; nota 0078).
+    const ops = concealEntries([...raw, ...endedFeatures(this, this.gm.playerId, next)], before.tokens);
     this.current = applyPatch(this.current, ops);
     this.previous = before;
     const baseRev = this.revision;
@@ -141,6 +175,8 @@ export class HostSession extends SessionContext {
         return [this.appendChat(roll(this, playerId, intent.data))];
       case 'token.move':
         return moveToken(this, playerId, role, intent.data);
+      case 'token.update':
+        return updateToken(this, playerId, role, intent.data);
       case 'map.create':
         this.requireGm(role);
         return createMap(this, intent.data);
@@ -156,8 +192,8 @@ export class HostSession extends SessionContext {
         return createToken(this, intent.data);
       case 'token.remove':
         this.requireGm(role);
-        this.token(intent.data.tokenId);
-        return [{ op: 'remove', path: toPointer('tokens', intent.data.tokenId) }, ...leaveCombat(this, playerId, intent.data.tokenId)];
+        // O que a Concentração do monstro mantinha sai com ele (nota 0068).
+        return [...endTokenConcentration(this, playerId, this.token(intent.data.tokenId), 'ended'), ...dropPendingSaves(this, intent.data.tokenId), { op: 'remove', path: toPointer('tokens', intent.data.tokenId) }, ...leaveCombat(this, playerId, intent.data.tokenId)];
       case 'character.create':
         return createCharacter(this, playerId, role, intent.data);
       case 'character.update':
@@ -172,19 +208,49 @@ export class HostSession extends SessionContext {
         return removeItem(this, playerId, role, intent.data);
       case 'inventory.update':
         return updateItem(this, playerId, role, intent.data);
+      case 'feature.use':
+        return useFeature(this, playerId, role, intent.data);
+      case 'item.read':
+        return readScroll(this, playerId, role, intent.data);
+      case 'item.cast':
+        return castFromItem(this, playerId, role, intent.data);
+      case 'item.charges':
+        return changeCharges(this, playerId, role, intent.data);
+      case 'items.dawn':
+        this.requireGm(role);
+        return dawn(this, playerId);
+      case 'item.use':
+        return useItem(this, playerId, role, intent.data);
       case 'adjustment.add':
         this.requireGm(role);
         return addAdjustment(this, playerId, role, intent.data);
+      case 'monster.use':
+        return changeMonsterUse(this, playerId, role, intent.data);
+      case 'save.resolve':
+        this.requireGm(role);
+        return resolvePendingSave(this, playerId, intent.data);
+      case 'monster.cast':
+        return castMonsterSpell(this, playerId, role, intent.data);
+      case 'monster.rest':
+        this.requireGm(role);
+        return restMonster(this, intent.data);
+      case 'monster.lair':
+        this.requireGm(role);
+        return setMonsterLair(this, intent.data);
+      case 'token.effect_remove':
+        return removeTokenEffect(this, playerId, role, intent.data);
       case 'adjustment.remove': {
         const character = this.ownCharacter(playerId, role, intent.data.characterId);
         const index = character.adjustments.findIndex((a) => a.id === intent.data.adjustmentId);
         const adjustment = character.adjustments[index];
         if (!adjustment) throw violation('Ajuste não encontrado');
         // Efeito de magia (nota 0060): o dono do personagem também tira (Mage Armor ao vestir armadura).
-        if (!adjustment.spell) this.requireGm(role);
+        // O estado de uma característica (nota 0078), também.
+        const own = adjustment.spell !== undefined || adjustment.feature !== undefined;
+        if (!own) this.requireGm(role);
         return [
           { op: 'remove', path: toPointer('characters', character.id, 'adjustments', String(index)) },
-          ...(adjustment.spell
+          ...(own
             ? [this.appendChat({ kind: 'spell_effect_ended', ...this.entryBase(playerId), characterId: character.id, characterName: character.name, effectName: adjustment.name.slice(0, 100), reason: 'removed' })]
             : []),
         ];
@@ -235,6 +301,12 @@ export class HostSession extends SessionContext {
       case 'concentration.set':
         return concentrate(this, playerId, role, intent.data.characterId, intent.data.spellId);
       case 'concentration.end': {
+        if ('tokenId' in intent.data) {
+          const token = this.token(intent.data.tokenId);
+          if (role !== 'gm' && !token.ownerIds.includes(playerId)) throw notAllowed('Você não controla este token');
+          if (!token.concentration) throw violation(`${token.name} não está concentrado`);
+          return endTokenConcentration(this, playerId, token, 'ended');
+        }
         const character = this.ownCharacter(playerId, role, intent.data.characterId);
         if (!character.concentration) throw violation(`${character.name} não está concentrado`);
         return endConcentration(this, playerId, character, 'ended');
@@ -243,6 +315,8 @@ export class HostSession extends SessionContext {
         return [this.appendChat(rollDamage(this, playerId, role, intent.data))];
       case 'attack.make':
         return makeAttack(this, playerId, role, intent.data);
+      case 'attack.multi':
+        return this.multiattack(playerId, role, intent.data);
       case 'save.force':
         return forceSave(this, playerId, role, intent.data);
       case 'mastery.use':
@@ -309,6 +383,12 @@ export class HostSession extends SessionContext {
       case 'token.vision':
         this.requireGm(role);
         return setTokenVision(this, intent.data);
+      case 'token.hidden':
+        this.requireGm(role);
+        return setTokenHidden(this, intent.data);
+      case 'token.dead':
+        this.requireGm(role);
+        return setTokenDead(this, playerId, intent.data);
       case 'wall.add':
         this.requireGm(role);
         return addWalls(this, intent.data);

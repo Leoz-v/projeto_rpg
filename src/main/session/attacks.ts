@@ -1,7 +1,14 @@
-import { type Ability, applyDamage, applyHitPointChange, attackedConditions, cleaveDamageBonus, conditionDefenses, creatureD20, type Condition, CONDITION_NAME, creatureDefenses, creatureSaveBonus, d20Mode, d20StepNotes, damageNotes, type DamageType, type Defenses, grazeDamage, MASTERY_NAME, masteryOutcome, nextTurnRound, resolveAttack, resolveSave, rollActionDamage, type RollAgainst, rollD20, rollWeaponDamage, sheetD20, type SheetD20, TIMED_MASTERY_UNTIL, timedMastery, timedMasteryNote, toppleDc } from 'rules-engine';
-import { type ChatEntry, type TimedEffect, type IntentData, type PatchOp, type Role, type SessionState, type Token, toPointer, type Visibility } from '../../shared/protocol';
+import { type Ability, type AttackRider, type ChosenRider, chosenRiderProblems, ridersOnHit, sneakAttackAllowed, applyDamage, applyHitPointChange, attackedByEffects, attackedConditions, type AttacksAgainst, cleaveDamageBonus, creatureAttacksAgainst, creatureD20, type CreatureType, type Condition, CONDITION_NAME, creatureSaveBonus, currentHitPoints, d20Mode, d20StepNotes, damageNotes, type DamageType, type Defenses, grazeDamage, type ImposedConditions, MASTERY_NAME, masteryOutcome, nextTurnRound, resolveAttack, resolveSave, rollActionDamage, type RollAgainst, rollD20, rollWeaponDamage, saveDamage, sheetD20, type SheetD20, type TargetDamage, targetDamage, TIMED_MASTERY_UNTIL, timedMastery, timedMasteryNote, toppleDc } from 'rules-engine';
+import { type ChatEntry, type Combat, type TimedEffect, type IntentData, type PatchOp, type PendingSave, type Role, type SessionState, type Token, sameCaster, toPointer, type Visibility } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
 import { timedEffectEntry } from './combat';
+import { tokenDamaged } from './monster-concentration';
+import { imposeFromAction } from './spell-effects';
+import { addPendingSave } from './legendary';
+import { changeCharges } from './item-charges';
+import { changeResource } from './resources';
+import { changeSpellSlot } from './spell-slots';
+import { hasLegendaryResistance, spendMonsterUse } from './monsters';
 import { changeCharacterHp } from './vitality';
 
 /** Rolagens da ficha, ataques, maestrias, salvaguardas forçadas e aplicação de dano (Fase 4). Funções do executor da sessão (`HostSession`), sobre o `SessionContext`. */
@@ -73,10 +80,9 @@ export function targetOf(ctx: SessionContext, token: Token): { ac: number; defen
     if (!sheet) throw violation('O personagem do alvo ainda não tem ficha');
     return { ac: sheet.ac.total, defenses: sheet.defenses, reminders: [] };
   }
-  const creature = token.monsterId !== null ? ctx.deps.creature(token.monsterId) : undefined;
-  if (!creature) throw violation('O alvo não tem CA conhecida (não é personagem nem monstro do compêndio)');
-  const { defenses, reminders } = creatureDefenses(creature);
-  return { ac: creature.ac, defenses: conditionDefenses(ctx.conditionsOf(token).conditions, defenses), reminders };
+  const block = ctx.creatureOf(token);
+  if (!block) throw violation('O alvo não tem CA conhecida (não é personagem nem monstro do compêndio)');
+  return { ac: block.ac, defenses: block.defenses, reminders: block.reminders };
 }
 
 /** O que pesa num ataque além da ficha do atacante: as condições do alvo e os efeitos de maestria do combate. */
@@ -90,6 +96,20 @@ export interface AttackCircumstances {
   used: Set<string>;
 }
 
+/** `attacks_against` que pesam no token: da ficha do personagem ligado ou dos efeitos de magia do monstro. */
+function attacksAgainst(ctx: SessionContext, token: Token): AttacksAgainst[] {
+  const character = token.characterId !== null ? ctx.current.characters[token.characterId] : undefined;
+  if (character) return ctx.deps.characterSheet(character)?.attacksAgainst ?? [];
+  return creatureAttacksAgainst(token.spellEffects);
+}
+
+/** Tipo de criatura do token: o do bloco, ou Humanoide (as espécies do SRD); `undefined` fora do mapa ou sem bloco. */
+function creatureTypeOf(ctx: SessionContext, token: Token | undefined): CreatureType | undefined {
+  if (!token) return undefined;
+  if (token.characterId !== null) return 'humanoid';
+  return token.monsterId !== null ? ctx.deps.creature(token.monsterId)?.type : undefined;
+}
+
 /**
  * Condições do alvo (Vantagem contra Impedido, Caído pela distância, crítico
  * automático contra Paralisado a até 5 ft) e efeitos temporários das
@@ -98,10 +118,11 @@ export interface AttackCircumstances {
  */
 export function attackCircumstances(ctx: SessionContext, attackerToken: Token | undefined, target: Token, spent: ReadonlySet<string> = new Set()): AttackCircumstances {
   const against = attackedConditions(ctx.conditionsOf(target).conditions, ctx.distanceBetween(attackerToken, target));
+  const effects = attackedByEffects(attacksAgainst(ctx, target), creatureTypeOf(ctx, attackerToken));
   const result: AttackCircumstances = {
-    advantage: against.advantage.map((s) => s.name),
-    disadvantage: against.disadvantage.map((s) => s.name),
-    reminders: against.reminders,
+    advantage: [...against.advantage.map((s) => s.name), ...effects.advantage],
+    disadvantage: [...against.disadvantage.map((s) => s.name), ...effects.disadvantage],
+    reminders: [...against.reminders, ...effects.reminders],
     autoCritical: against.autoCritical.map((s) => s.name),
     used: new Set(),
   };
@@ -129,9 +150,78 @@ export function withCircumstances(d20: SheetD20, around: AttackCircumstances): S
   return { ...d20, input: { ...d20.input, mode: d20Mode(advantage.length > 0, disadvantage.length > 0) }, advantage, disadvantage, reminders: [...d20.reminders, ...around.reminders] };
 }
 
+/** O dano extra do conjurador contra o alvo: as marcas dele no alvo e os efeitos nele mesmo que dependem da distância. */
+export function targetDamageOf(ctx: SessionContext, caster: { characterId: string } | { tokenId: string }, attackerToken: Token | undefined, target: Token): ReturnType<typeof targetDamage> {
+  const onTarget = target.characterId !== null ? (ctx.current.characters[target.characterId]?.adjustments ?? []) : target.spellEffects;
+  return targetDamage(
+    onTarget.filter((a) => a.spell !== undefined && sameCaster(a.spell, { ...caster, spellId: a.spell.spellId })),
+    'characterId' in caster ? (ctx.current.characters[caster.characterId]?.adjustments ?? []) : (ctx.current.tokens[caster.tokenId]?.spellEffects ?? []),
+    ctx.distanceBetween(attackerToken, target),
+  );
+}
+
+/** Rola o dano extra (dobrado no crítico), um grupo por fonte. */
+export function rollTargetDamage(ctx: SessionContext, damage: readonly TargetDamage[], critical: boolean): ReturnType<typeof rollActionDamage> {
+  return damage.flatMap((d) => rollActionDamage([{ dice: d.dice, type: d.type }], critical, ctx.deps.rng).map((g) => ({ ...g, source: d.source.slice(0, 100) })));
+}
+
 /** Nota do crítico que veio da condição do alvo, não do 20 natural. */
 export function autoCriticalNotes(result: { critical: boolean; roll: { critical: boolean } }, autoCritical: readonly string[]): string[] {
   return result.critical && !result.roll.critical ? [`Acerto Crítico: alvo ${autoCritical.join(', ')} a até 5 ft`] : [];
+}
+
+type UsedRider = NonNullable<Combat['usedRiders']>[number];
+
+interface RiderUse {
+  riders: readonly AttackRider[];
+  chosen: readonly ChosenRider[];
+  /** Os de uma vez por turno já usados neste turno. */
+  used: ReadonlySet<string>;
+  /** Os usos deste turno, de todos (os de turnos passados caem). */
+  currentUses: UsedRider[];
+  /** Anota o uso; ausente fora do combate, onde não há turnos. */
+  mark?: ((riderId: string) => UsedRider) | undefined;
+  /** O que cada um gasta, se acertar. */
+  costs: Map<string, PatchOp[]>;
+}
+
+/** Confere o dano extra marcado antes de rolar: o que já foi usado no turno e se há o que gastar. O gasto só vale no acerto. */
+function riderUse(ctx: SessionContext, playerId: string, role: Role, use: { characterId: string; instanceId: string; riders: readonly AttackRider[]; chosen: readonly ChosenRider[] }): RiderUse {
+  const { characterId, riders, chosen } = use;
+  const { combat } = ctx.current;
+  const turnTokenId = combat?.combatants[combat.turn]?.tokenId;
+  // "Uma vez por turno" só com o personagem no combate (decisão do usuário, nota 0077).
+  const fighting = combat && turnTokenId !== undefined && combat.combatants.some((c) => ctx.current.tokens[c.tokenId]?.characterId === characterId) ? { round: combat.round, turnTokenId } : undefined;
+  const currentUses = fighting ? (combat?.usedRiders ?? []).filter((u) => u.round === fighting.round && u.turnTokenId === fighting.turnTokenId) : [];
+  const used = new Set(currentUses.filter((u) => u.characterId === characterId).map((u) => u.riderId));
+  const [problem] = chosenRiderProblems(riders, chosen, used);
+  if (problem !== undefined) throw violation(problem);
+  const costs = new Map<string, PatchOp[]>();
+  for (const { id } of chosen) {
+    const cost = riders.find((r) => r.id === id)?.cost;
+    if (!cost) continue;
+    if (cost.kind === 'resource') costs.set(id, changeResource(ctx, playerId, role, { kind: 'resource.spend', data: { characterId, resourceId: cost.resourceId } }));
+    else if (cost.kind === 'pact_slot') costs.set(id, changeSpellSlot(ctx, playerId, role, { kind: 'spell_slot.spend', data: { characterId, slot: 'pact' } }));
+    else costs.set(id, changeCharges(ctx, playerId, role, { characterId, instanceId: use.instanceId, change: 'spend', amount: cost.amount }));
+  }
+  return { riders, chosen, used, currentUses, costs, ...(fighting ? { mark: (riderId: string) => ({ characterId, riderId, ...fighting }) } : {}) };
+}
+
+/** O alvo já perdeu PV; `undefined` sem PV conhecidos. */
+function isInjured(ctx: SessionContext, target: Token): boolean | undefined {
+  if (target.characterId !== null) return (ctx.current.characters[target.characterId]?.hp.damage ?? 0) > 0;
+  return target.hp ? target.hp.damage > 0 : undefined;
+}
+
+/** Um aliado de quem ataca (personagem ou token de jogador) a até 5 ft do alvo, sem estar Incapacitado. */
+function allyNear(ctx: SessionContext, attacker: Token | undefined, target: Token): boolean {
+  return Object.values(ctx.current.tokens).some((t) => {
+    if (t.id === target.id || t.id === attacker?.id || t.mapId !== target.mapId || t.dead) return false;
+    if (t.characterId === null && t.ownerIds.length === 0) return false;
+    if (attacker && t.characterId !== null && t.characterId === attacker.characterId) return false;
+    const distance = ctx.distanceBetween(t, target);
+    return distance !== undefined && distance <= 5 && !ctx.conditionsOf(t).conditions.has('incapacitated');
+  });
 }
 
 /**
@@ -145,9 +235,15 @@ export function makeAttack(ctx: SessionContext, playerId: string, role: Role, da
   let attackerName: string;
   let label: string;
   let d20: SheetD20;
-  let rollDamage: (critical: boolean) => { groups: ReturnType<typeof rollActionDamage>; bonus: number };
+  let rollDamage: (critical: boolean, hit: boolean, natural: number) => { groups: ReturnType<typeof rollActionDamage>; bonus: number };
   /** Token do atacante (para a distância até o alvo), se estiver no mapa. */
   let attackerToken: Token | undefined;
+  /** Condições que o acerto da ação impõe (nota 0065). */
+  let onHit: { imposes: ImposedConditions[]; actor: Token } | undefined;
+  /** Uso gasto da ação do monstro, se ela é limitada. */
+  let useOps: PatchOp[] = [];
+  /** Dano extra condicional da arma (nota 0077). */
+  let riders: RiderUse | undefined;
   /** Arma da ficha: o que a maestria dela permite depois do resultado. */
   let weapon: { ref: { characterId: string; instanceId: string }; mastery: (hit: boolean, damaged: boolean) => ReturnType<typeof masteryOutcome> | undefined } | undefined;
 
@@ -161,6 +257,7 @@ export function makeAttack(ctx: SessionContext, playerId: string, role: Role, da
     attackerToken = Object.values(ctx.current.tokens).find((t) => t.characterId === character.id && t.mapId === target.mapId);
     attackerName = character.name;
     label = attack.name;
+    riders = riderUse(ctx, playerId, role, { characterId: character.id, instanceId, riders: attack.riders, chosen: data.riders ?? [] });
     const abilityModifier = sheet.abilities[attack.ability].modifier;
     rollDamage = (critical) => {
       const rolled = rollWeaponDamage(attack, { critical }, ctx.deps.rng);
@@ -184,14 +281,17 @@ export function makeAttack(ctx: SessionContext, playerId: string, role: Role, da
           : undefined,
     };
   } else {
+    if (data.riders !== undefined && data.riders.length > 0) throw violation('Só as armas da ficha têm dano extra à escolha');
     const token = ctx.token(data.attacker.tokenId);
     if (role !== 'gm' && !token.ownerIds.includes(playerId)) throw notAllowed('Você não controla este token');
     const creature = token.monsterId !== null ? ctx.deps.creature(token.monsterId) : undefined;
     const actionId = data.attacker.actionId;
     const action = creature?.actions.find((a) => a.id === actionId);
     if (!creature || action?.kind !== 'attack') throw violation('Ação de ataque não encontrada no bloco do monstro');
+    useOps = spendMonsterUse(ctx, token, action.id);
+    onHit = action.imposes.length > 0 ? { imposes: action.imposes, actor: token } : undefined;
     // Bônus do bloco, com a Exaustão e as condições do monstro (Envenenado, Caído…).
-    d20 = creatureD20({ label: 'Bônus de ataque', modifier: action.toHit }, ctx.conditionsOf(token), { kind: 'attack' }, declared);
+    d20 = creatureD20({ label: 'Bônus de ataque', modifier: action.toHit }, ctx.conditionsOf(token), { kind: 'attack', ...(action.attackKind !== 'melee_or_ranged' ? { attackKind: action.attackKind } : {}) }, declared, token.spellEffects);
     attackerToken = token;
     attackerName = token.name;
     label = action.name;
@@ -200,12 +300,30 @@ export function makeAttack(ctx: SessionContext, playerId: string, role: Role, da
   const defender = targetOf(ctx, target);
   const around = attackCircumstances(ctx, attackerToken, target);
   const used = around.used;
+  // Dano extra de quem conjurou contra este alvo (Hex, Hunter's Mark; nota 0063).
+  const extra = targetDamageOf(ctx, 'characterId' in data.attacker ? { characterId: data.attacker.characterId } : { tokenId: data.attacker.tokenId }, attackerToken, target);
+  const baseDamage = rollDamage;
+  const riderTarget = { type: creatureTypeOf(ctx, target), injured: isInjured(ctx, target) };
+  /** O que entrou no acerto, com os lembretes. */
+  let onHitRiders: ReturnType<typeof ridersOnHit> = { applied: [], reminders: [] };
+  rollDamage = (critical, hit, natural) => {
+    const rolled = baseDamage(critical, hit, natural);
+    if (riders) onHitRiders = ridersOnHit(riders.riders, riders.chosen, { target: riderTarget, natural, used: riders.used });
+    const riderDamage = onHitRiders.applied.map((a) => ({ dice: a.rider.dice, type: a.type, source: a.rider.name }));
+    return { ...rolled, groups: [...rolled.groups, ...rollTargetDamage(ctx, [...extra.damage, ...riderDamage], critical)] };
+  };
+  around.reminders.push(...extra.reminders);
   d20 = withCircumstances(d20, around);
   const result = resolveAttack(
     { d20: d20.input, targetAc: defender.ac, rollDamage, defenses: defender.defenses, autoCritical: around.autoCritical.length > 0 },
     ctx.deps.rng,
   );
   const autoCriticalNote = autoCriticalNotes(result, around.autoCritical);
+  const sneakWarning =
+    onHitRiders.applied.some((a) => a.rider.sneak) &&
+    !sneakAttackAllowed({ mode: d20.input.mode, hasDisadvantage: d20.disadvantage.length > 0, allyNearTarget: allyNear(ctx, attackerToken, target) })
+      ? ['Sneak Attack sem Vantagem nem aliado a até 5 ft do alvo (ou com Desvantagem): confiram']
+      : [];
   const combat = ctx.current.combat;
   const damaged = (result.damage?.applied.total ?? 0) > 0;
   let mastery = weapon?.mastery(result.hit, damaged);
@@ -229,6 +347,7 @@ export function makeAttack(ctx: SessionContext, playerId: string, role: Role, da
     started.push(effect);
     mastery = { ...mastery, notes: [timedMasteryNote(timed, attackerName, target.name)] };
   }
+  const imposed = onHit && result.hit ? imposeFromAction(ctx, playerId, onHit.imposes, onHit.actor, target, `${label} (${attackerName})`) : { ops: [], notes: [] };
   const entryId = ctx.deps.newId();
   const ops: PatchOp[] = [];
   let damage: Extract<ChatEntry, { kind: 'attack_roll' }>['damage'];
@@ -266,8 +385,8 @@ export function makeAttack(ctx: SessionContext, playerId: string, role: Role, da
     fumble: result.roll.fumble,
     advantage: d20.advantage,
     disadvantage: d20.disadvantage,
-    notes: [...d20StepNotes(result.roll.steps), ...autoCriticalNote].slice(0, 50),
-    reminders: [...d20.reminders, ...defender.reminders].slice(0, 50),
+    notes: [...d20StepNotes(result.roll.steps), ...autoCriticalNote, ...imposed.notes.map((n) => `No acerto: ${n}`), ...sneakWarning].slice(0, 50),
+    reminders: [...d20.reminders, ...defender.reminders, ...onHitRiders.reminders].slice(0, 50),
     hit: result.hit,
     ...(damage ? { damage } : {}),
     ...(weapon ? { weapon: weapon.ref } : {}),
@@ -276,11 +395,13 @@ export function makeAttack(ctx: SessionContext, playerId: string, role: Role, da
       : {}),
     ...(cleaveOf !== undefined ? { masteryOf: cleaveOf } : {}),
   };
+  const usedNow = riders ? onHitRiders.applied.flatMap((a) => (a.rider.oncePerTurn && riders.mark ? [riders.mark(a.rider.id)] : [])) : [];
   const combatOps: PatchOp[] =
-    combat && (used.size > 0 || started.length > 0)
-      ? [...started.map((e) => ctx.appendChat(timedEffectEntry(ctx, playerId, 'started', e))), ctx.replaceCombat({ ...combat, effects })]
+    combat && (used.size > 0 || started.length > 0 || usedNow.length > 0)
+      ? [...started.map((e) => ctx.appendChat(timedEffectEntry(ctx, playerId, 'started', e))), ctx.replaceCombat({ ...combat, effects, ...(usedNow.length > 0 ? { usedRiders: [...(riders?.currentUses ?? []), ...usedNow] } : {}) })]
       : [];
-  return [ctx.appendChat(entry), ...ops, ...combatOps];
+  const riderCosts = onHitRiders.applied.flatMap((a) => riders?.costs.get(a.rider.id) ?? []);
+  return [ctx.appendChat(entry), ...ops, ...combatOps, ...imposed.ops, ...useOps, ...riderCosts];
 }
 
 /**
@@ -411,7 +532,11 @@ export function applyProposal(ctx: SessionContext, playerId: string, proposalId:
   } else {
     if (!token.hp) throw violation('O alvo não tem PV (defina os PV máximos no painel)');
     result = applyHitPointChange(token.hp.max, token.hp, { kind: 'damage', amount });
-    ops = [{ op: 'replace', path: toPointer('tokens', token.id, 'hp'), value: { max: token.hp.max, ...result.state } }];
+    const hp = { max: token.hp.max, ...result.state };
+    ops = [{ op: 'replace', path: toPointer('tokens', token.id, 'hp'), value: hp }, ...tokenDamaged(ctx, playerId, token, hp, amount)];
+    if (currentHitPoints(token.hp.max, result.state) === 0 && !token.dead) {
+      ops.push({ op: 'replace', path: toPointer('tokens', token.id, 'dead'), value: true });
+    }
   }
   const notes = [
     ...(result.absorbed > 0 ? [`${result.absorbed} absorvido(s) pelos PV temporários`] : []),
@@ -443,6 +568,8 @@ export function applyProposal(ctx: SessionContext, playerId: string, proposalId:
  */
 export function forceSave(ctx: SessionContext, playerId: string, role: Role, data: IntentData<'save.force'>): PatchOp[] {
   let actorName: string;
+  let onFail: { imposes: ImposedConditions[]; actor: Token } | undefined;
+  let useOps: PatchOp[] = [];
   let effect: SaveEffect;
   if ('tokenId' in data.source) {
     const token = ctx.token(data.source.tokenId);
@@ -451,6 +578,8 @@ export function forceSave(ctx: SessionContext, playerId: string, role: Role, dat
     const action = token.monsterId !== null ? ctx.deps.creature(token.monsterId)?.actions.find((a) => a.id === actionId) : undefined;
     if (action?.kind !== 'save') throw violation('Ação de salvaguarda não encontrada no bloco do monstro');
     actorName = token.name;
+    useOps = spendMonsterUse(ctx, token, action.id);
+    if (action.imposes.length > 0) onFail = { imposes: action.imposes, actor: token };
     effect = { name: action.name, ability: action.ability, dc: action.dc, damage: action.damage, onSuccess: action.onSuccess, conditions: action.onFailConditions };
   } else {
     actorName = ctx.current.players[playerId]?.displayName ?? 'Alguém';
@@ -459,7 +588,18 @@ export function forceSave(ctx: SessionContext, playerId: string, role: Role, dat
   }
   const targets = data.targetTokenIds.map((id) => ctx.token(id));
   const against: RollAgainst | undefined = data.against ?? (effect.conditions[0] ? { condition: effect.conditions[0] } : undefined);
-  return rollSaves(ctx, playerId, { actorName, effect, targets, against, visibility: data.visibility }).ops;
+  const imposing = onFail;
+  const saves = rollSaves(ctx, playerId, {
+    actorName,
+    effect,
+    targets,
+    against,
+    visibility: data.visibility,
+    // Na falha, as condições do bloco entram direto (nota 0065).
+    ...(imposing && 'tokenId' in data.source ? { pending: { impose: { actorTokenId: data.source.tokenId, actionId: data.source.actionId } } } : {}),
+    ...(imposing ? { impose: (target: Token) => imposeFromAction(ctx, playerId, imposing.imposes, imposing.actor, target, `${effect.name} (${actorName})`) } : {}),
+  });
+  return [...saves.ops, ...useOps];
 }
 
 /** Um efeito com CD que os alvos precisam salvar: a regra comum a `save.force` e às magias (`spell.effect`). */
@@ -489,6 +629,10 @@ export function rollSaves(
     visibility: Visibility;
     spellOf?: { entryId: string; part: number };
     declared?: { advantage?: boolean | undefined; disadvantage?: boolean | undefined };
+    /** Condições que entram direto na falha; as notas vão no resultado do alvo. */
+    impose?: (target: Token) => { ops: PatchOp[]; notes: string[] };
+    /** O que entra na falha, para esperar a Resistência Lendária (nota 0069). */
+    pending?: Pick<PendingSave, 'impose' | 'spell' | 'item'>;
   },
 ): { ops: PatchOp[]; failed: Token[] } {
   const { actorName, effect, targets, against } = options;
@@ -502,19 +646,42 @@ export function rollSaves(
   const results = targets.map((target) => {
     const save = saveOf(ctx, target, effect.ability, against, options.declared);
     const result = resolveSave({ d20: save.input, dc: effect.dc, damage: rolled, onSuccess: effect.onSuccess, defenses: save.defenses }, ctx.deps.rng);
-    if (!result.success) failed.push(target);
+    // Com Resistência Lendária, as consequências da falha esperam o mestre (nota 0069).
+    const waits = !result.success && hasLegendaryResistance(ctx, target);
+    if (!result.success && !waits) failed.push(target);
     const immune = new Set(save.defenses.conditionImmunities.map((c) => c.condition));
+    const imposed = !result.success && !waits && options.impose ? options.impose(target) : undefined;
+    if (imposed) ops.push(...imposed.ops);
     const conditionNotes = result.success
       ? []
-      : effect.conditions.map((c) => (immune.has(c) ? `Imune a ${CONDITION_NAME[c]}` : `Na falha: ${CONDITION_NAME[c]}`));
+      : waits
+        ? ['Aguardando o mestre']
+      : imposed
+        ? imposed.notes.map((n) => (n.startsWith('Imune a ') ? n : `Na falha: ${n}`))
+        : effect.conditions.map((c) => (immune.has(c) ? `Imune a ${CONDITION_NAME[c]}` : `Na falha: ${CONDITION_NAME[c]}`));
     let damage: { total: number; defenses: string[]; proposalId?: string } | undefined;
     if (result.damage) {
       damage = { total: result.damage.total, defenses: damageNotes(result.damage) };
       if (result.damage.total > 0) {
         const proposalId = ctx.deps.newId();
         damage.proposalId = proposalId;
-        ops.push({ op: 'add', path: toPointer('proposals', proposalId), value: { id: proposalId, entryId, targetTokenId: target.id, targetName: target.name, amount: result.damage.total } });
+        if (!waits) ops.push({ op: 'add', path: toPointer('proposals', proposalId), value: { id: proposalId, entryId, targetTokenId: target.id, targetName: target.name, amount: result.damage.total } });
       }
+    }
+    if (waits) {
+      ops.push(
+        addPendingSave({
+          id: ctx.deps.newId(),
+          entryId,
+          targetTokenId: target.id,
+          targetName: target.name,
+          label: effect.name.slice(0, 100),
+          ...(damage?.proposalId !== undefined
+            ? { damage: { proposalId: damage.proposalId, failed: damage.total, saved: saveDamage({ damage: rolled, onSuccess: effect.onSuccess, defenses: save.defenses }, true, ctx.deps.rng).total } }
+            : {}),
+          ...options.pending,
+        }),
+      );
     }
     return {
       targetTokenId: target.id,
@@ -567,11 +734,11 @@ export function saveOf(
     if (!sheet || !roll) throw violation(`${token.name}: o personagem ainda não tem ficha`);
     return { ...roll, defenses: sheet.defenses };
   }
-  const creature = token.monsterId !== null ? ctx.deps.creature(token.monsterId) : undefined;
-  if (!creature) throw violation(`${token.name}: sem salvaguarda conhecida (não é personagem nem monstro do compêndio)`);
-  const { defenses, reminders } = creatureDefenses(creature);
+  const block = ctx.creatureOf(token);
+  if (!block) throw violation(`${token.name}: sem salvaguarda conhecida (não é personagem nem monstro do compêndio)`);
+  const { creature, defenses, reminders } = block;
   const state = ctx.conditionsOf(token);
   // Bônus do bloco, com a Exaustão e as condições (Paralisado falha em FOR e DES).
-  const roll = creatureD20({ label: 'Salvaguarda do bloco', modifier: creatureSaveBonus(creature, ability) }, state, { kind: 'save', ability }, declared);
-  return { ...roll, reminders: [...roll.reminders, ...reminders], defenses: conditionDefenses(state.conditions, defenses) };
+  const roll = creatureD20({ label: 'Salvaguarda do bloco', modifier: creatureSaveBonus(creature, ability) }, state, { kind: 'save', ability }, declared, token.spellEffects);
+  return { ...roll, reminders: [...roll.reminders, ...reminders], defenses };
 }

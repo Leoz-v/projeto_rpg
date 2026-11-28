@@ -6,14 +6,25 @@ Valeu por ajudar! O objetivo do projeto é um VTT **sólido e previsível**: pou
 
 1. Crie uma branch a partir da `main`: `feat/ficha-derivada`, `fix/handshake-timeout`, `docs/effects-spec`…
 2. Faça mudanças pequenas e focadas, uma coisa por branch.
-3. Antes de abrir o Pull Request, rode tudo e deixe verde:
+3. Vai mexer em algo que outra pessoa também pode estar mexendo (tokens, protocolo, banco)? Abra o PR cedo, como **rascunho**: quem vê o rascunho evita os mesmos arquivos ou espera.
+4. **Atualize a branch** antes de abrir o PR, e todo dia enquanto ela durar. A `main` anda rápido, e uma branch parada vira conflito:
+
+   ```bash
+   git fetch origin
+   git merge origin/main
+   ```
+
+5. **Números por último**, depois de atualizar a branch: `PROTOCOL_VERSION`, migração do banco e nota de `docs/decisions/` usam o próximo número livre da `main`. Uma migração nova vai sempre no **fim** da lista. O Git não acusa duas notas com o mesmo número.
+6. Antes de abrir o Pull Request, rode tudo e deixe verde:
 
    ```bash
    pnpm typecheck && pnpm lint && pnpm test
    ```
 
-4. Abra o PR para a `main` descrevendo **o quê** e **por quê**.
-5. A CI (GitHub Actions) roda as mesmas verificações em Windows, Linux e Mac. O PR só entra com tudo verde.
+   Mexeu na rede, na sessão ou numa tela? Rode também `pnpm test:e2e`: ele abre o app de verdade, com mestre e jogador em perfis temporários.
+
+7. Abra o PR para a `main` descrevendo **o quê** e **por quê**.
+8. A CI (GitHub Actions) roda as mesmas verificações em Windows, Linux e Mac, e os testes de ponta a ponta no Linux. O PR só entra com tudo verde.
 
 ## Regras que não se negociam sem conversa
 
@@ -23,6 +34,7 @@ Valeu por ajudar! O objetivo do projeto é um VTT **sólido e previsível**: pou
 - **Só conteúdo do SRD 5.2.1.** Nada copiado de livros oficiais fora do SRD; o resto é homebrew nosso.
 - **TypeScript estrito:** sem `any` e sem `@ts-ignore`.
 - Toda regra, condição, maestria ou efeito novo vem **com teste**.
+- **Nos testes, tokens saem do `makeToken`** (`src/shared/protocol/test-fixtures.ts`), informando só o que importa. Um campo novo do token entra lá.
 
 ## Como sai uma versão nova
 
@@ -35,8 +47,8 @@ Só o dono do repositório cria releases.
    git tag v0.3.0 && git push origin v0.3.0
    ```
 
-3. O workflow `Release` confere que a tag bate com o `package.json`, roda as verificações e sobe os instaladores (Windows, Linux, Mac) para um **rascunho** de release.
-4. Espere os três builds terminarem e confira o rascunho no GitHub: os 10 arquivos (o `.exe` e os dois `.dmg`, cada um com o `.blockmap`, o `.AppImage` e os três `latest*.yml`) e as notas da versão. Só então publique: um build que termina depois da publicação não sobe os arquivos (o electron-builder só envia para rascunho), e o workflow aparece verde mesmo assim. Se faltar algo, volte a release para rascunho (`gh release edit vX.Y.Z --draft=true`), rode de novo o job que faltou e publique outra vez. Publicada, os apps do grupo baixam a versão nova, que é instalada quando cada um fecha o app. No Mac, a atualização é manual.
+3. O workflow `Release` cria o rascunho, confere que a tag bate com o `package.json`, roda as verificações e sobe os instaladores (Windows, Linux, Mac) para um **rascunho** de release.
+4. Espere o job `check` ficar verde (ele confere os 10 arquivos num rascunho só) e confira o rascunho no GitHub: os 10 arquivos (o `.exe` e os dois `.dmg`, cada um com o `.blockmap`, o `.AppImage` e os três `latest*.yml`) e as notas da versão. Só então publique: um build que termina depois da publicação não sobe os arquivos (o electron-builder só envia para rascunho). Edite as notas pela página do GitHub: um `PATCH` pela API sem `tag_name` desliga o rascunho da tag. Se faltar algo, volte a release para rascunho (`gh release edit vX.Y.Z --draft=true`), rode de novo o job que faltou e publique outra vez. Publicada, os apps do grupo baixam a versão nova, que é instalada quando cada um fecha o app. No Mac, a atualização é manual.
 
 ## Licença das contribuições
 

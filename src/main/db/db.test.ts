@@ -9,6 +9,7 @@ import { CAMPAIGN_DB_SCHEMA_VERSION, CampaignDb, CampaignDbError } from './campa
 import { CampaignLibrary, CampaignNotFoundError } from './library';
 import { DatabaseTooNewError, migrate } from './migrate';
 import { openDatabase, userVersion } from './sqlite';
+import { makeToken } from '../../shared/protocol/test-fixtures';
 
 /** Integração das migrações e dos repositórios SQLite (CLAUDE.md: testes de migração). */
 
@@ -126,7 +127,7 @@ describe('CampaignDb', () => {
   const HERO_TOKEN = randomUUID();
 
   const state = (overrides: Partial<SessionState> = {}): SessionState => ({
-    proposals: {},
+    proposals: {}, pendingSaves: {},
     combat: null,
     rest: null,
     campaign: { id: randomUUID(), name: 'A Mina Perdida' },
@@ -154,8 +155,8 @@ describe('CampaignDb', () => {
     maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: null, cellPx: null, scene3d: null, fog: { ...defaultMapFog(30, 20), autoEnabled: true, visionFeet: 45, rememberExplored: false }, walls: [] } },
     activeMapId: MAP,
     tokens: {
-      [TOKEN]: { id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', image: null, ownerIds: [], characterId: null, hp: { max: 7, damage: 2, temp: 0 }, conditions: { active: [{ condition: 'prone' }], exhaustion: 1 }, visionFeet: null },
-      [HERO_TOKEN]: { id: HERO_TOKEN, mapId: MAP, name: 'Thorin', position: { x: 0, y: 0 }, size: 'medium', monsterId: null, image: null, ownerIds: [ANA], characterId: HERO, hp: null, conditions: { active: [], exhaustion: 0 }, visionFeet: 120 },
+      [TOKEN]: makeToken({ id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', hp: { max: 7, damage: 2, temp: 0 }, conditions: { active: [{ condition: 'prone' }], exhaustion: 1 }, spellEffects: [{ id: HERO, name: 'Bane (Thorin)', effects: [{ type: 'd20_bonus', dice: '1d4', target: 'save.all', subtract: true }], spell: { characterId: HERO, spellId: 'bane' } }], rotation: 90, elevation: 15, hidden: true, dead: true }),
+      [HERO_TOKEN]: makeToken({ id: HERO_TOKEN, mapId: MAP, name: 'Thorin', position: { x: 0, y: 0 }, size: 'medium', ownerIds: [ANA], characterId: HERO, visionFeet: 120 }),
     },
     characters: {
       [HERO]: {
@@ -352,8 +353,8 @@ describe('CampaignDb', () => {
     migrated.close();
   });
 
-  it('migrates v15 campaign databases to v16 with empty walls array', () => {
-    expect(CAMPAIGN_DB_SCHEMA_VERSION).toBe(16);
+  it('migrates v15 campaign databases to the latest version with an empty walls array', () => {
+    expect(CAMPAIGN_DB_SCHEMA_VERSION).toBe(21);
     const path = join(tempDir(), 'v15.db');
     const legacy = openDatabase(path);
     legacy.exec(`
@@ -370,7 +371,7 @@ describe('CampaignDb', () => {
     legacy.close();
 
     const migrated = CampaignDb.open(path);
-    expect(migrated.migration).toEqual({ from: 15, to: 16, backup: `${path}.bak` });
+    expect(migrated.migration).toEqual({ from: 15, to: 21, backup: `${path}.bak` });
     const loaded = migrated.load();
     expect(loaded.maps[MAP]?.walls).toEqual([]);
     migrated.close();

@@ -88,7 +88,7 @@ export function characterSheet(record: SessionCharacter, compendium: Compendium)
   if (record.baseScores === null) return { sheet: null, names: {}, details: {} };
   const character: Character = { id: ENGINE_CHARACTER_ID, name: record.name, baseScores: record.baseScores, steps: record.steps };
   // O motor usa ids snake_case; a ordem dos ajustes é estável no estado.
-  const adjustments = record.adjustments.map((a, i) => ({ id: `adjustment_${i + 1}`, name: a.name, effects: a.effects }));
+  const adjustments = record.adjustments.map((a, i) => ({ id: `adjustment_${i + 1}`, name: a.name, effects: a.effects, ...(a.weapon !== undefined ? { weapon: a.weapon } : {}) }));
   const sheet = deriveSheet({ character, inventory: record.inventory, adjustments, compendium, conditions: record.conditions });
   const index = indexOf(compendium);
   const names: Record<string, string> = {};

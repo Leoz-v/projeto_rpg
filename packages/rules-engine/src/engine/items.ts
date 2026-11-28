@@ -1,6 +1,7 @@
 import type { InventoryEntry, Inventory } from '../schemas/inventory';
 import type { Item, MagicItem } from '../schemas/item';
 import type { Compendium } from '../srd';
+import { scrollOf, scrollSpells } from './scrolls';
 import type { Issue } from './types';
 
 /**
@@ -55,10 +56,15 @@ export function baseItemOptions(magic: MagicItem, compendium: Compendium): Item[
  * Problemas de uma entrada nova do inventário (item desconhecido, variante ou
  * item base faltando ou inválidos), sem olhar o personagem. Vazio = pode entrar.
  */
-export function inventoryEntryProblems(entry: Pick<InventoryEntry, 'itemId' | 'baseItemId' | 'variantId'>, compendium: Compendium): string[] {
+export function inventoryEntryProblems(entry: Pick<InventoryEntry, 'itemId' | 'baseItemId' | 'variantId' | 'spellId'>, compendium: Compendium): string[] {
   const issues: Issue[] = [];
   resolveInventory({ currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, items: [{ instanceId: 'check', quantity: 1, equipped: false, attuned: false, ...entry }] }, compendium, { classIds: [], spellcaster: false }, issues);
-  return issues.map((i) => i.message);
+  // A magia do pergaminho só é exigida ao entrar: entradas antigas não têm.
+  const scroll = scrollOf(compendium.items.find((i) => i.id === entry.itemId), entry.variantId);
+  const problems = issues.map((i) => i.message);
+  if (!scroll && entry.spellId !== undefined) problems.push('Só um pergaminho de magia guarda uma magia.');
+  if (scroll && !scrollSpells(scroll, compendium.spells).some((s) => s.id === entry.spellId)) problems.push(`Escolha uma magia do círculo do pergaminho (${scroll.level === 0 ? 'truque' : `${scroll.level}º`}).`);
+  return problems;
 }
 
 export function resolveInventory(inventory: Inventory, compendium: Compendium, attunement: AttunementContext, issues: Issue[]): ResolvedEntry[] {

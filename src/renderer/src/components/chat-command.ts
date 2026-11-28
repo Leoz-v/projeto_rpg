@@ -25,7 +25,7 @@ export function parseChatInput(input: string): ChatCommand {
   if (!visibility) return { ok: false, message: `Comando desconhecido. ${CHAT_HELP}` };
 
   const parsedFormula = FormulaSchema.safeParse(formula.toLowerCase());
-  if (!parsedFormula.success) return { ok: false, message: 'Fórmula inválida: use algo como 2d6+3 (dados d4, d6, d8, d10, d12, d20 e d100, até 100 dados)' };
+  if (!parsedFormula.success) return { ok: false, message: 'Fórmula inválida: use algo como 2d6+3 (dados d3, d4, d6, d8, d10, d12, d20 e d100, até 100 dados)' };
 
   const label = rest.join(' ');
   if (label === '') return { ok: true, intent: { kind: 'dice.roll', data: { formula: parsedFormula.data, visibility } } };
