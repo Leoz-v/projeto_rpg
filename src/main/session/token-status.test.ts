@@ -101,6 +101,28 @@ describe('HostSession: hidden tokens and dead indicator', () => {
     expect(views[ANA.playerId]?.tokens[goblinId]?.hidden).toBe(false);
   });
 
+  it('keeps the lights carried by hidden tokens out of the players state (review of 2026-11-28)', () => {
+    const session = setup();
+    session.handle(GM.playerId, { kind: 'map.create', data: { name: 'Caverna', width: 10, height: 10 } });
+    const mapId = Object.keys(session.state.maps)[0] ?? '';
+    session.handle(GM.playerId, { kind: 'token.create', data: { mapId, name: 'Assassino', position: { x: 0, y: 0 }, size: 'medium', monsterId: 'goblin' } });
+    const tokenId = Object.keys(session.state.tokens)[0] ?? '';
+    const views: Record<string, SessionState> = { [ANA.playerId]: session.viewFor(ANA.playerId) };
+    const lights = (): string[] => (views[ANA.playerId]?.maps[mapId]?.lights ?? []).map((l) => l.name);
+    applyAndCheckViews(session, GM.playerId, { kind: 'token.hidden', data: { tokenId, hidden: true } }, views);
+    // Luz nova num token oculto: o mestre vê, o jogador não.
+    applyAndCheckViews(session, GM.playerId, { kind: 'light.add', data: { mapId, light: { name: 'Tocha do assassino', kind: 'light', attach: { kind: 'token', tokenId } } } }, views);
+    applyAndCheckViews(session, GM.playerId, { kind: 'light.add', data: { mapId, light: { name: 'Braseiro', kind: 'light', attach: { kind: 'point', x: 5, y: 5 } } } }, views);
+    expect(session.state.maps[mapId]?.lights.map((l) => l.name)).toEqual(['Tocha do assassino', 'Braseiro']);
+    expect(lights()).toEqual(['Braseiro']);
+    // Revelado, a tocha aparece; escondido de novo, some.
+    applyAndCheckViews(session, GM.playerId, { kind: 'token.hidden', data: { tokenId, hidden: false } }, views);
+    expect(lights()).toEqual(['Tocha do assassino', 'Braseiro']);
+    applyAndCheckViews(session, GM.playerId, { kind: 'token.hidden', data: { tokenId, hidden: true } }, views);
+    expect(lights()).toEqual(['Braseiro']);
+    expect(JSON.stringify(session.viewFor(ANA.playerId))).not.toContain(tokenId);
+  });
+
   it('keeps hidden tokens out of the combat order and the chat of players', () => {
     const session = setup();
     const views: Record<string, SessionState> = { [GM.playerId]: session.viewFor(GM.playerId), [ANA.playerId]: session.viewFor(ANA.playerId) };

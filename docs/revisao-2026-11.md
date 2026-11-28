@@ -105,8 +105,8 @@ Depois da Fase 8, da Fase 9 até o Bardic Inspiration e dos 7 PRs de iluminaçã
 
 | # | Achado | Situação |
 |---|---|---|
-| 1 | Grade de luz refeita por jogador e duas vezes por mudança | a corrigir: calcular uma vez por estado e compartilhar entre os jogadores |
-| 2 | Luz presa a um token oculto chega aos jogadores em `map.lights` (nome da luz e id do token; a posição não, pois o token não vai) | a corrigir: tirar essas luzes do estado dos jogadores |
+| 1 | Grade de luz refeita por jogador e duas vezes por mudança | ✅ calculada uma vez por estado e compartilhada; a visão de cada token também é conferida uma vez por patch. Depois: 30×30 1,6 ms, 60×60 2,9 ms, 100×100 6,8 ms |
+| 2 | Luz presa a um token oculto chega aos jogadores em `map.lights` (nome da luz e id do token; a posição não, pois o token não vai) | ✅ fora do estado dos jogadores; esconder ou revelar reenvia as luzes |
 | 3 | Roadmap sem ✅ nos itens de visão e iluminação já entregues, e dois itens "10." | ✅ corrigido; o histórico do Roadmap foi para `docs/roadmap.md` (fases e trilhas paralelas separadas) e o `CLAUDE.md` ficou com o resumo (47 KB → 23 KB) |
 | 4 | Duas notas 0061 (controles do mouse e iluminação), citadas no código sem distinção | ✅ a de iluminação virou 0081, com as referências |
 | 5 | Arquivos grandes: editor 3D (`toolController.ts` 2470 linhas, `editorUI.ts` 2053), `MapStage.ts` 1559, `attacks.ts` 792 | sem ação agora: os do 3D são do outro contribuidor (combinar com ele); `attacks.ts` ainda legível |
@@ -115,6 +115,6 @@ Depois da Fase 8, da Fase 9 até o Bardic Inspiration e dos 7 PRs de iluminaçã
 
 | # | PR | Situação |
 |---|---|---|
-| 1 | Documentos: Roadmap em `docs/roadmap.md`, ✅ e numeração, nota 0081, esta seção | este PR |
-| 2 | Código: grade de luz compartilhada entre os jogadores e luzes de tokens ocultos (achados 1 e 2) | próximo |
+| 1 | Documentos: Roadmap em `docs/roadmap.md`, ✅ e numeração, nota 0081, esta seção | ✅ PR #105 |
+| 2 | Código: grade de luz compartilhada entre os jogadores e luzes de tokens ocultos (achados 1 e 2) | ✅ este PR |
 | 3 | Versão 0.6.0 | depois do 2 |
