@@ -2,6 +2,7 @@ import { type ReactNode, useState } from 'react';
 import type { InventoryLine } from 'rules-engine';
 import type { ChatEntry, SessionCharacter } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
+import { SidebarSection } from './SidebarSection';
 import { ABILITY_LABEL, signed } from './sheet-labels';
 
 /** Cargas e magias de itens (nota 0075): a conta, o gasto à mão, conjurar pelo item e as entradas do chat. */
@@ -77,7 +78,7 @@ export function ItemChargesControl({ character, line, charges }: { character: Se
 export function DawnPanel() {
   const [error, setError] = useState<string | null>(null);
   return (
-    <section className="panel" aria-label="Amanhecer">
+    <SidebarSection id="dawn" title="Recarga de itens" ariaLabel="Amanhecer" className="panel" defaultOpen>
       <div className="row">
         <span className="hint">Os itens de todos recuperam cargas.</span>
         <button type="button" className="secondary" onClick={() => void sendIntent({ kind: 'items.dawn', data: {} }).then(setError)}>
@@ -89,7 +90,7 @@ export function DawnPanel() {
           {error}
         </p>
       )}
-    </section>
+    </SidebarSection>
   );
 }
 

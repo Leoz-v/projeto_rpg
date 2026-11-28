@@ -19,11 +19,14 @@ import { combatantOptions } from '../canvas/conditions';
 import { ConditionsControl } from './Conditions';
 import { FogPanel } from './FogPanel';
 import { HitPointsControl, HitPointsSummary } from './HitPoints';
+import { MapCard } from './MapCard';
 import { MapGridModal } from './MapGridModal';
 import type { MapViewerMode } from './MapView';
+import { countTokensByMap } from './map-preview';
 import { DawnPanel } from './ItemCharges';
 import { RestPanel } from './Rest';
 import { forceSave, SaveEffectForm, TargetChecklist, type TargetOption } from './SaveEffect';
+import { SidebarSection } from './SidebarSection';
 import { ABILITY_LABEL, CONDITION_LABEL, DAMAGE_LABEL, signed } from './sheet-labels';
 import { nextTokenName } from './token-name';
 
@@ -113,7 +116,9 @@ function Maps({
   onError: (m: string | null) => void;
   onOpen3dEditor: (map: GameMap | null) => void;
 }) {
-  const { maps, activeMapId } = view.state;
+  const { maps, activeMapId, tokens } = view.state;
+  const mapList = Object.values(maps);
+  const tokenCounts = countTokensByMap(tokens);
   const [name, setName] = useState('');
   const [width, setWidth] = useState('30');
   const [height, setHeight] = useState('20');
@@ -201,69 +206,38 @@ function Maps({
     setOpen(false);
   };
 
+  const activateMap = (mapId: string, mode: MapViewerMode): void => {
+    onSelectViewerMode(mapId, mode);
+    void sendIntent({ kind: 'map.activate', data: { mapId } }).then(onError);
+  };
+
   return (
-    <section className="panel" aria-label="Mapas">
-      <h2>Mapas</h2>
-      <ul>
-        {Object.values(maps).map((m) => (
-          <li key={m.id}>
-            {m.name}{' '}
-            {m.scene3d !== null && <span className="tag">3D</span>}{' '}
-            <span className="hint">
-              ({m.width}×{m.height}
-              {m.cellPx !== null ? `, ${m.cellPx} px` : ''})
-            </span>
-            {m.id === activeMapId ? (
-              <>
-                <span className="tag">na tela ({activeViewerMode.toUpperCase()})</span>
-                <button
-                  type="button"
-                  className="link"
-                  onClick={() => {
-                    onSelectViewerMode(m.id, activeViewerMode === '2d' ? '3d' : '2d');
-                  }}
-                >
-                  {activeViewerMode === '2d' ? 'Abrir em 3D' : 'Abrir em 2D'}
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className="link"
-                  onClick={() => {
-                    onSelectViewerMode(m.id, '2d');
-                    void sendIntent({ kind: 'map.activate', data: { mapId: m.id } }).then(onError);
-                  }}
-                >
-                  Abrir 2D
-                </button>
-                <button
-                  type="button"
-                  className="link"
-                  onClick={() => {
-                    onSelectViewerMode(m.id, '3d');
-                    void sendIntent({ kind: 'map.activate', data: { mapId: m.id } }).then(onError);
-                  }}
-                >
-                  Abrir 3D
-                </button>
-              </>
-            )}
-            {m.scene3d !== null && (
-              <button
-                type="button"
-                className="link"
-                onClick={() => {
-                  onOpen3dEditor(m);
-                }}
-              >
-                Editar 3D
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
+    <SidebarSection
+      id="maps"
+      title="Mapas"
+      ariaLabel="Mapas"
+      className="panel"
+      badge={mapList.length > 0 ? <span className="tag">{mapList.length}</span> : undefined}
+      defaultOpen
+    >
+      {mapList.length > 0 ? (
+        <ul className="map-cards">
+          {mapList.map((m) => (
+            <MapCard
+              key={m.id}
+              map={m}
+              tokenCount={tokenCounts[m.id] ?? 0}
+              isActive={m.id === activeMapId}
+              activeViewerMode={activeViewerMode}
+              onActivate={activateMap}
+              onSwitchViewerMode={onSelectViewerMode}
+              onOpen3dEditor={onOpen3dEditor}
+            />
+          ))}
+        </ul>
+      ) : (
+        <p className="hint map-cards-empty">Nenhum mapa criado ainda.</p>
+      )}
       {open ? (
         <form className="stack" onSubmit={(e) => void create(e)}>
           <label>
@@ -399,7 +373,7 @@ function Maps({
           }}
         />
       )}
-    </section>
+    </SidebarSection>
   );
 }
 
@@ -482,8 +456,15 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
   };
 
   return (
-    <section className="panel" aria-label="Tokens">
-      <h2>Tokens</h2>
+    <SidebarSection
+      id="tokens"
+      title="Tokens"
+      ariaLabel="Tokens"
+      className="panel"
+      badge={namesOnMap.length > 0 ? <span className="tag">{namesOnMap.length}</span> : undefined}
+      defaultOpen
+      autoExpandWhen={selected !== undefined}
+    >
       {selected && (
         <div className="selected stack">
           <div className="row">
@@ -672,7 +653,7 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
         <ImagePicker value={image} onChange={setImage} onError={onError} />
         <button type="submit">Colocar no mapa</button>
       </form>
-    </section>
+    </SidebarSection>
   );
 }
 
@@ -823,8 +804,14 @@ function CharacterTokens({ view, stage, onError }: { view: TableView; stage: Map
   };
 
   return (
-    <section className="panel" aria-label="Tokens de personagens">
-      <h2>Personagem no mapa</h2>
+    <SidebarSection
+      id="character-tokens"
+      title="Personagem no mapa"
+      ariaLabel="Tokens de personagens"
+      className="panel"
+      badge={<span className="tag">{characters.length}</span>}
+      defaultOpen={false}
+    >
       <div className="stack">
         <label>
           Personagem
@@ -846,7 +833,7 @@ function CharacterTokens({ view, stage, onError }: { view: TableView; stage: Map
           Colocar personagem
         </button>
       </div>
-    </section>
+    </SidebarSection>
   );
 }
 
@@ -938,9 +925,9 @@ export function GmPanel({
       <CharacterTokens view={view} stage={stage} onError={setError} />
       <Tokens view={view} stage={stage} selectedId={selectedId} onError={setError} />
       {view.state.activeMapId !== null && (
-        <section className="panel" aria-label="Efeito com salvaguarda">
+        <SidebarSection id="save-effect" title="Efeito com salvaguarda" ariaLabel="Efeito com salvaguarda" className="panel" defaultOpen={false}>
           <SaveEffectForm targets={Object.values(view.state.tokens).filter((t) => t.mapId === view.state.activeMapId)} />
-        </section>
+        </SidebarSection>
       )}
     </>
   );

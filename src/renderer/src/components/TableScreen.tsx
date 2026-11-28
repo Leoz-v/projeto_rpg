@@ -13,14 +13,22 @@ import { GmPanel } from './GmPanel';
 import { Map3DEditorModal } from './Map3DEditorModal';
 import { MonsterBlock } from './MonsterBlock';
 import { type MapViewerMode, MapView } from './MapView';
+import { SidebarSection } from './SidebarSection';
 
 /** A mesa: cabeçalho, barra lateral (jogadores e, para o mestre, mapas e tokens), mapa e chat. */
 
 function Players({ view }: { view: TableView }) {
   const players = Object.entries(view.state.players).sort(([, a], [, b]) => (a.role === b.role ? a.displayName.localeCompare(b.displayName, 'pt-BR') : a.role === 'gm' ? -1 : 1));
+  const onlineCount = players.filter(([, p]) => p.connected).length;
   return (
-    <section className="players" aria-label="Jogadores">
-      <h2>Na mesa</h2>
+    <SidebarSection
+      id="players"
+      title="Na mesa"
+      ariaLabel="Jogadores"
+      className="players"
+      badge={<span className="tag">{onlineCount}/{players.length}</span>}
+      defaultOpen
+    >
       <ul>
         {players.map(([id, p]) => (
           <li key={id} className={p.connected ? 'online' : 'offline'}>
@@ -32,7 +40,7 @@ function Players({ view }: { view: TableView }) {
           </li>
         ))}
       </ul>
-    </section>
+    </SidebarSection>
   );
 }
 
@@ -40,8 +48,14 @@ function HostAddresses({ view }: { view: TableView }) {
   const { addresses = [], port } = view.info;
   if (view.info.mode !== 'host' || port === undefined) return null;
   return (
-    <section className="addresses" aria-label="Endereços da mesa">
-      <h2>Endereço para os jogadores</h2>
+    <SidebarSection
+      id="addresses"
+      title="Endereço para os jogadores"
+      ariaLabel="Endereços da mesa"
+      className="addresses"
+      badge={<span className="tag">:{port}</span>}
+      defaultOpen={false}
+    >
       {addresses.length === 0 ? (
         <p className="hint">Nenhuma rede encontrada. Confira se o Tailscale ou o ZeroTier está ligado.</p>
       ) : (
@@ -56,7 +70,7 @@ function HostAddresses({ view }: { view: TableView }) {
         </ul>
       )}
       <p className="hint">Na rede virtual, use o endereço dela (Tailscale começa com 100.).</p>
-    </section>
+    </SidebarSection>
   );
 }
 

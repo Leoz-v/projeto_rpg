@@ -1,6 +1,7 @@
 import { type SyntheticEvent, useEffect, useRef, useState } from 'react';
 import type { TableView } from '../../../shared/ipc';
 import { sendIntent } from '../store/table';
+import { SidebarSection } from './SidebarSection';
 
 /**
  * Personagens da campanha na barra lateral: os seus primeiros, depois os dos
@@ -47,8 +48,14 @@ export function Characters({ view, onOpen }: { view: TableView; onOpen: (charact
   };
 
   return (
-    <section className="panel characters" aria-label="Personagens">
-      <h2>Personagens</h2>
+    <SidebarSection
+      id="characters"
+      title="Personagens"
+      ariaLabel="Personagens"
+      className="panel characters"
+      badge={characters.length > 0 ? <span className="tag">{characters.length}</span> : undefined}
+      defaultOpen
+    >
       {characters.length === 0 ? (
         <p className="hint">Nenhum personagem ainda.</p>
       ) : (
@@ -110,6 +117,6 @@ export function Characters({ view, onOpen }: { view: TableView; onOpen: (charact
           Criar personagem
         </button>
       </form>
-    </section>
+    </SidebarSection>
   );
 }
