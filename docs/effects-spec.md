@@ -478,7 +478,7 @@ Acrescenta uma parte a uma característica de outra fonte: `{ "type": "feature_u
 
 ### 3.32 `vision_range`
 
-Configura o alcance de visão normal em áreas iluminadas para a ficha (`VisionProfile.normalRangeFeet`, nota 0061).
+Configura o alcance de visão normal em áreas iluminadas para a ficha (`VisionProfile.normalRangeFeet`, nota 0081).
 
 ```json
 { "type": "vision_range", "range": 120 }

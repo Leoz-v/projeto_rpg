@@ -5,7 +5,7 @@ import { effectiveConditions } from './conditions';
 
 /**
  * Regras puras de iluminação e visão de D&D 2024 (SRD 5.2.1), sem dependências
- * de UI, Electron, PixiJS ou Node (nota 0061).
+ * de UI, Electron, PixiJS ou Node (nota 0081).
  */
 
 export type LightLevel = 'bright' | 'dim' | 'darkness' | 'magical_darkness';

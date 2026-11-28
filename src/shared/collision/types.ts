@@ -4,7 +4,7 @@ import { MAX_MAP_CELLS } from '../protocol/constants';
 
 /**
  * Schemas e tipos de colisão e oclusão (paredes, portas, janelas e terreno).
- * Módulo puro sem dependências de Node, Electron, React ou PixiJS (nota 0061).
+ * Módulo puro sem dependências de Node, Electron, React ou PixiJS (nota 0081).
  */
 
 export const MapLayerSchema = z.enum(['surface', 'interior']);

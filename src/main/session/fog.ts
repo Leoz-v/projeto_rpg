@@ -21,7 +21,7 @@ import {
 import { type SessionContext, violation } from './context';
 import { isTokenControlledBy } from './vision';
 
-/** Névoa de guerra (nota 0056 + nota 0061): ações do mestre e memória explorada com oclusão, luz e sentidos da ficha. */
+/** Névoa de guerra (nota 0056 + nota 0081): ações do mestre e memória explorada com oclusão, luz e sentidos da ficha. */
 
 function requireCellInside(map: GameMap, cell: { x: number; y: number }): void {
   if (cell.x < 0 || cell.x >= map.width || cell.y < 0 || cell.y >= map.height) {

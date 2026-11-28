@@ -3,7 +3,7 @@ import { defaultMapLighting, type MapLightingConfig } from './types';
 
 /**
  * Extrator determinístico de fontes de luz embutidas em mapas 3D (`VttMapDocument`),
- * compartilhado entre o Host (validação de proximidade) e o renderizador 3D/2D (nota 0061).
+ * compartilhado entre o Host (validação de proximidade) e o renderizador 3D/2D (nota 0081).
  */
 
 export interface ExtractedPropLight {

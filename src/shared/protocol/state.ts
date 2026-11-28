@@ -702,13 +702,13 @@ export const MapSchema = z.strictObject({
   scene3d: Sha256Schema.nullable().default(null),
   /** Névoa de guerra manual e automática do mapa (nota 0058). */
   fog: MapFogSchema,
-  /** Segmentos de parede, porta, janela e penhasco para colisão e oclusão (nota 0061). */
+  /** Segmentos de parede, porta, janela e penhasco para colisão e oclusão (nota 0081). */
   walls: z.array(WallSegmentSchema).max(MAX_MAP_WALLS).default([]),
-  /** Configuração de ambiente e horário do mapa (nota 0061). */
+  /** Configuração de ambiente e horário do mapa (nota 0081). */
   lighting: MapLightingConfigSchema.default(() => defaultMapLighting()),
-  /** Fontes de luz e zonas de escuridão mágica em tempo de execução (nota 0061). */
+  /** Fontes de luz e zonas de escuridão mágica em tempo de execução (nota 0081). */
   lights: z.array(MapLightSourceSchema).max(MAX_MAP_LIGHTS).default([]),
-  /** Overrides em tempo de execução de tochas/braseiros já existentes no mapa 3D (nota 0061). */
+  /** Overrides em tempo de execução de tochas/braseiros já existentes no mapa 3D (nota 0081). */
   propLightOverrides: PropLightOverridesSchema.default({}),
 });
 export type GameMap = z.infer<typeof MapSchema>;

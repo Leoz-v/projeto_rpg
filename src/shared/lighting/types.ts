@@ -4,7 +4,7 @@ import { ConditionSpellSchema, InstanceIdSchema, NameSchema, UuidSchema } from '
 
 /**
  * Schemas e tipos de iluminação dinâmica, ambiente/horário e overrides de tochas do mapa.
- * Módulo puro sem dependências de Node, Electron, React ou PixiJS (nota 0061).
+ * Módulo puro sem dependências de Node, Electron, React ou PixiJS (nota 0081).
  */
 
 export const MapEnvironmentSchema = z.enum(['exterior', 'interior']);

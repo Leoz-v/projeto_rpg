@@ -14,7 +14,7 @@ import type { SessionDeps } from './context';
 
 /**
  * Resolução de `VisionProfile` por token (lendo ficha de personagem, bloco de monstro
- * ou condições) e cache imutável de documentos 3D por SHA-256 (nota 0061).
+ * ou condições) e cache imutável de documentos 3D por SHA-256 (nota 0081).
  */
 
 export interface Scene3dVisionData {

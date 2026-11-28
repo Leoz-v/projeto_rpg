@@ -15,7 +15,7 @@ import {
 import { notAllowed, type SessionContext, violation } from './context';
 import { recordExploredOps } from './fog';
 
-/** Paredes, portas e janelas do mapa: validação e ações no executor da sessão (nota 0061). */
+/** Paredes, portas e janelas do mapa: validação e ações no executor da sessão (nota 0081). */
 
 function validateSegment(map: GameMap, w: Pick<WallSegment, 'x1' | 'y1' | 'x2' | 'y2'>): void {
   if (w.x1 < 0 || w.x1 > map.width || w.x2 < 0 || w.x2 > map.width || w.y1 < 0 || w.y1 > map.height || w.y2 < 0 || w.y2 > map.height) {

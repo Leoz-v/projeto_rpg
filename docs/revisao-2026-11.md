@@ -80,6 +80,41 @@ Limitações sem certificado pago: aviso do SmartScreen na primeira instalação
 | 3 | Release pelo GitHub Actions e atualização automática | ✅ nota 0048 |
 | 4 | Dividir o executor | ✅ nota 0049 |
 | 5 | Fase 6 — Recursos e descansos (descansos, espaços de magia, recursos de classe, conjurar) | ✅ notas 0050 a 0053 (descansos, espaços de magia, recursos, conjurar) |
-| 6 | Fase 7 — Magias estruturadas (dano, cura e condições, efeitos temporários) | em andamento (nota 0054) |
-| 7 | Ferramentas de mapa | reservado para outro contribuidor ([issue #59](https://github.com/Leoz-v/projeto_rpg/issues/59)) |
+| 6 | Fase 7 — Magias estruturadas (dano, cura e condições, efeitos temporários) | ✅ notas 0054 a 0063 |
+| 7 | Ferramentas de mapa | ✅ outro contribuidor ([issue #59](https://github.com/Leoz-v/projeto_rpg/issues/59); notas 0057, 0059, 0061, 0070, 0071) |
 | 8 | Extras | |
+
+# Revisão focada (28/11/2026)
+
+Depois da Fase 8, da Fase 9 até o Bardic Inspiration e dos 7 PRs de iluminação, visão e colisão (#94–#100, outro contribuidor, entraram em sequência), antes da versão 0.6.0. O mapa 2D preto corrigido no #102 veio desse bloco.
+
+## O que foi conferido
+
+- **Princípios na iluminação e na visão:** as regras de D&D (luz, *Darkvision*, *Blindsight*, *Tremorsense*, *Truesight*, escuridão mágica, percepção) estão em `rules-engine/vision`. O solver em `src/shared/lighting-vision/` faz só geometria (paredes, linha de visão, grades) e chama o motor. O Host decide o que cada jogador vê; o renderer só traduz os códigos de percepção em imagem. Sem `any`, `@ts-ignore` ou imports proibidos; testes extensos no motor, no solver, na sessão e nos renderizadores.
+- **Desempenho do Host:** medido com um teste de carga (descartado depois). A cada mudança do estado, o Host refaz, para cada jogador e duas vezes (antes e depois), a grade de luz de todos os mapas com névoa automática e testa a percepção de cada token:
+
+  | Mapa | Paredes | Luzes | Tokens | Jogadores | Por mudança |
+  |---|---|---|---|---|---|
+  | 30×30 | 40 | 4 | 14 | 4 | ~5 ms |
+  | 60×60 | 120 | 8 | 24 | 4 | ~11 ms |
+  | 100×100 | 200 | 12 | 35 | 5 | ~23 ms |
+
+  Aceitável no ritmo das pessoas (o movimento só vai ao soltar o token), mas cresce com jogadores × 2.
+
+## Achados
+
+| # | Achado | Situação |
+|---|---|---|
+| 1 | Grade de luz refeita por jogador e duas vezes por mudança | a corrigir: calcular uma vez por estado e compartilhar entre os jogadores |
+| 2 | Luz presa a um token oculto chega aos jogadores em `map.lights` (nome da luz e id do token; a posição não, pois o token não vai) | a corrigir: tirar essas luzes do estado dos jogadores |
+| 3 | Roadmap sem ✅ nos itens de visão e iluminação já entregues, e dois itens "10." | ✅ corrigido; o histórico do Roadmap foi para `docs/roadmap.md` (fases e trilhas paralelas separadas) e o `CLAUDE.md` ficou com o resumo (47 KB → 23 KB) |
+| 4 | Duas notas 0061 (controles do mouse e iluminação), citadas no código sem distinção | ✅ a de iluminação virou 0081, com as referências |
+| 5 | Arquivos grandes: editor 3D (`toolController.ts` 2470 linhas, `editorUI.ts` 2053), `MapStage.ts` 1559, `attacks.ts` 792 | sem ação agora: os do 3D são do outro contribuidor (combinar com ele); `attacks.ts` ainda legível |
+
+## Ordem de trabalho
+
+| # | PR | Situação |
+|---|---|---|
+| 1 | Documentos: Roadmap em `docs/roadmap.md`, ✅ e numeração, nota 0081, esta seção | este PR |
+| 2 | Código: grade de luz compartilhada entre os jogadores e luzes de tokens ocultos (achados 1 e 2) | próximo |
+| 3 | Versão 0.6.0 | depois do 2 |

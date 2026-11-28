@@ -4,7 +4,7 @@ import type { MapLayer, WallKind, WallSegment } from './types';
 
 /**
  * Extrator puro de paredes, portas, janelas e penhascos a partir do JSON de um mapa 3D (`VttMapDocument`),
- * sem dependências de Node, PixiJS ou `canvas3d` (nota 0061).
+ * sem dependências de Node, PixiJS ou `canvas3d` (nota 0081).
  */
 
 interface RawSegment {

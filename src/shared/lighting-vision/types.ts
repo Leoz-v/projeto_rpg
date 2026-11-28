@@ -6,7 +6,7 @@ import type { Point } from '../protocol/common';
 import type { MapFog } from '../protocol/fog';
 
 /**
- * Tipos e códigos numéricos do solver compartilhado de iluminação e visão ocluída (nota 0061).
+ * Tipos e códigos numéricos do solver compartilhado de iluminação e visão ocluída (nota 0081).
  * Módulo puro sem dependências de Node, Electron, React ou PixiJS.
  */
 

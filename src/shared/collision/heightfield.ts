@@ -2,7 +2,7 @@ import type { MapLayer } from './types';
 
 /**
  * Oclusão por terreno e altura 3D (penhascos, laje entre superfície e interior, aberturas/holes).
- * Módulo puro sem dependências de Node, Electron, React ou PixiJS (nota 0061).
+ * Módulo puro sem dependências de Node, Electron, React ou PixiJS (nota 0081).
  */
 
 export const HEIGHT_UNITS_PER_TILE = 128;

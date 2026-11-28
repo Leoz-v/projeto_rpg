@@ -39,7 +39,7 @@ import {
 } from './types';
 
 /**
- * Solver compartilhado de iluminação ocluída e visão guiada por ficha/sentidos (nota 0061).
+ * Solver compartilhado de iluminação ocluída e visão guiada por ficha/sentidos (nota 0081).
  * Módulo puro usado no Host (autoridade/filtragem) e nos renderizadores 2D/3D.
  */
 

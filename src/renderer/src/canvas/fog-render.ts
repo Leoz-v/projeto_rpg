@@ -31,7 +31,7 @@ import {
 } from '../../../shared/protocol';
 
 /**
- * Renderização da névoa de guerra e máscara de percepção/iluminação 2D (notas 0059 e 0061),
+ * Renderização da névoa de guerra e máscara de percepção/iluminação 2D (notas 0059 e 0081),
  * desacoplada do PixiJS: preenche buffers RGBA de 1 pixel por célula (`width × height`)
  * ou alimenta o compositor suave por polígonos.
  */
