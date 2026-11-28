@@ -243,7 +243,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
    - ✅ Características que curam ou reforçam (PR 4a, `feature.use`, efeitos `feature_use` e `feature_use_part`, `PROTOCOL_VERSION = 42`, `engine/feature-uses.ts`): 18 características, com os estados (Rage) na ficha até serem encerrados. Ver `docs/decisions/0078-usar-caracteristicas.md`.
    - Bardic Inspiration (PR 4b, em duas partes; ver `docs/decisions/0079-bardic-inspiration.md`):
      - ✅ 4b1 (`inspiration.*`, `attack.resolve`, parte `inspire` e efeito `self_inspiration`, `PROTOCOL_VERSION = 45`, `<campanha>.db` v23, `engine/inspiration.ts`): o dado guardado por quem recebe (um de cada vez, expira no fim de um descanso), somado depois de ver a rolagem da ficha, e o ataque que erra espera o dado; Peerless Skill no mesmo fluxo.
-     - 4b2: a falha de salvaguarda (forçada, de Concentração e contra a Morte) de quem tem o dado espera o jogador, como a Resistência Lendária.
+     - ✅ 4b2 (`inspiration.save`, `pendingInspirations`, `PROTOCOL_VERSION = 46`): a falha de salvaguarda (forçada, de Concentração e contra a Morte) de quem tem o dado espera o jogador, como a Resistência Lendária. Ver `docs/decisions/0080-salvaguardas-com-inspiracao.md`.
    - Características com salvaguarda (Stunning Strike, Breath Weapon, Channel Divinity).
    - Reações e mudanças na rolagem (Uncanny Dodge, Evasion, Indomitable): a redesenhar depois dos outros.
 

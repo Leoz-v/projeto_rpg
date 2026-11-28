@@ -22,16 +22,27 @@ export function resolvePendingSave(ctx: SessionContext, playerId: string, data: 
   ops.push(
     ctx.appendChat({ kind: 'legendary_resistance', ...ctx.entryBase(playerId), saveEntryId: pending.entryId, tokenId: token.id, name: token.name, label: pending.label, used: data.useResistance }),
   );
+  return [...ops, ...settleSave(ctx, playerId, pending, data.useResistance)];
+}
+
+/**
+ * Aplica a salvaguarda que esperava: no sucesso, o dano do sucesso; na falha,
+ * o dano da falha, as condições e os efeitos. Também usada pela inspiração (nota 0080).
+ */
+export function settleSave(ctx: SessionContext, playerId: string, pending: Omit<PendingSave, 'id'>, saved: boolean): PatchOp[] {
+  const token = ctx.current.tokens[pending.targetTokenId];
+  if (!token) return [];
+  const ops: PatchOp[] = [];
   if (pending.damage) {
-    const amount = data.useResistance ? pending.damage.saved : pending.damage.failed;
+    const amount = saved ? pending.damage.saved : pending.damage.failed;
     const { proposalId } = pending.damage;
     if (amount > 0) ops.push({ op: 'add', path: toPointer('proposals', proposalId), value: { id: proposalId, entryId: pending.entryId, targetTokenId: token.id, targetName: token.name, amount } });
   }
-  if (!data.useResistance) ops.push(...failure(ctx, playerId, pending, token));
+  if (!saved) ops.push(...failure(ctx, playerId, pending, token));
   return ops;
 }
 
-function failure(ctx: SessionContext, playerId: string, pending: PendingSave, token: Token): PatchOp[] {
+function failure(ctx: SessionContext, playerId: string, pending: Omit<PendingSave, 'id'>, token: Token): PatchOp[] {
   const ops: PatchOp[] = [];
   if (pending.impose) {
     const actor = ctx.current.tokens[pending.impose.actorTokenId];

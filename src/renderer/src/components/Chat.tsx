@@ -5,7 +5,7 @@ import { CHAT_HELP, parseChatInput } from './chat-command';
 import { type RollPart, rollParts } from './roll-parts';
 import { addToChatLog, type ChatLog, chatLogEntries, chatLogWithWindow, EMPTY_CHAT_LOG, firstChatIndex } from './chat-log';
 import { FeatureUsedBody } from './FeatureUses';
-import { D20InspirationActions, InspirationRollBody, PendingAttackEntry } from './Inspiration';
+import { D20InspirationActions, InspirationRollBody, PendingAttackEntry, PendingInspirationEntry } from './Inspiration';
 import { DawnBody, ItemChargesBody, ScrollCheckBody } from './ItemCharges';
 import { ItemUsedBody } from './ItemUse';
 import { PendingSaveActions, AttackRollBody, D20RollBody, DamageAppliedBody, DamageRollBody, MasteryDamageBody, SaveRollBody } from './SheetRollEntries';
@@ -368,6 +368,9 @@ export function Chat({ state, chatFrom, viewer }: { state: SessionState; chatFro
         ))}
         {Object.values(state.pendingAttacks).map((p) => (
           <PendingAttackEntry key={p.id} pending={p} state={state} viewer={viewer} />
+        ))}
+        {Object.values(state.pendingInspirations).map((p) => (
+          <PendingInspirationEntry key={p.id} pending={p} state={state} viewer={viewer} />
         ))}
         <li ref={end} aria-hidden />
       </ol>

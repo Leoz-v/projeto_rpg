@@ -14,7 +14,7 @@ import { clearFogMemory, configureFog, fillManualFog, paintManualFog, rectManual
 import { removeTokenEffect } from './spell-effects';
 import { endTokenConcentration } from './monster-concentration';
 import { dropPendingSaves, resolvePendingSave } from './legendary';
-import { discardInspiration, dropPendingAttacks, resolvePendingAttack, useInspiration } from './inspiration';
+import { discardInspiration, dropInspirationWaits, resolveInspirationSave, resolvePendingAttack, useInspiration } from './inspiration';
 import { multiattackStep, requireMultiattack } from './multiattack';
 import { changeMonsterUse, restMonster, setMonsterLair } from './monsters';
 import { createMap, createToken, moveToken, roll, setTokenDead, setTokenHidden, updateMap, updateToken } from './map-tokens';
@@ -64,7 +64,7 @@ export class HostSession extends SessionContext {
       characters: restored?.characters ?? {},
       proposals: {},
       pendingSaves: {},
-      pendingAttacks: {},
+      pendingAttacks: {}, pendingInspirations: {},
       combat: restored?.combat ?? null,
       rest: restored?.rest ?? null,
     };
@@ -205,7 +205,7 @@ export class HostSession extends SessionContext {
       case 'token.remove':
         this.requireGm(role);
         // O que a Concentração do monstro mantinha sai com ele (nota 0068).
-        return [...endTokenConcentration(this, playerId, this.token(intent.data.tokenId), 'ended'), ...dropPendingSaves(this, intent.data.tokenId), ...dropPendingAttacks(this, { tokenId: intent.data.tokenId }), { op: 'remove', path: toPointer('tokens', intent.data.tokenId) }, ...leaveCombat(this, playerId, intent.data.tokenId), ...removeTokenLights(this, intent.data.tokenId)];
+        return [...endTokenConcentration(this, playerId, this.token(intent.data.tokenId), 'ended'), ...dropPendingSaves(this, intent.data.tokenId), ...dropInspirationWaits(this, { tokenId: intent.data.tokenId }), { op: 'remove', path: toPointer('tokens', intent.data.tokenId) }, ...leaveCombat(this, playerId, intent.data.tokenId), ...removeTokenLights(this, intent.data.tokenId)];
       case 'character.create':
         return createCharacter(this, playerId, role, intent.data);
       case 'character.update':
@@ -247,6 +247,8 @@ export class HostSession extends SessionContext {
         return discardInspiration(this, playerId, role, intent.data);
       case 'attack.resolve':
         return resolvePendingAttack(this, playerId, role, intent.data);
+      case 'inspiration.save':
+        return resolveInspirationSave(this, playerId, role, intent.data);
       case 'monster.cast':
         return castMonsterSpell(this, playerId, role, intent.data);
       case 'monster.rest':

@@ -174,6 +174,27 @@ test('Bardic Inspiration on a missed attack: the attack waits and the player add
   expect((await stateOf(gm)).characters[fighter]?.inspiration).toBeNull();
 });
 
+test('Bardic Inspiration on a failed save: the consequences wait for the player', async ({ table: { gm, player } }) => {
+  await createMap(gm, 'Caverna');
+  const fighter = await createCharacter(player, 'dwarf-fighter-5', 'Thorin');
+  const bard = await createBard(gm);
+  const mapId = (await stateOf(gm)).activeMapId ?? '';
+  await send(gm, { kind: 'token.create', data: { mapId, name: 'Thorin', position: { x: 100, y: 0 }, size: 'medium', characterId: fighter } });
+  const thorin = Object.values((await stateOf(gm)).tokens).find((t) => t.name === 'Thorin')?.id ?? '';
+  await send(gm, { kind: 'feature.use', data: { characterId: bard, featureId: 'bardic_inspiration', targetTokenId: thorin } });
+  // CD 30: falha certa, com ou sem o dado.
+  await send(gm, {
+    kind: 'save.force',
+    data: { source: { custom: { name: 'Explosão', ability: 'dex', dc: 30, damage: [{ dice: '2d6', type: 'fire' }], onSuccess: 'half' } }, targetTokenIds: [thorin], visibility: 'public' },
+  });
+  await expect(chat(gm)).toContainText('Aguardando Thorin decidir se usa a inspiração');
+  expect(Object.keys((await stateOf(gm)).proposals)).toEqual([]);
+  await chat(player).getByRole('button', { name: 'Somar Bardic Inspiration (1d8)' }).click();
+  await expect(chat(gm)).toContainText('ainda falhou');
+  await expect.poll(async () => Object.keys((await stateOf(gm)).proposals).length).toBe(1);
+  expect((await stateOf(gm)).characters[fighter]?.inspiration).toBeNull();
+});
+
 test('a spell scroll: the player picks the spell when adding it and reads it', async ({ table: { gm, player } }) => {
   await createCharacter(player, 'elf-wizard-7', 'Lia');
   const inventory = await openInventory(player, 'Lia');

@@ -323,7 +323,7 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('inspiration_roll'),
     ...entryBase,
-    /** A entrada `d20_roll`. */
+    /** A entrada `d20_roll`, `save_roll` ou `concentration_save`. */
     entryOf: UuidSchema,
     characterId: UuidSchema,
     characterName: NameSchema,
@@ -336,6 +336,8 @@ export const ChatEntrySchema = z.discriminatedUnion('kind', [
     value: z.int(),
     /** O total da rolagem com o dado. */
     total: z.int(),
+    /** Contra a CD (salvaguarda que esperava, nota 0080): passou com o dado. */
+    success: z.boolean().optional(),
     notes: LogList,
   }),
   /** O mestre decidiu a falha de um alvo com Resistência Lendária: usou, ou aceitou a falha (nota 0069). */
@@ -892,6 +894,36 @@ export const PendingAttackSchema = z.strictObject({
 });
 export type PendingAttack = z.infer<typeof PendingAttackSchema>;
 
+/**
+ * Salvaguarda de um personagem que falhou com um dado de inspiração à mão
+ * (nota 0080): as consequências esperam o dono usar o dado ou aceitar.
+ */
+export const PendingInspirationSchema = z.strictObject({
+  id: UuidSchema,
+  characterId: UuidSchema,
+  characterName: NameSchema,
+  label: LabelSchema,
+  dc: z.int().min(1).max(40),
+  /** O d20 rolado e o que as regras do d20 fizeram. */
+  roll: z.strictObject({
+    mode: z.enum(['normal', 'advantage', 'disadvantage']),
+    dice: z.array(z.int().min(1).max(20)).min(1).max(4),
+    natural: z.int().min(1).max(20),
+    modifier: z.int(),
+    total: z.int(),
+    notes: LogList,
+  }),
+  wait: z.discriminatedUnion('kind', [
+    /** Salvaguarda forçada (`save.force`, magia, item): as consequências da falha, como na Resistência Lendária. */
+    z.strictObject({ kind: z.literal('save'), save: PendingSaveSchema.omit({ id: true }) }),
+    /** Salvaguarda de Concentração: a entrada `concentration_save` e a magia que acaba na falha. */
+    z.strictObject({ kind: z.literal('concentration'), entryId: UuidSchema, spellId: IdSchema }),
+    /** Salvaguarda contra a Morte: o `death_save` só entra quando decidir. */
+    z.strictObject({ kind: z.literal('death') }),
+  ]),
+});
+export type PendingInspiration = z.infer<typeof PendingInspirationSchema>;
+
 export const InitiativeSchema = z.int().min(MIN_INITIATIVE).max(MAX_INITIATIVE);
 
 /** Combatente: o token e a iniciativa (`null` para quem não pode ver, seção 2.12). */
@@ -944,6 +976,8 @@ export const SessionStateSchema = z.strictObject({
   pendingSaves: z.record(UuidSchema, PendingSaveSchema).default({}),
   /** Ataques que esperam o dado de inspiração (nota 0079); públicos, contra tokens visíveis. */
   pendingAttacks: z.record(UuidSchema, PendingAttackSchema).default({}),
+  /** Salvaguardas de personagens que esperam o dado de inspiração (nota 0080); públicas, de tokens visíveis. */
+  pendingInspirations: z.record(UuidSchema, PendingInspirationSchema).default({}),
   /** Combate em andamento, ou `null`. */
   combat: CombatSchema.nullable(),
   /** Descanso em andamento, ou `null` (nota 0050). */

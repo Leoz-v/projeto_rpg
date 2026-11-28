@@ -1,7 +1,7 @@
 import { chargedItem, NO_DEATH_SAVES, NO_SPELL_SLOTS_SPENT, rollAbilityScores, usesRolledValues } from 'rules-engine';
 import { applyPatch, NO_CONDITIONS, type IntentData, type PatchOp, type Role, type SessionCharacter, MAX_ADJUSTMENTS, MAX_INVENTORY_ITEMS, MAX_ITEM_QUANTITY, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed, EMPTY_INVENTORY, type InventoryEntry } from './context';
-import { dropPendingAttacks } from './inspiration';
+import { dropInspirationWaits } from './inspiration';
 import { recordExploredOps } from './fog';
 
 /** Personagens, inventário e ajustes do mestre (Fase 3). Funções do executor da sessão (`HostSession`), sobre o `SessionContext`. */
@@ -87,7 +87,7 @@ export function removeCharacter(ctx: SessionContext, playerId: string, role: Rol
   const unlink = Object.values(ctx.current.tokens)
     .filter((t) => t.characterId === characterId)
     .map((t): PatchOp => ({ op: 'replace', path: toPointer('tokens', t.id, 'characterId'), value: null }));
-  return [...unlink, ...dropPendingAttacks(ctx, { characterId }), { op: 'remove', path: toPointer('characters', characterId) }];
+  return [...unlink, ...dropInspirationWaits(ctx, { characterId }), { op: 'remove', path: toPointer('characters', characterId) }];
 }
 
 export function inventoryEntry(ctx: SessionContext, character: SessionCharacter, instanceId: string): { entry: InventoryEntry; index: number } {

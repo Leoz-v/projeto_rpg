@@ -4,7 +4,7 @@
 
 Bardic Inspiration tinha os usos contados (nota 0052), mas o dado em si ficava com a mesa. É o PR 4b da Fase 9 (nota 0074). O texto do SRD: quem recebe guarda o dado (um de cada vez) e, "quando falhar num Teste d20", rola e soma. Peerless Skill (College of Lore, nível 14) é o mesmo dado num teste do próprio Bardo, que não é gasto se continuar falhando.
 
-O 4b ficou em duas partes: **4b1** (esta nota) dá, guarda e usa o dado nas rolagens da ficha e nos ataques; **4b2** faz as salvaguardas esperarem o jogador.
+O 4b ficou em duas partes: **4b1** (esta nota) dá, guarda e usa o dado nas rolagens da ficha e nos ataques; **4b2** faz as salvaguardas esperarem o jogador (nota 0080).
 
 ## Decisão
 

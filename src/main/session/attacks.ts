@@ -5,7 +5,7 @@ import { timedEffectEntry } from './combat';
 import { tokenDamaged } from './monster-concentration';
 import { imposeFromAction } from './spell-effects';
 import { addPendingSave } from './legendary';
-import { canInspire, pendingAttack } from './inspiration';
+import { canInspire, inspirableHolder, pendingAttack, pendingInspiration } from './inspiration';
 import { changeCharges } from './item-charges';
 import { changeResource } from './resources';
 import { changeSpellSlot } from './spell-slots';
@@ -682,8 +682,11 @@ export function rollSaves(
   const results = targets.map((target) => {
     const save = saveOf(ctx, target, effect.ability, against, options.declared);
     const result = resolveSave({ d20: save.input, dc: effect.dc, damage: rolled, onSuccess: effect.onSuccess, defenses: save.defenses }, ctx.deps.rng);
-    // Com Resistência Lendária, as consequências da falha esperam o mestre (nota 0069).
-    const waits = !result.success && hasLegendaryResistance(ctx, target);
+    // Com Resistência Lendária, as consequências da falha esperam o mestre (nota 0069);
+    // com um dado de inspiração à mão, o dono do personagem (nota 0080).
+    const legendary = !result.success && hasLegendaryResistance(ctx, target);
+    const holder = !result.success && !legendary && options.visibility === 'public' && !target.hidden ? inspirableHolder(ctx, target, result.roll) : undefined;
+    const waits = legendary || holder !== undefined;
     if (!result.success && !waits) failed.push(target);
     const immune = new Set(save.defenses.conditionImmunities.map((c) => c.condition));
     const imposed = !result.success && !waits && options.impose ? options.impose(target) : undefined;
@@ -691,7 +694,7 @@ export function rollSaves(
     const conditionNotes = result.success
       ? []
       : waits
-        ? ['Aguardando o mestre']
+        ? [holder ? `Aguardando ${holder.name} decidir se usa a inspiração` : 'Aguardando o mestre']
       : imposed
         ? imposed.notes.map((n) => (n.startsWith('Imune a ') ? n : `Na falha: ${n}`))
         : effect.conditions.map((c) => (immune.has(c) ? `Imune a ${CONDITION_NAME[c]}` : `Na falha: ${CONDITION_NAME[c]}`));
@@ -705,18 +708,27 @@ export function rollSaves(
       }
     }
     if (waits) {
+      const consequences: Omit<PendingSave, 'id'> = {
+        entryId,
+        targetTokenId: target.id,
+        targetName: target.name,
+        label: effect.name.slice(0, 100),
+        ...(damage?.proposalId !== undefined
+          ? { damage: { proposalId: damage.proposalId, failed: damage.total, saved: saveDamage({ damage: rolled, onSuccess: effect.onSuccess, defenses: save.defenses }, true, ctx.deps.rng).total } }
+          : {}),
+        ...options.pending,
+      };
       ops.push(
-        addPendingSave({
-          id: ctx.deps.newId(),
-          entryId,
-          targetTokenId: target.id,
-          targetName: target.name,
-          label: effect.name.slice(0, 100),
-          ...(damage?.proposalId !== undefined
-            ? { damage: { proposalId: damage.proposalId, failed: damage.total, saved: saveDamage({ damage: rolled, onSuccess: effect.onSuccess, defenses: save.defenses }, true, ctx.deps.rng).total } }
-            : {}),
-          ...options.pending,
-        }),
+        holder
+          ? pendingInspiration(ctx, {
+              characterId: holder.id,
+              characterName: holder.name,
+              label: effect.name.slice(0, 100),
+              dc: effect.dc,
+              roll: { mode: save.input.mode, dice: result.roll.dice, natural: result.roll.natural, modifier: save.input.modifier, total: result.roll.total, notes: d20StepNotes(result.roll.steps).slice(0, 50) },
+              wait: { kind: 'save', save: consequences },
+            })
+          : addPendingSave({ id: ctx.deps.newId(), ...consequences }),
       );
     }
     return {

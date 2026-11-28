@@ -1,6 +1,7 @@
-import { applyHitPointChange, clampHitPoints, currentHitPoints, d20StepNotes, type DerivedSheet, effectiveConditions, deathAfterDamage, deathAfterHealing, type DeathSaveState, type HitPointChange, type HitPointResult, resolveDeathSave, concentrationDc, rollD20, sheetD20, withoutDependents } from 'rules-engine';
+import { applyHitPointChange, clampHitPoints, DEATH_SAVE_DC, inspirationUseless, currentHitPoints, d20StepNotes, type DerivedSheet, effectiveConditions, deathAfterDamage, deathAfterHealing, type DeathSaveState, type HitPointChange, type HitPointResult, resolveDeathSave, concentrationDc, rollD20, sheetD20, withoutDependents } from 'rules-engine';
 import { type ChatEntry, type ConditionState, type IntentData, type PatchOp, type Role, type SessionCharacter, type SessionState, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
+import { canInspire, pendingInspiration } from './inspiration';
 import { tokenDamaged } from './monster-concentration';
 import { liftSpellConditions } from './spell-effects';
 
@@ -64,12 +65,44 @@ export function rollDeathSave(ctx: SessionContext, playerId: string, state: Sess
   const roll = sheetD20(sheet, { kind: 'death_save' });
   if (!roll) return [];
   const result = rollD20(roll.input, ctx.deps.rng);
-  const resolved = resolveDeathSave(character.deathSaves, { total: result.total, natural1: result.fumble, natural20: result.critical });
   const notes = [
     ...(roll.advantage.length > 0 ? [`Vantagem: ${roll.advantage.join(', ')}`] : []),
     ...(roll.disadvantage.length > 0 ? [`Desvantagem: ${roll.disadvantage.join(', ')}`] : []),
     ...d20StepNotes(result.steps),
   ];
+  const rolled: DeathRoll = { mode: roll.input.mode, dice: result.dice, natural: result.natural, modifier: roll.input.modifier, total: result.total, natural1: result.fumble, natural20: result.critical };
+  // Uma falha simples (não o 1) com um dado de inspiração à mão espera o dono (nota 0080).
+  const failed = resolveDeathSave(character.deathSaves, rolled).outcome === 'failure';
+  if (failed && canInspire(character, sheet, 'save') && inspirationUseless(result, 'save') === undefined) {
+    return [
+      pendingInspiration(ctx, {
+        characterId: character.id,
+        characterName: character.name,
+        label: 'Salvaguarda contra a Morte',
+        dc: DEATH_SAVE_DC,
+        roll: { mode: rolled.mode, dice: rolled.dice, natural: rolled.natural, modifier: rolled.modifier, total: rolled.total, notes: notes.slice(0, 50) },
+        wait: { kind: 'death' },
+      }),
+    ];
+  }
+  return applyDeathSave(ctx, playerId, character, sheet, rolled, notes);
+}
+
+/** O d20 de uma Salvaguarda contra a Morte. */
+export interface DeathRoll {
+  mode: 'normal' | 'advantage' | 'disadvantage';
+  dice: number[];
+  natural: number;
+  modifier: number;
+  total: number;
+  natural1: boolean;
+  natural20: boolean;
+}
+
+/** Aplica o resultado da Salvaguarda contra a Morte pelo motor e publica o `death_save`. */
+export function applyDeathSave(ctx: SessionContext, playerId: string, character: SessionCharacter, sheet: DerivedSheet, rolled: DeathRoll, rollNotes: string[]): PatchOp[] {
+  const resolved = resolveDeathSave(character.deathSaves, rolled);
+  const notes = [...rollNotes];
   let ops: PatchOp[];
   let deathSaves = resolved.state;
   if (resolved.outcome === 'revived') {
@@ -89,11 +122,11 @@ export function rollDeathSave(ctx: SessionContext, playerId: string, state: Sess
       ...ctx.entryBase(playerId),
       characterId: character.id,
       characterName: character.name,
-      mode: roll.input.mode,
-      dice: result.dice,
-      natural: result.natural,
-      modifier: roll.input.modifier,
-      total: result.total,
+      mode: rolled.mode,
+      dice: rolled.dice,
+      natural: rolled.natural,
+      modifier: rolled.modifier,
+      total: rolled.total,
       outcome: resolved.outcome,
       deathSaves,
       notes: notes.slice(0, 50),
@@ -275,6 +308,21 @@ export function concentrationSave(
       notes: [...d20StepNotes(result.steps), ...roll.reminders].slice(0, 50),
     }),
   ];
-  if (!success) ops.push(...endConcentration(ctx, playerId, character, 'failed_save'));
-  return { ops, kept: success };
+  if (success) return { ops, kept: true };
+  // Com um dado de inspiração à mão, a perda espera o dono (nota 0080).
+  if (canInspire(character, sheet, 'save') && inspirationUseless(result, 'save') === undefined) {
+    ops.push(
+      pendingInspiration(ctx, {
+        characterId: character.id,
+        characterName: character.name,
+        label: `Concentração: ${concentration.name}`.slice(0, 100),
+        dc,
+        roll: { mode: roll.input.mode, dice: result.dice, natural: result.natural, modifier: roll.input.modifier, total: result.total, notes: d20StepNotes(result.steps).slice(0, 50) },
+        wait: { kind: 'concentration', entryId: base.id, spellId: concentration.spellId },
+      }),
+    );
+    return { ops, kept: true };
+  }
+  ops.push(...endConcentration(ctx, playerId, character, 'failed_save'));
+  return { ops, kept: false };
 }
