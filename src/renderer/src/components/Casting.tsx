@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react';
+import { useEffect, type ReactNode, useState } from 'react';
 import type { DerivedSheet } from 'rules-engine';
 import { availableUses } from 'rules-engine/resources';
 import type { Ability, DamageType } from 'rules-engine/schemas';
@@ -127,7 +127,9 @@ export function CastSpellForm({ character, sheet, names }: { character: SessionC
 const usingLabel = (entry: Extract<ChatEntry, { kind: 'spell_cast' }>): string => {
   const { using } = entry;
   if (using === 'ritual') return 'ritual';
+  if (entry.tokenId !== undefined) return 'do bloco';
   if (using === 'free') return entry.level === 0 ? 'truque' : 'sem espaço';
+  if ('item' in using) return 'por item';
   return using.slot === 'pact' ? 'espaço de Pacto' : `espaço de ${using.slot.level}º`;
 };
 
@@ -149,7 +151,8 @@ function partSummary(part: SpellEffectPart, effect: NonNullable<CastEntry['effec
     const effects = part.effects.map(describeEffect).join(' · ');
     const choice = part.options.length > 0 ? `à escolha: ${part.options.map((o) => o.label).join(', ')}` : '';
     const ends = part.endConditions.length > 0 ? ` · termina ${part.endConditions.map((c) => CONDITION_LABEL[c]).join(', ')}` : '';
-    return `${[effects, choice].filter((t) => t !== '').join(' · ')}${targets}${ends}`;
+    const end = part.effectsEnd ? ` (${END_LABEL[part.effectsEnd]})` : '';
+    return `${[effects, choice].filter((t) => t !== '').join(' · ')}${end}${targets}${ends}`;
   }
   if (part.kind === 'heal') {
     const amount = part.healing === 'full' ? 'todos os PV' : part.healing;
@@ -172,17 +175,48 @@ function partSummary(part: SpellEffectPart, effect: NonNullable<CastEntry['effec
     how = `${count}dano direto`;
   }
   const extra = conditions.length > 0 ? ` · ${part.kind === 'attack' ? 'no acerto' : 'na falha'}: ${conditionText}${end}` : '';
-  return `${how}${damage ? ` · ${damage}` : ''}${extra}`;
+  const failEffects = part.kind === 'save' && part.onFailEffects.length > 0 ? ` · na falha: ${part.onFailEffects.map(describeEffect).join(' · ')}` : '';
+  const failOptions = part.kind === 'save' && part.options.length > 0 ? ` · na falha, à escolha: ${part.options.map((o) => o.label).join(', ')}` : '';
+  return `${how}${damage ? ` · ${damage}` : ''}${extra}${failEffects}${failOptions}`;
+}
+
+/** Armas empunhadas do personagem alvo, pela ficha dele. */
+function WeaponPicker({ characterId, value, onChange }: { characterId: string | null; value: string; onChange: (id: string) => void }) {
+  const [weapons, setWeapons] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    let alive = true;
+    onChange('');
+    if (characterId !== null) {
+      void window.vtt.characterSheet(characterId).then((result) => {
+        if (alive && result.ok) setWeapons((result.value.sheet?.attacks ?? []).map((a) => ({ id: a.instanceId, name: a.name })));
+      });
+    }
+    return () => {
+      alive = false;
+    };
+  }, [characterId, onChange]);
+  return (
+    <select aria-label="Arma" value={value} onChange={(e) => { onChange(e.target.value); }}>
+      <option value="">{weapons.length > 0 ? 'arma…' : 'sem arma empunhada'}</option>
+      {weapons.map((w) => (
+        <option key={w.id} value={w.id}>
+          {w.name}
+        </option>
+      ))}
+    </select>
+  );
 }
 
 /** Alvos e opções de uma parte: um alvo por ataque ou projétil (pode repetir), ou alvos distintos (salvaguarda, cura, condição). */
-function SpellPartForm({ entry, part, index, targets }: { entry: CastEntry; part: SpellEffectPart; index: number; targets: { id: string; name: string }[] }) {
+function SpellPartForm({ entry, part, index, targets }: { entry: CastEntry; part: SpellEffectPart; index: number; targets: { id: string; name: string; characterId: string | null }[] }) {
   const slots = pickPerSlot(part) ? part.count : 0;
   const [picks, setPicks] = useState<string[]>(() => Array.from({ length: slots }, () => ''));
   const [selected, setSelected] = useState<string[]>([]);
   const choices = 'damage' in part ? part.damage.flatMap((d) => (typeof d.type === 'string' ? [] : d.type)) : [];
   const conditionChoices = part.kind === 'save' && part.conditionChoice ? part.onFailConditions.filter((c): c is TableCondition => c !== 'exhaustion') : [];
-  const options = part.kind === 'buff' ? part.options : [];
+  const options = part.kind === 'buff' || part.kind === 'save' ? part.options : [];
+  const needsWeapon = part.kind === 'buff' && part.weapon !== undefined;
+  const [weaponId, setWeaponId] = useState('');
   const [option, setOption] = useState('');
   const [damageType, setDamageType] = useState<DamageType | ''>('');
   const [condition, setCondition] = useState<TableCondition | ''>('');
@@ -191,12 +225,14 @@ function SpellPartForm({ entry, part, index, targets }: { entry: CastEntry; part
   const [busy, setBusy] = useState(false);
   const chosen = pickPerSlot(part) ? picks.filter((p) => p !== '') : selected;
   const limit = !pickPerSlot(part) ? part.count : undefined;
+  const weaponOwner = targets.find((t) => t.id === selected[0])?.characterId ?? null;
   const ready =
     chosen.length > 0 &&
     (limit === undefined || chosen.length <= limit) &&
     (choices.length === 0 || damageType !== '') &&
     (conditionChoices.length === 0 || condition !== '') &&
-    (options.length === 0 || option !== '');
+    (options.length === 0 || option !== '') &&
+    (!needsWeapon || weaponId !== '');
   const send = (): void => {
     setBusy(true);
     void sendIntent({
@@ -208,6 +244,7 @@ function SpellPartForm({ entry, part, index, targets }: { entry: CastEntry; part
         ...(damageType !== '' ? { damageType } : {}),
         ...(condition !== '' ? { condition } : {}),
         ...(option !== '' ? { option: Number(option) } : {}),
+        ...(needsWeapon ? { weaponId } : {}),
         ...((part.kind === 'attack' || part.kind === 'save') && mode !== 'normal' ? { [mode]: true } : {}),
       },
     }).then((refused) => {
@@ -265,6 +302,7 @@ function SpellPartForm({ entry, part, index, targets }: { entry: CastEntry; part
             ))}
           </select>
         )}
+        {needsWeapon && <WeaponPicker key={weaponOwner ?? ''} characterId={weaponOwner} value={weaponId} onChange={setWeaponId} />}
         {conditionChoices.length > 0 && (
           <select aria-label="Condição" value={condition} onChange={(e) => { setCondition(conditionChoices.find((c) => c === e.target.value) ?? ''); }}>
             <option value="">condição…</option>
@@ -300,8 +338,9 @@ function SpellEffect({ entry, state, viewer }: { entry: CastEntry; state: Sessio
   const [open, setOpen] = useState<number | null>(null);
   const { effect } = entry;
   if (!effect) return null;
-  const character = state.characters[entry.characterId];
-  const canUse = viewer.role === 'gm' || character?.ownerId === viewer.playerId;
+  const character = entry.characterId !== undefined ? state.characters[entry.characterId] : undefined;
+  const casterToken = entry.tokenId !== undefined ? state.tokens[entry.tokenId] : undefined;
+  const canUse = viewer.role === 'gm' || character?.ownerId === viewer.playerId || casterToken?.ownerIds.includes(viewer.playerId) === true;
   // Partes já usadas (magia instantânea: uma vez cada).
   const used = new Set(state.chat.flatMap((e) => ('spellOf' in e && e.spellOf?.entryId === entry.id ? [e.spellOf.part] : [])));
   const once = entry.duration === 'Instantaneous';
@@ -309,7 +348,7 @@ function SpellEffect({ entry, state, viewer }: { entry: CastEntry; state: Sessio
   // Todos os tokens do mapa, inclusive o de quem conjurou (cura e Invisibility em si mesmo).
   const targets = Object.values(state.tokens)
     .filter((t) => t.mapId === mapId)
-    .map((t) => ({ id: t.id, name: t.name }));
+    .map((t) => ({ id: t.id, name: t.name, characterId: t.characterId }));
   return (
     <ul className="spell-parts">
       {effect.parts.map((part, i) => {
@@ -344,7 +383,7 @@ export function SpellEffectEndedBody({ entry, header }: { entry: Extract<ChatEnt
       {header}
       <p>
         {entry.characterName}: fim de {entry.effectName}
-        <span className="hint"> ({entry.reason === 'concentration' ? 'a Concentração acabou' : 'encerrado'})</span>
+        <span className="hint"> ({{ concentration: 'a Concentração acabou', removed: 'encerrado', duration: 'fim da duração', replaced: 'a magia foi usada em outro alvo', broken: 'condição, armadura ou morte' }[entry.reason]})</span>
       </p>
     </li>
   );

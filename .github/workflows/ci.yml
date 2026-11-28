@@ -58,3 +58,47 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+  # Testes de ponta a ponta (nota 0073): só no Linux, com tela virtual.
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      # Instala o pnpm da versão fixada em `packageManager` (package.json); sem Corepack (nota 0024).
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          # A mesma versão do Node embutido no Electron (o SQLite do app vem dele).
+          node-version: 24
+          # O cache do pnpm é feito abaixo, pelo caminho do store.
+          package-manager-cache: false
+
+      - name: Get pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: End-to-end tests
+        run: xvfb-run --auto-servernum pnpm test:e2e
+
+      # Capturas de tela dos testes que falharam.
+      - name: Upload report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7

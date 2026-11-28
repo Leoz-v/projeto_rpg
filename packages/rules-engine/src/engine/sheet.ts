@@ -16,6 +16,12 @@ import type { Predicate } from '../schemas/predicate';
 import type { Compendium } from '../srd';
 import { resolveBuild, type SourcedEffect } from './build';
 import { type ConditionRoll, conditionDefenses, conditionSource, effectiveConditions, ownRollConditions, SPEED_ZERO_CONDITIONS } from './conditions';
+import { availableCharges, type ChargedItem, chargedItem, itemSpellCosts, itemSpellLevel } from './item-charges';
+import { scrollOf, scrollReading } from './scrolls';
+import type { AttackRider } from './attack-riders';
+import { addDice } from './spells';
+import { resolveFeatureUses } from './feature-uses';
+import { itemUse, itemUseOptions } from './item-use';
 import { type MagicPart, resolveInventory } from './items';
 import { isWeaponProficient } from './proficiency';
 import { deriveVisionProfile } from './vision';
@@ -188,7 +194,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     ...build.effects,
     ...adjustments.flatMap((adj) => {
       const source: SourceLabel = { kind: 'adjustment', id: adj.id, name: adj.name };
-      return adj.effects.map((effect): SourcedEffect => ({ effect, source, refKey: `adjustment:${adj.id}` }));
+      return adj.effects.map((effect): SourcedEffect => ({ effect, source, refKey: adj.weapon !== undefined ? `item:${adj.weapon}` : `adjustment:${adj.id}` }));
     }),
     ...(input.conditions?.active ?? []).map((c): SourcedEffect => ({ effect: { type: 'condition', condition: c.condition }, source: TABLE_CONDITION_SOURCE, refKey: 'table:conditions' })),
     ...(input.conditions && input.conditions.exhaustion > 0
@@ -209,6 +215,12 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
         : [],
     ]),
   );
+  // Magia na arma (Shillelagh): o ajuste altera a entrada do inventário a que pertence.
+  for (const adj of adjustments) {
+    if (adj.weapon === undefined) continue;
+    const own = adj.effects.filter((e): e is BaseOverride => e.type === 'base_override' && (!e.when || evaluatePredicate(e.when, ctx) === true));
+    if (own.length > 0) overridesOf.set(adj.weapon, [...(overridesOf.get(adj.weapon) ?? []), ...own]);
+  }
   const overrides = (instanceId: string): BaseOverride[] => overridesOf.get(instanceId) ?? [];
   /** Efeitos ativos de cada entrada do inventário (item base e parte mágica), com a fonte. */
   const itemEffects = entries.map(({ entry, item, magic }) => {
@@ -458,6 +470,14 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     }),
   ) as Record<Skill, SkillStat>;
 
+  const checks = Object.fromEntries(
+    ABILITIES.map((a) => {
+      const targets = [`check.${a}`];
+      const parts: Contribution[] = [{ label: `Modificador de ${ABILITY_NAME[a]}`, value: mod(a) }, ...bonuses(targets), ...exhaustionPart()];
+      return [a, { ...stat(parts), roll: rollState(targets, undefined, [], ['check.all'], { kind: 'check' }) } satisfies RollStat];
+    }),
+  ) as Record<Ability, RollStat>;
+
   const initiativeTargets = ['initiative', 'check.dex'];
   const initiative: RollStat = {
     ...stat([{ label: 'Modificador de DES', value: mod('dex') }, ...bonuses(initiativeTargets), ...exhaustionPart()]),
@@ -485,7 +505,13 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     { label: 'Modificador de DES', value: mod('dex') },
   ];
   const bestFormula = [defaultFormula, ...formulas].reduce((best, f) => (total(f) > total(best) ? f : best));
-  const ac = stat([...bestFormula, ...bonuses(['ac'])]);
+  const acParts = [...bestFormula, ...bonuses(['ac'])];
+  // CA mínima (Barkskin): completa o que falta, depois de tudo.
+  for (const { effect, source } of effectsOf('minimum_ac')) {
+    const current = total(acParts);
+    if (current < effect.value) acParts.push({ label: `Mínimo ${effect.value}`, value: effect.value - current, source });
+  }
+  const ac = stat(acParts);
 
   // --- PV ---------------------------------------------------------------------
 
@@ -630,7 +656,8 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       (w, o) => ({
         ...w,
         properties: [...new Set([...w.properties, ...(o.addProperties ?? [])])],
-        damage: { ...w.damage, type: o.damageType ?? w.damage.type },
+        damage: { ...w.damage, dice: o.damageDice ?? w.damage.dice, type: o.damageType ?? w.damage.type },
+        ...(w.versatileDice && o.damageDice ? { versatileDice: o.damageDice } : {}),
       }),
       weapon,
     );
@@ -644,12 +671,55 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       }),
     );
 
+  /** Círculo dos espaços de Pacto, se há. */
+  const pactSlotLevel = (): number | undefined => {
+    for (const c of build.classes) {
+      if (find(compendium.classes, c.classId)?.spellcasting?.progression === 'pact') return pactMagicSlots(c.level)?.level;
+    }
+    return undefined;
+  };
+  /** Dano extra condicional (nota 0077); o de mesmo id que vem depois substitui, no lugar do anterior. */
+  const attackRiders = (weapon: Weapon, instanceId: string, ability: Ability, roll: RollContext): AttackRider[] => {
+    const found = new Map<string, AttackRider>();
+    for (const e of effectsOf('attack_rider', roll)) {
+      const { effect } = e;
+      if (effect.scope === 'weapon' && e.refKey !== `item:${instanceId}`) continue;
+      if (effect.ability !== undefined && effect.ability !== ability) continue;
+      const pact = effect.cost && 'pactSlot' in effect.cost ? effect.cost : undefined;
+      const pactLevel = pact ? pactSlotLevel() : undefined;
+      if (pact && pactLevel === undefined) continue;
+      const base = typeof effect.dice === 'string' ? effect.dice : effect.dice.byLevel[Math.max(1, scaleLevel(e.classId)) - 1];
+      if (base === undefined) continue;
+      const { cost } = effect;
+      found.set(effect.id, {
+        id: effect.id,
+        name: effect.name,
+        dice: pact && pactLevel !== undefined ? addDice(base, pact.perSlotLevel, pactLevel) : base,
+        types: effect.damageType === undefined ? [weapon.damage.type] : typeof effect.damageType === 'string' ? [effect.damageType] : effect.damageType,
+        mode: effect.mode,
+        oncePerTurn: effect.oncePerTurn === true,
+        ...(effect.ability ? { ability: effect.ability } : {}),
+        ...(effect.onlyTypes ? { onlyTypes: effect.onlyTypes } : {}),
+        ...(effect.exceptTypes ? { exceptTypes: effect.exceptTypes } : {}),
+        injured: effect.injured === true,
+        natural20: effect.natural20 === true,
+        sneak: effect.sneak === true,
+        ...(cost ? { cost: 'resource' in cost ? { kind: 'resource' as const, resourceId: cost.resource } : 'charges' in cost ? { kind: 'charges' as const, amount: cost.charges } : { kind: 'pact_slot' as const } } : {}),
+        ...(effect.note !== undefined ? { note: effect.note } : {}),
+        source: namedSource(e),
+      });
+    }
+    return [...found.values()];
+  };
+
   const attackFor = (base: Weapon, instanceId: string, name: string): WeaponAttack => {
     const weapon = overriddenWeapon(base, instanceId);
     const finesse = weapon.properties.includes('finesse');
     const allowed: Ability[] = weapon.attackKind === 'ranged' ? ['dex'] : finesse ? ['str', 'dex'] : ['str'];
     const ctxForAbility: RollContext = { attack: { kind: weapon.attackKind, properties: weapon.properties, category: weapon.category, weaponId: weapon.id } };
-    for (const { effect } of effectsOf('attack_ability', ctxForAbility)) allowed.push(effect.ability);
+    for (const { effect, refKey } of effectsOf('attack_ability', ctxForAbility)) {
+      if (effect.scope !== 'weapon' || refKey === `item:${instanceId}`) allowed.push(effect.ability);
+    }
     // O maior modificador entre os permitidos; empate fica com o primeiro (o atributo normal da arma).
     const ability = allowed.reduce((best, a) => (mod(a) > mod(best) ? a : best));
     const proficient = weaponProficient(weapon, instanceId);
@@ -693,6 +763,7 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       extraDamage: effectsOf('extra_damage', attackCtx)
         .filter(({ effect, refKey }) => effect.scope !== 'weapon' || refKey === `item:${instanceId}`)
         .map((e) => ({ dice: e.effect.dice, type: e.effect.damageType ?? weapon.damage.type, source: namedSource(e) })),
+      riders: attackRiders(weapon, instanceId, ability, attackCtx),
       critRange: Math.min(CRITICAL_HIT, ...effectsOf('crit_range', attackCtx).map(({ effect }) => effect.min)),
       versatileDice: weapon.versatileDice,
       versatileDieMinimum: versatileCtx ? dieMinimum(versatileCtx) : undefined,
@@ -766,11 +837,30 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
   }
 
   const resolved = new Map(entries.map((e) => [e.entry.instanceId, e]));
+  const chargesLine = (charged: ChargedItem, entry: Inventory['items'][number]): NonNullable<InventoryLine['charges']> => ({
+    max: charged.max,
+    available: availableCharges(charged.max, entry),
+    ...(charged.regain !== undefined ? { regain: charged.regain } : {}),
+    spells: (charged.item.casting?.spells ?? []).flatMap((s) => {
+      const spell = find(compendium.spells, s.spellId);
+      if (!spell) return [];
+      return [{ spellId: s.spellId, name: spell.name, level: spell.level, ...(s.note !== undefined ? { note: s.note } : {}), costs: itemSpellCosts(s).map((charges) => ({ charges, level: itemSpellLevel(s, spell.level, charges) })) }];
+    }),
+  });
+  const scrollLine = (entry: Inventory['items'][number]): NonNullable<InventoryLine['scroll']> => {
+    const spell = entry.spellId !== undefined ? find(compendium.spells, entry.spellId) : undefined;
+    if (!spell) return { spell: null, problem: 'Sem magia definida' };
+    const reading = scrollReading(spell, { spellcasting: { classes: casterClasses, slots: spellSlots(casterLevel), pactSlots }, abilities });
+    return { spell: spell.name, ...(reading.onList ? {} : { problem: 'Fora da lista de magias' }), ...(reading.checkDc !== undefined ? { checkDc: reading.checkDc } : {}) };
+  };
   const inventoryLines: InventoryLine[] = inventory.items.map((entry) => {
     const r = resolved.get(entry.instanceId);
     const item = find(compendium.items, entry.itemId);
     const magicItem = item?.kind === 'magic_item' ? item : undefined;
     const base = r && r.magic && r.item.id !== r.magic.item.id ? ` (${r.item.name})` : '';
+    const charged = chargedItem(item);
+    const scroll = scrollOf(item, entry.variantId);
+    const use = item && r ? itemUse(item, entry.variantId) : undefined;
     const active = r === undefined ? false : r.magic ? magicActive(r.magic, entry) : isItemActive(r.item.activation, entry);
     return {
       instanceId: entry.instanceId,
@@ -782,6 +872,9 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
       attuned: entry.attuned,
       requiresAttunement: magicItem?.attunement !== undefined || item?.activation === 'attuned',
       active,
+      ...(scroll ? { scroll: scrollLine(entry) } : {}),
+      ...(r && charged ? { charges: chargesLine(charged, entry) } : {}),
+      ...(use ? { use: { targets: use.targets, options: itemUseOptions(use) } } : {}),
     };
   });
 
@@ -888,6 +981,11 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     issues,
     levelUp: build.levelUp,
     inventory: inventoryLines,
+    featureUses: resolveFeatureUses(
+      effectsOf('feature_use').map((e) => ({ effect: e.effect, classId: e.classId, source: namedSource(e) })),
+      effectsOf('feature_use_part').map((e) => ({ effect: e.effect, classId: e.classId, source: namedSource(e) })),
+      { bonus: bonusValue, scaleLevel },
+    ),
     attunement: { used: attuned, limit: attunementLimit },
     level,
     classes: build.classes,
@@ -904,9 +1002,16 @@ export function deriveSheet(input: SheetInput): DerivedSheet {
     speed,
     saves,
     skills,
+    checks,
     senses: [...senseMap.values()],
     vision,
     defenses,
+    attacksAgainst: effectsOf('attacks_against').map((e) => ({
+      mode: e.effect.mode,
+      ...(e.effect.from ? { from: e.effect.from } : {}),
+      ...(e.effect.note !== undefined ? { note: e.effect.note } : {}),
+      source: namedSource(e),
+    })),
     proficiencies,
     weaponMasteries,
     attacks,

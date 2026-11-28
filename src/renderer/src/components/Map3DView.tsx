@@ -7,13 +7,14 @@ import {
   extractHeightfieldFromMapDoc,
   extractPropLightsFrom3dMapDocument,
   type GameMap,
+  type Point,
   resolveActiveLightSources,
   type SessionCharacter,
   type Token,
 } from '../../../shared/protocol';
-import { conditionLabels, timedEffectLabels, tokenConditions } from '../canvas/conditions';
+import { conditionLabels, spellEffectLabels, timedEffectLabels, tokenConditions } from '../canvas/conditions';
 import type { FogTool, FogViewer } from '../canvas/fog-render';
-import { tokenHealth } from '../canvas/health';
+import { isTokenDead, tokenHealth } from '../canvas/health';
 import type { MapStageHandle } from '../canvas/MapStage';
 import { DEFAULT_RULER_OPTIONS, type RulerOptions } from '../canvas/ruler';
 import {
@@ -43,6 +44,7 @@ import { sendIntent } from '../store/table';
 import { FogHudControls } from './FogHudControls';
 import type { MapViewerMode } from './MapView';
 import { RulerOptionsBar } from './RulerControls';
+import { TokenHud } from './TokenHud';
 
 /**
  * Visualização 3D da mesa (somente leitura do terreno): usada por jogadores e
@@ -59,10 +61,13 @@ interface Props {
   map: GameMap;
   maxima: Record<string, number>;
   visionProfiles?: Readonly<Record<string, VisionProfile>>;
-  selectedId: string | null;
+  selectedIds: readonly string[];
+  targetedIds: readonly string[];
   fogTool: FogTool;
   onFogTool: (tool: FogTool) => void;
-  onSelect: (tokenId: string | null) => void;
+  onSelect: (tokenIds: string[]) => void;
+  onToggleTarget: (tokenId: string) => void;
+  onOpenSheet: (tokenId: string) => void;
   onStage: (stage: MapStageHandle | null) => void;
   isGm: boolean;
   onViewerModeChange: (mode: MapViewerMode) => void;
@@ -122,7 +127,7 @@ function load2dBackgroundImage(sha256: string): Promise<HTMLImageElement> {
   });
 }
 
-export function Map3DView({ view, map, maxima, visionProfiles, selectedId, fogTool, onFogTool, onSelect, onStage, isGm, onViewerModeChange, onEditMap }: Props) {
+export function Map3DView({ view, map, maxima, visionProfiles, selectedIds, targetedIds, fogTool, onFogTool, onSelect, onToggleTarget, onOpenSheet, onStage, isGm, onViewerModeChange, onEditMap }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<ActiveViewer | null>(null);
   const [viewer, setViewer] = useState<ActiveViewer | null>(null);
@@ -134,10 +139,11 @@ export function Map3DView({ view, map, maxima, visionProfiles, selectedId, fogTo
   const [rulerOptions, setRulerOptions] = useState<RulerOptions>({ ...DEFAULT_RULER_OPTIONS });
   const [fogHudOpen, setFogHudOpen] = useState(false);
   const [previewTokenVision, setPreviewTokenVision] = useState(true);
+  const [hudState, setHudState] = useState<{ tokenId: string; pos: Point } | null>(null);
 
-  const latest = useRef({ onSelect, onStage });
+  const latest = useRef({ onSelect, onStage, onOpenSheet, onToggleTarget });
   useLayoutEffect(() => {
-    latest.current = { onSelect, onStage };
+    latest.current = { onSelect, onStage, onOpenSheet, onToggleTarget };
   });
 
   const sceneHash = map.scene3d;
@@ -167,7 +173,7 @@ export function Map3DView({ view, map, maxima, visionProfiles, selectedId, fogTo
         return;
       }
 
-      scene.setLeftButtonAction('pan');
+      scene.setLeftButtonAction('none');
       scene.skybox.mesh.visible = false;
       scene.setEnvironmentAndAtmosphere({
         skyColor: 0xd0d4de,
@@ -262,14 +268,32 @@ export function Map3DView({ view, map, maxima, visionProfiles, selectedId, fogTo
       );
 
       const tokens3d = new TokenRenderer3d(scene, surfaceGrid, {
-        onSelect: (id) => {
-          latest.current.onSelect(id);
+        onSelect: (ids) => {
+          latest.current.onSelect(ids);
         },
         onMove: (tokenId, to) => {
           void sendIntent({ kind: 'token.move', data: { tokenId, to } }).then((refused) => {
             setError(refused);
             if (refused) tokens3d.revert(tokenId);
           });
+        },
+        onRotate: (tokenId, rotation) => {
+          void sendIntent({ kind: 'token.update', data: { tokenId, rotation } }).then((refused) => {
+            setError(refused);
+            if (refused) tokens3d.revert(tokenId);
+          });
+        },
+        onOpenSheet: (tokenId) => {
+          latest.current.onOpenSheet(tokenId);
+        },
+        onOpenHud: (tokenId, screenPos) => {
+          setHudState((prev) => (prev?.tokenId === tokenId ? null : { tokenId, pos: screenPos }));
+        },
+        onCloseHud: () => {
+          setHudState(null);
+        },
+        onToggleTarget: (tokenId) => {
+          latest.current.onToggleTarget(tokenId);
         },
       });
 
@@ -364,8 +388,8 @@ export function Map3DView({ view, map, maxima, visionProfiles, selectedId, fogTo
         }
       };
 
-      // Controles padrão de mesa 3D: botão esquerdo arrasta/faz pan (ou arrasta token), direito orbita, meio faz pan.
-      scene.setLeftButtonAction('pan');
+      // Controles padrão de mesa 3D: botão esquerdo seleciona/arrasta tokens e ferramentas, direito orbita (ou faz pan em Topo), meio faz pan.
+      scene.setLeftButtonAction('none');
 
       const surfaceRenderer = new TerrainRenderer(surfaceGrid, scene.terrainRoot, scene.overlayRoot);
       const interiorRenderer = new TerrainRenderer(interiorGrid, scene.interiorTerrainRoot, scene.overlayRoot);
@@ -432,14 +456,32 @@ export function Map3DView({ view, map, maxima, visionProfiles, selectedId, fogTo
         doc.liquids ?? [],
       );
       const tokens3d = new TokenRenderer3d(scene, surfaceGrid, {
-        onSelect: (id) => {
-          latest.current.onSelect(id);
+        onSelect: (ids) => {
+          latest.current.onSelect(ids);
         },
         onMove: (tokenId, to) => {
           void sendIntent({ kind: 'token.move', data: { tokenId, to } }).then((refused) => {
             setError(refused);
             if (refused) tokens3d.revert(tokenId);
           });
+        },
+        onRotate: (tokenId, rotation) => {
+          void sendIntent({ kind: 'token.update', data: { tokenId, rotation } }).then((refused) => {
+            setError(refused);
+            if (refused) tokens3d.revert(tokenId);
+          });
+        },
+        onOpenSheet: (tokenId) => {
+          latest.current.onOpenSheet(tokenId);
+        },
+        onOpenHud: (tokenId, screenPos) => {
+          setHudState((prev) => (prev?.tokenId === tokenId ? null : { tokenId, pos: screenPos }));
+        },
+        onCloseHud: () => {
+          setHudState(null);
+        },
+        onToggleTarget: (tokenId) => {
+          latest.current.onToggleTarget(tokenId);
         },
       });
 
@@ -580,28 +622,33 @@ export function Map3DView({ view, map, maxima, visionProfiles, selectedId, fogTo
   }, [map.id, sceneHash, bgHash, cellPx, mapWidth, mapHeight, mapName]);
 
   const { state, info } = view;
-  const selectedToken = selectedId !== null ? (state.tokens[selectedId] ?? null) : null;
+  const primarySelectedId = selectedIds[selectedIds.length - 1] ?? null;
+  const selectedToken = primarySelectedId !== null ? (state.tokens[primarySelectedId] ?? null) : null;
+  const hudToken = hudState !== null ? (state.tokens[hudState.tokenId] ?? null) : null;
   const showFogHud = isGm && (fogHudOpen || fogTool !== 'none');
 
   useEffect(() => {
     const tokens = Object.values(state.tokens);
-    const viewerInfo = { role: info.role, playerId: info.playerId, previewTokenId: isGm && previewTokenVision ? selectedId : null };
+    const viewerInfo = { role: info.role, playerId: info.playerId, previewTokenId: isGm && previewTokenVision ? primarySelectedId : null };
     viewer?.tokens3d.setScene({
       map,
       tokens,
       canDrag: (token) => info.role === 'gm' || token.ownerIds.includes(info.playerId),
-      selectedId,
-      activeId: state.combat?.combatants[state.combat.turn]?.tokenId ?? null,
+      selectedIds,
+      targetedIds,
+      activeId: state.combat && !state.combat.hiddenTurn ? (state.combat.combatants[state.combat.turn]?.tokenId ?? null) : null,
       conditions: (token) => [
         ...conditionLabels(tokenConditions(token, state.characters)),
+        ...spellEffectLabels(token, state.characters),
         ...timedEffectLabels(token, { combat: state.combat, tokens: state.tokens }),
       ],
       health: (token) => tokenHealth(token, state.characters, maxima),
+      isDead: (token) => isTokenDead(token, state.characters),
       viewer: viewerInfo,
       fogTool: isGm ? fogTool : 'none',
     });
     viewer?.syncLightingAndVision(map, tokens, viewerInfo, visionProfiles, state.characters);
-  }, [viewer, map, state.tokens, state.characters, state.combat, maxima, visionProfiles, info.role, info.playerId, selectedId, isGm, previewTokenVision, fogTool]);
+  }, [viewer, map, state.tokens, state.characters, state.combat, maxima, visionProfiles, info.role, info.playerId, selectedIds, targetedIds, primarySelectedId, isGm, previewTokenVision, fogTool]);
 
   useEffect(() => {
     if (!viewer) return;
@@ -645,7 +692,7 @@ export function Map3DView({ view, map, maxima, visionProfiles, selectedId, fogTo
     const v = viewerRef.current;
     if (!v) return;
     v.scene.setCameraViewMode(mode);
-    v.scene.setLeftButtonAction(rulerActive || (isGm && fogTool !== 'none') ? 'none' : 'pan');
+    v.scene.setLeftButtonAction('none');
     setCamMode(mode);
   };
 
@@ -776,6 +823,20 @@ export function Map3DView({ view, map, maxima, visionProfiles, selectedId, fogTo
           previewTokenVision={previewTokenVision}
           onPreviewTokenVision={setPreviewTokenVision}
           onError={setError}
+        />
+      )}
+      {hudState !== null && hudToken !== null && (
+        <TokenHud
+          view={view}
+          token={hudToken}
+          maxima={maxima}
+          position={hudState.pos}
+          isTargeted={targetedIds.includes(hudToken.id)}
+          onToggleTarget={onToggleTarget}
+          onOpenSheet={onOpenSheet}
+          onClose={() => {
+            setHudState(null);
+          }}
         />
       )}
       {loading && <p className="map-empty hint">Carregando mapa 3D…</p>}

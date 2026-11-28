@@ -20,12 +20,15 @@ import json, re, subprocess, sys
 from fractions import Fraction
 from pathlib import Path
 
+import item_use
+
 sys.stdout.reconfigure(encoding="utf-8")
 HERE = Path(__file__).resolve().parent
 DATA = HERE.parent.parent / "src" / "srd" / "data"
 PDF = sys.argv[1] if len(sys.argv) > 1 else str(HERE.parent / "SRD_CC_v5.2.1.pdf")
 ABILITY_NAMES = {"Strength": "str", "Dexterity": "dex", "Constitution": "con", "Intelligence": "int", "Wisdom": "wis",
                  "Charisma": "cha"}
+used = set()
 problems = []
 
 
@@ -265,6 +268,7 @@ for row in table:
     if name in CONSUMABLE:
         item["consumable"] = True
     item["description"] = clean_description(d["lines"])
+    used |= item_use.put(item, item_use.GEAR_USE, problems)
     gear.append(item)
 for name in descriptions:
     if name not in table_names and name not in GENERIC and name not in MAGIC and name != "Spell Scroll":
@@ -351,8 +355,11 @@ dups = {i for i in ids if ids.count(i) > 1}
 if dups:
     problems.append(f"ids repetidos: {sorted(dups)}")
 
-ORDER = ["id", "name", "kind", "category", "focus", "ability", "weight", "cost", "perPurchase", "consumable", "utilize",
+ORDER = ["id", "name", "kind", "category", "focus", "ability", "weight", "cost", "perPurchase", "consumable", "use", "utilize",
          "craft", "contents", "description"]
+for k in item_use.GEAR_USE:
+    if k not in used:
+        problems.append(f"uso curado sem item: {k}")
 for path, items in (("tools.json", tool_items), ("gear.json", gear)):
     items = sorted(({k: it[k] for k in ORDER if k in it and it[k] is not None} for it in items), key=lambda x: x["name"])
     with open(DATA / path, "w", encoding="utf-8", newline="\n") as fh:

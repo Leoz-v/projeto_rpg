@@ -5,12 +5,12 @@ import {
   defaultMapLighting,
   type ExtractedPropLight,
   type GameMap,
-  NO_CONDITIONS,
   type TerrainHeightfield,
   type Token,
   WORLD_UNITS_PER_CELL,
 } from '../../../../shared/protocol';
 import { fillVision3dMaskImageData, mapLightingConfigToPreset, visionLighting3dBit } from './visionShader3d';
+import { makeToken as makeFixtureToken } from '../../../../shared/protocol/test-fixtures';
 
 const MAP_ID = '00000000-0000-4000-8000-000000000001';
 const PLAYER_ID = '00000000-0000-4000-8000-000000000010';
@@ -42,21 +42,7 @@ function makeMap(width: number, height: number, override?: Partial<GameMap>): Ga
 }
 
 function makeToken(override?: Partial<Token>): Token {
-  return {
-    id: TOKEN_ID,
-    mapId: MAP_ID,
-    name: 'Herói',
-    position: { x: 0, y: 0 },
-    size: 'medium',
-    monsterId: null,
-    image: null,
-    ownerIds: [PLAYER_ID],
-    characterId: null,
-    hp: null,
-    conditions: NO_CONDITIONS,
-    visionFeet: null,
-    ...override,
-  };
+  return makeFixtureToken({ id: TOKEN_ID, mapId: MAP_ID, name: 'Herói', ownerIds: [PLAYER_ID], ...override });
 }
 
 describe('visionShader3d', () => {

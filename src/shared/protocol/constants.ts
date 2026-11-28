@@ -63,3 +63,6 @@ export const MAX_COINS = 1_000_000_000;
 /** Limites da fórmula de `dice.roll`. */
 export const MAX_FORMULA_LENGTH = 100;
 export const MAX_FORMULA_DICE = 100;
+
+/** Usos num Multiattack (Marilith: seis ataques e Constrict). */
+export const MAX_MULTIATTACK_STEPS = 12;
