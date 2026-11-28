@@ -221,7 +221,13 @@ function forcedSave(ctx: SessionContext, using: Using, part: Extract<ItemUsePart
 }
 
 /** As condições da falha contra um item, também quando o mestre aceita a falha que esperava a Resistência Lendária. */
-export function applyItemFailure(ctx: SessionContext, playerId: string, item: { label: string; conditions: Extract<ItemUsePart, { kind: 'save' }>['onFailConditions'] }, failed: Token[]): PatchOp[] {
+export function applyItemFailure(
+  ctx: SessionContext,
+  playerId: string,
+  item: { label: string; conditions: Extract<ItemUsePart, { kind: 'save' }>['onFailConditions']; endsOnDamage?: string | undefined },
+  failed: Token[],
+): PatchOp[] {
   const ledger = new ConditionLedger(ctx);
-  return failed.flatMap((target) => imposeConditions(ctx, playerId, ledger, target, item.conditions, {}, item.label).ops);
+  const timing = item.endsOnDamage !== undefined ? { endsOnDamage: { entryId: item.endsOnDamage } } : {};
+  return failed.flatMap((target) => imposeConditions(ctx, playerId, ledger, target, item.conditions, timing, item.label).ops);
 }

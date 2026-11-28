@@ -22,12 +22,12 @@ Tudo o que tem mecânica mas não tem efeito declarado:
 |---|---|---|
 | `structural` | A mecânica já existe em outro ponto do modelo: escolha, concessão ou conjuração no mesmo nível (ex.: "Expertise" é a escolha `expertise_1`). | 52 |
 | `automate` | Passivo e automatizável agora, estendendo o catálogo de efeitos. Fila abaixo. | 0 |
-| `phase_4` | Ação, reação, recurso, uso de item, ou efeito no momento da rolagem ou do dano contra um alvo (Sneak Attack, cargas, poções, Multiattack). | 386 |
+| `phase_4` | Ação, reação, recurso, uso de item, ou efeito no momento da rolagem ou do dano contra um alvo (Sneak Attack, cargas, poções, Multiattack). | 381 |
 | `phase_5` | Depende do estado de combate. Vazia desde a Concentração (nota 0045); conteúdo novo que dependa de turnos, iniciativa ou Concentração entra aqui. | 0 |
 | `phase_7` | Magias com mecânica a estruturar. Vazia desde a nota 0063. | 0 |
 | `gm` | Exploração, percepção, narrativa ou efeito permanente que é ajuste do mestre (Bag of Holding, Manuals e Tomes, Spider Climb), e 192 entradas de magias: 154 de utilidade, 8 com dano, 12 com cura ou condição e 3 com bônus que ficam com o mestre (invocações, Wish, Mass Heal, Sleep, Death Ward), e 15 partes de magias já estruturadas (a cura do Vampiric Touch, os PV do Heroes' Feast). | 288 |
 
-Total: 726 entradas.
+Total: 721 entradas.
 
 Uma entrada **parcial** (`<chave>#<aspecto>`) marca a parte pendente de um item, característica ou traço de monstro que já tem outros efeitos (ex.: `item:sun_blade#longsword_with_finesse`, `feature:subclass:champion/survivor#heroic_rally`).
 

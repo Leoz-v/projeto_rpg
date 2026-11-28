@@ -521,6 +521,32 @@ export const FeatureUsePartSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('condition'), conditions: z.array(ConditionSchema.exclude(['exhaustion'])).min(1), until: UntilTurnSchema }),
   /** Recupera todos os usos de outro recurso (Uncanny Metabolism). */
   z.strictObject({ kind: z.literal('regain'), resource: IdSchema }),
+  /**
+   * Salvaguarda dos alvos (nota 0082): CD de magia da classe da fonte (`spell`)
+   * ou 8 + proficiência + atributo; dano rolado uma vez, metade ou nada no
+   * sucesso; condições na falha, que podem acabar com dano (Turn Undead).
+   */
+  z.strictObject({
+    kind: z.literal('save'),
+    ability: AbilitySchema,
+    dc: z.union([z.literal('spell'), z.strictObject({ ability: AbilitySchema })]),
+    damage: z
+      .strictObject({
+        dice: LevelDiceSchema,
+        bonus: z.array(BonusValueSchema).default([]),
+        /** Um tipo, ou os tipos à escolha de quem usa (Divine Spark). */
+        type: z.union([DamageTypeSchema, z.array(DamageTypeSchema).min(2)]),
+      })
+      .optional(),
+    onSuccess: z.enum(['half', 'none']).default('none'),
+    conditions: z.array(ConditionSchema.exclude(['exhaustion'])).default([]),
+    /** As condições acabam se o alvo sofrer dano (o dano desta mesma característica não conta). */
+    endsOnDamage: z.literal(true).optional(),
+    /** Só criaturas destes tipos (Turn Undead); as outras ficam de fora, com nota. */
+    onlyTypes: z.array(CreatureTypeSchema).min(1).optional(),
+  }),
+  /** Dano nos alvos que falharam na salvaguarda anterior, rolado uma vez (Sear Undead: um d8 por modificador de SAB). */
+  z.strictObject({ kind: z.literal('fail_damage'), count: BonusValueSchema, sides: z.int().positive(), type: DamageTypeSchema }),
   /** Dá um dado de inspiração ao alvo, que o guarda e soma depois de uma rolagem (Bardic Inspiration; nota 0079). */
   z.strictObject({ kind: z.literal('inspire'), dice: LevelDiceSchema }),
   /** Estado em quem usou: efeitos na ficha até ser encerrado. */
@@ -545,7 +571,9 @@ const FeatureUseSchema = z.strictObject({
   name: z.string().min(1).max(100),
   action: z.string().min(1).max(100).optional(),
   cost: z.strictObject({ resource: IdSchema, amount: z.int().positive().default(1) }).optional(),
-  targets: z.enum(['self', 'one']).default('self'),
+  /** `many`: vários alvos (área ou "criaturas à sua escolha"), até `maxTargets`. */
+  targets: z.enum(['self', 'one', 'many']).default('self'),
+  maxTargets: BonusValueSchema.optional(),
   duration: z.string().min(1).max(100).optional(),
   forbidHeavyArmor: z.literal(true).optional(),
   parts: z.array(FeatureUsePartSchema).min(1).max(6),

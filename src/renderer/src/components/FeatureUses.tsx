@@ -1,9 +1,9 @@
 import { type ReactNode, useState } from 'react';
-import type { DerivedSheet, SheetFeatureUse } from 'rules-engine';
+import type { DamageType, DerivedSheet, SheetFeatureUse } from 'rules-engine';
 import { availableUses } from 'rules-engine/resources';
 import type { ChatEntry, IntentData, SessionCharacter, SessionState } from '../../../shared/protocol';
 import { sendIntent } from '../store/table';
-import { CONDITION_LABEL } from './sheet-labels';
+import { CONDITION_LABEL, DAMAGE_LABEL } from './sheet-labels';
 
 /** Usar características da ficha (nota 0078): o Host gasta o recurso, rola e aplica. */
 
@@ -100,6 +100,11 @@ function UseForm({ character, sheet, state, use, left, onUse }: { character: Ses
   const others = Object.values(state.tokens).filter((t) => t.mapId === state.activeMapId && t.characterId !== character.id && (!inspires || t.characterId !== null));
   const weapons = sheet.attacks.filter((a) => a.kind === 'melee');
   const [target, setTarget] = useState(inspires ? (others[0]?.id ?? '') : SELF);
+  // Vários alvos (Breath Weapon, Turn Undead; nota 0082): marcados na lista, até o limite.
+  const many = use.targets === 'many';
+  const [picked, setPicked] = useState<string[]>([]);
+  const damageChoices = use.parts.flatMap((p) => (p.kind === 'save' && Array.isArray(p.damage?.type) ? p.damage.type : []));
+  const [damageType, setDamageType] = useState<DamageType | ''>(damageChoices[0] ?? '');
   const [amount, setAmount] = useState('0');
   const [conditions, setConditions] = useState<PoolCondition[]>([]);
   const [weapon, setWeapon] = useState(weapons[0]?.instanceId ?? '');
@@ -115,6 +120,8 @@ function UseForm({ character, sheet, state, use, left, onUse }: { character: Ses
         e.preventDefault();
         onUse({
           ...(use.targets === 'one' && target !== SELF && others.some((t) => t.id === target) ? { targetTokenId: target } : {}),
+          ...(many ? { targetTokenIds: picked } : {}),
+          ...(damageChoices.length > 0 && damageType !== '' ? { damageType } : {}),
           ...(pool ? { amount: value, conditions } : {}),
           ...(needsWeapon(use) && weapon !== '' ? { weaponId: weapon } : {}),
         });
@@ -129,6 +136,39 @@ function UseForm({ character, sheet, state, use, left, onUse }: { character: Ses
             {others.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {many && (
+        <fieldset className="stack">
+          <legend>
+            Alvos{use.maxTargets !== undefined && ` (até ${use.maxTargets})`}
+          </legend>
+          {others.length === 0 && <p className="hint">Nenhum outro token no mapa</p>}
+          {others.map((t) => (
+            <label key={t.id} className="check">
+              <input
+                type="checkbox"
+                checked={picked.includes(t.id)}
+                disabled={!picked.includes(t.id) && use.maxTargets !== undefined && picked.length >= use.maxTargets}
+                onChange={(e) => {
+                  setPicked(e.target.checked ? [...picked, t.id] : picked.filter((id) => id !== t.id));
+                }}
+              />
+              {t.name}
+            </label>
+          ))}
+        </fieldset>
+      )}
+      {damageChoices.length > 0 && (
+        <label>
+          Tipo de dano
+          <select value={damageType} onChange={(e) => { setDamageType(e.target.value as DamageType); }}>
+            {damageChoices.map((d) => (
+              <option key={d} value={d}>
+                {DAMAGE_LABEL[d]}
               </option>
             ))}
           </select>
@@ -164,7 +204,7 @@ function UseForm({ character, sheet, state, use, left, onUse }: { character: Ses
           </select>
         </label>
       )}
-      <button type="submit" className="small" disabled={(pool && (total < 1 || (left !== undefined && total > left))) || (inspires && target === '')}>
+      <button type="submit" className="small" disabled={(pool && (total < 1 || (left !== undefined && total > left))) || (inspires && target === '') || (many && picked.length === 0)}>
         Confirmar{pool && ` (gasta ${total})`}
       </button>
     </form>

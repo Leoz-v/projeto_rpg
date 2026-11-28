@@ -195,6 +195,22 @@ test('Bardic Inspiration on a failed save: the consequences wait for the player'
   expect((await stateOf(gm)).characters[fighter]?.inspiration).toBeNull();
 });
 
+test('Breath Weapon: the player picks the targets on the sheet and the GM gets the damage', async ({ table: { gm, player } }) => {
+  await createMap(gm, 'Caverna');
+  await placeMonster(gm, 'Goblin Warrior', { name: 'Goblin' });
+  const id = await createCharacter(player, 'dragonborn-paladin-6', 'Kava');
+  await player.page.getByRole('region', { name: 'Personagens' }).getByRole('button', { name: 'Kava' }).click();
+  const features = player.page.getByRole('region', { name: 'Características', exact: true });
+  await features.getByRole('button', { name: 'Usar Breath Weapon', exact: true }).click();
+  const form = features.getByRole('form', { name: 'Usar Breath Weapon' });
+  await expect(form.getByRole('button', { name: 'Confirmar' })).toBeDisabled();
+  await form.getByLabel('Goblin').check();
+  await form.getByRole('button', { name: 'Confirmar' }).click();
+  await expect(chat(gm)).toContainText('usou Breath Weapon');
+  await expect.poll(async () => Object.keys((await stateOf(gm)).proposals).length).toBe(1);
+  expect((await stateOf(gm)).characters[id]?.resourcesSpent['breath_weapon']).toBe(1);
+});
+
 test('a spell scroll: the player picks the spell when adding it and reads it', async ({ table: { gm, player } }) => {
   await createCharacter(player, 'elf-wizard-7', 'Lia');
   const inventory = await openInventory(player, 'Lia');

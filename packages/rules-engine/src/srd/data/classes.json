@@ -3104,6 +3104,87 @@
                     "resource": "channel_divinity"
                   },
                   "targets": "one"
+                },
+                {
+                  "type": "feature_use",
+                  "id": "divine_spark_damage",
+                  "name": "Divine Spark (dano)",
+                  "action": "Ação de Magia",
+                  "cost": {
+                    "resource": "channel_divinity"
+                  },
+                  "targets": "one",
+                  "note": "Uma criatura a até 30 ft",
+                  "parts": [
+                    {
+                      "kind": "save",
+                      "ability": "con",
+                      "dc": "spell",
+                      "damage": {
+                        "dice": {
+                          "byLevel": [
+                            "1d8",
+                            "1d8",
+                            "1d8",
+                            "1d8",
+                            "1d8",
+                            "1d8",
+                            "2d8",
+                            "2d8",
+                            "2d8",
+                            "2d8",
+                            "2d8",
+                            "2d8",
+                            "3d8",
+                            "3d8",
+                            "3d8",
+                            "3d8",
+                            "3d8",
+                            "4d8",
+                            "4d8",
+                            "4d8"
+                          ]
+                        },
+                        "bonus": [
+                          {
+                            "ability": "wis"
+                          }
+                        ],
+                        "type": [
+                          "necrotic",
+                          "radiant"
+                        ]
+                      },
+                      "onSuccess": "half"
+                    }
+                  ]
+                },
+                {
+                  "type": "feature_use",
+                  "id": "turn_undead",
+                  "name": "Turn Undead",
+                  "action": "Ação de Magia",
+                  "cost": {
+                    "resource": "channel_divinity"
+                  },
+                  "targets": "many",
+                  "duration": "1 minuto",
+                  "note": "Mortos-vivos à sua escolha a até 30 ft",
+                  "parts": [
+                    {
+                      "kind": "save",
+                      "ability": "wis",
+                      "dc": "spell",
+                      "conditions": [
+                        "frightened",
+                        "incapacitated"
+                      ],
+                      "endsOnDamage": true,
+                      "onlyTypes": [
+                        "undead"
+                      ]
+                    }
+                  ]
                 }
               ]
             }
@@ -3162,7 +3243,22 @@
             "feature": {
               "id": "sear_undead",
               "name": "Sear Undead",
-              "description": "Whenever you use Turn Undead, you can roll a number of d8s equal to your Wisdom modifier (minimum of 1d8) and add the rolls together. Each Undead that fails its saving throw against that use of Turn Undead takes Radiant damage equal to the roll's total. This damage doesn't end the turn effect."
+              "description": "Whenever you use Turn Undead, you can roll a number of d8s equal to your Wisdom modifier (minimum of 1d8) and add the rolls together. Each Undead that fails its saving throw against that use of Turn Undead takes Radiant damage equal to the roll's total. This damage doesn't end the turn effect.",
+              "effects": [
+                {
+                  "type": "feature_use_part",
+                  "use": "turn_undead",
+                  "part": {
+                    "kind": "fail_damage",
+                    "count": {
+                      "ability": "wis",
+                      "min": 1
+                    },
+                    "sides": 8,
+                    "type": "radiant"
+                  }
+                }
+              ]
             }
           }
         ]
@@ -5256,7 +5352,36 @@
             "feature": {
               "id": "abjure_foes",
               "name": "Abjure Foes",
-              "description": "As a Magic action, you can expend one use of this class's Channel Divinity to target a number of creatures equal to your Charisma modifier (minimum of one) that you can see within 60 feet of yourself. Each target must succeed on a Wisdom saving throw or have the Frightened condition for 1 minute or until it takes any damage. While Frightened in this way, a target can do only one of the following on its turns: move, take an action, or take a Bonus Action."
+              "description": "As a Magic action, you can expend one use of this class's Channel Divinity to target a number of creatures equal to your Charisma modifier (minimum of one) that you can see within 60 feet of yourself. Each target must succeed on a Wisdom saving throw or have the Frightened condition for 1 minute or until it takes any damage. While Frightened in this way, a target can do only one of the following on its turns: move, take an action, or take a Bonus Action.",
+              "effects": [
+                {
+                  "type": "feature_use",
+                  "id": "abjure_foes",
+                  "name": "Abjure Foes",
+                  "action": "Ação de Magia",
+                  "cost": {
+                    "resource": "channel_divinity"
+                  },
+                  "targets": "many",
+                  "maxTargets": {
+                    "ability": "cha",
+                    "min": 1
+                  },
+                  "duration": "1 minuto",
+                  "note": "Criaturas que você veja a até 60 ft; Amedrontado assim, no turno só se move, age ou usa Ação Bônus",
+                  "parts": [
+                    {
+                      "kind": "save",
+                      "ability": "wis",
+                      "dc": "spell",
+                      "conditions": [
+                        "frightened"
+                      ],
+                      "endsOnDamage": true
+                    }
+                  ]
+                }
+              ]
             }
           }
         ]

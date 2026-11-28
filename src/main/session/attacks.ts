@@ -2,6 +2,7 @@ import { type Ability, type D20RollResult, type DerivedSheet, type AttackRider, 
 import { type ChatEntry, type Combat, type TimedEffect, type IntentData, type PatchOp, type PendingSave, type Role, type SessionCharacter, type SessionState, type Token, sameCaster, toPointer, type Visibility } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
 import { timedEffectEntry } from './combat';
+import { damageEndsConditions } from './conditions';
 import { tokenDamaged } from './monster-concentration';
 import { imposeFromAction } from './spell-effects';
 import { addPendingSave } from './legendary';
@@ -105,7 +106,7 @@ function attacksAgainst(ctx: SessionContext, token: Token): AttacksAgainst[] {
 }
 
 /** Tipo de criatura do token: o do bloco, ou Humanoide (as espécies do SRD); `undefined` fora do mapa ou sem bloco. */
-function creatureTypeOf(ctx: SessionContext, token: Token | undefined): CreatureType | undefined {
+export function creatureTypeOf(ctx: SessionContext, token: Token | undefined): CreatureType | undefined {
   if (!token) return undefined;
   if (token.characterId !== null) return 'humanoid';
   return token.monsterId !== null ? ctx.deps.creature(token.monsterId)?.type : undefined;
@@ -573,6 +574,12 @@ export function applyProposal(ctx: SessionContext, playerId: string, proposalId:
     if (currentHitPoints(token.hp.max, result.state) === 0 && !token.dead) {
       ops.push({ op: 'replace', path: toPointer('tokens', token.id, 'dead'), value: true });
     }
+  }
+  // Condições que acabam com dano (nota 0082), menos as do mesmo uso que causou este dano (Sear Undead).
+  if (amount > 0) {
+    const source = ctx.current.chat.find((e) => e.id === proposal.entryId);
+    const root = source && 'spellOf' in source && source.spellOf ? source.spellOf.entryId : source?.id;
+    ops = [...ops, ...damageEndsConditions(ctx, playerId, token, undefined, root, ops)];
   }
   const notes = [
     ...(result.absorbed > 0 ? [`${result.absorbed} absorvido(s) pelos PV temporários`] : []),
