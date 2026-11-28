@@ -15,6 +15,7 @@ import {
   setFogCell,
   unionFogBits,
 } from './fog';
+import { defaultMapLighting } from '../lighting';
 import { WORLD_UNITS_PER_CELL } from './constants';
 import { type GameMap, type Token } from './state';
 import { makeToken } from './test-fixtures';
@@ -34,6 +35,9 @@ function makeMap(width = 10, height = 10, overrides?: Partial<GameMap['fog']>): 
     scene3d: null,
     fog: { ...defaultMapFog(width, height), ...overrides },
     walls: [],
+    lighting: defaultMapLighting(),
+    lights: [],
+    propLightOverrides: {},
   };
 }
 

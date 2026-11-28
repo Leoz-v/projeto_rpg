@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultMapFog, emptyFogBits, encodeFogBits, setFogCell, type GameMap, WORLD_UNITS_PER_CELL } from '../../../shared/protocol';
+import { defaultMapFog, defaultMapLighting, emptyFogBits, encodeFogBits, setFogCell, type GameMap, WORLD_UNITS_PER_CELL } from '../../../shared/protocol';
 import { clampFogCell, fillFogImageData, worldToFogCell } from './fog-render';
 import { makeToken } from '../../../shared/protocol/test-fixtures';
 
@@ -39,6 +39,9 @@ describe('fog-render', () => {
         explored: { [PLAYER_ID]: encodeFogBits(explored) },
       },
       walls: [],
+      lighting: defaultMapLighting(),
+      lights: [],
+      propLightOverrides: {},
     };
     const hero = makeToken({ id: '00000000-0000-4000-8000-000000000099', mapId: MAP_ID, name: 'Hero', ownerIds: [PLAYER_ID] });
 

@@ -3,7 +3,7 @@ import { copyFileSync, existsSync, mkdtempSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { defaultMapFog, type SessionState } from '../../shared/protocol';
+import { defaultMapFog, defaultMapLighting, type SessionState } from '../../shared/protocol';
 import { APP_DB_SCHEMA_VERSION, AppDb } from './app-db';
 import { CAMPAIGN_DB_SCHEMA_VERSION, CampaignDb, CampaignDbError } from './campaign-db';
 import { CampaignLibrary, CampaignNotFoundError } from './library';
@@ -152,7 +152,7 @@ describe('CampaignDb', () => {
         ].map((kept) => ({ dice: [1, ...kept], dropped: 0, total: kept.reduce((a, b) => a + b, 0) })),
       },
     ],
-    maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: null, cellPx: null, scene3d: null, fog: { ...defaultMapFog(30, 20), autoEnabled: true, visionFeet: 45, rememberExplored: false }, walls: [] } },
+    maps: { [MAP]: { id: MAP, name: 'Caverna', width: 30, height: 20, background: null, cellPx: null, scene3d: null, fog: { ...defaultMapFog(30, 20), autoEnabled: true, visionFeet: 45, rememberExplored: false }, walls: [], lighting: defaultMapLighting(), lights: [], propLightOverrides: {} } },
     activeMapId: MAP,
     tokens: {
       [TOKEN]: makeToken({ id: TOKEN, mapId: MAP, name: 'Goblin 1', position: { x: 300, y: 500 }, size: 'small', monsterId: 'goblin', hp: { max: 7, damage: 2, temp: 0 }, conditions: { active: [{ condition: 'prone' }], exhaustion: 1 }, spellEffects: [{ id: HERO, name: 'Bane (Thorin)', effects: [{ type: 'd20_bonus', dice: '1d4', target: 'save.all', subtract: true }], spell: { characterId: HERO, spellId: 'bane' } }], rotation: 90, elevation: 15, hidden: true, dead: true }),
@@ -318,13 +318,13 @@ describe('CampaignDb', () => {
     const migrated = CampaignDb.open(path);
     expect(migrated.migration).toEqual({ from: 1, to: CAMPAIGN_DB_SCHEMA_VERSION, backup: `${path}.bak` });
     const loaded = migrated.load();
-    expect(loaded.maps[MAP]).toEqual({ id: MAP, name: 'Antigo', width: 20, height: 15, background: null, cellPx: null, scene3d: null, fog: defaultMapFog(20, 15), walls: [] });
+    expect(loaded.maps[MAP]).toEqual({ id: MAP, name: 'Antigo', width: 20, height: 15, background: null, cellPx: null, scene3d: null, fog: defaultMapFog(20, 15), walls: [], lighting: defaultMapLighting(), lights: [], propLightOverrides: {} });
 
     const withGrid = randomUUID();
     const with3d = randomUUID();
     const sha = 'a'.repeat(64);
     const sha3d = 'b'.repeat(64);
-    const calibratedMap = { id: withGrid, name: 'Calibrado', width: 30, height: 20, background: sha, cellPx: 70, scene3d: null, fog: defaultMapFog(30, 20), walls: [] };
+    const calibratedMap = { id: withGrid, name: 'Calibrado', width: 30, height: 20, background: sha, cellPx: 70, scene3d: null, fog: defaultMapFog(30, 20), walls: [], lighting: defaultMapLighting(), lights: [], propLightOverrides: {} };
     const map3d = {
       id: with3d,
       name: 'Masmorra 3D',
@@ -338,6 +338,9 @@ describe('CampaignDb', () => {
         { id: randomUUID(), x1: 2, y1: 2, x2: 10, y2: 2, kind: 'wall' as const, open: false, locked: false, layer: 'surface' as const, source: 'baked_3d' as const },
         { id: randomUUID(), x1: 10, y1: 2, x2: 11, y2: 2, kind: 'door' as const, open: true, locked: false, layer: 'surface' as const, source: 'manual' as const },
       ],
+      lighting: defaultMapLighting('interior', 'night'),
+      lights: [],
+      propLightOverrides: {},
     };
     migrated.save({
       ...loaded,
@@ -353,8 +356,7 @@ describe('CampaignDb', () => {
     migrated.close();
   });
 
-  it('migrates v15 campaign databases to the latest version with an empty walls array', () => {
-    expect(CAMPAIGN_DB_SCHEMA_VERSION).toBe(21);
+  it('migrates v15 campaign databases to v16 with empty walls array', () => {
     const path = join(tempDir(), 'v15.db');
     const legacy = openDatabase(path);
     legacy.exec(`
@@ -371,9 +373,75 @@ describe('CampaignDb', () => {
     legacy.close();
 
     const migrated = CampaignDb.open(path);
-    expect(migrated.migration).toEqual({ from: 15, to: 21, backup: `${path}.bak` });
+    expect(migrated.migration).toEqual({ from: 15, to: CAMPAIGN_DB_SCHEMA_VERSION, backup: `${path}.bak` });
     const loaded = migrated.load();
     expect(loaded.maps[MAP]?.walls).toEqual([]);
+    expect(loaded.maps[MAP]?.lighting).toEqual(defaultMapLighting());
+    expect(loaded.maps[MAP]?.lights).toEqual([]);
+    expect(loaded.maps[MAP]?.propLightOverrides).toEqual({});
+    migrated.close();
+  });
+
+  it('migrates v15 campaign databases to the latest version and round-trips lighting, lights, and propLightOverrides', () => {
+    const path = join(tempDir(), 'v15-lighting.db');
+    const legacy = openDatabase(path);
+    legacy.exec(`
+      CREATE TABLE campaign (id TEXT PRIMARY KEY, name TEXT NOT NULL, created_at INTEGER NOT NULL, active_map_id TEXT, combat TEXT, rest TEXT) STRICT;
+      CREATE TABLE players (id TEXT PRIMARY KEY, display_name TEXT NOT NULL, role TEXT NOT NULL CHECK (role IN ('gm', 'player'))) STRICT;
+      CREATE TABLE maps (id TEXT PRIMARY KEY, name TEXT NOT NULL, width INTEGER NOT NULL, height INTEGER NOT NULL, background TEXT, cell_px INTEGER, scene_3d TEXT, fog TEXT) STRICT;
+      CREATE TABLE tokens (id TEXT PRIMARY KEY, map_id TEXT NOT NULL REFERENCES maps (id) ON DELETE CASCADE, name TEXT NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL, size TEXT NOT NULL, monster_id TEXT, image TEXT, owner_ids TEXT NOT NULL, character_id TEXT, hp TEXT, conditions TEXT NOT NULL DEFAULT '{"active":[],"exhaustion":0}', vision_feet INTEGER) STRICT;
+      CREATE TABLE chat (seq INTEGER PRIMARY KEY, id TEXT NOT NULL UNIQUE, entry TEXT NOT NULL) STRICT;
+      CREATE TABLE characters (id TEXT PRIMARY KEY, owner_id TEXT NOT NULL REFERENCES players (id), name TEXT NOT NULL, build TEXT NOT NULL, inventory TEXT NOT NULL DEFAULT '{"currency":{"cp":0,"sp":0,"ep":0,"gp":0,"pp":0},"items":[]}', adjustments TEXT NOT NULL DEFAULT '[]', hp TEXT NOT NULL DEFAULT '{"damage":0,"temp":0}', conditions TEXT NOT NULL DEFAULT '{"active":[],"exhaustion":0}', death_saves TEXT NOT NULL DEFAULT '{"successes":0,"failures":0,"stable":false,"dead":false}', concentration TEXT NOT NULL DEFAULT 'null', hit_dice_spent TEXT NOT NULL DEFAULT '{}', spell_slots_spent TEXT NOT NULL DEFAULT '{"byLevel":{},"pact":0}', resources_spent TEXT NOT NULL DEFAULT '{}') STRICT;
+      PRAGMA user_version = 15;
+    `);
+    legacy.prepare('INSERT INTO campaign (id, name, created_at, active_map_id) VALUES (?, ?, ?, ?)').run(randomUUID(), 'V15', 0, MAP);
+    legacy.prepare('INSERT INTO maps (id, name, width, height, background, cell_px, scene_3d, fog) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(MAP, 'Masmorra', 20, 20, null, null, null, null);
+    legacy.close();
+
+    const migrated = CampaignDb.open(path);
+    expect(migrated.migration).toEqual({ from: 15, to: CAMPAIGN_DB_SCHEMA_VERSION, backup: `${path}.bak` });
+    const loaded = migrated.load();
+    expect(loaded.maps[MAP]?.lighting).toEqual(defaultMapLighting('exterior', 'day'));
+    expect(loaded.maps[MAP]?.lights).toEqual([]);
+    expect(loaded.maps[MAP]?.propLightOverrides).toEqual({});
+
+    const customLight = {
+      id: randomUUID(),
+      name: 'Tocha da Ana',
+      kind: 'light' as const,
+      enabled: true,
+      brightFeet: 20,
+      dimFeet: 20,
+      darknessFeet: 0,
+      spellLevel: null,
+      angleDeg: 360,
+      directionDeg: 0,
+      color: '#ff9442',
+      flicker: true,
+      layer: 'surface' as const,
+      elevationFeet: 5,
+      attach: { kind: 'point' as const, x: 4, y: 6 },
+      ownerId: null,
+    };
+    const existingMap = loaded.maps[MAP];
+    if (!existingMap) throw new Error('Expected migrated map');
+    const nextState: SessionState = {
+      ...loaded,
+      maps: {
+        ...loaded.maps,
+        [MAP]: {
+          ...existingMap,
+          lighting: { environment: 'interior', timeOfDay: 'night', ambientOverride: null },
+          lights: [customLight],
+          propLightOverrides: { 'prop:0:greyvein.standing_torch': 'off' },
+        },
+      },
+    };
+    migrated.save(nextState);
+    const reloaded = migrated.load();
+    expect(reloaded.maps[MAP]?.lighting).toEqual({ environment: 'interior', timeOfDay: 'night', ambientOverride: null });
+    expect(reloaded.maps[MAP]?.lights).toEqual([customLight]);
+    expect(reloaded.maps[MAP]?.propLightOverrides).toEqual({ 'prop:0:greyvein.standing_torch': 'off' });
     migrated.close();
   });
 });

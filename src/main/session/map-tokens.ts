@@ -2,6 +2,8 @@ import { rollDice, spaceSquares } from 'rules-engine';
 import {
   type ChatEntry,
   defaultMapFog,
+  defaultMapLighting,
+  extractDefaultLightingFrom3dMapDocument,
   extractWallsFrom3dMapDocument,
   type GameMap,
   type IntentData,
@@ -34,16 +36,20 @@ export function roll(ctx: SessionContext, playerId: string, data: IntentData<'di
   };
 }
 
-function extractBakedWalls(ctx: SessionContext, scene3d: string | undefined): WallSegment[] {
-  if (scene3d === undefined || !ctx.deps.readAsset) return [];
+function readScene3dJson(ctx: SessionContext, scene3d: string | undefined): unknown {
+  if (scene3d === undefined || !ctx.deps.readAsset) return undefined;
   const bytes = ctx.deps.readAsset(scene3d);
-  if (!bytes) return [];
+  if (!bytes) return undefined;
   try {
-    const parsed: unknown = JSON.parse(bytes.toString('utf8'));
-    return extractWallsFrom3dMapDocument(parsed, () => ctx.deps.newId());
+    return JSON.parse(bytes.toString('utf8')) as unknown;
   } catch {
-    return [];
+    return undefined;
   }
+}
+
+function extractBakedWalls(ctx: SessionContext, sceneDoc: unknown): WallSegment[] {
+  if (sceneDoc === undefined) return [];
+  return extractWallsFrom3dMapDocument(sceneDoc, () => ctx.deps.newId());
 }
 
 export function moveToken(ctx: SessionContext, playerId: string, role: Role, data: IntentData<'token.move'>): PatchOp[] {
@@ -87,6 +93,7 @@ export function createMap(ctx: SessionContext, data: IntentData<'map.create'>): 
   if (data.scene3d !== undefined && (data.background !== undefined || data.cellPx !== undefined)) {
     throw violation('Mapa 3D não usa imagem de fundo 2D');
   }
+  const sceneDoc = readScene3dJson(ctx, data.scene3d);
   const map: GameMap = {
     id: ctx.deps.newId(),
     name: data.name,
@@ -96,7 +103,10 @@ export function createMap(ctx: SessionContext, data: IntentData<'map.create'>): 
     cellPx: data.cellPx ?? null,
     scene3d: data.scene3d ?? null,
     fog: defaultMapFog(data.width, data.height),
-    walls: extractBakedWalls(ctx, data.scene3d),
+    walls: extractBakedWalls(ctx, sceneDoc),
+    lighting: sceneDoc !== undefined ? extractDefaultLightingFrom3dMapDocument(sceneDoc) : defaultMapLighting(),
+    lights: [],
+    propLightOverrides: {},
   };
   const ops: PatchOp[] = [{ op: 'add', path: toPointer('maps', map.id), value: map }];
   if (ctx.current.activeMapId === null) ops.push({ op: 'replace', path: '/activeMapId', value: map.id });
@@ -126,8 +136,9 @@ export function updateMap(ctx: SessionContext, data: IntentData<'map.update'>): 
   }
   if (data.scene3d !== undefined) {
     const manualWalls = map.walls.filter((w) => w.source === 'manual' && w.x1 <= nextWidth && w.x2 <= nextWidth && w.y1 <= nextHeight && w.y2 <= nextHeight);
-    const bakedWalls = extractBakedWalls(ctx, data.scene3d);
+    const bakedWalls = extractBakedWalls(ctx, readScene3dJson(ctx, data.scene3d));
     ops.push({ op: 'replace', path: toPointer('maps', map.id, 'walls'), value: [...manualWalls, ...bakedWalls] });
+    ops.push({ op: 'replace', path: toPointer('maps', map.id, 'propLightOverrides'), value: {} });
   } else if (nextWidth !== map.width || nextHeight !== map.height) {
     const kept = map.walls.filter((w) => w.x1 <= nextWidth && w.x2 <= nextWidth && w.y1 <= nextHeight && w.y2 <= nextHeight);
     if (kept.length !== map.walls.length) {

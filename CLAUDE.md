@@ -229,7 +229,7 @@ Dores que tivemos com Roll20, Foundry e Fantasy Grounds — todo design deve ata
 10. **Iluminação dinâmica, visão de D&D e colisão (nota 0061):**
    - ✅ Regras de visão e iluminação no motor (`rules-engine/vision`, efeito `vision_range`, `grant_sense` com `magicalDarkness`, `VisionProfile` em `DerivedSheet` e predefinições SRD de luz/magias).
    - ✅ Colisão e oclusão compartilhada 2D/3D (`src/shared/collision/`, `wall.*` / `door.toggle`, colisão de movimento para jogadores, oclusão por terreno/altura 3D e extração automática de mapas 3D; `PROTOCOL_VERSION = 43`, `<campanha>.db` v21).
-   - Fontes de luz dinâmicas, horário/interior, zonas de *Darkness* e controle em tempo de execução de tochas do mapa.
+   - ✅ Fontes de luz dinâmicas, horário/interior, zonas de *Darkness* e controle em tempo de execução de tochas do mapa (`src/shared/lighting/`, `lighting.config` / `light.*` / `map_prop_light.set`, limpeza automática ao fim da Concentração ou remoção de token; `PROTOCOL_VERSION = 44`, `<campanha>.db` v22).
    - Visão guiada pela ficha na autoridade do Host (`visibility.ts` / `fog.ts`).
    - Renderização 2D (mapa de luz ocluído e *Darkvision* em preto e branco).
    - Renderização 3D (`ShaderBit` de luz ocluída, *Darkvision* em P&B e controle de tochas).

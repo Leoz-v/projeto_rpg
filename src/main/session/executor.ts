@@ -22,6 +22,7 @@ import { endedFeatures, useFeature } from './features';
 import { useItem } from './items';
 import { readScroll } from './scrolls';
 import { changeHp, concentrate, concentrationBreaks, deathStateEntry, endConcentration, inCombat, rollDeathSave } from './vitality';
+import { addLight, configureLighting, removeLight, removeTokenLights, setMapPropLight, toggleLight, updateLight } from './lights';
 import { addWalls, removeWalls, replaceWalls, toggleDoor, updateWall } from './walls';
 
 export type { Identity, IntentOutcome, IntentResultPayload, SessionDeps, StateChange } from './context';
@@ -193,7 +194,7 @@ export class HostSession extends SessionContext {
       case 'token.remove':
         this.requireGm(role);
         // O que a Concentração do monstro mantinha sai com ele (nota 0068).
-        return [...endTokenConcentration(this, playerId, this.token(intent.data.tokenId), 'ended'), ...dropPendingSaves(this, intent.data.tokenId), { op: 'remove', path: toPointer('tokens', intent.data.tokenId) }, ...leaveCombat(this, playerId, intent.data.tokenId)];
+        return [...endTokenConcentration(this, playerId, this.token(intent.data.tokenId), 'ended'), ...dropPendingSaves(this, intent.data.tokenId), { op: 'remove', path: toPointer('tokens', intent.data.tokenId) }, ...leaveCombat(this, playerId, intent.data.tokenId), ...removeTokenLights(this, intent.data.tokenId)];
       case 'character.create':
         return createCharacter(this, playerId, role, intent.data);
       case 'character.update':
@@ -403,6 +404,19 @@ export class HostSession extends SessionContext {
         return replaceWalls(this, intent.data);
       case 'door.toggle':
         return toggleDoor(this, playerId, role, intent.data);
+      case 'lighting.config':
+        this.requireGm(role);
+        return configureLighting(this, intent.data);
+      case 'light.add':
+        return addLight(this, playerId, role, intent.data);
+      case 'light.update':
+        return updateLight(this, playerId, role, intent.data);
+      case 'light.toggle':
+        return toggleLight(this, playerId, role, intent.data);
+      case 'light.remove':
+        return removeLight(this, playerId, role, intent.data);
+      case 'map_prop_light.set':
+        return setMapPropLight(this, playerId, role, intent.data);
     }
   }
 }

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { ChatTextSchema, CreatureTargetSchema, DeathSavesSchema, HitDieSchema, SpellSlotRefSchema, InstanceIdSchema, TurnEdgeSchema, LabelSchema, MAX_EXHAUSTION_LEVEL, RollAgainstSchema, TableConditionSchema, SheetRollTargetSchema, MapCellPxSchema, MapCellsSchema, NameSchema, PointSchema, Sha256Schema, TokenElevationSchema, TokenRotationSchema, UuidSchema } from './common';
 import { MAX_ADJUSTMENT_EFFECTS, MAX_COINS, MAX_COMBATANTS, MAX_FOG_PAINT_CELLS, MAX_FORMULA_DICE, MAX_FORMULA_LENGTH, MAX_HIT_POINTS, MAX_ITEM_QUANTITY, MAX_MAP_WALLS, MAX_MULTIATTACK_STEPS, MAX_SAVE_TARGETS, MAX_SPELL_OPTIONS, MAX_SPELL_PARTS } from './constants';
 import { MapLayerSchema, NewWallSegmentSchema, WallCoordSchema, WallKindSchema } from '../collision';
+import { AmbientLightSchema, HexColorSchema, LightAttachmentSchema, LightRadiusFeetSchema, MapEnvironmentSchema, NewMapLightSourceSchema, PropLightIdSchema, TimeOfDaySchema } from '../lighting';
 import { FogCellSchema, FogModeSchema, VisionFeetSchema } from './fog';
 import { InitiativeSchema, VisibilitySchema } from './state';
 
@@ -484,6 +485,86 @@ export const IntentSchema = z.discriminatedUnion('kind', [
     data: z.strictObject({
       mapId: UuidSchema,
       wallId: UuidSchema,
+    }),
+  }),
+  z.strictObject({
+    kind: z.literal('lighting.config'),
+    data: z
+      .strictObject({
+        mapId: UuidSchema,
+        environment: MapEnvironmentSchema.optional(),
+        timeOfDay: TimeOfDaySchema.optional(),
+        ambientOverride: AmbientLightSchema.nullable().optional(),
+      })
+      .refine((d) => d.environment !== undefined || d.timeOfDay !== undefined || d.ambientOverride !== undefined, {
+        message: 'nada para alterar',
+      }),
+  }),
+  z.strictObject({
+    kind: z.literal('light.add'),
+    data: z.strictObject({
+      mapId: UuidSchema,
+      light: NewMapLightSourceSchema,
+    }),
+  }),
+  z.strictObject({
+    kind: z.literal('light.update'),
+    data: z
+      .strictObject({
+        mapId: UuidSchema,
+        lightId: UuidSchema,
+        name: NameSchema.optional(),
+        enabled: z.boolean().optional(),
+        brightFeet: LightRadiusFeetSchema.optional(),
+        dimFeet: LightRadiusFeetSchema.optional(),
+        darknessFeet: LightRadiusFeetSchema.optional(),
+        spellLevel: z.int().min(0).max(9).nullable().optional(),
+        angleDeg: z.number().min(5).max(360).optional(),
+        directionDeg: z.number().min(-360).max(360).optional(),
+        color: HexColorSchema.optional(),
+        flicker: z.boolean().optional(),
+        layer: MapLayerSchema.optional(),
+        elevationFeet: z.number().min(-20).max(100).optional(),
+        attach: LightAttachmentSchema.optional(),
+      })
+      .refine(
+        (d) =>
+          d.name !== undefined ||
+          d.enabled !== undefined ||
+          d.brightFeet !== undefined ||
+          d.dimFeet !== undefined ||
+          d.darknessFeet !== undefined ||
+          d.spellLevel !== undefined ||
+          d.angleDeg !== undefined ||
+          d.directionDeg !== undefined ||
+          d.color !== undefined ||
+          d.flicker !== undefined ||
+          d.layer !== undefined ||
+          d.elevationFeet !== undefined ||
+          d.attach !== undefined,
+        { message: 'nada para alterar' },
+      ),
+  }),
+  z.strictObject({
+    kind: z.literal('light.toggle'),
+    data: z.strictObject({
+      mapId: UuidSchema,
+      lightId: UuidSchema,
+    }),
+  }),
+  z.strictObject({
+    kind: z.literal('light.remove'),
+    data: z.strictObject({
+      mapId: UuidSchema,
+      lightId: UuidSchema,
+    }),
+  }),
+  z.strictObject({
+    kind: z.literal('map_prop_light.set'),
+    data: z.strictObject({
+      mapId: UuidSchema,
+      propLightId: PropLightIdSchema,
+      state: z.enum(['on', 'off', 'removed']),
     }),
   }),
 ]);

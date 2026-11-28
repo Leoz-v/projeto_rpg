@@ -96,6 +96,10 @@ const MIGRATIONS = [
    ALTER TABLE tokens ADD COLUMN dead INTEGER NOT NULL DEFAULT 0;`,
   // Segmentos de parede, porta, janela e penhasco do mapa em JSON (nota 0061).
   `ALTER TABLE maps ADD COLUMN walls TEXT NOT NULL DEFAULT '[]';`,
+  // Iluminação dinâmica: ambiente/horário, fontes em tempo de execução e overrides de tochas 3D (nota 0061).
+  `ALTER TABLE maps ADD COLUMN lighting TEXT NOT NULL DEFAULT '{"environment":"exterior","timeOfDay":"day","ambientOverride":null}';
+   ALTER TABLE maps ADD COLUMN lights TEXT NOT NULL DEFAULT '[]';
+   ALTER TABLE maps ADD COLUMN prop_light_overrides TEXT NOT NULL DEFAULT '{}';`,
 ] as const;
 
 export const CAMPAIGN_DB_SCHEMA_VERSION = MIGRATIONS.length;
@@ -109,7 +113,7 @@ export class CampaignDbError extends Error {
 
 const CampaignRow = z.object({ id: z.string(), name: z.string(), active_map_id: z.string().nullable(), combat: z.string().nullable(), rest: z.string().nullable() });
 const PlayerRow = z.object({ id: z.string(), display_name: z.string(), role: z.string() });
-const MapRow = z.object({ id: z.string(), name: z.string(), width: z.number(), height: z.number(), background: z.string().nullable(), cell_px: z.number().nullable(), scene_3d: z.string().nullable(), fog: z.string().nullable(), walls: z.string() });
+const MapRow = z.object({ id: z.string(), name: z.string(), width: z.number(), height: z.number(), background: z.string().nullable(), cell_px: z.number().nullable(), scene_3d: z.string().nullable(), fog: z.string().nullable(), walls: z.string(), lighting: z.string(), lights: z.string(), prop_light_overrides: z.string() });
 const TokenRow = z.object({
   id: z.string(),
   map_id: z.string(),
@@ -192,13 +196,16 @@ export class CampaignDb {
     );
     const maps = Object.fromEntries(
       this.db
-        .prepare('SELECT id, name, width, height, background, cell_px, scene_3d, fog, walls FROM maps')
+        .prepare('SELECT id, name, width, height, background, cell_px, scene_3d, fog, walls, lighting, lights, prop_light_overrides FROM maps')
         .all()
         .map((row) => {
           const m = MapRow.parse(row);
           const fog: unknown = m.fog === null ? defaultMapFog(m.width, m.height) : JSON.parse(m.fog);
           const walls: unknown = JSON.parse(m.walls);
-          return [m.id, { id: m.id, name: m.name, width: m.width, height: m.height, background: m.background, cellPx: m.cell_px, scene3d: m.scene_3d, fog, walls }];
+          const lighting: unknown = JSON.parse(m.lighting);
+          const lights: unknown = JSON.parse(m.lights);
+          const propLightOverrides: unknown = JSON.parse(m.prop_light_overrides);
+          return [m.id, { id: m.id, name: m.name, width: m.width, height: m.height, background: m.background, cellPx: m.cell_px, scene3d: m.scene_3d, fog, walls, lighting, lights, propLightOverrides }];
         }),
     );
     const tokens = Object.fromEntries(
@@ -281,10 +288,10 @@ export class CampaignDb {
       this.removeMissing('tokens', Object.keys(state.tokens));
       this.removeMissing('maps', Object.keys(state.maps));
       const upsertMap = db.prepare(
-        `INSERT INTO maps (id, name, width, height, background, cell_px, scene_3d, fog, walls) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT (id) DO UPDATE SET name = excluded.name, width = excluded.width, height = excluded.height, background = excluded.background, cell_px = excluded.cell_px, scene_3d = excluded.scene_3d, fog = excluded.fog, walls = excluded.walls`,
+        `INSERT INTO maps (id, name, width, height, background, cell_px, scene_3d, fog, walls, lighting, lights, prop_light_overrides) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT (id) DO UPDATE SET name = excluded.name, width = excluded.width, height = excluded.height, background = excluded.background, cell_px = excluded.cell_px, scene_3d = excluded.scene_3d, fog = excluded.fog, walls = excluded.walls, lighting = excluded.lighting, lights = excluded.lights, prop_light_overrides = excluded.prop_light_overrides`,
       );
-      for (const m of Object.values(state.maps)) upsertMap.run(m.id, m.name, m.width, m.height, m.background, m.cellPx, m.scene3d, JSON.stringify(m.fog), JSON.stringify(m.walls));
+      for (const m of Object.values(state.maps)) upsertMap.run(m.id, m.name, m.width, m.height, m.background, m.cellPx, m.scene3d, JSON.stringify(m.fog), JSON.stringify(m.walls), JSON.stringify(m.lighting), JSON.stringify(m.lights), JSON.stringify(m.propLightOverrides));
       const upsertToken = db.prepare(
         `INSERT INTO tokens (id, map_id, name, x, y, size, monster_id, image, owner_ids, character_id, hp, conditions, vision_feet, rotation, elevation, spell_effects, uses, concentration, hidden, dead) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (id) DO UPDATE SET map_id = excluded.map_id, name = excluded.name, x = excluded.x, y = excluded.y, size = excluded.size,

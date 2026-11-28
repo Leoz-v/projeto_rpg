@@ -2,6 +2,7 @@ import { applyHitPointChange, CONDITION_NAME, type Condition, currentHitPoints, 
 import { type ChatEntry, type ConditionState, type IntentData, MAX_ADJUSTMENT_EFFECTS, MAX_ADJUSTMENTS, type PatchOp, type Role, sameSpellLink, type SpellLink, type SessionCharacter, type TableCondition, type Token, toPointer } from '../../shared/protocol';
 import { notAllowed, type SessionContext, violation } from './context';
 import { untilNextTurn } from './conditions';
+import { removeSpellLights } from './lights';
 import { tokenConcentrationBreaks } from './monster-concentration';
 import { changeCharacterHp, concentrationBreaks } from './vitality';
 
@@ -435,5 +436,6 @@ export function liftSpellConditions(ctx: SessionContext, playerId: string, link:
       );
     }
   }
+  ops.push(...removeSpellLights(ctx, link));
   return ops;
 }
