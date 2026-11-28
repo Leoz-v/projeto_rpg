@@ -1,4 +1,5 @@
 import { type ChangeEvent, type SyntheticEvent, useEffect, useRef, useState } from 'react';
+import { availableMonsterUses } from 'rules-engine/monster-uses';
 import type { Size } from 'rules-engine/schemas';
 import type { ImportedAsset, MonsterAction, MonsterSummary, TableView } from '../../../shared/ipc';
 import { type GameMap, MAX_VISION_FEET, MIN_VISION_FEET, type Token } from '../../../shared/protocol';
@@ -8,7 +9,11 @@ import { placeToken, tokenSide } from '../canvas/geometry';
 import { defaultCellPx, gridDimensionsForImage } from '../canvas/map-grid';
 import { parseMapDocument } from '../canvas3d/map/mapDocument';
 import { sendIntent } from '../store/table';
-import { tokenHealth } from '../canvas/health';
+import { isTokenDead, tokenHealth } from '../canvas/health';
+import { usesLabel } from './MonsterBlock';
+import { Multiattack } from './Multiattack';
+import { TokenConcentration } from './Concentration';
+import { TokenEffects } from './TokenEffects';
 import { tokenConditions } from '../canvas/conditions';
 import { combatantOptions } from '../canvas/conditions';
 import { ConditionsControl } from './Conditions';
@@ -16,6 +21,7 @@ import { FogPanel } from './FogPanel';
 import { HitPointsControl, HitPointsSummary } from './HitPoints';
 import { MapGridModal } from './MapGridModal';
 import type { MapViewerMode } from './MapView';
+import { DawnPanel } from './ItemCharges';
 import { RestPanel } from './Rest';
 import { forceSave, SaveEffectForm, TargetChecklist, type TargetOption } from './SaveEffect';
 import { ABILITY_LABEL, CONDITION_LABEL, DAMAGE_LABEL, signed } from './sheet-labels';
@@ -483,10 +489,34 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
           <div className="row">
             <span>
               Selecionado: <strong>{selected.name}</strong>
+              {selected.hidden && <span className="tag">oculto</span>}
+              {isTokenDead(selected, state.characters) && <span className="tag">morto</span>}
             </span>
             <button type="button" className="link danger" onClick={() => void sendIntent({ kind: 'token.remove', data: { tokenId: selected.id } }).then(onError)}>
               Remover token
             </button>
+          </div>
+          <div className="row">
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={selected.hidden}
+                onChange={(e) => {
+                  void sendIntent({ kind: 'token.hidden', data: { tokenId: selected.id, hidden: e.target.checked } }).then(onError);
+                }}
+              />
+              Oculto dos jogadores
+            </label>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={isTokenDead(selected, state.characters)}
+                onChange={(e) => {
+                  void sendIntent({ kind: 'token.dead', data: { tokenId: selected.id, dead: e.target.checked } }).then(onError);
+                }}
+              />
+              Morto
+            </label>
           </div>
           {selected.characterId === null ? (
             <>
@@ -497,10 +527,21 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
               )}
               <HitPointsControl key={selected.id} target={{ tokenId: selected.id }} health={selectedHealth} allowMax />
               <ConditionsControl key={`conditions:${selected.id}`} target={{ tokenId: selected.id }} state={selected.conditions} canEdit combatants={combatantOptions(state)} />
+              <TokenConcentration tokenId={selected.id} current={selected.concentration} canEdit />
+              <TokenEffects token={selected} canEdit />
+              {selected.monsterId !== null && (
+                <Multiattack
+                  key={`multi:${selected.id}`}
+                  token={selected}
+                  targets={Object.values(state.tokens).filter((t) => t.mapId === selected.mapId && t.id !== selected.id)}
+                  onError={onError}
+                />
+              )}
               {selected.monsterId !== null && (
                 <MonsterActions
                   key={`actions:${selected.id}`}
                   tokenId={selected.id}
+                  uses={selected.uses}
                   monsterId={selected.monsterId}
                   targets={Object.values(state.tokens).filter((t) => t.mapId === selected.mapId && t.id !== selected.id)}
                   onError={onError}
@@ -636,7 +677,7 @@ function Tokens({ view, stage, selectedId, onError }: { view: TableView; stage: 
 }
 
 /** Ações do monstro do token selecionado: ataques contra um alvo e salvaguardas contra vários (o dano vira proposta no chat). */
-function MonsterActions({ tokenId, monsterId, targets, onError }: { tokenId: string; monsterId: string; targets: readonly TargetOption[]; onError: (m: string | null) => void }) {
+function MonsterActions({ tokenId, uses, monsterId, targets, onError }: { tokenId: string; uses: Token['uses']; monsterId: string; targets: readonly TargetOption[]; onError: (m: string | null) => void }) {
   const [actions, setActions] = useState<MonsterAction[]>([]);
   const [targetId, setTargetId] = useState('');
   const [saveTargets, setSaveTargets] = useState<string[]>([]);
@@ -655,6 +696,10 @@ function MonsterActions({ tokenId, monsterId, targets, onError }: { tokenId: str
   const saves = actions.filter((a) => a.kind === 'save');
   const target = targets.find((t) => t.id === targetId) ?? targets[0];
   const damageText = (damage: MonsterAction['damage']): string => damage.map((d) => `${d.dice} ${DAMAGE_LABEL[d.type].toLowerCase()}`).join(' + ');
+
+  // O gasto da ação lendária por rodada é conferido pelo Host.
+  const spent = (a: MonsterAction): boolean => a.limit !== undefined && availableMonsterUses({ id: a.id, limit: a.limit }, uses) === 0;
+  const limitText = (a: MonsterAction): string => (a.limit !== undefined ? ` · ${usesLabel({ id: a.id, limit: a.limit }, uses)}` : '');
 
   const attack = (actionId: string): void => {
     if (!target) return;
@@ -704,11 +749,11 @@ function MonsterActions({ tokenId, monsterId, targets, onError }: { tokenId: str
           <ul>
             {attacks.map((a) => (
               <li key={a.id}>
-                <button type="button" className="secondary small" disabled={!target} onClick={() => { attack(a.id); }}>
+                <button type="button" className="secondary small" disabled={!target || spent(a)} onClick={() => { attack(a.id); }}>
                   {a.name}
                 </button>
                 <span className="hint">
-                  {signed(a.toHit)} · {damageText(a.damage)}
+                  {signed(a.toHit)} · {damageText(a.damage)}{limitText(a)}
                 </span>
               </li>
             ))}
@@ -725,7 +770,7 @@ function MonsterActions({ tokenId, monsterId, targets, onError }: { tokenId: str
                   <button
                     type="button"
                     className="secondary small"
-                    disabled={saveTargets.length === 0}
+                    disabled={saveTargets.length === 0 || spent(a)}
                     onClick={() => {
                       void forceSave({ tokenId, actionId: a.id }, saveTargets, false).then(onError);
                     }}
@@ -736,6 +781,7 @@ function MonsterActions({ tokenId, monsterId, targets, onError }: { tokenId: str
                     {ABILITY_LABEL[a.ability].short} CD {a.dc}
                     {a.damage.length > 0 && ` · ${damageText(a.damage)}${a.onSuccess === 'half' ? ' (metade no sucesso)' : ''}`}
                     {a.conditions.length > 0 && ` · ${a.conditions.map((c) => CONDITION_LABEL[c]).join(', ')}`}
+                    {limitText(a)}
                   </span>
                 </li>
             ))}
@@ -888,6 +934,7 @@ export function GmPanel({
       />
       <FogPanel view={view} fogTool={fogTool} onFogTool={onFogTool} onError={setError} />
       <RestPanel state={view.state} />
+      <DawnPanel />
       <CharacterTokens view={view} stage={stage} onError={setError} />
       <Tokens view={view} stage={stage} selectedId={selectedId} onError={setError} />
       {view.state.activeMapId !== null && (

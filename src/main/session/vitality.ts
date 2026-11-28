@@ -1,6 +1,7 @@
-import { applyHitPointChange, clampHitPoints, currentHitPoints, d20StepNotes, type DerivedSheet, effectiveConditions, deathAfterDamage, deathAfterHealing, type DeathSaveState, type HitPointChange, type HitPointResult, resolveDeathSave, concentrationDc, rollD20, sheetD20 } from 'rules-engine';
+import { applyHitPointChange, clampHitPoints, currentHitPoints, d20StepNotes, type DerivedSheet, effectiveConditions, deathAfterDamage, deathAfterHealing, type DeathSaveState, type HitPointChange, type HitPointResult, resolveDeathSave, concentrationDc, rollD20, sheetD20, withoutDependents } from 'rules-engine';
 import { type ChatEntry, type ConditionState, type IntentData, type PatchOp, type Role, type SessionCharacter, type SessionState, toPointer } from '../../shared/protocol';
 import { type SessionContext, violation, notAllowed } from './context';
+import { tokenDamaged } from './monster-concentration';
 import { liftSpellConditions } from './spell-effects';
 
 /** Pontos de vida, Salvaguardas contra a Morte (nota 0044) e Concentração (nota 0045). Funções do executor da sessão (`HostSession`), sobre o `SessionContext`. */
@@ -25,11 +26,24 @@ export function changeHp(ctx: SessionContext, playerId: string, role: Role, data
   if (change.kind === 'max') {
     if (change.amount < 1) throw violation('PV máximos precisam ser pelo menos 1');
     const state = clampHitPoints(change.amount, token.hp ?? { damage: 0, temp: 0 });
-    return [{ op: 'replace', path, value: { max: change.amount, ...state } }];
+    const ops: PatchOp[] = [{ op: 'replace', path, value: { max: change.amount, ...state } }];
+    if (currentHitPoints(change.amount, state) === 0 && !token.dead) {
+      ops.push({ op: 'replace', path: toPointer('tokens', token.id, 'dead'), value: true });
+    }
+    return ops;
   }
   if (token.hp === null) throw violation(token.characterId ? 'Mude os PV no personagem' : 'Este token não tem PV (defina os PV máximos)');
   const result = applyHitPointChange(token.hp.max, token.hp, { kind: change.kind, amount: change.amount });
-  return [{ op: 'replace', path, value: { max: token.hp.max, ...result.state } }];
+  const hp = { max: token.hp.max, ...result.state };
+  const current = currentHitPoints(token.hp.max, result.state);
+  const ops: PatchOp[] = [{ op: 'replace', path, value: hp }];
+  if (current === 0 && !token.dead) {
+    ops.push({ op: 'replace', path: toPointer('tokens', token.id, 'dead'), value: true });
+  } else if (change.kind === 'healing' && current > 0 && token.dead) {
+    ops.push({ op: 'replace', path: toPointer('tokens', token.id, 'dead'), value: false });
+  }
+  if (change.kind === 'damage') ops.push(...tokenDamaged(ctx, playerId, token, hp, Math.trunc(change.amount)));
+  return ops;
 }
 
 /** Algum token do personagem está no combate. */
@@ -130,7 +144,7 @@ export function changeCharacterHp(
   } else if (change.kind === 'healing' && result.hpChange > 0 && currentHitPoints(max, character.hp) === 0) {
     deathSaves = deathAfterHealing(deathSaves);
     if (hasUnconscious) {
-      conditions = { ...conditions, active: conditions.active.filter((c) => c.condition !== 'unconscious') };
+      conditions = { ...conditions, active: withoutDependents(conditions.active.filter((c) => c.condition !== 'unconscious')) };
       condition = { kind: 'removed', note: 'Recuperou PV' };
     }
     notes.push('Recuperou PV: contagem zerada');
@@ -171,11 +185,13 @@ export function changeCharacterHp(
 }
 
 /** Passa a se concentrar numa magia da ficha que exige Concentração; a anterior termina. */
-export function concentrate(ctx: SessionContext, playerId: string, role: Role, characterId: string, spellId: string): PatchOp[] {
+export function concentrate(ctx: SessionContext, playerId: string, role: Role, characterId: string, spellId: string, fromItem = false): PatchOp[] {
   const { character, sheet } = ctx.sheetOf(playerId, role, characterId);
   if (character.deathSaves.dead) throw violation(`${character.name} está morto`);
   if (effectiveConditions(character.conditions.active.map((c) => c.condition)).has('incapacitated')) throw violation(`${character.name} está Incapacitado`);
-  if (!sheet.spellcasting.concentration.includes(spellId)) throw violation('Esta magia não está na ficha ou não exige Concentração');
+  ctx.requireCanCastNow(character);
+  // Pelo item, a magia não precisa estar na ficha (nota 0075).
+  if (!fromItem && !sheet.spellcasting.concentration.includes(spellId)) throw violation('Esta magia não está na ficha ou não exige Concentração');
   if (character.concentration?.spellId === spellId) throw violation(`${character.name} já está concentrado nesta magia`);
   const name = (ctx.deps.spell(spellId)?.name ?? spellId).slice(0, 100);
   return [

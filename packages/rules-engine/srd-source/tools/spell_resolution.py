@@ -48,7 +48,7 @@ def atk(attack_kind, *damage, label=None, count=None, on_hit=(), on_miss=None, e
     return p
 
 
-def sv(ability, *damage, label=None, success="half", on_fail=(), count=None, end=None, choice=False):
+def sv(ability, *damage, label=None, success="half", on_fail=(), count=None, end=None, choice=False, effects=(), options=()):
     """Salvaguarda; `choice`: quem conjura escolhe uma das condições da falha."""
     p = _base("save", damage, label, count)
     p["ability"] = ability
@@ -57,6 +57,10 @@ def sv(ability, *damage, label=None, success="half", on_fail=(), count=None, end
         p["onFailConditions"] = list(on_fail)
     if choice:
         p["conditionChoice"] = True
+    if effects:
+        p["onFailEffects"] = list(effects)
+    if options:
+        p["options"] = [{"label": lab, "effects": list(eff)} for lab, eff in options]
     if end:
         p["conditionsEnd"] = end
     return p
@@ -76,7 +80,7 @@ def heal(dice, per=None, mod=False, temp=False, ends=(), count=None, label=None)
     return p
 
 
-def buff(*effects, upcast=(), options=(), ends=(), count=None, label=None):
+def buff(*effects, upcast=(), options=(), ends=(), count=None, label=None, variants=(), weapon=None, end=None):
     """Bônus ou penalidade enquanto a magia dura (nota 0060): efeitos do catálogo na ficha do alvo.
     `upcast`: efeitos somados por círculo acima. `options`: (rótulo, [efeitos]) para quem conjura escolher."""
     p = _base("buff", (), label, count)
@@ -85,10 +89,25 @@ def buff(*effects, upcast=(), options=(), ends=(), count=None, label=None):
     if upcast:
         p["upcast"] = list(upcast)
     if options:
-        p["options"] = [{"label": lab, "effects": list(eff)} for lab, eff in options]
+        p["options"] = [{"label": o[0], "effects": list(o[1]), **({"upcast": list(o[2])} if len(o) > 2 else {})} for o in options]
     if ends:
         p["endConditions"] = list(ends)
+    if variants:
+        p["variants"] = list(variants)
+    if weapon is not None:
+        p["weapon"] = weapon
+    if end:
+        p["effectsEnd"] = end
     return p
+
+
+def mark(dice, damage_type, within=None):
+    """Dano extra de quem conjurou contra o alvo (nota 0063); `within`: alvos até essa distância."""
+    return {"type": "target_damage", "dice": dice, "damageType": damage_type, **({"within": within} if within else {})}
+
+
+def weapon_die(dice, damage_type=None):
+    return {"type": "base_override", "damageDice": dice, **({"damageType": damage_type} if damage_type else {})}
 
 
 # Efeitos do catálogo (docs/effects-spec.md) para as partes `buff`.
@@ -100,8 +119,17 @@ def adv(target, when=None):
     return {"type": "advantage", "target": target, **({"when": when} if when else {})}
 
 
-def d20b(dice, target):
-    return {"type": "d20_bonus", "dice": dice, "target": target}
+def dis(target):
+    return {"type": "disadvantage", "target": target}
+
+
+def against(mode, types=None, note=None):
+    """Vantagem ou Desvantagem nos ataques contra o alvo (nota 0062)."""
+    return {"type": "attacks_against", "mode": mode, **({"from": types} if types else {}), **({"note": note} if note else {})}
+
+
+def d20b(dice, target, subtract=False):
+    return {"type": "d20_bonus", "dice": dice, "target": target, **({"subtract": True} if subtract else {})}
 
 
 def res(damage_type):
@@ -139,6 +167,9 @@ def cond(*conditions, label=None, count=None, end=None):
 def auto(*damage, label=None, count=None):
     return _base("damage", damage, label, count)
 
+
+ENLARGE = [("Aumentar", [adv("check.str"), adv("save.str"), {"type": "extra_damage", "dice": "1d4"}]),
+           ("Reduzir", [dis("check.str"), dis("save.str")])]
 
 # Nome da magia -> (partes, citações de apoio, melhoria do truque: "damage" multiplica os dados, "count" os ataques).
 RESOLUTION = {
@@ -411,6 +442,57 @@ RESOLUTION = {
              "Each target's Hit Points increase by 5 for each spell slot level above 2"], None),
     "Beacon of Hope": ([buff(adv("save.wis"), adv("death_save"))],
                        ["each target has Advantage on Wisdom saving throws and Death Saving Throws"], None),
+    "Bestow Curse": ([sv("wis", success="none", count=(1,), options=[
+        *[(ABILITY_PT[a], [dis(f"check.{a}"), dis(f"save.{a}")]) for a in ABILITY_PT],
+        ("Ataques contra quem conjurou", [remind("Bestow Curse: Desvantagem nos ataques contra quem conjurou.")]),
+        ("Esquivar", [remind("Bestow Curse: salva contra Sabedoria ou usa a ação para Esquivar neste turno.")]),
+        ("Dano extra", [mark("1d8", "necrotic")])])],
+        ["must succeed on a Wisdom saving throw or become cursed for the duration", "The target has Disadvantage on ability checks and saving throws made with that ability",
+         "The target has Disadvantage on attack rolls against you", "be forced to take the Dodge action on that turn",
+         "the target takes an extra 1d8 Necrotic damage"], None),
+    "Conjure Minor Elementals": ([buff(count=(1,), options=[(TYPE_PT[t], [mark("2d8", t, 15)], [mark("1d8", t, 15)]) for t in ("acid", "cold", "fire", "lightning")])],
+                                 ["any attack you make deals an extra 2d8 damage when you hit a creature in the Emanation", "This damage is Acid, Cold, Fire, or Lightning",
+                                  "The damage increases by 1d8 for each spell slot level above 4", "15-foot Emanation"], None),
+    "Enlarge/Reduce": ([buff(count=(1,), label="Alvo voluntário", options=ENLARGE), sv("con", success="none", count=(1,), label="Alvo involuntário", options=ENLARGE)],
+                       ["it can make a Constitution saving throw", "The target also has Advantage on Strength checks and Strength saving throws",
+                        "deal an extra 1d4 damage on a hit", "The target also has Disadvantage on Strength checks and Strength saving throws"], None),
+    "Hex": ([buff(mark("1d6", "necrotic"), count=(1,), options=[(ABILITY_PT[a], [dis(f"check.{a}")]) for a in ABILITY_PT])],
+            ["you deal an extra 1d6 Necrotic damage to the target whenever you hit it with an attack roll",
+             "The target has Disadvantage on ability checks made with the chosen ability"], None),
+    "Hunter's Mark": ([buff(mark("1d6", "force"), count=(1,))],
+                      ["you deal an extra 1d6 Force damage to the target whenever you hit it with an attack roll"], None),
+    "Magic Weapon": ([buff(fb("attack.weapon", 1), fb("damage.weapon", 1), count=(1,), weapon={"nonmagical": True},
+                           variants=[{"slot": s, "effects": [fb("attack.weapon", b), fb("damage.weapon", b)]} for s, b in ((3, 2), (6, 3))])],
+                     ["You touch a nonmagical weapon", "a +1 bonus to attack rolls and damage rolls", "The bonus increases to +2 with a level 3-5 spell slot",
+                      "The bonus increases to +3 with a level 6+ spell slot"], None),
+    "Shield": ([buff(fb("ac", 5), count=(1,), end="caster_turn_start")], ["Until the start of your next turn, you have a +5 bonus to AC"], None),
+    "Shillelagh": ([buff(weapon_die("1d8"), count=(1,), weapon={"itemIds": ["club", "quarterstaff"], "spellcastingAbility": True},
+                         variants=[{"level": n, "effects": [weapon_die(d)]} for n, d in ((5, "1d10"), (11, "1d12"), (17, "2d6"))],
+                         options=[("Dano normal", []), ("Energia", [{"type": "base_override", "damageType": "force"}])])],
+                   ["A Club or Quarterstaff you are holding", "you can use your spellcasting ability instead of Strength", "the weapon's damage die becomes a d8",
+                    "it can be Force damage or the weapon's normal damage type", "levels 5 (d10), 11 (d12), and 17 (2d6)"], None),
+    "Bane": ([sv("cha", success="none", effects=[d20b("1d4", "attack.all", True), d20b("1d4", "save.all", True)], count=(3, 1))],
+             ["Up to three creatures", "the target must subtract 1d4 from the attack roll or save",
+              "You can target one additional creature for each spell slot level above 1"], None),
+    "Barkskin": ([buff({"type": "minimum_ac", "value": 17}, count=(1,))], ["has an Armor Class of 17 if its AC is lower than that"], None),
+    "Blur": ([buff(against("disadvantage", note="não vale contra quem percebe o alvo com Visão às Cegas ou Visão Verdadeira"), count=(1,))],
+             ["any creature has Disadvantage on attack rolls against you", "if it perceives you with Blindsight or Truesight"], None),
+    "Faerie Fire": ([sv("dex", success="none", effects=[against("advantage", note="se o atacante puder ver o alvo")])],
+                    ["Attack rolls against an affected creature or object have Advantage if the attacker can see it"], None),
+    "Holy Aura": ([buff(adv("save.all"), against("disadvantage"))],
+                  ["creatures of your choice have Advantage on all saving throws, and other creatures have Disadvantage on attack rolls against them"], None),
+    "Protection from Evil and Good": ([buff(against("disadvantage", ["aberration", "celestial", "elemental", "fey", "fiend", "undead"]), count=(1,))],
+                                      ["Aberrations, Celestials, Elementals, Fey, Fiends, or Undead",
+                                       "Creatures of those types have Disadvantage on attack rolls against the target"], None),
+    "Ray of Enfeeblement": ([sv("con", success="none", count=(1,), effects=[
+        dis("save.str"), dis("check.str"),
+        remind("Ray of Enfeeblement: repete a salvaguarda de Constituição; no sucesso, o efeito acaba.", "turn_end")])],
+        ["the target has Disadvantage on Strength-based D20 Tests for the duration", "The target repeats the save at the end of each of its turns"], None),
+    "Slow": ([sv("wis", success="none", count=(6,), effects=[
+        fb("ac", -2), fb("save.dex", -2),
+        remind("Slow: Deslocamento pela metade, sem Reações, ação ou Ação Bônus (não as duas) e um só ataque; magia somática tem 25% de chance de falhar."),
+        remind("Slow: repete a salvaguarda de Sabedoria; no sucesso, o efeito acaba.", "turn_end")])],
+        ["up to six creatures", "a -2 penalty to AC and Dexterity saving throws", "it can't take Reactions", "An affected target repeats the save at the end of each of its turns"], None),
     "Bless": ([buff(d20b("1d4", "attack.all"), d20b("1d4", "save.all"), count=(3, 1))],
               ["You bless up to three creatures", "the target adds 1d4 to the attack roll or save",
                "You can target one additional creature for each spell slot level above 1"], None),
@@ -420,8 +502,8 @@ RESOLUTION = {
                         ["choose Strength, Dexterity, Intelligence, Wisdom, or Charisma", "the target has Advantage on ability checks using the chosen ability",
                          "You can target one additional creature for each spell slot level above 2"], None),
     "Foresight": ([buff(adv("attack.all"), adv("save.all"), adv("initiative"), adv("death_save"),
-                        *[adv(f"check.{a}") for a in ("str", "dex", "con", "int", "wis", "cha")], count=(1,))],
-                  ["the target has Advantage on D20 Tests"], None),
+                        *[adv(f"check.{a}") for a in ("str", "dex", "con", "int", "wis", "cha")], against("disadvantage"), count=(1,))],
+                  ["the target has Advantage on D20 Tests", "other creatures have Disadvantage on attack rolls against it"], None),
     "Guidance": ([buff(options=[(SKILL_PT[k], [d20b("1d4", f"skill.{k}")]) for k in SKILL_PT], count=(1,))],
                  ["choose a skill", "the creature adds 1d4 to any ability check using the chosen skill"], None),
     "Haste": ([buff(fb("ac", 2), adv("save.dex"),

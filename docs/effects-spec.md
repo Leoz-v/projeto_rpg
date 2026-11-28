@@ -244,7 +244,7 @@ O valor do atributo passa a ser pelo menos `value` (ex.: Manoplas de Força do O
 { "type": "attack_ability", "ability": "dex", "when": { "all": [{ "attackKind": "melee" }, { "any": [{ "weaponCategory": "simple" }, { "weaponProperty": "light" }] }, { "wearingArmor": false }, { "wieldingShield": false }] } }
 ```
 
-- Permite usar outro atributo no ataque e no dano das armas que satisfazem o `when` (ex.: Martial Arts do Monge). O motor usa o maior entre o atributo normal da arma e os permitidos.
+- Permite usar outro atributo no ataque e no dano das armas que satisfazem o `when` (ex.: Martial Arts do Monge). `scope: "weapon"`: só na arma que carrega o efeito (Shillelagh). O motor usa o maior entre o atributo normal da arma e os permitidos.
 
 ### 3.14 `damage_reduction`
 
@@ -267,7 +267,7 @@ O valor do atributo passa a ser pelo menos `value` (ex.: Manoplas de Força do O
 - `damageType` ausente: o mesmo tipo do dano da arma (Vicious Weapon: "of the same type as the weapon's normal damage").
 - `scope: "weapon"` (só em itens): vale só nos ataques com a arma daquela entrada do inventário, como `attack.weapon`.
 - O `when` é avaliado no contexto do ataque. A ficha lista o dano extra em cada ataque; a rolagem soma quando o ataque acerta. O crítico dobra esses dados também (regra do SRD para dados de dano), na Fase 4.
-- Dano extra que depende do alvo ("contra Undead") ou de escolha por turno (Divine Strike, Sneak Attack) não usa este efeito: é resolução da Fase 4.
+- Dano extra que depende do alvo ("contra Undead") ou de escolha por turno (Divine Strike, Sneak Attack) não usa este efeito: usa `attack_rider` (3.29).
 
 ### 3.16 `crit_range`
 
@@ -332,9 +332,9 @@ Regra que muda o resultado de um Teste d20 (ataque, salvaguarda ou teste de atri
 { "type": "base_override", "addProperties": ["finesse"], "damageType": "radiant", "proficiencyWith": ["longsword", "shortsword"] }
 ```
 
-- Só em itens mágicos com item base: altera o item base **daquela entrada do inventário** enquanto a parte mágica está ativa. Os outros itens não mudam.
+- Em itens mágicos com item base, ou num ajuste com `weapon`: altera o item base **daquela entrada do inventário** enquanto a parte mágica está ativa. Os outros itens não mudam.
 - Armadura: `removeStrength` (a exigência de FOR some) e `removeStealthDisadvantage` (a Desvantagem em Stealth do item base some). Ex.: Mithral Armor.
-- Arma: `addProperties` (propriedades a mais), `damageType` (troca o tipo do dano da arma) e `proficiencyWith` (proficiente se tiver proficiência com alguma destas armas, além da própria arma base). Ex.: Sun Blade, "functions as a Longsword with the Finesse property. If you are proficient with Longswords or Shortswords, you are proficient with the Sun Blade [...] deals Radiant damage instead of Slashing damage".
+- Arma: `addProperties` (propriedades a mais), `damageType` (troca o tipo do dano da arma), `damageDice` (troca o dado, também com as duas mãos: Shillelagh) e `proficiencyWith` (proficiente se tiver proficiência com alguma destas armas, além da própria arma base). Ex.: Sun Blade, "functions as a Longsword with the Finesse property. If you are proficient with Longswords or Shortswords, you are proficient with the Sun Blade [...] deals Radiant damage instead of Slashing damage".
 - Pelo menos um campo. O id da arma (predicado `weaponId`) continua sendo o do item base.
 
 ### 3.21 `reminder`
@@ -384,7 +384,7 @@ Regra que muda o resultado de um Teste d20 (ataque, salvaguarda ou teste de atri
 - `max`: um valor (`BonusValue` da seção 3.1: inteiro, atributo com `min`, múltiplo da proficiência, por nível) ou `{ "byLevel": [20 valores] }`, pelo nível na escala da fonte (o da classe para características de classe, o do personagem para espécie e talento). Máximo 0: o recurso não aparece.
 - `recharge`: `long_rest` (o descanso longo devolve todos), `short_rest` (o curto ou o longo devolvem todos) ou `short_rest_one` (o curto devolve 1, o longo todos).
 - **Mesmo `id` de várias fontes:** vale o maior `max` e a recarga mais generosa (`short_rest` > `short_rest_one` > `long_rest`); o nome é o da primeira fonte.
-- A ficha lista os recursos em `resources`, já resolvidos. Usar o recurso (o que ele faz) continua com o jogador e o mestre; o motor só conta os usos.
+- A ficha lista os recursos em `resources`, já resolvidos. O motor conta os usos; o que o recurso faz está em `feature_use` (3.30), quando é automatizado.
 - **Magias concedidas com usos por descanso** (`grant_spell` com `uses: { per, count }`, seção 3.6) viram recursos automáticos, com id `spell_<id da magia>`, o nome da magia e a recarga do `per` (`long_rest`, ou `short_rest` para `short_rest`). Conjurar sem espaço gasta deles (nota 0053).
 
 ### 3.25 `d20_bonus`
@@ -404,7 +404,78 @@ Dado somado (ou subtraído) a um Teste d20, rolado a cada rolagem (nota 0060).
 - Vários `d20_bonus` se somam. A mesma magia não se acumula porque o efeito de magia é substituído (nota 0060), não por regra deste efeito.
 - O `when` segue a regra das vantagens: desconhecido na ficha estática vira lembrete e vale quando a rolagem confirma o contexto.
 
-### 3.26 `vision_range`
+### 3.26 `attacks_against`
+
+Vantagem ou Desvantagem de quem ataca a criatura (nota 0062).
+
+```json
+{ "type": "attacks_against", "mode": "advantage", "note": "se o atacante puder ver o alvo" }
+{ "type": "attacks_against", "mode": "disadvantage", "from": ["fiend", "undead"] }
+```
+
+- `mode`: `advantage` (Faerie Fire) ou `disadvantage` (Blur).
+- `from`: só vale para atacantes destes tipos de criatura. O tipo vem do bloco do monstro; um personagem é Humanoide. Sem o tipo (atacante fora do mapa ou sem bloco), vira lembrete.
+- `note`: ressalva do texto, publicada como lembrete no ataque. O efeito vale; quem ataca desfaz com a Vantagem ou a Desvantagem declarada.
+- Vale nos ataques com arma, de monstro e de magia contra o token.
+
+### 3.27 `minimum_ac`
+
+CA mínima (Barkskin, nota 0062). Aplicada depois das fórmulas e dos bônus de CA, escudo incluído.
+
+```json
+{ "type": "minimum_ac", "value": 17 }
+```
+
+### 3.28 `target_damage`
+
+Dano extra de quem conjurou quando acerta com uma jogada de ataque, com arma ou magia (nota 0063).
+
+```json
+{ "type": "target_damage", "dice": "1d6", "damageType": "necrotic" }
+{ "type": "target_damage", "dice": "2d8", "damageType": "cold", "within": 15 }
+```
+
+- Sem `within`, o efeito fica no alvo marcado e vale só para quem conjurou (Hex, Hunter's Mark).
+- Com `within`, fica em quem conjurou e vale contra alvos até essa distância em pés (Conjure Minor Elementals). Sem a distância, vira lembrete.
+- Os dados dobram no Acerto Crítico. Só vale como efeito de magia (`spell`).
+
+### 3.29 `attack_rider`
+
+Dano extra do ataque com arma que depende do alvo, do d20 ou da escolha de quem ataca (nota 0077).
+
+```json
+{ "type": "attack_rider", "id": "colossus_slayer", "name": "Colossus Slayer", "dice": "1d8", "mode": "auto", "oncePerTurn": true, "injured": true }
+{ "type": "attack_rider", "id": "dragon_slayer", "name": "Dragon Slayer", "dice": "3d6", "mode": "auto", "scope": "weapon", "onlyTypes": ["dragon"] }
+{ "type": "attack_rider", "id": "fires_burn", "name": "Fire's Burn", "dice": "1d10", "damageType": "fire", "mode": "choice", "cost": { "resource": "giant_ancestry" } }
+```
+
+- `mode`: `auto` entra sozinho no acerto; `choice`, quando quem ataca marca.
+- `dice`: dados, ou `byLevel` (20 valores) pelo nível na escala da fonte. Um efeito de mesmo `id` que vem depois substitui o anterior (Improved Divine Strike).
+- `damageType`: um tipo, uma lista à escolha, ou ausente (o da arma).
+- Condições: `ability` (o atributo do ataque), `onlyTypes` e `exceptTypes` (o tipo do alvo), `injured` (o alvo já perdeu PV), `natural20`, e o `when` do ataque. Sem saber o alvo, um `auto` vira lembrete.
+- `sneak`: a regra do Sneak Attack; fora dela, o ataque leva um aviso e não é bloqueado.
+- `oncePerTurn`: o Host controla com o personagem no combate; fora dele, vale sempre.
+- `cost`: gasto só no acerto: `resource` (um uso), `pactSlot` (um espaço de Pacto, com `perSlotLevel` por círculo) ou `charges` da arma.
+- `scope: "weapon"`: como no `extra_damage`. Os dados dobram no Acerto Crítico; um número fixo, não. `note` vira lembrete no ataque.
+
+### 3.30 `feature_use`
+
+Característica que o jogador usa na mesa (nota 0078). A ficha a lista em `featureUses`, já com os números.
+
+```json
+{ "type": "feature_use", "id": "second_wind", "name": "Second Wind", "action": "Ação Bônus", "cost": { "resource": "second_wind" }, "parts": [{ "kind": "heal", "dice": "1d10", "bonus": [{ "perLevel": 1 }] }] }
+```
+
+- `cost`: usos do recurso (`amount`, padrão 1). `targets`: `self` ou `one`. `forbidHeavyArmor`: não com armadura pesada. `action`, `duration` e `note` são texto para a mesa.
+- Partes, na ordem: `heal` (dados, `bonus` somados, `minimum`, `temporary`), `pool_heal` e `pool_restore` (a reserva gasta o que quem usa escolher), `restore` (condições que terminam), `condition` (com `until`), `regain` (todos os usos de outro recurso) e `buff` (estado em quem usou).
+- `buff`: os efeitos do catálogo ficam na ficha como ajuste ligado à característica, com os números do momento, até o dono encerrar, o `until` ou um `endsOn` (`incapacitated`, `unconscious`, `heavy_armor`; a morte, sempre). `noSpells`: não conjura nem se concentra. `weapon`: os efeitos são de uma arma corpo a corpo.
+- Um de mesmo `id` que vem depois substitui o anterior (Persistent Rage).
+
+### 3.31 `feature_use_part`
+
+Acrescenta uma parte a uma característica de outra fonte: `{ "type": "feature_use_part", "use": "lay_on_hands", "part": { … } }` (Restoring Touch, Mindless Rage).
+
+### 3.32 `vision_range`
 
 Configura o alcance de visão normal em áreas iluminadas para a ficha (`VisionProfile.normalRangeFeet`, nota 0061).
 
@@ -419,12 +490,20 @@ Configura o alcance de visão normal em áreas iluminadas para a ficha (`VisionP
   - Entre vários `"set"`, vale o maior alcance (`"unlimited"` supera qualquer valor finito).
   - Entre vários `"cap"`, vale o menor limite finito, que limita o alcance base resolvido (útil para maldições, clima ou restrições da mesa).
 
+### Efeitos numa arma
+
+Um ajuste com `weapon` (o `instanceId` do inventário) vale como se os efeitos fossem do próprio item (nota 0063): `attack.weapon` e `damage.weapon` (Magic Weapon), `base_override` e os efeitos com `scope: "weapon"`.
+
+### Efeitos num monstro
+
+Um token de monstro guarda os efeitos de magia em `spellEffects` (nota 0062). O bloco publicado fica intacto. Valem por cima dele, sem `when`: `flat_bonus` inteiro em `ac`, `initiative`, `save.*` e `attack.*`; `advantage`, `disadvantage` e `d20_bonus`; `resistance`, `vulnerability` e `immunity`; `minimum_ac`, `attacks_against` e `reminder`. O resto fica com o mestre, com nota.
+
 ## 4. Ordem de cálculo da ficha
 
 1. Valores base dos atributos (lista de escolhas: ASIs do antecedente e de talentos e aumentos fixos de classe, como Primal Champion).
 2. `ability_increase` (com o teto de cada um), depois `set_minimum_score`.
 3. Modificadores, bônus de proficiência (pelo nível de personagem, mais `flat_bonus` em `proficiency_bonus`) e proficiências (`grant_proficiency`).
-4. `set_base_ac` (maior fórmula) + `flat_bonus` em `ac`.
+4. `set_base_ac` (maior fórmula) + `flat_bonus` em `ac`, e por fim `minimum_ac`.
 5. Demais `flat_bonus`, `half_proficiency`, deslocamentos (`grant_speed`), sentidos, resistências e imunidades.
 6. Condições (incluindo exaustão) por último, e derivação do perfil de visão (`vision`: `blinded` e `unconscious` zeram sentidos baseados em visão, preservando `blindsight` e `tremorsense`).
 

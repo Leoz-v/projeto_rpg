@@ -54,8 +54,8 @@ export function rollActionDamage(damage: readonly Damage[], critical: boolean, r
 export interface AttackInput {
   d20: D20RollInput;
   targetAc: number;
-  /** Rola o dano do acerto (crítico ou não): grupos por tipo e o bônus, que soma ao primeiro grupo. */
-  rollDamage: (critical: boolean) => { groups: DamageGroup[]; bonus: number };
+  /** Rola o dano do acerto (crítico ou não; `hit` falso só com `onMiss`): grupos por tipo e o bônus, que soma ao primeiro grupo. */
+  rollDamage: (critical: boolean, hit: boolean, natural: number) => { groups: DamageGroup[]; bonus: number };
   defenses: Defenses;
   /** O acerto vira Acerto Crítico (alvo Paralisado ou Inconsciente a até 5 ft). */
   autoCritical?: boolean | undefined;
@@ -75,7 +75,7 @@ export function resolveAttack(input: AttackInput, rng: Rng): AttackResult {
   const hit = roll.critical || (!roll.fumble && roll.total >= input.targetAc);
   if (!hit && input.onMiss !== 'half') return { roll, hit, critical: false };
   const critical = hit && (roll.critical || input.autoCritical === true);
-  const { groups, bonus } = input.rollDamage(critical);
+  const { groups, bonus } = input.rollDamage(critical, hit, roll.natural);
   // O bônus (modificador de atributo, arma mágica) é do dano da arma: entra no primeiro grupo.
   const instances = groups.map((g, i) => {
     const amount = Math.max(0, g.total + (i === 0 ? bonus : 0));
@@ -117,6 +117,11 @@ export function resolveSave(input: SaveInput, rng: Rng): SaveResult {
   const roll = rollD20({ ...input.d20, dc: input.dc }, rng);
   const success = roll.success === true;
   if (input.damage.length === 0) return { roll, success };
+  return { roll, success, damage: saveDamage(input, success, rng) };
+}
+
+/** O dano de uma salvaguarda já decidida (a Resistência Lendária troca a falha por sucesso). */
+export function saveDamage(input: Pick<SaveInput, 'damage' | 'onSuccess' | 'defenses'>, success: boolean, rng: Rng): DamageResult {
   const incoming = input.damage.map((d) => ({ type: d.type, amount: success ? (input.onSuccess === 'half' ? Math.floor(d.amount / 2) : 0) : d.amount }));
-  return { roll, success, damage: applyDamage(input.defenses, incoming, rng) };
+  return applyDamage(input.defenses, incoming, rng);
 }

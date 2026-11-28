@@ -62,7 +62,7 @@ export class RulerTool3d {
     if (this.destroyed) return;
     this.active = active;
     this.sceneMgr.app.canvas.style.cursor = active ? 'crosshair' : '';
-    this.sceneMgr.setLeftButtonAction(active ? 'none' : 'pan');
+    this.sceneMgr.setLeftButtonAction('none');
     if (!active) this.clear();
   }
 

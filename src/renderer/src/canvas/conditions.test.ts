@@ -1,22 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { SessionCharacter, Token } from '../../../shared/protocol';
+import { makeToken } from '../../../shared/protocol/test-fixtures';
 import { conditionLabels, tokenConditions } from './conditions';
 
-const token = (overrides: Partial<Token>): Token => ({
-  id: 't',
-  mapId: 'm',
-  name: 'Goblin',
-  position: { x: 0, y: 0 },
-  size: 'small',
-  monsterId: 'goblin',
-  image: null,
-  ownerIds: [],
-  characterId: null,
-  hp: null,
-  conditions: { active: [{ condition: 'prone' }], exhaustion: 0 },
-  visionFeet: null,
-  ...overrides,
-});
+const token = (overrides: Partial<Token>): Token => makeToken({ id: 't', mapId: 'm', name: 'Goblin', size: 'small', monsterId: 'goblin', conditions: { active: [{ condition: 'prone' }], exhaustion: 0 }, ...overrides });
 
 describe('token conditions', () => {
   it('uses the character conditions for a character token, and its own otherwise', () => {

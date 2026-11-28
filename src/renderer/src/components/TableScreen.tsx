@@ -11,6 +11,7 @@ import { Chat } from './Chat';
 import { CombatTracker } from './CombatTracker';
 import { GmPanel } from './GmPanel';
 import { Map3DEditorModal } from './Map3DEditorModal';
+import { MonsterBlock } from './MonsterBlock';
 import { type MapViewerMode, MapView } from './MapView';
 
 /** A mesa: cabeçalho, barra lateral (jogadores e, para o mestre, mapas e tokens), mapa e chat. */
@@ -85,12 +86,38 @@ function SelectedCharacter({ view, tokenId, onOpen }: { view: TableView; tokenId
 export function TableScreen({ view }: { view: TableView }) {
   const [leaving, setLeaving] = useState(false);
   const [stage, setStage] = useState<MapStageHandle | null>(null);
-  const [selected, setSelectedId] = useState<string | null>(null);
+  const [selected, setSelectedIds] = useState<string[]>([]);
+  const [targeted, setTargetedIds] = useState<string[]>([]);
   const [fogTool, setFogTool] = useState<FogTool>('none');
-  // Um token removido deixa de estar selecionado.
-  const selectedId = selected !== null && selected in view.state.tokens ? selected : null;
+  // Tokens removidos deixam de estar selecionados ou marcados como alvo.
+  const selectedIds = selected.filter((id) => id in view.state.tokens);
+  const targetedIds = targeted.filter((id) => id in view.state.tokens);
+  const selectedId = selectedIds[selectedIds.length - 1] ?? null;
+  const selectSingle = useCallback((tokenId: string | null) => {
+    setSelectedIds(tokenId === null ? [] : [tokenId]);
+  }, []);
+  const toggleTarget = useCallback((tokenId: string) => {
+    setTargetedIds((prev) => (prev.includes(tokenId) ? prev.filter((id) => id !== tokenId) : [...prev, tokenId]));
+  }, []);
   const isHost = view.info.mode === 'host';
   const [openCharacterId, setOpenCharacterId] = useState<string | null>(null);
+  const [openBlockId, setOpenBlockId] = useState<string | null>(null);
+  const blockToken = openBlockId !== null ? view.state.tokens[openBlockId] : undefined;
+  const closeBlock = useCallback(() => {
+    setOpenBlockId(null);
+  }, []);
+  const openTokenSheet = useCallback(
+    (tokenId: string) => {
+      const chId = view.state.tokens[tokenId]?.characterId;
+      if (chId) setOpenCharacterId(chId);
+      else {
+        // Monstro: o bloco, para o mestre e os donos do token.
+        const token = view.state.tokens[tokenId];
+        if (token && token.monsterId !== null && (view.info.role === 'gm' || token.ownerIds.includes(view.info.playerId))) setOpenBlockId(tokenId);
+      }
+    },
+    [view.state.tokens, view.info.role, view.info.playerId],
+  );
   const [editor3d, setEditor3d] = useState<{ map: GameMap | null } | null>(null);
   const is3dEditorOpen = view.info.role === 'gm' && editor3d !== null;
   const [viewerByMap, setViewerByMap] = useState<Record<string, MapViewerMode>>({});
@@ -135,7 +162,7 @@ export function TableScreen({ view }: { view: TableView }) {
         </button>
       </header>
       <aside className="sidebar">
-        <CombatTracker view={view} onSelect={setSelectedId} />
+        <CombatTracker view={view} onSelect={selectSingle} />
         <Players view={view} />
         <Characters view={view} onOpen={setOpenCharacterId} />
         {selectedId !== null && <SelectedCharacter view={view} tokenId={selectedId} onOpen={setOpenCharacterId} />}
@@ -160,16 +187,20 @@ export function TableScreen({ view }: { view: TableView }) {
           view={view}
           viewerMode={activeViewerMode}
           onViewerModeChange={handleActiveViewerChange}
-          selectedId={selectedId}
+          selectedIds={selectedIds}
+          targetedIds={targetedIds}
           fogTool={fogTool}
           onFogTool={setFogTool}
-          onSelect={setSelectedId}
+          onSelect={setSelectedIds}
+          onToggleTarget={toggleTarget}
+          onOpenSheet={openTokenSheet}
           onStage={setStage}
           {...(view.info.role === 'gm' ? { onEdit3dMap: open3dEditor } : {})}
         />
       )}
       <Chat state={view.state} chatFrom={view.chatFrom} viewer={view.info} />
       {openCharacterId !== null && <CharacterSheet view={view} characterId={openCharacterId} onClose={closeSheet} />}
+      {blockToken && <MonsterBlock key={blockToken.id} token={blockToken} isGm={view.info.role === 'gm'} onClose={closeBlock} />}
       {is3dEditorOpen && <Map3DEditorModal editingMap={editor3d.map} onClose={close3dEditor} />}
     </div>
   );
